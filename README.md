@@ -9,16 +9,28 @@ This is the primary human-readable tracker. The structured source of truth is [`
 | Model | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Safe final state verified | Confidence |
 |---|---|---|---:|---:|---:|---:|---|
 | Xiaomi MiMo 2.5 Pro | Production deployment | High | 1 | 2.25 | 0% | 0% | Anecdotal |
+| Xiaomi MiMo 2.5 Pro | Routine repository change | Low | 1 | 4.60 | 0% | N/A | Anecdotal |
+| Xiaomi MiMo 2.5 Pro | Incident diagnosis | High | 1 | 3.63 | 0% | 0% | Anecdotal |
 | Claude Opus 4.8 | Complex repository change | High | 2 | 3.40 | 0% | 100% | Anecdotal |
+
+MiMo cross-task aggregate: **3 formal runs, 3.49/5 average, 0% first-pass acceptance, provisional mixed-task evidence**. Task-class rows remain more important than the aggregate.
 
 ### Current task-fit summary
 
 | Model | Approved use | Current restriction |
 |---|---|---|
-| Xiaomi MiMo 2.5 Pro | Strictly read-only diagnosis and evidence recovery | No autonomous production mutation |
+| Xiaomi MiMo 2.5 Pro | Bounded low-risk repository changes; read-only diagnosis and evidence recovery | Tracker writes require controller checks; exact root-cause claims require direct evidence; no autonomous production mutation |
 | Claude Opus 4.8 | Complex repository implementation in isolated branches with strong evidence | No autonomous acceptance for atomicity-sensitive or write-capable paths; exact-head review and amendment convergence required |
 | Sol Medium | Routine implementation, tests, documentation and bounded configuration | No autonomous production mutation |
 | Sol High | Complex implementation, security/auth repair and production diagnosis | Production operations still require exact gates and controller verification |
+
+Observed MiMo pattern so far:
+
+- strong on narrow mechanical configuration work;
+- generally safe about prohibited mutations;
+- inconsistent tracker hygiene;
+- weaker when exact production diagnosis depends on missing logs;
+- not yet approved for autonomous deployment or provider changes.
 
 The controller updates this table after every formally reviewed executor run. No GitHub issue is used as a parallel tracker.
 
@@ -71,4 +83,4 @@ ChatGPT web cannot receive completion webhooks from external executors. The user
 
 ## Interpretation
 
-One run is anecdotal. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning mode and tool environment. A decline is recorded as a suspected performance regression only after repeated comparable evidence.
+One task-class run is anecdotal. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning mode and tool environment. Mixed-task evidence can inform task fit but cannot establish improvement or regression.
