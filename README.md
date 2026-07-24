@@ -9,14 +9,26 @@ This is the primary human-readable tracker. The structured source of truth is [`
 | Model | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Safe final state verified | Confidence |
 |---|---|---|---:|---:|---:|---:|---|
 | Xiaomi MiMo 2.5 Pro | Production deployment | High | 1 | 2.25 | 0% | 0% | Anecdotal |
+| Xiaomi MiMo 2.5 Pro | Routine repository change | Low | 1 | 4.60 | 0% | N/A | Anecdotal |
+| Xiaomi MiMo 2.5 Pro | Incident diagnosis | High | 1 | 3.63 | 0% | 0% | Anecdotal |
+
+Cross-task aggregate: **3 formal runs, 3.49/5 average, 0% first-pass acceptance, provisional evidence overall**. Task-class rows remain more important than the cross-task average.
 
 ### Current task-fit summary
 
 | Model | Approved use | Current restriction |
 |---|---|---|
-| Xiaomi MiMo 2.5 Pro | Strictly read-only diagnosis and evidence recovery | No autonomous production mutation |
+| Xiaomi MiMo 2.5 Pro | Bounded low-risk repository changes; read-only diagnosis and evidence recovery | Tracker writes require controller repair checks; root-cause claims require direct evidence; no autonomous production mutation |
 | Sol Medium | Routine implementation, tests, documentation and bounded configuration | No autonomous production mutation |
 | Sol High | Complex implementation, security/auth repair and production diagnosis | Production operations still require exact gates and controller verification |
+
+Observed MiMo pattern so far:
+
+- strong on narrow mechanical configuration work;
+- generally safe about prohibited mutations;
+- inconsistent tracker hygiene;
+- weaker when exact production diagnosis depends on missing logs;
+- not yet approved for autonomous deployment or provider changes.
 
 The controller updates this table after every formally reviewed executor run. No GitHub issue is used as a parallel tracker.
 
@@ -65,8 +77,8 @@ For every executor output brought to the controller:
 7. Reconcile the applicable private project tracker.
 8. Only then issue the next executor prompt.
 
-ChatGPT web cannot receive completion webhooks from external executors. The user must bring each completion report into the controller conversation; grading is automatic from that point onward.
+ChatGPT web cannot receive completion webhooks from external executors. The user must bring each executor completion report into the controller conversation; grading is automatic from that point onward.
 
 ## Interpretation
 
-One run is anecdotal. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning mode and tool environment. A decline is recorded as a suspected performance regression only after repeated comparable evidence.
+One task-class run is anecdotal. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning mode and tool environment. Three mixed-task runs provide provisional task-fit evidence but cannot establish improvement or regression.
