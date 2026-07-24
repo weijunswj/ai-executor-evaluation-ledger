@@ -14,6 +14,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | Provisional |
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | Formal backfill pending |
+| Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | Anecdotal |
 | MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | Provisional across mixed tasks |
 
 ## Task-class scorecard
@@ -21,6 +22,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Model | Reasoning level | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
+| Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Incident Diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
@@ -34,6 +36,7 @@ These tables are generated from the append-only ledger. Do not edit them manuall
 |---|---|---|
 | Xiaomi MiMo 2.5 Pro | Bounded low-risk repository changes; read-only diagnosis and evidence recovery | Tracker writes require controller checks; exact root-cause claims require direct evidence; no autonomous production mutation |
 | Claude Opus 4.8 High | Complex repository implementation in isolated branches with strong exact-head evidence | No autonomous acceptance for atomicity, cleanup, durable-state or write-capable paths; a further same-domain repair requires stronger reasoning and another exact-head review |
+| Claude Opus 4.8 Ultra High | Narrow high-risk remediation in isolated draft branches with explicit negative tests | No autonomous acceptance for durable-state or write-capable paths; a same-domain P1 survived and the next repair requires Max reasoning plus exact-head review |
 | GPT-5.6 Sol Medium | Routine implementation, tests, documentation and bounded configuration | No autonomous production mutation |
 | GPT-5.6 Sol High | Complex implementation, security/auth repair and production diagnosis | Production operations still require exact gates and controller verification |
 
@@ -52,6 +55,14 @@ Observed Claude Opus 4.8 High pattern so far:
 - implements substantial cross-language changes effectively;
 - has required three controller amendment cycles on the same filesystem durability boundary;
 - green tests and continuous integration have not been sufficient for independent acceptance.
+
+Observed Claude Opus 4.8 Ultra High pattern so far:
+
+- closed the specifically named silent-unlink defect with a clear state model and focused tests;
+- preserved exact-head evidence, draft state and zero live-system actions;
+- still missed ledger-persistence failure after package publication;
+- left a same-domain P1 that can bypass durable single-use state;
+- one run is anecdotal and does not justify autonomous acceptance.
 
 ## Display retention
 

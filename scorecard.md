@@ -12,6 +12,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | - | Formal backfill pending |
+| Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | 12 | Provisional across mixed tasks |
 
 ## Formal evaluated runs
@@ -20,6 +21,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 24 Jul 2026 23:50 SGT | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | AMEND | 3.23 | No | Verified |
 | 24 Jul 2026 23:12 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.43 | No | Verified |
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Provider default | Incident Diagnosis | High | HOLD | 3.63 | No | Not controller-verified |
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Provider default | Routine Repository Change | Low | AMEND | 4.60 | No | Not applicable |
@@ -32,6 +34,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Model | Reasoning level | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
+| Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Incident Diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
@@ -39,6 +42,29 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### Claude Opus 4.8 Ultra High - Complex Repository Change
+
+- Reasoning level: **ultra-high**
+- Reviewed: **24 Jul 2026 23:50 SGT**
+- Run ID: `2026-07-24-claude-opus-4-8-ultra-high-business-automation-a-amendment-003`
+- Subject alias: `business-automation-a`
+- Result: **AMEND**
+- Weighted score: **3.23/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - implemented a clear three-state publication and temporary-cleanup model
+  - forced unlink failures across pre-publication, race and post-publication paths
+  - preserved published and competing final packages and avoided broad temporary-file sweeps
+  - kept the change draft and unmerged with exact-head continuous integration and zero live-system actions
+- Principal defects:
+  - post-publication single-use state depends on a ledger append that can itself fail
+  - a published package may exist without a durable build event after ledger open, write, flush or fsync failure
+  - the same approval can then build another package at a fresh absent path
+  - the command falls back to a generic error rather than an explicit published do-not-retry state
+  - tests do not force ledger persistence failures after publication
+  - the completion report claims durable approval consumption despite this untested bypass
 
 ### Claude Opus 4.8 High - Complex Repository Change
 
