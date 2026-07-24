@@ -9,7 +9,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Model | Reasoning level | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Evidence level |
 |---|---|---:|---:|---:|---:|---|
 | Xiaomi MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | Provisional across mixed tasks |
-| Claude Opus 4.8 High | High | 2 | 3.40 | 0% | 2/2 | Anecdotal |
+| Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 | Provisional |
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | Formal backfill pending |
 
@@ -20,16 +20,16 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Xiaomi MiMo 2.5 Pro | Provider default | Production deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | Xiaomi MiMo 2.5 Pro | Provider default | Routine repository change | Low | 1 | 4.60 | 0% | Anecdotal |
 | Xiaomi MiMo 2.5 Pro | Provider default | Incident diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
-| Claude Opus 4.8 High | High | Complex repository change | High | 2 | 3.40 | 0% | Anecdotal |
+| Claude Opus 4.8 High | High | Complex repository change | High | 3 | 3.41 | 0% | Provisional |
 
-The two Claude records were corrected after merge to identify the executor configuration as **Claude Opus 4.8 High**. Correction records do not count as additional formal runs.
+The first two Claude records were corrected after merge to identify the executor configuration as **Claude Opus 4.8 High**. Correction records do not count as additional formal runs. The third comparable run was recorded with the complete model label and observed `high` reasoning level.
 
 ## Current task-fit summary
 
 | Model | Approved use | Current restriction |
 |---|---|---|
 | Xiaomi MiMo 2.5 Pro | Bounded low-risk repository changes; read-only diagnosis and evidence recovery | Tracker writes require controller checks; exact root-cause claims require direct evidence; no autonomous production mutation |
-| Claude Opus 4.8 High | Complex repository implementation in isolated branches with strong evidence | No autonomous acceptance for atomicity-sensitive or write-capable paths; exact-head review and amendment convergence required |
+| Claude Opus 4.8 High | Complex repository implementation in isolated branches with strong exact-head evidence | No autonomous acceptance for atomicity, cleanup, durable-state or write-capable paths; a further same-domain repair requires stronger reasoning and another exact-head review |
 | GPT-5.6 Sol Medium | Routine implementation, tests, documentation and bounded configuration | No autonomous production mutation |
 | GPT-5.6 Sol High | Complex implementation, security/auth repair and production diagnosis | Production operations still require exact gates and controller verification |
 
@@ -41,13 +41,21 @@ Observed MiMo pattern so far:
 - weaker when exact production diagnosis depends on missing logs;
 - not yet approved for autonomous deployment or provider changes.
 
+Observed Claude Opus 4.8 High pattern so far:
+
+- strong revision, test and draft-state evidence;
+- consistently respects the no-live-operation boundary;
+- implements substantial cross-language changes effectively;
+- has required three controller amendment cycles on the same filesystem durability boundary;
+- green tests and continuous integration have not been sufficient for independent acceptance.
+
 ## Display retention
 
 `evaluations.jsonl` retains the complete sanitised history. In `scorecard.md`, the `Formal evaluated runs` table and `Latest formal evaluations` section show only the newest 30 formal runs, newest first. When run 31 is added, only the oldest displayed row and detailed entry are removed; the underlying ledger record and aggregate history remain intact.
 
 ## Purpose
 
-This repository tracks whether an executor produces correct, safe, reviewable and efficient work. Public records use opaque project aliases and exclude repository owners, repository names, user names, raw project URLs, provider identifiers, secrets and private operational details.
+This repository tracks whether an executor produces correct, safe, reviewable and efficient work. Public records use opaque aliases and exclude repository owners, repository names, user names, raw project URLs, provider identifiers, secrets and private operational details.
 
 ## Control boundary
 
@@ -98,4 +106,4 @@ ChatGPT web cannot receive completion webhooks from external executors. The user
 
 ## Interpretation
 
-One task-class run is anecdotal. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning level and tool environment. Mixed-task evidence can inform task fit but cannot establish improvement or regression.
+One task-class run is anecdotal. Three comparable runs provide provisional evidence, not a stable baseline. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning level and tool environment. Mixed-task evidence can inform task fit but cannot establish improvement or regression.

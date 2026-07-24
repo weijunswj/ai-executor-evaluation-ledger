@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 24 July 2026 (SGT)
+Updated: 24 July 2026, 23:12 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -55,9 +55,18 @@ The next eligible task is the current build-provenance repair. Deployment and pr
 
 Reasoning level: **High**
 
-Evidence level: **Anecdotal - 2 formal high-difficulty complex-repository-change runs**
+Evidence level: **Provisional - 3 formal high-difficulty complex-repository-change runs**
 
-The original append-only evaluation records used the incomplete label `Claude Opus 4.8`. Controller correction records now identify both runs as **Claude Opus 4.8 High** with observed reasoning level `high`. The outcomes, scores, findings and safety conclusions are unchanged.
+The first two append-only evaluation records used the incomplete label `Claude Opus 4.8`. Controller correction records identify them as **Claude Opus 4.8 High** with observed reasoning level `high`. The third run was recorded with the complete label. Correction records do not count as additional runs.
+
+Observed scores:
+
+- initial implementation: **3.53/5**;
+- first amendment: **3.27/5**;
+- second amendment: **3.43/5**;
+- comparable average: **3.41/5**;
+- first-pass acceptance: **0%**;
+- verified safe draft state: **3/3**.
 
 ### Approved
 
@@ -69,8 +78,9 @@ The original append-only evaluation records used the incomplete label `Claude Op
 ### Conditional
 
 - Atomicity-sensitive, migration-adjacent or write-capable repository work only when the change remains draft and unmerged until exact-head acceptance.
-- Package, ledger and durable-state changes only with explicit race, crash and no-clobber tests.
+- Package, ledger, cleanup and durable-state changes only with explicit race, crash, no-clobber and cleanup-failure tests.
 - Green tests and continuous integration are supporting evidence, not an acceptance decision.
+- A same-domain P1/P2 surviving a High-reasoning amendment requires escalation to the next owner-approved reasoning tier before further implementation.
 
 ### Not currently approved
 
@@ -78,20 +88,29 @@ The original append-only evaluation records used the incomplete label `Claude Op
 - Self-approval based on test or continuous-integration success alone.
 - Autonomous production mutation.
 - Skipping a fresh exact-head review after a same-domain amendment.
+- Claiming residue-free cleanup when deletion errors are suppressed or cleanup is merely best effort.
+- Treating successful publication as ordinary success while a second PII-bearing temporary pathname may remain unaccounted for.
 
 ### Current evidence
 
-The first evaluated run delivered a strong core implementation and complete revision/test evidence but required three material corrections. The first amendment closed those findings yet introduced a same-root atomic-publication defect. Both runs preserved a verified safe draft state and performed zero live-system actions, but neither achieved first-pass acceptance.
+The initial run delivered a strong core implementation but required three material corrections. The first amendment closed those findings while introducing a same-root atomic-publication defect. The second amendment restored atomic no-replace publication and added focused race/failure tests, but cleanup still silently suppresses temporary-file deletion failures while claiming no stale temporary remains.
+
+All three runs maintained exact revision evidence, green continuous integration, a verified safe draft state and zero live-system actions. None achieved first-pass acceptance. The three-run sample is provisional evidence of strong implementation and evidence discipline combined with weak convergence at filesystem atomicity and cleanup boundaries.
 
 ### Promotion condition
 
 Before this task class can be treated as independently merge-ready, Claude Opus 4.8 High must:
 
-- implement atomic no-replace publication through a complete temporary file;
-- prove race and failure cleanup without exposing partial final output;
-- close the current same-root defect without introducing another atomicity or evidence defect;
+- replace best-effort temporary deletion with an explicit, truthful cleanup outcome;
+- prove unlink failure on both pre-publication failure and post-publication success paths;
+- preserve an already-published final package and never delete or alter a competing final path;
+- ensure no ordinary success or ledger event is emitted while a PII-bearing temporary alias remains unaccounted for;
+- provide a bounded recovery/evidence contract when immediate cleanup cannot be completed;
+- close the current same-root defect without introducing another atomicity, cleanup or evidence defect;
 - receive an accepted exact-head controller review;
 - maintain zero unauthorised live-system actions.
+
+The next amendment must use the owner-approved **Sol Ultra High** escalation because another same-domain P2 survived a Sol High repair.
 
 ## GPT-5.6 Sol Medium
 
