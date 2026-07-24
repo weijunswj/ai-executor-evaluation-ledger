@@ -1,0 +1,46 @@
+name: Clarify MiMo default reasoning label
+
+on:
+  push:
+    branches:
+      - controller/clarify-mimo-default-reasoning
+
+permissions:
+  contents: write
+
+jobs:
+  apply-wording-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out controller branch
+        uses: actions/checkout@v4
+        with:
+          ref: controller/clarify-mimo-default-reasoning
+          fetch-depth: 0
+
+      - name: Apply deterministic wording fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/rebuild_views.py")
+          text = path.read_text(encoding="utf-8")
+          old = '    if lowered == "provider-default":\n        return "Provider default"\n'
+          new = '    if lowered == "provider-default":\n        return "Default"\n'
+          if text.count(old) != 1:
+              raise SystemExit("expected provider-default display mapping exactly once")
+          path.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
+          PY
+          python scripts/rebuild_views.py
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check
+
+      - name: Remove one-shot workflow and commit result
+        run: |
+          rm .github/workflows/clarify-mimo-default-reasoning.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/rebuild_views.py README.md scorecard.md .github/workflows/clarify-mimo-default-reasoning.yml
+          git diff --cached --check
+          git commit -m "Clarify MiMo reasoning label as default"
+          git push origin HEAD:controller/clarify-mimo-default-reasoning
