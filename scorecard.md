@@ -1,8 +1,8 @@
 # Executor Scorecard
 
-Updated: 24 July 2026, 22:57 SGT
+Updated: 24 July 2026, 23:04 SGT
 
-This scorecard is generated from controller-verified records in `evaluations.jsonl`. Scores are meaningful primarily within comparable task classes and difficulty. Public project references use opaque aliases.
+This scorecard is generated from controller-verified records in `evaluations.jsonl`. Scores are meaningful primarily within comparable task classes and difficulty. Public project references use opaque aliases. Correction records relabel existing runs and are not counted as additional runs.
 
 ## Formal evaluated runs
 
@@ -11,7 +11,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Xiaomi MiMo 2.5 Pro | Production deployment | High | 1 | 2.25 | 0% | 0% | 5 | Anecdotal |
 | Xiaomi MiMo 2.5 Pro | Routine repository change | Low | 1 | 4.60 | 0% | N/A | 3 | Anecdotal |
 | Xiaomi MiMo 2.5 Pro | Incident diagnosis | High | 1 | 3.63 | 0% | 0% | 4 | Anecdotal |
-| Claude Opus 4.8 | Complex repository change | High | 2 | 3.40 | 0% | 100% | 3 | Anecdotal |
+| Claude Opus 4.8 High | Complex repository change | High | 2 | 3.40 | 0% | 100% | 3 | Anecdotal |
 
 MiMo cross-task aggregate:
 
@@ -63,7 +63,7 @@ The aggregate is descriptive only. It must not be used to equate low-risk config
   - attempt count remained unverified.
 - Later direct evidence proved that revision discovery failed before checkout-status inspection.
 
-### Claude Opus 4.8 - Business automation A amendment
+### Claude Opus 4.8 High - Business automation A amendment
 
 - Run ID: `2026-07-24-claude-opus-4-8-business-automation-a-amendment-001`
 - Subject alias: `business-automation-a`
@@ -71,6 +71,7 @@ The aggregate is descriptive only. It must not be used to equate low-risk config
 - Weighted score: **3.27/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified** - the change remained draft and unmerged, with zero live-system actions
+- Executor configuration correction: **Claude Opus 4.8 High**, observed reasoning mode `high`
 - Principal strengths:
   - closed all three prior findings with focused tests and fresh continuous integration;
   - preserved the historical package against overwrite;
@@ -92,12 +93,14 @@ MiMo currently appears:
 - less reliable when exact operational diagnosis requires unavailable logs;
 - unsuitable for autonomous production mutation at present.
 
-## Claude Opus 4.8 comparable history
+## Claude Opus 4.8 High comparable history
 
 | Run | Result | Score /5 | Material findings | Controller note |
 |---|---|---:|---:|---|
 | Initial implementation | AMEND | 3.53 | 3 P2 | Strong core implementation and evidence, but schema exactness, historical-package preservation and truthful build evidence were incomplete. |
 | First amendment | AMEND | 3.27 | 1 P2 | Closed the prior findings but introduced a same-root atomic-publication defect. |
+
+The original append-only evaluation records used the incomplete label `Claude Opus 4.8`. Two correction records now identify both runs as **Claude Opus 4.8 High** with observed reasoning mode `high`; scores and conclusions are unchanged.
 
 Two runs remain anecdotal. The lower second score is not classified as a regression: the sample is too small, and the repair involved a difficult atomic no-replace filesystem boundary. The same-root recurrence is nevertheless a material convergence concern.
 
@@ -112,7 +115,7 @@ Backfill should use only verifiable historical runs. Public records must use opa
 No model currently has enough comparable formal runs for a regression determination.
 
 - MiMo 2.5 Pro: 3 mixed-task runs - provisional task-fit evidence, but one run per task class.
-- Claude Opus 4.8: 2 high-difficulty complex-repository-change runs - anecdotal only; one same-root defect recurrence recorded.
+- Claude Opus 4.8 High: 2 high-difficulty complex-repository-change runs - anecdotal only; one same-root defect recurrence recorded.
 - Sol Medium: formal backfill pending.
 - Sol High: formal backfill pending.
 
@@ -120,4 +123,4 @@ No model currently has enough comparable formal runs for a regression determinat
 
 MiMo may perform the bounded Project A repository repair under exact scope and independent review. It remains prohibited from deploying or changing provider settings until the repair is accepted and all admission gates are independently re-established.
 
-Claude Opus 4.8 must complete the current atomic no-replace publication amendment and pass another exact-head review before the draft change may be accepted or merged.
+Claude Opus 4.8 High must complete the current atomic no-replace publication amendment and pass another exact-head review before the draft change may be accepted or merged.
