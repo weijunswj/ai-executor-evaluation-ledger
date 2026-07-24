@@ -15,7 +15,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | Formal backfill pending |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | Anecdotal |
-| MiMo 2.5 Pro | Default | 5 | 3.30 | 0% | 1/4 applicable | Provisional across mixed tasks |
+| MiMo 2.5 Pro | Default | 6 | 3.24 | 0% | 2/5 applicable | Moderate |
 
 ## Task-class scorecard
 
@@ -27,7 +27,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Provider Operation | High | 1 | 3.05 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Security Remediation | High | 1 | 2.98 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Default | Security Remediation | High | 2 | 2.96 | 0% | Anecdotal |
 
 These tables are generated from the append-only ledger. Do not edit them manually.
 <!-- GENERATED:README-SCORES:END -->
