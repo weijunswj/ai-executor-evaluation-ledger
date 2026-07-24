@@ -9,6 +9,7 @@ on:
       - scripts/rebuild_views.py
       - README.md
       - scorecard.md
+      - CONTROLLER_QUICKSTART.md
       - .github/workflows/rebuild-ledger-views.yml
 
 permissions:
