@@ -1,0 +1,113 @@
+name: Apply MiMo reasoning correction
+
+on:
+  push:
+    branches:
+      - "controller/correct-mimo-default-reasoning"
+    paths:
+      - .github/workflows/apply-mimo-reasoning-correction.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out correction branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Append correction and rebuild views
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          ledger_path = Path("evaluations.jsonl")
+          affected_run_id = "2026-07-24-mimo-2-5-pro-public-web-app-a-provenance-repair-003"
+          correction_run_id = "2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003"
+
+          raw = ledger_path.read_text(encoding="utf-8")
+          records = [json.loads(line) for line in raw.splitlines() if line.strip()]
+          by_run_id = {record.get("run_id"): record for record in records}
+
+          if affected_run_id not in by_run_id:
+              raise SystemExit("Affected evaluation is absent; refusing correction.")
+          if correction_run_id in by_run_id:
+              raise SystemExit("Correction already exists; refusing duplicate append.")
+
+          affected = by_run_id[affected_run_id]
+          if affected.get("model") != "MiMo 2.5 Pro":
+              raise SystemExit("Affected model does not match; refusing correction.")
+          if affected.get("observed_reasoning_mode") is not None:
+              raise SystemExit("Affected reasoning mode is not null; refusing correction.")
+
+          correction = {
+              "schema_version": 1,
+              "record_type": "correction",
+              "run_id": correction_run_id,
+              "reviewed_at": "2026-07-25T00:27:00+08:00",
+              "executor_reported_at": None,
+              "provider": "Xiaomi",
+              "model": "MiMo 2.5 Pro",
+              "requested_reasoning_level": None,
+              "observed_reasoning_mode": "provider-default",
+              "task_class": "security-remediation",
+              "difficulty": "high",
+              "subject_alias": "public-web-app-a",
+              "affected_run_id": affected_run_id,
+              "corrected_fields": {
+                  "observed_reasoning_mode": "provider-default"
+              },
+              "correction_reason": "The repository owner clarified that MiMo 2.5 Pro exposes only its default reasoning mode. The affected run therefore used the provider default rather than an unexposed reasoning mode.",
+              "verification_evidence": "Direct owner clarification received by the controller; all earlier formal MiMo 2.5 Pro records use the same provider-default mode.",
+              "correction_scope": "Observed reasoning mode only; verdict, scores, findings and safety conclusions are unchanged.",
+              "outcome": affected["outcome"],
+              "first_pass_accepted": affected["first_pass_accepted"],
+              "controller_intervention_required": affected["controller_intervention_required"],
+              "safe_final_state_reported": affected["safe_final_state_reported"],
+              "safe_final_state_verified": affected["safe_final_state_verified"],
+              "root_cause_identified": affected["root_cause_identified"],
+              "follow_up_runs_required": affected["follow_up_runs_required"],
+              "scores": affected["scores"],
+              "weighted_score_5": affected["weighted_score_5"],
+              "weighted_score_10": affected["weighted_score_10"],
+              "integrity_and_control_flags": affected["integrity_and_control_flags"],
+              "confidence": affected["confidence"],
+          }
+
+          with ledger_path.open("a", encoding="utf-8", newline="\n") as handle:
+              if raw and not raw.endswith("\n"):
+                  handle.write("\n")
+              handle.write(json.dumps(correction, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+          policy_path = Path("model-policy.md")
+          policy = policy_path.read_text(encoding="utf-8")
+          replacements = {
+              "Updated: 24 July 2026, 23:55 SGT": "Updated: 25 July 2026, 00:27 SGT",
+              "Reasoning level: **Provider default on three runs; not exposed on one run**": "Reasoning level: **Provider default on all four runs**",
+          }
+          for old, new in replacements.items():
+              if old not in policy:
+                  raise SystemExit(f"Expected policy text absent: {old}")
+              policy = policy.replace(old, new, 1)
+          policy_path.write_text(policy, encoding="utf-8", newline="\n")
+          PY
+
+          python scripts/rebuild_views.py
+          rm .github/workflows/apply-mimo-reasoning-correction.yml
+
+      - name: Commit correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add evaluations.jsonl README.md scorecard.md model-policy.md .github/workflows/apply-mimo-reasoning-correction.yml
+          git commit -m "Correct MiMo default reasoning label"
+          git push
