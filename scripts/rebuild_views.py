@@ -123,7 +123,7 @@ def reasoning_display(record: dict[str, Any]) -> str:
     value = str(raw).strip()
     lowered = value.lower().replace("_", "-")
     if lowered == "provider-default":
-        return "Provider default"
+        return "Default"
     if lowered in {"low", "medium", "high", "max"}:
         return lowered.title()
     return value
