@@ -13,8 +13,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | - | Formal backfill pending |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
-| MiMo 2.5 Pro | Not exposed | 1 | 2.98 | 0% | 1/1 applicable | 6 | Anecdotal |
-| MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | 12 | Provisional across mixed tasks |
+| MiMo 2.5 Pro | Provider default | 4 | 3.36 | 0% | 1/3 applicable | 18 | Provisional across mixed tasks |
 
 ## Formal evaluated runs
 
@@ -22,7 +21,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
-| 24 Jul 2026 23:53 SGT | MiMo 2.5 Pro | Not exposed | Security Remediation | High | AMEND | 2.98 | No | Verified |
+| 24 Jul 2026 23:53 SGT | MiMo 2.5 Pro | Provider default | Security Remediation | High | AMEND | 2.98 | No | Verified |
 | 24 Jul 2026 23:50 SGT | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | AMEND | 3.23 | No | Verified |
 | 24 Jul 2026 23:12 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.43 | No | Verified |
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Provider default | Incident Diagnosis | High | HOLD | 3.63 | No | Not controller-verified |
@@ -37,10 +36,10 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Not exposed | Security Remediation | High | 1 | 2.98 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Incident Diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Provider default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Provider default | Security Remediation | High | 1 | 2.98 | 0% | Anecdotal |
 
 ## Latest formal evaluations
 
@@ -48,7 +47,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### MiMo 2.5 Pro - Security Remediation
 
-- Reasoning level: **Not exposed**
+- Reasoning level: **Provider default**
 - Reviewed: **24 Jul 2026 23:53 SGT**
 - Run ID: `2026-07-24-mimo-2-5-pro-public-web-app-a-provenance-repair-003`
 - Subject alias: `public-web-app-a`
