@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 24 July 2026, 23:12 SGT
+Updated: 24 July 2026, 23:50 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -93,7 +93,7 @@ Observed scores:
 
 ### Current evidence
 
-The initial run delivered a strong core implementation but required three material corrections. The first amendment closed those findings while introducing a same-root atomic-publication defect. The second amendment restored atomic no-replace publication and added focused race/failure tests, but cleanup still silently suppresses temporary-file deletion failures while claiming no stale temporary remains.
+The initial run delivered a strong core implementation but required three material corrections. The first amendment closed those findings while introducing a same-root atomic-publication defect. The second amendment restored atomic no-replace publication and added focused race/failure tests, but cleanup still silently suppressed temporary-file deletion failures while claiming no stale temporary remained.
 
 All three runs maintained exact revision evidence, green continuous integration, a verified safe draft state and zero live-system actions. None achieved first-pass acceptance. The three-run sample is provisional evidence of strong implementation and evidence discipline combined with weak convergence at filesystem atomicity and cleanup boundaries.
 
@@ -101,16 +101,69 @@ All three runs maintained exact revision evidence, green continuous integration,
 
 Before this task class can be treated as independently merge-ready, Claude Opus 4.8 High must:
 
-- replace best-effort temporary deletion with an explicit, truthful cleanup outcome;
-- prove unlink failure on both pre-publication failure and post-publication success paths;
+- preserve atomic no-replace publication and strict no-clobber behaviour;
+- test every materially different post-publication failure boundary rather than only the immediate defect named by review;
 - preserve an already-published final package and never delete or alter a competing final path;
-- ensure no ordinary success or ledger event is emitted while a PII-bearing temporary alias remains unaccounted for;
-- provide a bounded recovery/evidence contract when immediate cleanup cannot be completed;
-- close the current same-root defect without introducing another atomicity, cleanup or evidence defect;
+- ensure every published package has durable, non-bypassable single-use state;
+- provide a bounded recovery/evidence contract when immediate cleanup or state persistence cannot be completed;
+- close the same-root durability defect without introducing another atomicity, cleanup or evidence defect;
 - receive an accepted exact-head controller review;
 - maintain zero unauthorised live-system actions.
 
-The next amendment must use the owner-approved **Sol Ultra High** escalation because another same-domain P2 survived a Sol High repair.
+The required Ultra High escalation was performed and is evaluated separately below. High reasoning remains insufficient for independent acceptance of this durable-state task.
+
+## Claude Opus 4.8 Ultra High
+
+Reasoning level: **Ultra High**
+
+Evidence level: **Anecdotal - 1 formal high-difficulty complex-repository-change run**
+
+Observed score:
+
+- third amendment: **3.23/5**;
+- first-pass acceptance: **0%**;
+- verified safe draft state: **1/1**.
+
+### Approved
+
+- Narrow high-risk repository remediation in an isolated branch or worktree.
+- Exact-head implementation and test evidence for controller review.
+- Draft pull-request updates with no live-system mutation.
+- Explicit negative testing of the failure mode named by the controller.
+
+### Conditional
+
+- Atomicity, cleanup, package and ledger work only while draft and unmerged.
+- Every post-publication side effect must be paired with a durable, non-bypassable state transition.
+- Persistence-failure tests must cover open, write, flush and fsync failures, not only unlink or publication failures.
+- Green tests and continuous integration remain supporting evidence only.
+
+### Not currently approved
+
+- Autonomous merge or self-acceptance of write-capable or durable-state changes.
+- Assuming the append-only ledger is always writable after publication.
+- Treating a generic exception or nonzero exit as sufficient protection when durable approval consumption is missing.
+- Autonomous production mutation or package creation from private operational data.
+
+### Current evidence
+
+The Ultra High amendment correctly replaced silent unlink suppression with an explicit three-state publication and cleanup model. It added deterministic unlink-failure tests, preserved final and competing packages, kept the change draft and unmerged, and performed no live-system action.
+
+However, the implementation still records approval consumption only after publication. If the ledger open, write, flush or fsync fails after the final package exists, no durable build event remains; a later invocation can use the same approval to mint another package at a fresh path. This is a same-domain P1 and a merge blocker. The completion report overstated durable single-use closure.
+
+### Promotion condition
+
+Before this task can be accepted, the next amendment must:
+
+- make published-package consumption survive ledger open, write, flush and fsync failure;
+- preserve the already-published final package and any stale temporary alias without rollback or broad cleanup;
+- emit an explicit non-success, do-not-retry state rather than only a generic error;
+- prove the same approval cannot mint another package at any fresh path after publication;
+- add deterministic tests for ledger persistence failure after both clean publication and published-but-cleanup-incomplete publication;
+- retain exact-head evidence, a draft unmerged state and zero unauthorised live-system actions;
+- receive an accepted controller review.
+
+Because a same-domain launch-blocking P1 survived the Ultra High repair, the next implementation must use the owner-approved **Sol Max** escalation.
 
 ## GPT-5.6 Sol Medium
 
