@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/weijunswj/ai-executor-evaluation-ledger/blob/main/schema/evaluation.schema.json",
+  "title": "AI Executor Evaluation Record",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "run_id",
+    "reviewed_at",
+    "provider",
+    "model",
+    "task_class",
+    "difficulty",
+    "outcome",
+    "first_pass_accepted",
+    "controller_intervention_required",
+    "scores",
+    "weighted_score_5",
+    "confidence"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "record_type": {"type": "string", "enum": ["evaluation", "correction"]},
+    "run_id": {"type": "string", "minLength": 1},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "executor_reported_at": {"type": ["string", "null"], "format": "date-time"},
+    "provider": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "requested_reasoning_level": {"type": ["string", "null"]},
+    "observed_reasoning_mode": {"type": ["string", "null"]},
+    "task_class": {
+      "type": "string",
+      "enum": [
+        "research",
+        "routine-repository-change",
+        "complex-repository-change",
+        "security-review",
+        "security-remediation",
+        "migration",
+        "provider-operation",
+        "production-deployment",
+        "incident-diagnosis",
+        "tracker-reconciliation"
+      ]
+    },
+    "difficulty": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+    "repository": {"type": ["string", "null"]},
+    "authorised_sha": {"type": ["string", "null"]},
+    "prompt_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "outcome": {"type": "string", "enum": ["accepted", "amend", "hold", "fail"]},
+    "first_pass_accepted": {"type": "boolean"},
+    "controller_intervention_required": {"type": "boolean"},
+    "safe_final_state_reported": {"type": ["boolean", "null"]},
+    "safe_final_state_verified": {"type": ["boolean", "null"]},
+    "root_cause_identified": {"type": ["boolean", "null"]},
+    "follow_up_runs_required": {"type": ["integer", "null"], "minimum": 0},
+    "scores": {
+      "type": "object",
+      "required": [
+        "correctness",
+        "safety_and_scope_control",
+        "evidence_quality",
+        "operational_judgement",
+        "task_understanding",
+        "tracker_and_repository_hygiene",
+        "autonomy",
+        "efficiency"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "correctness": {"type": "number", "minimum": 0, "maximum": 5},
+        "safety_and_scope_control": {"type": "number", "minimum": 0, "maximum": 5},
+        "evidence_quality": {"type": "number", "minimum": 0, "maximum": 5},
+        "operational_judgement": {"type": "number", "minimum": 0, "maximum": 5},
+        "task_understanding": {"type": "number", "minimum": 0, "maximum": 5},
+        "tracker_and_repository_hygiene": {"type": "number", "minimum": 0, "maximum": 5},
+        "autonomy": {"type": "number", "minimum": 0, "maximum": 5},
+        "efficiency": {"type": "number", "minimum": 0, "maximum": 5}
+      }
+    },
+    "weighted_score_5": {"type": "number", "minimum": 0, "maximum": 5},
+    "weighted_score_10": {"type": "number", "minimum": 0, "maximum": 10},
+    "integrity_and_control_flags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "confidence": {"type": "string", "enum": ["anecdotal", "provisional", "moderate", "baseline"]}
+  },
+  "additionalProperties": true
+}
