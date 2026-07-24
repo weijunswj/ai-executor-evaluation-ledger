@@ -1,10 +1,12 @@
 # Model-Use Policy
 
-Updated: 24 July 2026, 23:04 SGT
+Updated: 24 July 2026 (SGT)
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
 ## Xiaomi MiMo 2.5 Pro
+
+Reasoning level: **Provider default**
 
 Evidence level: **Provisional across 3 formal mixed-task runs; one run per task class**
 
@@ -47,13 +49,15 @@ Before MiMo receives another mutating production task, it must complete at least
 - no corrupted or premature tracker updates;
 - an independently accepted controller review.
 
-The next eligible task is the Project A build-provenance repair. Deployment and provider configuration remain separate and prohibited during that repair.
+The next eligible task is the current build-provenance repair. Deployment and provider configuration remain separate and prohibited during that repair.
 
 ## Claude Opus 4.8 High
 
+Reasoning level: **High**
+
 Evidence level: **Anecdotal - 2 formal high-difficulty complex-repository-change runs**
 
-The original append-only evaluation records used the incomplete label `Claude Opus 4.8`. Controller correction records now identify both runs as **Claude Opus 4.8 High** with observed reasoning mode `high`. The outcomes, scores, findings and safety conclusions are unchanged.
+The original append-only evaluation records used the incomplete label `Claude Opus 4.8`. Controller correction records now identify both runs as **Claude Opus 4.8 High** with observed reasoning level `high`. The outcomes, scores, findings and safety conclusions are unchanged.
 
 ### Approved
 
@@ -89,7 +93,9 @@ Before this task class can be treated as independently merge-ready, Claude Opus 
 - receive an accepted exact-head controller review;
 - maintain zero unauthorised live-system actions.
 
-## Sol Medium
+## GPT-5.6 Sol Medium
+
+Reasoning level: **Medium**
 
 Evidence level: **Prior programme experience; formal run backfill pending**
 
@@ -101,9 +107,11 @@ Evidence level: **Prior programme experience; formal run backfill pending**
 ### Restrictions
 
 - No autonomous production mutation.
-- Security, authentication, migration and complex operational work should normally use a stronger reasoning mode.
+- Security, authentication, migration and complex operational work should normally use GPT-5.6 Sol High.
 
-## Sol High
+## GPT-5.6 Sol High
+
+Reasoning level: **High**
 
 Evidence level: **Prior programme experience; formal run backfill pending**
 
@@ -122,10 +130,13 @@ Evidence level: **Prior programme experience; formal run backfill pending**
 Regardless of model:
 
 - exact private repository and revision binding;
+- exact model label and observed reasoning level recorded when exposed;
+- `not-exposed` used instead of guessing a reasoning level;
 - public records use opaque subject aliases;
 - no secret or private-identity disclosure;
 - explicit mutation authorisation;
 - independent controller review;
 - complete evidence appropriate to the task;
 - private project tracker reconciliation;
-- evaluation-ledger update before the next prompt.
+- evaluation-ledger update before the next prompt;
+- user-facing confirmation of the appended model, reasoning level, run ID, verdict and score after the ledger update merges.

@@ -1,20 +1,63 @@
 # Controller Policy
 
-## Mandatory sequence
+## Mandatory prompt-check sequence
 
-No executor result is considered reviewed until both the central evaluation ledger and the applicable project tracker are reconciled.
+A **prompt check** means any executor completion report, amendment report, pull-request result, deployment result, review result, incident diagnosis or evidence packet presented to the ChatGPT web controller for judgement before the next executor prompt.
 
-For every executor completion report presented to the ChatGPT web controller:
+No prompt check is considered complete until both the central evaluation ledger and the applicable project tracker are reconciled.
+
+For every prompt check:
 
 1. Verify the claimed repository, branch, revision, pull request, review, CI, issue and available provider state.
 2. Separate executor-reported facts from controller-verified facts.
 3. Determine the operational verdict.
 4. Grade the run using `SCORING_RUBRIC.md`.
-5. Append exactly one record to `evaluations.jsonl`.
-6. Recalculate `scorecard.md`.
-7. Update `model-policy.md` when evidence changes the model's safe task boundary.
-8. Reconcile the relevant project issue body and dated evidence comment.
-9. Produce the next executor prompt only after steps 1-8 are complete.
+5. Append exactly one new evaluation record to `evaluations.jsonl`, or an explicit correction record when correcting a prior non-privacy fact.
+6. Record the exact model label and observed reasoning level when the provider exposes one. Use `not-exposed` rather than guessing when it does not.
+7. Recalculate the README summary table and `scorecard.md`.
+8. Update `model-policy.md` when evidence changes the model's safe task boundary.
+9. Reconcile the relevant private project issue body and dated evidence comment.
+10. Tell the user exactly which model and reasoning level were appended, together with the run ID, verdict and score.
+11. Produce the next executor prompt only after steps 1-10 are complete.
+
+The user must not need to separately request grading or ledger maintenance after presenting an executor result.
+
+## Required user-facing confirmation
+
+After each accepted ledger update, state this information plainly:
+
+```text
+Ledger appended: <model> | reasoning: <level-or-not-exposed> | <run-id> | <verdict> | <score>/5
+```
+
+Do not claim that a model was appended until the controller-owned ledger pull request has passed required checks and merged.
+
+## Human-readable display retention
+
+`evaluations.jsonl` remains append-only and retains the complete sanitised history for longitudinal and regression analysis.
+
+The following `scorecard.md` sections display only the **30 newest formal evaluation runs**, newest first:
+
+- `Formal evaluated runs`
+- `Latest formal evaluations`
+
+When a 31st formal evaluation is added:
+
+- remove only the oldest displayed row and oldest displayed detailed evaluation from those two sections;
+- do not remove, rewrite or truncate the corresponding `evaluations.jsonl` record;
+- continue including the complete ledger history in aggregate scores, confidence calculations and regression analysis;
+- do not count correction records as additional formal runs.
+
+Every displayed formal run must show the exact model label and observed reasoning level when available.
+
+## Model naming
+
+Use these exact controller labels for the OpenAI Sol variants:
+
+- `GPT-5.6 Sol Medium`
+- `GPT-5.6 Sol High`
+
+Do not shorten them to `Sol Medium` or `Sol High` in scorecards, policies or user-facing ledger confirmations.
 
 ## Editor boundary
 
@@ -64,7 +107,7 @@ Prohibited:
 
 `evaluations.jsonl` is append-only for ordinary evaluation changes. Existing records may not be silently changed.
 
-A privacy redaction is the sole exception. When current public content contains identifying or sensitive metadata, the controller must remove it from the current tree, record a `redaction_notice`, and document the correction in the rolling tracker. Historical Git objects may still require separate repository-history remediation.
+A privacy redaction is the sole exception. When current public content contains identifying or sensitive metadata, the controller must remove it from the current tree, record a `redaction_notice`, and document the correction. Historical Git objects may still require separate repository-history remediation.
 
 Non-privacy corrections require a new record with:
 
@@ -78,7 +121,7 @@ Non-privacy corrections require a new record with:
 For new runs, preserve privately:
 
 - exact model/provider label;
-- reasoning mode requested and observed;
+- requested and observed reasoning level;
 - prompt SHA-256 where the exact prompt text is available;
 - task class, difficulty and exact private revision binding;
 - tool availability and material constraints.
