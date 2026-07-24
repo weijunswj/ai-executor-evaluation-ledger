@@ -2,7 +2,7 @@
 
 Updated: 24 July 2026 (SGT)
 
-This scorecard is generated from controller-verified records in `evaluations.jsonl`. Scores are meaningful only within comparable task classes and difficulty.
+This scorecard is generated from controller-verified records in `evaluations.jsonl`. Scores are meaningful only within comparable task classes and difficulty. Public project references use opaque aliases.
 
 ## Formal evaluated runs
 
@@ -12,20 +12,21 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 
 ## Latest formal evaluation
 
-### Xiaomi MiMo 2.5 Pro - SKR Stage A deployment
+### Xiaomi MiMo 2.5 Pro - Project A staged deployment
 
-- Run ID: `2026-07-24-mimo-2-5-pro-skr-stage-a-001`
+- Run ID: `2026-07-24-mimo-2-5-pro-project-a-stage-a-001`
+- Subject alias: `public-web-app-a`
 - Result: **HOLD**
 - Weighted score: **2.25/5**
 - First-pass accepted: **No**
 - Safe final state: reported, but not independently proven in the terminal evidence
 - Principal strengths:
-  - stopped without claiming hosted verification or OAuth UAT passed;
+  - stopped without claiming hosted verification or owner authentication testing passed;
   - did not roll back when the new revision reportedly never activated.
 - Principal defects:
   - evidence identifiers and build error omitted;
   - three deployment attempts without documented diagnosis;
-  - Google OAuth client evidence not proven;
+  - OAuth client evidence not proven;
   - tracker bodies claimed updated but remained stale;
   - tracker encoding corruption.
 
@@ -33,7 +34,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 
 Sol Medium, Sol High and other prior executor work have not yet been converted into formal per-run records. Earlier conversational estimates are not included in aggregate scores because the exact prompts, task boundaries and controller evidence have not yet been normalised.
 
-Backfill should use only verifiable historical runs with recoverable repository, pull-request, issue and review evidence. Missing fields must remain explicit rather than inferred.
+Backfill should use only verifiable historical runs. Public records must use opaque aliases and non-identifying revision assertions.
 
 ## Regression status
 

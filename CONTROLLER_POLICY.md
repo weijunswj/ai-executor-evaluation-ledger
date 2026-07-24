@@ -6,7 +6,7 @@ No executor result is considered reviewed until both the central evaluation ledg
 
 For every executor completion report presented to the ChatGPT web controller:
 
-1. Verify the claimed repository, branch, SHA, pull request, review, CI, issue and available provider state.
+1. Verify the claimed repository, branch, revision, pull request, review, CI, issue and available provider state.
 2. Separate executor-reported facts from controller-verified facts.
 3. Determine the operational verdict.
 4. Grade the run using `SCORING_RUBRIC.md`.
@@ -22,20 +22,11 @@ For every executor completion report presented to the ChatGPT web controller:
 - Executors must not be instructed to update this ledger.
 - Executor prompts should include: `Do not access, clone, modify or attempt to update the controller-owned executor evaluation ledger.`
 - The repository must not be cloned into executor workspaces.
-- The user remains the repository owner and can technically edit it; controller-only editing is an operating policy rather than a separate cryptographic identity boundary.
+- Controller-only editing is an operating policy rather than a separate cryptographic identity boundary.
 
 ## Evidence rules
 
-A claimed PASS is not accepted without reviewable evidence appropriate to the task. Evidence should include, where applicable:
-
-- repository identity, branch and exact SHA;
-- changed paths and exact diff scope;
-- test commands, exit codes and CI run identifiers;
-- deployment, job or operation identifiers;
-- timestamps and final statuses;
-- safe provider evidence and artifact hashes;
-- tracker body verification after mutation;
-- explicit confirmation of prohibited operations not performed.
+A claimed PASS is not accepted without reviewable evidence appropriate to the task. Private controller evidence may include exact repository identities, revisions, operation identifiers and provider artifacts. The public ledger must store only sanitised summaries, opaque aliases and non-identifying assertions.
 
 Missing evidence lowers the evidence score even when the final state appears safe.
 
@@ -43,25 +34,39 @@ Missing evidence lowers the evidence score even when the final state appears saf
 
 Allowed:
 
-- public repository names and commit SHAs;
-- public pull-request and issue numbers;
+- opaque project or subject aliases;
 - model/provider labels and reasoning modes;
 - sanitised task descriptions;
 - scores, verified strengths, defects and controller effort;
-- non-sensitive tool and workflow versions.
+- non-sensitive tool and workflow versions;
+- prompt hashes when the prompt itself is not published.
 
 Prohibited:
 
-- tokens, passwords, API keys or connection strings;
-- private emails, user IDs, OAuth subjects or customer data;
-- private support identifiers unless deliberately approved for publication;
+- repository owner names, repository names or owner/repository slugs;
+- raw repository, issue, pull-request or commit URLs;
+- user names, account logins, emails, user IDs or home-directory paths;
+- raw commit revisions that can identify a project;
+- provider project references, application/deployment/workspace/client identifiers or support case identifiers;
+- tokens, passwords, API keys, private keys or connection strings;
 - raw provider payloads containing sensitive metadata;
 - detailed attack paths or exploitable infrastructure configuration;
 - full prompts containing secrets or private operational details.
 
-## Append-only requirement
+## Public-safety gate
 
-`evaluations.jsonl` is append-only. Existing records may not be silently changed. Corrections require a new record with:
+- `python scripts/check_public_safety.py` must pass before a controller update is accepted.
+- CI scans the tracked tree, structured JSONL and all added lines after the fixed safety baseline.
+- A failed scan blocks merge or acceptance.
+- The controller must still review sanitisation manually because pattern scanning cannot prove absence of every sensitive inference.
+
+## Append-only requirement and privacy exception
+
+`evaluations.jsonl` is append-only for ordinary evaluation changes. Existing records may not be silently changed.
+
+A privacy redaction is the sole exception. When current public content contains identifying or sensitive metadata, the controller must remove it from the current tree, record a `redaction_notice`, and document the correction in the rolling tracker. Historical Git objects may still require separate repository-history remediation.
+
+Non-privacy corrections require a new record with:
 
 - `record_type: "correction"`;
 - the affected `run_id`;
@@ -70,16 +75,15 @@ Prohibited:
 
 ## Prompt capture
 
-For new runs, preserve:
+For new runs, preserve privately:
 
 - exact model/provider label;
 - reasoning mode requested and observed;
 - prompt SHA-256 where the exact prompt text is available;
-- prompt version or controller conversation reference;
-- task class, difficulty, repository and authorised SHA;
+- task class, difficulty and exact private revision binding;
 - tool availability and material constraints.
 
-Historical runs may use `null` where exact prompt capture was not preserved.
+Publish only the prompt hash, opaque subject alias and a non-identifying revision assertion.
 
 ## Regression handling
 

@@ -4,13 +4,7 @@ Public, controller-owned evidence for evaluating AI coding and operations execut
 
 ## Purpose
 
-This repository tracks whether an executor produces correct, safe, reviewable and efficient work. It is designed to answer practical questions such as:
-
-- Which model is suitable for routine repository work, security remediation or production operations?
-- How often does a model pass on the first attempt?
-- How much controller intervention and repeated repair does it require?
-- Does performance materially improve or regress over time?
-- Are failures caused by the model, the prompt, the tools or the task environment?
+This repository tracks whether an executor produces correct, safe, reviewable and efficient work. Public records use opaque project aliases and exclude repository owners, repository names, user names, raw project URLs, provider identifiers, secrets and private operational details.
 
 ## Control boundary
 
@@ -18,16 +12,27 @@ This repository tracks whether an executor produces correct, safe, reviewable an
 - Executors being evaluated must not clone, modify, update or rely on this repository.
 - Executors may report facts, but they never grade themselves.
 - Every score is assigned only after controller verification.
-- Public entries are sanitised by construction. Secrets, private identities, provider credentials, private support identifiers and exploitable infrastructure details are prohibited.
+- Public entries are sanitised by construction.
+
+## Public-safety CI
+
+Every pull request and push to `main` runs a zero-dependency fail-closed scanner over:
+
+- the complete tracked tree;
+- structured JSONL keys and values;
+- every line added in every commit after the public-safety baseline.
+
+The scanner rejects common credentials, private keys, emails, user-home paths, repository URLs/slugs, identity fields, provider identifiers, UUIDs and credential-bearing URLs or assignments. CI reduces accidental disclosure risk but does not replace controller review.
 
 ## Files
 
 - [`CONTROLLER_POLICY.md`](CONTROLLER_POLICY.md) - mandatory review and update workflow.
 - [`SCORING_RUBRIC.md`](SCORING_RUBRIC.md) - fixed dimensions, weights and confidence rules.
-- [`evaluations.jsonl`](evaluations.jsonl) - append-only structured source of truth.
+- [`evaluations.jsonl`](evaluations.jsonl) - append-only structured source of truth, subject to privacy redaction.
 - [`scorecard.md`](scorecard.md) - rolling aggregate by model and task class.
 - [`model-policy.md`](model-policy.md) - current approved, conditional and prohibited uses.
 - [`benchmarks/README.md`](benchmarks/README.md) - regression-detection approach.
+- [`scripts/check_public_safety.py`](scripts/check_public_safety.py) - local and CI disclosure gate.
 
 ## Review workflow
 
@@ -46,4 +51,4 @@ ChatGPT web cannot receive completion webhooks from external executors. The user
 
 ## Interpretation
 
-One run is anecdotal. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning mode and tool environment. A decline is recorded as a suspected performance regression only after repeated comparable evidence; it is not labelled a provider-side model reduction without stronger proof.
+One run is anecdotal. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning mode and tool environment. A decline is recorded as a suspected performance regression only after repeated comparable evidence.

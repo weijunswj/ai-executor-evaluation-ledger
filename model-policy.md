@@ -28,11 +28,11 @@ Evidence level: **Anecdotal - 1 formal high-difficulty production-deployment run
 
 ### Promotion condition
 
-Before another mutating production task, MiMo must pass the current read-only SKR evidence-recovery and build-diagnosis task with:
+Before another mutating production task, MiMo must pass the current Project A read-only evidence-recovery and build-diagnosis task with:
 
-- complete non-secret identifiers and timestamps;
+- complete non-secret identifiers and timestamps in private controller evidence;
 - exact API/log evidence;
-- correct distinction between Supabase and Google OAuth evidence;
+- correct distinction between authentication-provider evidence sources;
 - no unsupported PASS claims;
 - verified issue-body updates with clean UTF-8 text;
 - no prohibited operation.
@@ -49,7 +49,7 @@ Evidence level: **Prior programme experience; formal run backfill pending**
 ### Restrictions
 
 - No autonomous production mutation.
-- Security, auth, migration and complex operational work should normally use a stronger reasoning mode.
+- Security, authentication, migration and complex operational work should normally use a stronger reasoning mode.
 
 ## Sol High
 
@@ -69,7 +69,8 @@ Evidence level: **Prior programme experience; formal run backfill pending**
 
 Regardless of model:
 
-- exact repository and revision binding;
+- exact private repository and revision binding;
+- public records use opaque subject aliases;
 - no secret or private-identity disclosure;
 - explicit mutation authorisation;
 - independent controller review;
