@@ -2,27 +2,29 @@
 
 Public, controller-owned evidence for evaluating AI coding and operations executors across real project work.
 
+<!-- GENERATED:README-SCORES:START -->
 ## Summary model scores
 
 This is the primary at-a-glance tracker. Aggregate scores use the complete append-only history in [`evaluations.jsonl`](evaluations.jsonl), not only the 30 runs displayed in [`scorecard.md`](scorecard.md).
 
 | Model | Reasoning level | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Evidence level |
-|---|---|---:|---:|---:|---:|---|
-| Xiaomi MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | Provisional across mixed tasks |
-| Claude Opus 4.8 High | High | 2 | 3.40 | 0% | 2/2 | Anecdotal |
+|---|---|---:|---:|---:|---:|---:|
+| Claude Opus 4.8 High | High | 2 | 3.40 | 0% | 2/2 applicable | Anecdotal |
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | Formal backfill pending |
+| MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | Provisional across mixed tasks |
 
 ## Task-class scorecard
 
 | Model | Reasoning level | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
 |---|---|---|---|---:|---:|---:|---|
-| Xiaomi MiMo 2.5 Pro | Provider default | Production deployment | High | 1 | 2.25 | 0% | Anecdotal |
-| Xiaomi MiMo 2.5 Pro | Provider default | Routine repository change | Low | 1 | 4.60 | 0% | Anecdotal |
-| Xiaomi MiMo 2.5 Pro | Provider default | Incident diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
-| Claude Opus 4.8 High | High | Complex repository change | High | 2 | 3.40 | 0% | Anecdotal |
+| Claude Opus 4.8 High | High | Complex Repository Change | High | 2 | 3.40 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Provider default | Incident Diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Provider default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Provider default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
 
-The two Claude records were corrected after merge to identify the executor configuration as **Claude Opus 4.8 High**. Correction records do not count as additional formal runs.
+These tables are generated from the append-only ledger. Do not edit them manually.
+<!-- GENERATED:README-SCORES:END -->
 
 ## Current task-fit summary
 
