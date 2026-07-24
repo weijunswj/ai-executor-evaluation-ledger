@@ -16,7 +16,7 @@ Observed scores:
 - routine repository change, low difficulty: **4.60/5**;
 - incident diagnosis, high difficulty: **3.63/5**;
 - security remediation, high difficulty: **2.98/5**;
-- mixed-task average: **3.37/5**;
+- mixed-task average: **3.36/5**;
 - first-pass acceptance: **0%**.
 
 ### Approved
