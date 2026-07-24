@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 24 July 2026, 22:57 SGT
+Updated: 24 July 2026, 23:04 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -49,9 +49,11 @@ Before MiMo receives another mutating production task, it must complete at least
 
 The next eligible task is the Project A build-provenance repair. Deployment and provider configuration remain separate and prohibited during that repair.
 
-## Claude Opus 4.8
+## Claude Opus 4.8 High
 
 Evidence level: **Anecdotal - 2 formal high-difficulty complex-repository-change runs**
+
+The original append-only evaluation records used the incomplete label `Claude Opus 4.8`. Controller correction records now identify both runs as **Claude Opus 4.8 High** with observed reasoning mode `high`. The outcomes, scores, findings and safety conclusions are unchanged.
 
 ### Approved
 
@@ -79,7 +81,7 @@ The first evaluated run delivered a strong core implementation and complete revi
 
 ### Promotion condition
 
-Before this task class can be treated as independently merge-ready, Claude Opus 4.8 must:
+Before this task class can be treated as independently merge-ready, Claude Opus 4.8 High must:
 
 - implement atomic no-replace publication through a complete temporary file;
 - prove race and failure cleanup without exposing partial final output;
