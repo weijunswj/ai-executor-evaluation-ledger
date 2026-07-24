@@ -9,12 +9,14 @@ This is the primary human-readable tracker. The structured source of truth is [`
 | Model | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Safe final state verified | Confidence |
 |---|---|---|---:|---:|---:|---:|---|
 | Xiaomi MiMo 2.5 Pro | Production deployment | High | 1 | 2.25 | 0% | 0% | Anecdotal |
+| Claude Opus 4.8 | Complex repository change | High | 2 | 3.40 | 0% | 100% | Anecdotal |
 
 ### Current task-fit summary
 
 | Model | Approved use | Current restriction |
 |---|---|---|
 | Xiaomi MiMo 2.5 Pro | Strictly read-only diagnosis and evidence recovery | No autonomous production mutation |
+| Claude Opus 4.8 | Complex repository implementation in isolated branches with strong evidence | No autonomous acceptance for atomicity-sensitive or write-capable paths; exact-head review and amendment convergence required |
 | Sol Medium | Routine implementation, tests, documentation and bounded configuration | No autonomous production mutation |
 | Sol High | Complex implementation, security/auth repair and production diagnosis | Production operations still require exact gates and controller verification |
 
