@@ -1,20 +1,23 @@
 # Model-Use Policy
 
-Updated: 24 July 2026, 23:50 SGT
+Updated: 24 July 2026, 23:55 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default**
+Reasoning level: **Provider default on three runs; not exposed on one run**
 
-Evidence level: **Provisional across 3 formal mixed-task runs; one run per task class**
+Evidence level: **Provisional across 4 formal mixed-task runs; one run per task class**
 
 Observed scores:
 
 - production deployment, high difficulty: **2.25/5**;
 - routine repository change, low difficulty: **4.60/5**;
-- incident diagnosis, high difficulty: **3.63/5**.
+- incident diagnosis, high difficulty: **3.63/5**;
+- security remediation, high difficulty: **2.98/5**;
+- mixed-task average: **3.37/5**;
+- first-pass acceptance: **0%**.
 
 ### Approved
 
@@ -25,9 +28,11 @@ Observed scores:
 
 ### Conditional
 
-- Complex repository repair when the controller supplies explicit invariants, negative tests and stop conditions.
-- Tracker comments and bodies only when the controller independently checks the resulting content and encoding.
+- Complex repository repair only when the controller supplies explicit invariants, negative tests, stop conditions and a mandatory exact-head review.
+- Provenance or revision-binding repair only when missing, malformed and command-failure states are explicitly distinguished and tested.
+- Tracker comments and bodies only when the controller independently checks the resulting content, completion state and encoding.
 - Incident diagnosis only when exact log or API evidence is available; inferred root causes must be labelled as hypotheses.
+- Green local tests are supporting evidence only; exact-head continuous integration must be checked before any PASS claim.
 
 ### Not currently approved
 
@@ -37,6 +42,14 @@ Observed scores:
 - Authentication, database, DNS or environment mutation.
 - Declaring an exact root cause or PASS gate from repository inspection alone when direct provider evidence is missing.
 - Broad fail-open repairs that weaken provenance, revision binding or safety assertions.
+- Treating a malformed supplied revision or a failed Git command as equivalent to an absent source.
+- Declaring repository repair PASS before exact-head continuous integration completes.
+
+### Current evidence
+
+The latest high-difficulty provenance repair correctly targeted a proven non-Git deployment build context, introduced a truthful deployment-source mode, remained draft and unmerged, and performed no provider operation. It nevertheless required controller amendment because malformed supplied sources could be ignored, Git command failures could be downgraded to Git absence, hosted validation did not bind the declared source, exact-head continuous integration failed, and tracker text was corrupted and prematurely completed.
+
+Across four mixed-task runs, MiMo remains strong on narrow mechanical changes and generally respects explicit mutation prohibitions. It remains inconsistent at fail-closed security boundaries, exact terminal verdict discipline and tracker-body hygiene. No formal run has achieved first-pass acceptance.
 
 ### Current promotion condition
 
@@ -44,12 +57,13 @@ Before MiMo receives another mutating production task, it must complete at least
 
 - exact failing behaviour reproduced;
 - secure invariants preserved rather than bypassed;
-- complete tests for positive, negative and mismatch cases;
-- exact-head continuous integration;
+- missing, malformed, mismatch and command-failure states covered separately;
+- complete positive and negative tests;
+- green exact-head continuous integration including skipped-on-failure downstream gates;
 - no corrupted or premature tracker updates;
 - an independently accepted controller review.
 
-The next eligible task is the current build-provenance repair. Deployment and provider configuration remain separate and prohibited during that repair.
+The latest provenance repair did not satisfy this condition. The next eligible task is a bounded amendment to the same draft repair. Deployment and provider configuration remain separate and prohibited during that amendment.
 
 ## Claude Opus 4.8 High
 
