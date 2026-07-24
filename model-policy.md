@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 24 July 2026 (SGT)
+Updated: 24 July 2026, 22:55 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -36,6 +36,44 @@ Before another mutating production task, MiMo must pass the current Project A re
 - no unsupported PASS claims;
 - verified issue-body updates with clean UTF-8 text;
 - no prohibited operation.
+
+## Claude Opus 4.8
+
+Evidence level: **Anecdotal - 2 formal high-difficulty complex-repository-change runs**
+
+### Approved
+
+- Complex repository implementation in an isolated branch or worktree.
+- Multi-language contract and test changes with exact revision evidence.
+- Draft pull-request preparation with no live-system mutation.
+- Review remediation where every amended head receives independent controller review.
+
+### Conditional
+
+- Atomicity-sensitive, migration-adjacent or write-capable repository work only when the change remains draft and unmerged until exact-head acceptance.
+- Package, ledger and durable-state changes only with explicit race, crash and no-clobber tests.
+- Green tests and continuous integration are supporting evidence, not an acceptance decision.
+
+### Not currently approved
+
+- One-prompt autonomous merge for high-risk repository changes.
+- Self-approval based on test or continuous-integration success alone.
+- Autonomous production mutation.
+- Skipping a fresh exact-head review after a same-domain amendment.
+
+### Current evidence
+
+The first evaluated run delivered a strong core implementation and complete revision/test evidence but required three material corrections. The first amendment closed those findings yet introduced a same-root atomic-publication defect. Both runs preserved a verified safe draft state and performed zero live-system actions, but neither achieved first-pass acceptance.
+
+### Promotion condition
+
+Before this task class can be treated as independently merge-ready, Claude Opus 4.8 must:
+
+- implement atomic no-replace publication through a complete temporary file;
+- prove race and failure cleanup without exposing partial final output;
+- close the current same-root defect without introducing another atomicity or evidence defect;
+- receive an accepted exact-head controller review;
+- maintain zero unauthorised live-system actions.
 
 ## Sol Medium
 
