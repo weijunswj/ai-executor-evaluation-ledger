@@ -1,12 +1,12 @@
 # Model-Use Policy
 
-Updated: 24 July 2026, 23:55 SGT
+Updated: 25 July 2026, 00:27 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default on three runs; not exposed on one run**
+Reasoning level: **Provider default on all four runs**
 
 Evidence level: **Provisional across 4 formal mixed-task runs; one run per task class**
 
@@ -16,7 +16,7 @@ Observed scores:
 - routine repository change, low difficulty: **4.60/5**;
 - incident diagnosis, high difficulty: **3.63/5**;
 - security remediation, high difficulty: **2.98/5**;
-- mixed-task average: **3.37/5**;
+- mixed-task average: **3.36/5**;
 - first-pass acceptance: **0%**.
 
 ### Approved
