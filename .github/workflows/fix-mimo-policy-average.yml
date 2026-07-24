@@ -1,0 +1,44 @@
+name: Align MiMo policy average
+
+on:
+  push:
+    branches:
+      - "controller/correct-mimo-default-reasoning"
+    paths:
+      - .github/workflows/fix-mimo-policy-average.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+      - name: Align policy aggregate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("model-policy.md")
+          text = path.read_text(encoding="utf-8")
+          old = "- mixed-task average: **3.37/5**;"
+          new = "- mixed-task average: **3.36/5**;"
+          if old not in text:
+              raise SystemExit("Expected MiMo aggregate text absent.")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
+          PY
+          rm .github/workflows/fix-mimo-policy-average.yml
+      - name: Commit alignment
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add model-policy.md .github/workflows/fix-mimo-policy-average.yml
+          git commit -m "Align MiMo policy aggregate"
+          git push
