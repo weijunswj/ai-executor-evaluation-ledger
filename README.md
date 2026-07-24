@@ -2,27 +2,31 @@
 
 Public, controller-owned evidence for evaluating AI coding and operations executors across real project work.
 
+> **Controller sessions:** read [`CONTROLLER_QUICKSTART.md`](CONTROLLER_QUICKSTART.md) before editing. Append one JSONL record; do not hand-edit generated score sections.
+
+<!-- GENERATED:README-SCORES:START -->
 ## Summary model scores
 
 This is the primary at-a-glance tracker. Aggregate scores use the complete append-only history in [`evaluations.jsonl`](evaluations.jsonl), not only the 30 runs displayed in [`scorecard.md`](scorecard.md).
 
 | Model | Reasoning level | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Evidence level |
-|---|---|---:|---:|---:|---:|---|
-| Xiaomi MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | Provisional across mixed tasks |
-| Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 | Provisional |
+|---|---|---:|---:|---:|---:|---:|
+| Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | Provisional |
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | Formal backfill pending |
+| MiMo 2.5 Pro | Provider default | 3 | 3.49 | 0% | 0/2 applicable | Provisional across mixed tasks |
 
 ## Task-class scorecard
 
 | Model | Reasoning level | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
 |---|---|---|---|---:|---:|---:|---|
-| Xiaomi MiMo 2.5 Pro | Provider default | Production deployment | High | 1 | 2.25 | 0% | Anecdotal |
-| Xiaomi MiMo 2.5 Pro | Provider default | Routine repository change | Low | 1 | 4.60 | 0% | Anecdotal |
-| Xiaomi MiMo 2.5 Pro | Provider default | Incident diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
-| Claude Opus 4.8 High | High | Complex repository change | High | 3 | 3.41 | 0% | Provisional |
+| Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
+| MiMo 2.5 Pro | Provider default | Incident Diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Provider default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Provider default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
 
-The first two Claude records were corrected after merge to identify the executor configuration as **Claude Opus 4.8 High**. Correction records do not count as additional formal runs. The third comparable run was recorded with the complete model label and observed `high` reasoning level.
+These tables are generated from the append-only ledger. Do not edit them manually.
+<!-- GENERATED:README-SCORES:END -->
 
 ## Current task-fit summary
 
@@ -35,11 +39,11 @@ The first two Claude records were corrected after merge to identify the executor
 
 Observed MiMo pattern so far:
 
-- strong on narrow mechanical configuration work;
-- generally safe about prohibited mutations;
-- inconsistent tracker hygiene;
-- weaker when exact production diagnosis depends on missing logs;
-- not yet approved for autonomous deployment or provider changes.
+- strong on narrow mechanical repository configuration;
+- reasonably safe at respecting explicit mutation prohibitions;
+- inconsistent in tracker-body quality;
+- less reliable when exact operational diagnosis requires unavailable logs;
+- unsuitable for autonomous production mutation at present.
 
 Observed Claude Opus 4.8 High pattern so far:
 
@@ -68,22 +72,26 @@ This repository tracks whether an executor produces correct, safe, reviewable an
 
 ## Public-safety CI
 
-Every pull request and push to `main` runs a zero-dependency fail-closed scanner over:
+Every pull request and push to `main` runs fail-closed checks over:
 
 - the complete tracked tree;
 - structured JSONL keys and values;
-- every line added in every commit after the public-safety baseline.
+- every line added in every commit after the public-safety baseline;
+- append-only evaluation history relative to the pull-request base;
+- deterministic README and scorecard generation.
 
 The scanner rejects common credentials, private keys, emails, user-home paths, repository URLs/slugs, identity fields, provider identifiers, UUIDs and credential-bearing URLs or assignments. CI reduces accidental disclosure risk but does not replace controller review.
 
 ## Files
 
+- [`CONTROLLER_QUICKSTART.md`](CONTROLLER_QUICKSTART.md) - mandatory minimal workflow for web-controller sessions.
 - [`evaluations.jsonl`](evaluations.jsonl) - append-only structured source of truth, subject to privacy redaction.
-- [`scorecard.md`](scorecard.md) - rolling summaries and the newest 30 formal-run details.
+- [`scorecard.md`](scorecard.md) - generated rolling summaries and newest 30 formal-run details.
 - [`model-policy.md`](model-policy.md) - current approved, conditional and prohibited uses.
-- [`CONTROLLER_POLICY.md`](CONTROLLER_POLICY.md) - mandatory prompt-check, display-retention and user-confirmation workflow.
+- [`CONTROLLER_POLICY.md`](CONTROLLER_POLICY.md) - full mandatory prompt-check, retention and user-confirmation policy.
 - [`SCORING_RUBRIC.md`](SCORING_RUBRIC.md) - fixed dimensions, weights and confidence rules.
 - [`benchmarks/README.md`](benchmarks/README.md) - regression-detection approach.
+- [`scripts/rebuild_views.py`](scripts/rebuild_views.py) - deterministic README and scorecard generator and validator.
 - [`scripts/check_public_safety.py`](scripts/check_public_safety.py) - local and CI disclosure gate.
 
 ## Review workflow
@@ -95,7 +103,7 @@ For every executor output brought to the controller:
 3. Grade the run using the fixed rubric.
 4. Append one immutable JSONL entry or explicit correction entry.
 5. Record the exact model and observed reasoning level when exposed.
-6. Recalculate the README summary and scorecard.
+6. Let the controller-branch workflow regenerate the README and scorecard.
 7. Update the model-use policy when evidence changes the safe operating boundary.
 8. Reconcile the applicable private project tracker.
 9. Merge the ledger update through required safety checks.

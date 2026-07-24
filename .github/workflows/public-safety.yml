@@ -32,3 +32,15 @@ jobs:
 
       - name: Scan tracked content and added history
         run: python scripts/check_public_safety.py
+
+      - name: Verify append-only source and generated views
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+          else
+            python scripts/rebuild_views.py --check
+          fi
