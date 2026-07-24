@@ -2,6 +2,8 @@
 
 Public, controller-owned evidence for evaluating AI coding and operations executors across real project work.
 
+> **Controller sessions:** read [`CONTROLLER_QUICKSTART.md`](CONTROLLER_QUICKSTART.md) before editing. Append one JSONL record; do not hand-edit generated score sections.
+
 <!-- GENERATED:README-SCORES:START -->
 ## Summary model scores
 
@@ -62,22 +64,26 @@ This repository tracks whether an executor produces correct, safe, reviewable an
 
 ## Public-safety CI
 
-Every pull request and push to `main` runs a zero-dependency fail-closed scanner over:
+Every pull request and push to `main` runs fail-closed checks over:
 
 - the complete tracked tree;
 - structured JSONL keys and values;
-- every line added in every commit after the public-safety baseline.
+- every line added in every commit after the public-safety baseline;
+- append-only evaluation history relative to the pull-request base;
+- deterministic README and scorecard generation.
 
 The scanner rejects common credentials, private keys, emails, user-home paths, repository URLs/slugs, identity fields, provider identifiers, UUIDs and credential-bearing URLs or assignments. CI reduces accidental disclosure risk but does not replace controller review.
 
 ## Files
 
+- [`CONTROLLER_QUICKSTART.md`](CONTROLLER_QUICKSTART.md) - mandatory minimal workflow for web-controller sessions.
 - [`evaluations.jsonl`](evaluations.jsonl) - append-only structured source of truth, subject to privacy redaction.
-- [`scorecard.md`](scorecard.md) - rolling summaries and the newest 30 formal-run details.
+- [`scorecard.md`](scorecard.md) - generated rolling summaries and newest 30 formal-run details.
 - [`model-policy.md`](model-policy.md) - current approved, conditional and prohibited uses.
-- [`CONTROLLER_POLICY.md`](CONTROLLER_POLICY.md) - mandatory prompt-check, display-retention and user-confirmation workflow.
+- [`CONTROLLER_POLICY.md`](CONTROLLER_POLICY.md) - full mandatory prompt-check, retention and user-confirmation policy.
 - [`SCORING_RUBRIC.md`](SCORING_RUBRIC.md) - fixed dimensions, weights and confidence rules.
 - [`benchmarks/README.md`](benchmarks/README.md) - regression-detection approach.
+- [`scripts/rebuild_views.py`](scripts/rebuild_views.py) - deterministic README and scorecard generator and validator.
 - [`scripts/check_public_safety.py`](scripts/check_public_safety.py) - local and CI disclosure gate.
 
 ## Review workflow
@@ -89,7 +95,7 @@ For every executor output brought to the controller:
 3. Grade the run using the fixed rubric.
 4. Append one immutable JSONL entry or explicit correction entry.
 5. Record the exact model and observed reasoning level when exposed.
-6. Recalculate the README summary and scorecard.
+6. Let the controller-branch workflow regenerate the README and scorecard.
 7. Update the model-use policy when evidence changes the safe operating boundary.
 8. Reconcile the applicable private project tracker.
 9. Merge the ledger update through required safety checks.
