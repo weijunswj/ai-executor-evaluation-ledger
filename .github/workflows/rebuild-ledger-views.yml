@@ -1,0 +1,52 @@
+name: Rebuild ledger views
+
+on:
+  push:
+    branches:
+      - "controller/**"
+    paths:
+      - evaluations.jsonl
+      - scripts/rebuild_views.py
+      - README.md
+      - scorecard.md
+      - .github/workflows/rebuild-ledger-views.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-ledger-views-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out controller branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild generated views
+        run: python scripts/rebuild_views.py
+
+      - name: Commit generated views when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- README.md scorecard.md; then
+            echo "Ledger views already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add README.md scorecard.md
+          git commit -m "Rebuild generated ledger views"
+          git push
