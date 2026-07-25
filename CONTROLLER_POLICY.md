@@ -22,6 +22,31 @@ For every prompt check:
 
 The user must not need to separately request grading or ledger maintenance after presenting an executor result.
 
+## Zero reviewed-but-unmerged queue
+
+A result becomes **ledger-pending** as soon as the controller has reviewed it and assigned a verdict and score. Review text, project-tracker reconciliation or a stated provisional grade does not complete the prompt check by itself.
+
+Before any new executor prompt is issued:
+
+- every ledger-pending result must be appended through a controller-owned pull request;
+- required checks must pass;
+- the pull request must merge;
+- the applicable project tracker must be authoritative;
+- `main` must be fetched back and each expected run ID verified;
+- the reviewed-but-unmerged queue must equal zero.
+
+If multiple completion reports are presented before reconciliation, the controller must append all reviewed records in one bounded ledger pull request or finish sequential ledger pull requests before another executor prompt. A later completion report does not excuse an earlier pending record.
+
+Run-count language is strict:
+
+- **formal run** means an evaluation record merged into ledger `main`;
+- **ledger-pending run** means controller-reviewed but not merged;
+- **in-flight run** means executor work not yet presented for review.
+
+Never state or imply that a ledger-pending or in-flight run is formal. Any model-cap, trend or task-fit statement must show the merged formal count and separately identify pending and in-flight counts when they exist.
+
+The controller must check this gate without waiting for the user to notice a stale scorecard.
+
 ## Required user-facing confirmation
 
 After each accepted ledger update, state this information plainly:
@@ -29,6 +54,8 @@ After each accepted ledger update, state this information plainly:
 ```text
 Ledger appended: <model> | reasoning: <level-or-not-exposed> | <run-id> | <verdict> | <score>/5
 ```
+
+When one pull request appends multiple evaluations, state one line per appended run.
 
 Do not claim that a model was appended until the controller-owned ledger pull request has passed required checks and merged.
 
