@@ -92,6 +92,28 @@ jobs:
             .github/workflows/rebuild-ledger-views.yml
             final-name-status.txt
 
+      - name: Revert protected administration for staging push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout origin/main -- \
+            .github/workflows/public-safety.yml \
+            .github/workflows/rebuild-ledger-views.yml \
+            .github/workflows/finalize-am6-recovery.yml \
+            CONTROLLER_QUICKSTART.md \
+            scripts/controller_append_opus5_am6.py \
+            scripts/controller_recovery_trigger.py
+
+      - name: Push validated ordinary ledger files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add evaluations.jsonl model-policy.md README.md scorecard.md
+          git commit -m "Stage reviewed evaluation backlog"
+          git push origin HEAD:controller/final-ledger-backlog-20260725
+
   scan:
     if: >-
       github.event_name != 'pull_request' ||
