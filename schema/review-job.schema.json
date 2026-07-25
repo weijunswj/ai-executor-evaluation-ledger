@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ai-executor-evaluation-ledger:review-job:v1",
+  "$id": "urn:ai-executor-evaluation-ledger:review-job:v2",
   "title": "Scheduled Review Job",
   "type": "object",
   "required": [
@@ -10,7 +10,6 @@
     "source_head",
     "provider",
     "model",
-    "canonical_reasoning_level",
     "run_id",
     "task_class",
     "completion_report_location",
@@ -22,7 +21,7 @@
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 1
+      "const": 2
     },
     "review_job_id": {
       "type": "string",
@@ -62,21 +61,6 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 128
-    },
-    "canonical_reasoning_level": {
-      "type": "string",
-      "enum": ["Sol Medium", "Sol High", "Sol Max"]
-    },
-    "requested_provider_reasoning_mode": {
-      "type": ["string", "null"],
-      "maxLength": 64
-    },
-    "observed_provider_reasoning_mode": {
-      "type": ["string", "null"],
-      "maxLength": 64
-    },
-    "reasoning_mode_exposed": {
-      "type": ["boolean", "null"]
     },
     "run_id": {
       "type": "string",

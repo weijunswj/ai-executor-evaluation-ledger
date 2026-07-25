@@ -19,8 +19,8 @@ Do not:
 
 Record the exact public-safe:
 
-- model label;
-- observed reasoning level, or `not-exposed`;
+- provider;
+- base model label;
 - run ID;
 - reviewed timestamp;
 - task class and difficulty;
@@ -28,6 +28,8 @@ Record the exact public-safe:
 - verified strengths and defects;
 - integrity/control flags;
 - opaque subject alias.
+
+Do not record reasoning levels, reasoning modes, or reasoning exposure flags. Future ledger identity is base-model-only.
 
 Never publish repository identities, user identities, raw revisions, provider identifiers, secrets or private operational evidence.
 

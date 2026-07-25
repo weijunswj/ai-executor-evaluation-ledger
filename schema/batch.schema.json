@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ai-executor-evaluation-ledger:batch:v1",
+  "$id": "urn:ai-executor-evaluation-ledger:batch:v2",
   "title": "Scheduled Review Batch",
   "type": "object",
   "required": [
@@ -19,7 +19,7 @@
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 1
+      "const": 2
     },
     "batch_id": {
       "type": "string",
@@ -66,9 +66,6 @@
       "type": "string",
       "pattern": "^scheduled-review/batch-[0-9]{8}-[0-9]{3}$"
     },
-    "intake_repository": {
-      "type": ["string", "null"]
-    },
     "frozen_jobs": {
       "type": "array",
       "items": {
@@ -95,10 +92,6 @@
             "type": ["string", "null"],
             "maxLength": 256
           },
-          "public_safe_blocked_reason": {
-            "type": ["string", "null"],
-            "maxLength": 256
-          },
           "run_id": {
             "type": ["string", "null"]
           },
@@ -106,13 +99,6 @@
             "type": ["string", "null"]
           },
           "model": {
-            "type": ["string", "null"]
-          },
-          "canonical_reasoning_level": {
-            "type": ["string", "null"],
-            "enum": ["Sol Medium", "Sol High", "Sol Max", null]
-          },
-          "observed_reasoning_mode": {
             "type": ["string", "null"]
           },
           "task_class": {
@@ -156,9 +142,6 @@
     "pr_number": {
       "type": ["integer", "null"],
       "minimum": 1
-    },
-    "pr_url": {
-      "type": ["string", "null"]
     },
     "proposed_policy_amendments": {
       "type": "object"

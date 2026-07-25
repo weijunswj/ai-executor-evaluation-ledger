@@ -23,13 +23,13 @@ jobs:
       - name: Check out base revision (trusted)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.base_ref }}
+          ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
       - name: Check out candidate revision (untrusted data)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           path: candidate
 
       - name: Set up Python
@@ -37,10 +37,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install pinned dependencies
+        run: |
+          cd base
+          python -m pip install jsonschema --quiet
+
       - name: Validate candidate from base
         run: |
           cd base
-          python scripts/validate_scheduled_review_candidate.py --candidate-dir ../candidate
+          python scripts/validate_scheduled_review_candidate.py \
+            --candidate-dir ../candidate \
+            --base-sha ${{ github.event.pull_request.base.sha }} \
+            --head-sha ${{ github.event.pull_request.head.sha }}
 
       - name: Run Public Safety from base on candidate
         run: |
@@ -51,4 +59,4 @@ jobs:
         shell: bash
         run: |
           cd base
-          python scripts/rebuild_views.py --check --base-ref origin/${{ github.base_ref }}
+          python scripts/rebuild_views.py --check --base-ref ${{ github.event.pull_request.base.sha }}

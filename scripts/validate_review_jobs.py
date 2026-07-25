@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate review-job JSON against the canonical schema."""
+"""Validate review-job JSON against the canonical schema and compute accepted-body hash."""
 
 from __future__ import annotations
 
@@ -16,7 +16,18 @@ SCHEMA_PATH = ROOT / "schema" / "review-job.schema.json"
 try:
     import jsonschema
 except ImportError:
-    jsonschema = None  # type: ignore[assignment]
+    jsonschema = None
+
+
+_MISSING_DEPENDENCY_TEXT = (
+    "jsonschema is required for review-job validation. "
+    "Install it with: python -m pip install jsonschema"
+)
+
+
+def require_jsonschema() -> None:
+    if jsonschema is None:
+        raise RuntimeError(_MISSING_DEPENDENCY_TEXT)
 
 
 def load_schema() -> dict[str, Any]:
@@ -25,8 +36,7 @@ def load_schema() -> dict[str, Any]:
 
 def validate_job(job: dict[str, Any], schema: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    if jsonschema is None:
-        return errors
+    require_jsonschema()
     validator = jsonschema.Draft202012Validator(schema)
     for error in validator.iter_errors(job):
         path = ".".join(str(p) for p in error.absolute_path) if error.absolute_path else "$"
@@ -42,6 +52,7 @@ def canonicalise(job: dict[str, Any], schema: dict[str, Any]) -> bytes:
 
 
 def accepted_body_sha256(job: dict[str, Any], schema: dict[str, Any]) -> str:
+    require_jsonschema()
     canonical = canonicalise(job, schema)
     return hashlib.sha256(canonical).hexdigest()
 
@@ -59,6 +70,12 @@ def main() -> int:
     parser.add_argument("--hash", action="store_true", help="Print accepted_body_sha256")
     parser.add_argument("--canonical", action="store_true", help="Print canonical JSON to stdout")
     args = parser.parse_args()
+
+    try:
+        require_jsonschema()
+    except RuntimeError as exc:
+        print(f"Dependency error: {exc}", file=sys.stderr)
+        return 2
 
     try:
         schema = load_schema()
@@ -92,7 +109,7 @@ def main() -> int:
         print(accepted_body_sha256(job, schema))
         return 0
 
-    print(f"Valid: {job['review_job_id']}")
+    print(f"Valid: {job['review_job_id']} | {job['provider']} | {job['model']}")
     return 0
 
 

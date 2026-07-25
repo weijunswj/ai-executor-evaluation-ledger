@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Discover active (unfinished) scheduled-review batch branches on the remote."""
+"""Discover active scheduled-review batch branches via exact remote Git refs."""
 
 from __future__ import annotations
 
@@ -9,18 +9,19 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 
 BATCH_BRANCH_RE = re.compile(
     r"^refs/heads/scheduled-review/batch-(?P<date>[0-9]{8})-(?P<seq>[0-9]{3})$"
 )
+BATCH_ID_RE = re.compile(r"^BATCH-[0-9]{8}-[0-9]{3}$")
 
 TERMINAL_STATES = {"merged", "completed", "abandoned"}
 
 
-def git_ls_remote_batches(remote: str = "origin") -> list[str]:
+def git_ls_remote_batches(remote: str = "origin") -> list[tuple[str, str]]:
     result = subprocess.run(
         ["git", "ls-remote", "--heads", remote, "refs/heads/scheduled-review/batch-*"],
         cwd=ROOT,
@@ -28,13 +29,13 @@ def git_ls_remote_batches(remote: str = "origin") -> list[str]:
         capture_output=True,
         text=True,
     )
-    refs: list[str] = []
+    refs: list[tuple[str, str]] = []
     for line in result.stdout.splitlines():
         if not line.strip():
             continue
         parts = line.split("\t")
         if len(parts) == 2:
-            refs.append(parts[1])
+            refs.append((parts[0], parts[1]))
     return refs
 
 
@@ -45,69 +46,105 @@ def parse_batch_branch(ref: str) -> tuple[str, str, str] | None:
     return match.group(0), match.group("date"), match.group("seq")
 
 
-def fetch_manifest_sha(remote: str, branch: str) -> str | None:
-    manifest_path = branch.replace("refs/heads/", "") + ":scheduled-review/batches/"
-    result = subprocess.run(
-        ["git", "ls-tree", "-r", "--name-only", remote + "/" + branch.replace("refs/heads/", "")],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else None
-
-
-def is_batch_active(remote: str, branch: str) -> bool:
+def fetch_and_read_manifest(remote: str, sha: str, branch: str) -> dict[str, Any] | None:
     branch_short = branch.replace("refs/heads/", "")
-    manifest_ref = f"{remote}/{branch_short}:scheduled-review/batches/"
+    try:
+        subprocess.run(
+            ["git", "fetch", remote, f"{sha}:refs/tmp/batch-discovery"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError:
+        return None
+
     try:
         result = subprocess.run(
-            [
-                "git", "cat-file", "-p",
-                f"{remote}/{branch_short}:scheduled-review/batches/"
-            ],
+            ["git", "ls-tree", "--name-only", "-r", "refs/tmp/batch-discovery",
+             "scheduled-review/batches/"],
             cwd=ROOT,
+            check=True,
             capture_output=True,
             text=True,
         )
-        if result.returncode != 0:
-            return False
-        entries = result.stdout.strip().splitlines()
-        batch_dirs = [e.split("\t")[1].rstrip("/") for e in entries if "\t" in e and e.split("\t")[1].endswith("/")]
-        if not batch_dirs:
-            return False
-        for batch_dir in batch_dirs:
-            manifest_file = f"{remote}/{branch_short}:scheduled-review/batches/{batch_dir}/manifest.json"
-            manifest_result = subprocess.run(
-                ["git", "cat-file", "-p", manifest_file],
+    except subprocess.CalledProcessError:
+        _cleanup_tmp_ref()
+        return None
+
+    entries = result.stdout.strip().splitlines()
+    batch_dirs = [e.split("\t")[-1].rstrip("/") for e in entries if "\t" in e and e.split("\t")[-1].endswith("/")]
+    manifests_found: list[dict[str, Any]] = []
+
+    for batch_dir in batch_dirs:
+        parts = batch_dir.split("/")
+        batch_id_candidate = parts[-1] if parts else ""
+        if not BATCH_ID_RE.match(batch_id_candidate):
+            continue
+        manifest_path = f"scheduled-review/batches/{batch_id_candidate}/manifest.json"
+        try:
+            cat_result = subprocess.run(
+                ["git", "cat-file", "-p", f"refs/tmp/batch-discovery:{manifest_path}"],
                 cwd=ROOT,
+                check=True,
                 capture_output=True,
                 text=True,
             )
-            if manifest_result.returncode != 0:
-                continue
-            manifest = json.loads(manifest_result.stdout)
-            state = manifest.get("state", "")
-            if state not in TERMINAL_STATES:
-                return True
-        return False
-    except (subprocess.CalledProcessError, json.JSONDecodeError):
-        return False
+            manifest = json.loads(cat_result.stdout)
+        except (subprocess.CalledProcessError, json.JSONDecodeError):
+            continue
+
+        expected_branch = f"scheduled-review/batch-{batch_id_candidate.split('-')[1]}-{batch_id_candidate.split('-')[2]}"
+        if manifest.get("branch_name") != expected_branch:
+            continue
+        if manifest.get("batch_id") != batch_id_candidate:
+            continue
+
+        manifests_found.append(manifest)
+
+    _cleanup_tmp_ref()
+
+    if len(manifests_found) == 1:
+        return manifests_found[0]
+    return None
 
 
-def discover(remote: str = "origin") -> dict[str, list[str]]:
+def _cleanup_tmp_ref() -> None:
+    try:
+        subprocess.run(
+            ["git", "update-ref", "-d", "refs/tmp/batch-discovery"],
+            cwd=ROOT,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError:
+        pass
+
+
+def discover(remote: str = "origin") -> dict[str, Any]:
     refs = git_ls_remote_batches(remote)
-    active: list[str] = []
+    active: list[dict[str, Any]] = []
     malformed: list[str] = []
     terminal: list[str] = []
 
-    for ref in refs:
+    for sha, ref in refs:
         parsed = parse_batch_branch(ref)
         if parsed is None:
             malformed.append(ref)
-        elif is_batch_active(remote, ref):
-            active.append(ref)
-        else:
+            continue
+
+        manifest = fetch_and_read_manifest(remote, sha, ref)
+        if manifest is None:
+            malformed.append(f"{ref} (unreadable or malformed manifest)")
+            continue
+
+        branch_name = ref.replace("refs/heads/", "")
+        if manifest.get("branch_name") != branch_name:
+            malformed.append(f"{ref} (branch/manifest identity conflict)")
+            continue
+
+        if manifest.get("state", "") in TERMINAL_STATES:
             terminal.append(ref)
+        else:
+            active.append({"sha": sha, "ref": ref, "manifest": manifest})
 
     return {"active": active, "malformed": malformed, "terminal": terminal}
 
@@ -123,18 +160,27 @@ def main() -> int:
         print(f"Git command failed: {exc}", file=sys.stderr)
         return 1
 
-    print(json.dumps(result, indent=2))
+    public = {
+        "active_count": len(result["active"]),
+        "malformed_count": len(result["malformed"]),
+        "terminal_count": len(result["terminal"]),
+    }
+    print(json.dumps(public, indent=2))
 
     if result["malformed"]:
-        print(f"Malformed refs: {len(result['malformed'])}", file=sys.stderr)
+        for m in result["malformed"]:
+            print(f"Malformed: {m}", file=sys.stderr)
         return 1
 
     if len(result["active"]) > 1:
-        print(f"Multiple active batches: {result['active']}", file=sys.stderr)
+        for a in result["active"]:
+            print(f"Active conflict: {a['ref']} ({a['sha'][:12]})", file=sys.stderr)
+        print("Multiple active batches — manual intervention required", file=sys.stderr)
         return 1
 
     if result["active"]:
-        print(f"Active batch: {result['active'][0]}")
+        a = result["active"][0]
+        print(f"Active batch: {a['manifest']['batch_id']} on {a['ref']} ({a['sha'][:12]})")
     else:
         print("No active batch — new freeze permitted.")
 
