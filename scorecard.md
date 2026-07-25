@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 00:26 SGT
+Updated: 26 July 2026, 00:53 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -11,6 +11,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 |---|---|---:|---:|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
+| Claude Opus 5 | Max | 1 | 3.90 | 0% | 1/1 applicable | 5 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 1 | 3.94 | 0% | 1/1 applicable | 7 | Anecdotal |
@@ -22,6 +23,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
 | 26 Jul 2026 00:26 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.94 | No | Verified |
 | 25 Jul 2026 22:10 SGT | DeepSeek V4 Pro | High | Architecture Proposal | High | PASS | 4.14 | Yes | Verified |
 | 25 Jul 2026 20:37 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.42 | No | Verified |
@@ -57,6 +59,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
+| Claude Opus 5 | Max | Complex Repository Change | High | 1 | 3.90 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Research | High | 1 | 3.94 | 0% | Anecdotal |
@@ -72,6 +75,27 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### Claude Opus 5 - Complex Repository Change
+
+- Reasoning level: **Max**
+- Reviewed: **26 Jul 2026 00:53 SGT**
+- Run ID: `2026-07-26-claude-opus-5-business-automation-a-amendment-007`
+- Subject alias: `business-automation-a`
+- Result: **AMEND**
+- Weighted score: **3.90/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed the stale-authority publication race by re-resolving the newest decision and inserting one exclusive build claim inside the same immediate transaction
+  - implemented exact-claim commit recovery winner ordering terminal post-claim consumption and strong schema-object semantics
+  - added broad deterministic hostile-store timestamp failure and real-process concurrency evidence with green exact-head continuous integration
+  - kept the exact-head change draft and unmerged with zero live-system actions and reconciled the authoritative project tracker
+- Principal defects:
+  - opening an existing untrusted database applies the persistent DELETE journal mode before canonical validation and can mutate a WAL-mode foreign or partial store before refusing it
+  - global validation does not iterate every decision and activation row so corruption under an unrelated source can evade validation for the current source; the exact schema-metadata row set is also not enforced
+  - build claims require an aware claimed timestamp but do not prove that the claim timestamp is no earlier than its bound approval and activation
+  - the mandatory claim-before-activation hostility case was omitted while the completion report stated the timestamp boundary was closed
 
 ### DeepSeek V4 Pro - Research
 
