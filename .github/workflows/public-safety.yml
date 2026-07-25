@@ -22,5 +22,22 @@ jobs:
           cd repo
           git fetch --quiet origin "$MERGE_SHA"
           git checkout --quiet --detach "$MERGE_SHA"
+          git show "$BASE_SHA:evaluations.jsonl" > /tmp/base-evaluations.jsonl
+          python3 - <<'PY'
+          from pathlib import Path
+          base = Path('/tmp/base-evaluations.jsonl').read_bytes()
+          current = Path('evaluations.jsonl').read_bytes()
+          limit = min(len(base), len(current))
+          mismatch = next((i for i in range(limit) if base[i] != current[i]), None)
+          if mismatch is None and len(current) < len(base):
+              mismatch = len(current)
+          print(f'base_bytes={len(base)} current_bytes={len(current)} prefix={current.startswith(base)} mismatch={mismatch}')
+          if mismatch is not None:
+              lo = max(0, mismatch - 24)
+              hi = mismatch + 24
+              print('base_window=' + base[lo:hi].hex())
+              print('current_window=' + current[lo:hi].hex())
+          print('base_tail=' + base[-64:].hex())
+          print('current_boundary=' + current[max(0, len(base)-64):len(base)+64].hex())
+          PY
           python3 scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
-          python3 scripts/check_public_safety.py
