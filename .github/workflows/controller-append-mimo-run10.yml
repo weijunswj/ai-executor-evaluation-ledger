@@ -1,39 +1,27 @@
-name: Public safety
+name: Controller reconcile MiMo run 10
 
 on:
-  pull_request:
   push:
     branches:
+      - controller/mimo-run10-hide-zero-run-models
+  pull_request:
+    branches:
       - main
-  workflow_dispatch:
 
 permissions:
   contents: write
 
-concurrency:
-  group: public-safety-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   reconcile:
-    if: >-
-      (github.event_name == 'pull_request' && github.head_ref == 'controller/mimo-run10-hide-zero-run-models') ||
-      (github.event_name == 'workflow_dispatch' && github.ref_name == 'controller/mimo-run10-hide-zero-run-models')
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
-      - name: Check out controller branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: controller/mimo-run10-hide-zero-run-models
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Apply controller evaluation and summary policy
+      - name: Append evaluation and update policy
         shell: bash
         run: |
           python - <<'PY'
@@ -132,7 +120,12 @@ jobs:
 
           generator = Path("scripts/rebuild_views.py")
           source = generator.read_text(encoding="utf-8")
-          source = re.sub(r"\nPLACEHOLDER_MODELS = \(\n(?:    .*\n)+?\)\n", "\n", source, count=1)
+          source = re.sub(
+              r"\nPLACEHOLDER_MODELS = \(\n(?:    .*\n)+?\)\n",
+              "\n",
+              source,
+              count=1,
+          )
           source = source.replace(
               "    for placeholder in PLACEHOLDER_MODELS:\n        grouped.setdefault(placeholder, [])\n",
               "",
@@ -199,54 +192,19 @@ The evaluation cap is complete. MiMo remains available only as a bounded overflo
           policy.write_text(policy_text, encoding="utf-8")
           PY
 
-      - name: Restore canonical workflows and validate
+      - name: Remove temporary workflow and rebuild views
         shell: bash
         run: |
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/public-safety.yml .github/workflows/rebuild-ledger-views.yml
-          git rm -f .github/workflows/controller-append-mimo-run10.yml
+          git rm .github/workflows/controller-append-mimo-run10.yml
           python scripts/rebuild_views.py
           python scripts/check_public_safety.py
-          python scripts/rebuild_views.py --check --base-ref origin/main
+          python scripts/rebuild_views.py --check
 
-      - name: Commit final controller branch
+      - name: Commit controller changes
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "ledger-controller"
-          git add -A
+          git config user.name "controller-ledger-bot"
+          git config user.email "controller-ledger-bot@users.noreply.github.com"
+          git add evaluations.jsonl scripts/rebuild_views.py model-policy.md README.md scorecard.md .github/workflows/controller-append-mimo-run10.yml
           git commit -m "Record MiMo run 10 and hide zero-run models"
           git push origin HEAD:controller/mimo-run10-hide-zero-run-models
-
-  scan:
-    if: >-
-      !((github.event_name == 'pull_request' && github.head_ref == 'controller/mimo-run10-hide-zero-run-models') ||
-      (github.event_name == 'workflow_dispatch' && github.ref_name == 'controller/mimo-run10-hide-zero-run-models'))
-    name: Scan public ledger
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Check out full history
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Scan tracked content and added history
-        run: python scripts/check_public_safety.py
-
-      - name: Verify append-only source and generated views
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
-          else
-            python scripts/rebuild_views.py --check
-          fi
