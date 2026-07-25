@@ -31,15 +31,36 @@ Record the exact public-safe:
 
 Never publish repository identities, user identities, raw revisions, provider identifiers, secrets or private operational evidence.
 
+## Zero-pending gate
+
+Once an executor completion report has been presented and controller-reviewed, that result is **ledger-pending** until its controller-owned ledger pull request passes required checks and merges.
+
+Before issuing another executor prompt, the controller must:
+
+1. append every reviewed ledger-pending result;
+2. reconcile every applicable private project tracker;
+3. merge the ledger update;
+4. confirm the appended model, reasoning level, run ID, verdict and score to the user;
+5. verify that the reviewed-but-unmerged queue is empty.
+
+When reporting counts, always distinguish:
+
+- **formal runs**: evaluation records already merged into `main`;
+- **ledger-pending runs**: reviewed records not yet merged;
+- **in-flight runs**: executor work not yet presented for controller review.
+
+Never count ledger-pending or in-flight work as a formal run. If several reports arrive before reconciliation, append all reviewed results in one controller pull request or in sequential controller pull requests before issuing any further executor prompt. The user must not need to remind the controller.
+
 ## Web-controller workflow
 
 1. Create a branch named `controller/ledger-<short-purpose>` from current `main`.
-2. Append the new JSONL line only.
+2. Append the new JSONL line only, or append every reviewed ledger-pending line when reconciling a backlog.
 3. The `Rebuild ledger views` workflow regenerates `README.md` and `scorecard.md` on the controller branch.
 4. Update `model-policy.md` only when the evidence changes the safe task boundary.
 5. Open a pull request.
 6. Merge only after `Public safety` passes. It verifies disclosure safety, append-only JSONL and generated-view consistency.
-7. After merge, tell the user:
+7. Fetch `main` after merge and verify that the expected run IDs appear and the formal-run count increased by the number of appended evaluation records.
+8. After merge, tell the user:
 
 ```text
 Ledger appended: <model> | reasoning: <level-or-not-exposed> | <run-id> | <verdict> | <score>/5
