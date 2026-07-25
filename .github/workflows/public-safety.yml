@@ -8,60 +8,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: public-safety-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  reconcile-opus5-am6:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.head_ref == 'controller/record-opus-5-max-amendment-006' &&
-      github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Check out exact controller branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: controller/record-opus-5-max-amendment-006
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Apply controller-sealed packet
-        shell: bash
-        run: |
-          git fetch origin main
-          python scripts/controller_append_opus5_am6.py
-          git checkout origin/main -- CONTROLLER_QUICKSTART.md
-          git checkout d1018c060be752170a1d6310c65ac6eef37651f1 -- .github/workflows/public-safety.yml
-          git rm -f .github/workflows/rebuild-ledger-views.yml
-          git rm -f scripts/controller_append_opus5_am6.py
-          python scripts/rebuild_views.py
-          python scripts/check_public_safety.py
-          python scripts/rebuild_views.py --check --base-ref origin/main
-          git diff --check
-
-      - name: Commit final evaluation branch
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "ledger-controller"
-          git add -A
-          git commit -m "Record Opus 5 Max Amendment 6 evaluation"
-          git push origin HEAD:controller/record-opus-5-max-amendment-006
-
   scan:
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.head_ref != 'controller/record-opus-5-max-amendment-006' ||
-      github.actor == 'github-actions[bot]'
     name: Scan public ledger
     runs-on: ubuntu-latest
     timeout-minutes: 5
