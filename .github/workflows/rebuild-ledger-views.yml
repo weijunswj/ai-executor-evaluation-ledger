@@ -1,6 +1,9 @@
 name: Rebuild ledger views
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - "controller/**"
@@ -21,15 +24,18 @@ concurrency:
 
 jobs:
   rebuild:
-    if: github.actor != 'github-actions[bot]'
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'controller/record-opus-5-max-amendment-006'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out controller branch
+      - name: Check out exact controller branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.ref_name }}
+          ref: controller/record-opus-5-max-amendment-006
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -60,7 +66,7 @@ jobs:
               "subject_alias": "business-automation-a",
               "revision_binding": "exact-private-revision-controller-verified",
               "prompt_sha256": None,
-              "prompt_capture": "Full controller Amendment 6 prompt and executor report are preserved privately; no standalone prompt hash was computed.",
+              "prompt_capture": "Full controller Amendment 6 prompt and executor report are preserved privately; no standalone hash was computed.",
               "objective": [
                   "move reviewer authority from readable JSONL into an append-only transactional decision store",
                   "recover uncertain decision and activation commits by reopening and exact-row verification",
@@ -208,28 +214,22 @@ Max is already the highest owner-approved tier. Further progress must come from 
           policy.write_text(policy_text, encoding="utf-8", newline="\n")
           PY
 
-          git checkout origin/main -- .github/workflows/rebuild-ledger-views.yml
-          git add evaluations.jsonl model-policy.md .github/workflows/rebuild-ledger-views.yml
+          git checkout origin/main -- CONTROLLER_QUICKSTART.md
+          git rm -f .github/workflows/rebuild-ledger-views.yml
 
-      - name: Rebuild generated views
-        run: python scripts/rebuild_views.py
-
-      - name: Validate controller packet
+      - name: Rebuild and validate final packet
         shell: bash
         run: |
+          python scripts/rebuild_views.py
           python scripts/check_public_safety.py
           python scripts/rebuild_views.py --check --base-ref origin/main
           git diff --check
 
-      - name: Commit generated views when changed
+      - name: Commit final evaluation branch
         shell: bash
         run: |
-          if git diff --quiet -- README.md scorecard.md; then
-            echo "Ledger views already current."
-            exit 1
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "ledger-controller"
-          git add README.md scorecard.md
+          git add -A
           git commit -m "Record Opus 5 Max Amendment 6 evaluation"
-          git push
+          git push origin HEAD:controller/record-opus-5-max-amendment-006
