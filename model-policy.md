@@ -18,7 +18,7 @@ Observed scores:
 - provider operation, high difficulty: **3.27/5** across 2 runs;
 - security remediation, high difficulty: **3.50/5** across 5 runs;
 - complex repository change, medium difficulty: **3.26/5** across 1 run;
-- mixed-task average: **3.41/5**;
+- mixed-task average: **3.40/5**;
 - first-pass acceptance: **0%**;
 - verified safe final state: **6/11 applicable runs**.
 
