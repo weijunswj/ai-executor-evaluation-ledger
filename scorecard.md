@@ -296,7 +296,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Principal defects:
   - post-publication single-use state depends on a ledger append that can itself fail
   - a published package may exist without a durable build event after ledger open, write, flush or fsync failure
-  - the same approval can then build another package at a fresh absent path
+  - the same approval can then build another package at a fresh path
   - the command falls back to a generic error rather than an explicit published do-not-retry state
   - tests do not force ledger persistence failures after publication
   - the completion report claims durable approval consumption despite this untested bypass
