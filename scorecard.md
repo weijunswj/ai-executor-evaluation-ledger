@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 25 July 2026, 22:10 SGT
+Updated: 26 July 2026, 00:26 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -13,6 +13,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | 1 | 3.94 | 0% | 1/1 applicable | 7 | Anecdotal |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -21,6 +22,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 00:26 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.94 | No | Verified |
 | 25 Jul 2026 22:10 SGT | DeepSeek V4 Pro | High | Architecture Proposal | High | PASS | 4.14 | Yes | Verified |
 | 25 Jul 2026 20:37 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.42 | No | Verified |
 | 25 Jul 2026 16:13 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.65 | No | Verified |
@@ -57,6 +59,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Research | High | 1 | 3.94 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -69,6 +72,30 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 00:26 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-001`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **3.94/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact no-mutation boundary and bound the packet to the unchanged authorised base and head
+  - correctly identified the token-presence parity defect, cross-contaminated finding tests, optional canonical-parent identity and body-derived acceptance bypasses
+  - provided useful field-authority classifications, blast-radius analysis, invariants and adversarial cases
+  - correctly retained direct Ajv execution and separated the historical migration from the current trust-boundary repair
+- Principal defects:
+  - the proposed getReachableFindingCodes export would remain a second self-certified declaration rather than proof that each detector is executable and independently exercised
+  - the proposed preload monkeypatch cannot reliably disable non-exported lexical detector functions in the current CommonJS module and therefore is not a mechanically valid mutation seam
+  - the lifecycle proposal says body metadata is authoritative while declining to place replacement reason and supersession identity in canonical body templates
+  - the lifecycle state model does not fully define draft active terminal replacement-of-replacement and reopened-superseded transitions and incorrectly labels pre-PR state as terminal
+  - the side-effect self-test proposes performing real network or DNS effects without the interceptor, creating unsafe and flaky external evidence rather than controlled local sentinel proof
+  - the diagnostic proposal still exposes transformed caller identifiers instead of using bounded opaque references
+  - workflow comments do not enforce dependency closure; every workflow executing repository Node code needs deterministic installation or a mechanical dependency proof
 
 ### DeepSeek V4 Pro - Architecture Proposal
 
