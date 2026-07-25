@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-executor-evaluation-ledger:review-result:v1",
+  "title": "Public-Safe Review Result",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "result_type",
+    "review_job_id",
+    "batch_id",
+    "reviewed_at",
+    "rulebook_sha"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "result_type": {
+      "type": "string",
+      "enum": ["evaluated", "blocked", "administrative"]
+    },
+    "review_job_id": {
+      "type": "string",
+      "pattern": "^RJ-[0-9]{8}-[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "batch_id": {
+      "type": "string",
+      "pattern": "^BATCH-[0-9]{8}-[0-9]{3}$"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rulebook_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "evaluation_record": {
+      "type": "object",
+      "description": "Present only when result_type is evaluated. The complete public-safe evaluation record that will be appended to evaluations.jsonl."
+    },
+    "blocked_reason": {
+      "type": ["string", "null"],
+      "description": "Present only when result_type is blocked. Public-safe reason."
+    },
+    "verdict": {
+      "type": ["string", "null"],
+      "enum": ["accepted", "amend", "hold", "fail", null]
+    },
+    "weighted_score_5": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 5
+    },
+    "run_id": {
+      "type": ["string", "null"]
+    },
+    "provider": {
+      "type": ["string", "null"]
+    },
+    "model": {
+      "type": ["string", "null"]
+    },
+    "canonical_reasoning_level": {
+      "type": ["string", "null"],
+      "enum": ["Sol Medium", "Sol High", "Sol Max", null]
+    },
+    "observed_reasoning_mode": {
+      "type": ["string", "null"]
+    },
+    "subject_alias": {
+      "type": ["string", "null"]
+    },
+    "operation_class": {
+      "type": ["string", "null"]
+    },
+    "is_correction": {
+      "type": "boolean"
+    },
+    "correction_target_run_id": {
+      "type": ["string", "null"]
+    }
+  },
+  "additionalProperties": false,
+  "if": {
+    "properties": {
+      "result_type": {
+        "const": "evaluated"
+      }
+    }
+  },
+  "then": {
+    "required": ["verdict", "weighted_score_5", "run_id", "evaluation_record"]
+  },
+  "else": {
+    "if": {
+      "properties": {
+        "result_type": {
+          "const": "blocked"
+        }
+      }
+    },
+    "then": {
+      "required": ["blocked_reason"]
+    }
+  }
+}

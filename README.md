@@ -111,6 +111,11 @@ The scanner rejects common credentials, private keys, emails, user-home paths, r
 - [`benchmarks/README.md`](benchmarks/README.md) - regression-detection approach.
 - [`scripts/rebuild_views.py`](scripts/rebuild_views.py) - deterministic README and scorecard generator and validator.
 - [`scripts/check_public_safety.py`](scripts/check_public_safety.py) - local and CI disclosure gate.
+- [`scheduled-review/RULES.md`](scheduled-review/RULES.md) - scheduled reviewer rulebook and operating contract.
+- [`scheduled-review/README.md`](scheduled-review/README.md) - scheduled-review directory structure and public/private boundary.
+- [`schema/review-job.schema.json`](schema/review-job.schema.json) - review-job canonical schema.
+- [`schema/batch.schema.json`](schema/batch.schema.json) - batch state canonical schema.
+- [`schema/review-result.schema.json`](schema/review-result.schema.json) - review-result canonical schema.
 
 ## Review workflow
 
@@ -133,3 +138,17 @@ ChatGPT web cannot receive completion webhooks from external executors. The user
 ## Interpretation
 
 One task-class run is anecdotal. Three comparable runs provide provisional evidence, not a stable baseline. Model-level conclusions require comparable runs grouped by task class, difficulty, reasoning level and tool environment. Mixed-task evidence can inform task fit but cannot establish improvement or regression.
+
+## Scheduled batch reviewer
+
+A scheduled ChatGPT reviewer processes all eligible pending review jobs in one batched ledger PR. See [`scheduled-review/RULES.md`](scheduled-review/RULES.md) for the full operating contract.
+
+### Key invariants
+
+- One scheduled run freezes all pending jobs at its start into one batch.
+- One batch produces one consolidated ledger PR.
+- Every evaluable executor run receives its own independent evaluation record.
+- Blocked jobs do not suppress unrelated reviewable jobs.
+- The reviewer rereads repository-hosted rules every run and does not rely on chat memory.
+- Administration is non-evaluable and non-recursive.
+- Manual exact-head merge remains mandatory during rollout.

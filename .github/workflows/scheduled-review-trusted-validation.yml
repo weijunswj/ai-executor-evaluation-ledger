@@ -1,0 +1,54 @@
+name: Scheduled review trusted validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-review-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate scheduled-review candidate
+    if: startsWith(github.head_ref, 'scheduled-review/batch-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out base revision (trusted)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          path: base
+
+      - name: Check out candidate revision (untrusted data)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          path: candidate
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate candidate from base
+        run: |
+          cd base
+          python scripts/validate_scheduled_review_candidate.py --candidate-dir ../candidate
+
+      - name: Run Public Safety from base on candidate
+        run: |
+          cd base
+          python scripts/check_public_safety.py
+
+      - name: Verify append-only and generated views from base
+        shell: bash
+        run: |
+          cd base
+          python scripts/rebuild_views.py --check --base-ref origin/${{ github.base_ref }}

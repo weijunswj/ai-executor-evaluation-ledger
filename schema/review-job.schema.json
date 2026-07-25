@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-executor-evaluation-ledger:review-job:v1",
+  "title": "Scheduled Review Job",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "review_job_id",
+    "source_repository",
+    "source_head",
+    "provider",
+    "model",
+    "canonical_reasoning_level",
+    "run_id",
+    "task_class",
+    "completion_report_location",
+    "enqueuing_controller",
+    "enqueued_at",
+    "evaluable_run",
+    "operation_class"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "review_job_id": {
+      "type": "string",
+      "pattern": "^RJ-[0-9]{8}-[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "source_repository": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "source_tracker": {
+      "type": ["string", "null"],
+      "maxLength": 256
+    },
+    "source_pull_request": {
+      "type": ["string", "null"],
+      "maxLength": 256
+    },
+    "source_base": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "source_head": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "previous_reviewed_head": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "canonical_reasoning_level": {
+      "type": "string",
+      "enum": ["Sol Medium", "Sol High", "Sol Max"]
+    },
+    "requested_provider_reasoning_mode": {
+      "type": ["string", "null"],
+      "maxLength": 64
+    },
+    "observed_provider_reasoning_mode": {
+      "type": ["string", "null"],
+      "maxLength": 64
+    },
+    "reasoning_mode_exposed": {
+      "type": ["boolean", "null"]
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9](?:[a-z0-9-]{2,95}[a-z0-9])?$"
+    },
+    "task_class": {
+      "type": "string",
+      "enum": [
+        "research",
+        "routine-repository-change",
+        "complex-repository-change",
+        "security-review",
+        "security-remediation",
+        "migration",
+        "provider-operation",
+        "production-deployment",
+        "incident-diagnosis",
+        "tracker-reconciliation",
+        "architecture-proposal"
+      ]
+    },
+    "difficulty": {
+      "type": ["string", "null"],
+      "enum": ["low", "medium", "high", "critical", null]
+    },
+    "subject_alias": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"
+    },
+    "completion_report_location": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "enqueuing_controller": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "enqueued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evaluable_run": {
+      "type": "boolean"
+    },
+    "operation_class": {
+      "type": "string",
+      "enum": [
+        "executor_evaluation",
+        "controller_administration",
+        "ledger_maintenance"
+      ]
+    },
+    "public_evidence_classification": {
+      "type": ["string", "null"],
+      "enum": ["public-safe", "private-evidence-only", "mixed", null]
+    },
+    "dependency_job_id": {
+      "type": ["string", "null"],
+      "pattern": "^RJ-[0-9]{8}-[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "supersedes_job_id": {
+      "type": ["string", "null"],
+      "pattern": "^RJ-[0-9]{8}-[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "review_job_id": "RJ-20260725-test-job-001",
+  "source_repository": "test-project-a",
+  "source_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "provider": "Anthropic",
+  "model": "Claude Opus 4.8 High",
+  "canonical_reasoning_level": "Sol High",
+  "requested_provider_reasoning_mode": "high",
+  "observed_provider_reasoning_mode": null,
+  "reasoning_mode_exposed": null,
+  "run_id": "2026-07-25-claude-opus-4-8-high-test-001",
+  "task_class": "complex-repository-change",
+  "difficulty": "high",
+  "subject_alias": "test-project-a",
+  "completion_report_location": "private:tracker-ref-001",
+  "enqueuing_controller": "controller-test",
+  "enqueued_at": "2026-07-25T23:00:00+08:00",
+  "evaluable_run": true,
+  "operation_class": "executor_evaluation"
+}

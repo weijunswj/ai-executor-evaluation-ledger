@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-executor-evaluation-ledger:batch:v1",
+  "title": "Scheduled Review Batch",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "batch_id",
+    "state",
+    "created_at",
+    "updated_at",
+    "rulebook_sha",
+    "rulebook_commit",
+    "rulebook_path",
+    "base_main_sha",
+    "branch_name",
+    "frozen_jobs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "batch_id": {
+      "type": "string",
+      "pattern": "^BATCH-[0-9]{8}-[0-9]{3}$"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "frozen",
+        "reviewing",
+        "partially_reviewed",
+        "batch_pr_open",
+        "merged",
+        "completed",
+        "blocked",
+        "abandoned"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rulebook_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "rulebook_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "rulebook_path": {
+      "type": "string",
+      "const": "scheduled-review/RULES.md"
+    },
+    "base_main_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "branch_name": {
+      "type": "string",
+      "pattern": "^scheduled-review/batch-[0-9]{8}-[0-9]{3}$"
+    },
+    "intake_repository": {
+      "type": ["string", "null"]
+    },
+    "frozen_jobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["review_job_id", "accepted_body_sha256", "state"],
+        "properties": {
+          "review_job_id": {
+            "type": "string",
+            "pattern": "^RJ-[0-9]{8}-[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+          },
+          "accepted_body_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": ["pending", "reviewed", "blocked", "superseded"]
+          },
+          "verdict": {
+            "type": ["string", "null"],
+            "enum": ["accepted", "amend", "hold", "fail", null]
+          },
+          "blocked_reason": {
+            "type": ["string", "null"],
+            "maxLength": 256
+          },
+          "public_safe_blocked_reason": {
+            "type": ["string", "null"],
+            "maxLength": 256
+          },
+          "run_id": {
+            "type": ["string", "null"]
+          },
+          "provider": {
+            "type": ["string", "null"]
+          },
+          "model": {
+            "type": ["string", "null"]
+          },
+          "canonical_reasoning_level": {
+            "type": ["string", "null"],
+            "enum": ["Sol Medium", "Sol High", "Sol Max", null]
+          },
+          "observed_reasoning_mode": {
+            "type": ["string", "null"]
+          },
+          "task_class": {
+            "type": ["string", "null"]
+          },
+          "difficulty": {
+            "type": ["string", "null"]
+          },
+          "subject_alias": {
+            "type": ["string", "null"]
+          },
+          "operation_class": {
+            "type": ["string", "null"]
+          },
+          "evaluable_run": {
+            "type": ["boolean", "null"]
+          },
+          "dependency_job_id": {
+            "type": ["string", "null"]
+          },
+          "supersedes_job_id": {
+            "type": ["string", "null"]
+          },
+          "reviewed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
+    "reviewed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pr_number": {
+      "type": ["integer", "null"],
+      "minimum": 1
+    },
+    "pr_url": {
+      "type": ["string", "null"]
+    },
+    "proposed_policy_amendments": {
+      "type": "object"
+    },
+    "completed_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "merge_commit": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{40}$"
+    }
+  },
+  "additionalProperties": false
+}

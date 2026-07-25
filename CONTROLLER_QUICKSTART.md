@@ -81,3 +81,16 @@ python scripts/rebuild_views.py --check
 ```
 
 The complete history remains in `evaluations.jsonl`. Human-readable run displays retain only the newest 30 formal evaluations.
+
+## Scheduled-review submission
+
+For executor runs eligible for the scheduled batch reviewer:
+
+1. Create one private GitHub issue in the configured intake repository (not this public ledger).
+2. Use the review-job JSON schema (`schema/review-job.schema.json`).
+3. The issue body must contain only the structured JSON — no free-text narrative.
+4. Label the issue `pending-review`.
+5. The scheduled reviewer will discover, freeze, and review it in the next batch.
+6. The private intake repository is not configured in this public repository.
+
+Never place private repository identities, source URLs, file paths, user identities, or secrets in the public ledger. The private intake issue may contain real source references; the public batch manifest and results must not.

@@ -1,0 +1,6 @@
+{
+  "review_job_id": "RJ-20260725-test-job-001",
+  "source_repository": "test-project-a",
+  "canonical_reasoning_level": "InvalidLevel",
+  "operation_class": "unknown_class"
+}

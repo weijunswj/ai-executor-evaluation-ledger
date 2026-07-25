@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "batch_id": "BATCH-20260725-001",
+  "state": "frozen",
+  "created_at": "2026-07-25T23:00:00+08:00",
+  "updated_at": "2026-07-25T23:00:00+08:00",
+  "rulebook_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "rulebook_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "rulebook_path": "scheduled-review/RULES.md",
+  "base_main_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "branch_name": "scheduled-review/batch-20260725-001",
+  "intake_repository": null,
+  "frozen_jobs": [
+    {
+      "review_job_id": "RJ-20260725-test-job-001",
+      "accepted_body_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "state": "pending",
+      "run_id": "2026-07-25-claude-opus-4-8-high-test-001",
+      "provider": "Anthropic",
+      "model": "Claude Opus 4.8 High",
+      "canonical_reasoning_level": "Sol High",
+      "observed_reasoning_mode": null,
+      "task_class": "complex-repository-change",
+      "difficulty": "high",
+      "subject_alias": "test-project-a",
+      "operation_class": "executor_evaluation",
+      "evaluable_run": true,
+      "dependency_job_id": null,
+      "supersedes_job_id": null,
+      "verdict": null,
+      "reviewed_at": null,
+      "blocked_reason": null,
+      "public_safe_blocked_reason": null
+    }
+  ],
+  "reviewed_count": 0,
+  "blocked_count": 0,
+  "pr_number": null,
+  "pr_url": null,
+  "proposed_policy_amendments": null,
+  "completed_at": null,
+  "merge_commit": null
+}
