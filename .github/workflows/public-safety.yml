@@ -82,7 +82,7 @@ jobs:
           git config user.email "ledger-controller"
           git add -A
           git commit -m "Record reviewed evaluation backlog"
-          git push --force-with-lease origin HEAD:controller/final-ledger-backlog-20260725
+          git push origin HEAD:controller/final-ledger-backlog-20260725
 
   scan:
     if: >-
