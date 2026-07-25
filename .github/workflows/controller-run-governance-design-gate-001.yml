@@ -59,6 +59,7 @@ jobs:
 
           rm -f .controller/governance-design-gate-001-record.json
           rm -f .controller/governance-design-gate-001-policy.md
+          rm -f .controller/README.md
           rmdir .controller
           rm -f .github/workflows/controller-run-governance-design-gate-001.yml
 
