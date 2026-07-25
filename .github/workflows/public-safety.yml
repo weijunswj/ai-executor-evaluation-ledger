@@ -8,64 +8,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: public-safety-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  append-controller-evaluation:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.head_ref == 'controller/ledger-deepseek-scheduled-review-gate1' &&
-      github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out exact controller branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.head_ref }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Verify ledger base
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch origin main
-          test "$(git rev-parse origin/main)" = "675a1d9f43cc669b46e378821612878a39d3472f"
-
-      - name: Append sealed record and rebuild views
-        shell: bash
-        run: |
-          set -euo pipefail
-          python scripts/controller_append_deepseek_gate1.py
-          python scripts/rebuild_views.py
-          python scripts/check_public_safety.py
-          python scripts/rebuild_views.py --check --base-ref origin/main
-          git diff --check
-          test "$(grep -c '2026-07-25-deepseek-v4-pro-evaluation-ledger-scheduled-review-architecture-001' evaluations.jsonl)" -eq 1
-
-      - name: Commit ordinary ledger files
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- evaluations.jsonl model-policy.md README.md scorecard.md; then
-            echo 'Sealed evaluation already current.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email 'ledger-controller'
-          git add evaluations.jsonl model-policy.md README.md scorecard.md
-          git commit -m 'Record DeepSeek scheduled-review architecture evaluation'
-          git push origin HEAD:${{ github.head_ref }}
-
   scan:
     name: Scan public ledger
     runs-on: ubuntu-latest
