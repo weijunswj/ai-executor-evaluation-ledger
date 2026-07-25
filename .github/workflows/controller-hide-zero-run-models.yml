@@ -1,0 +1,58 @@
+name: Controller hide zero-run models
+
+on:
+  push:
+    branches:
+      - controller/hide-zero-run-models
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Remove placeholder-only summary rows
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("scripts/rebuild_views.py")
+          text = path.read_text(encoding="utf-8")
+
+          placeholder_block = '''PLACEHOLDER_MODELS = (
+              ("GPT-5.6 Sol Medium", "Medium"),
+              ("GPT-5.6 Sol High", "High"),
+          )
+
+          '''
+          placeholder_loop = '''    for placeholder in PLACEHOLDER_MODELS:
+              grouped.setdefault(placeholder, [])
+          '''
+
+          if placeholder_block not in text:
+              raise SystemExit("PLACEHOLDER_MODELS block not found")
+          if placeholder_loop not in text:
+              raise SystemExit("placeholder insertion loop not found")
+
+          text = text.replace(placeholder_block, "", 1)
+          text = text.replace(placeholder_loop, "", 1)
+          path.write_text(text, encoding="utf-8", newline="\n")
+      - name: Rebuild generated views
+        run: python scripts/rebuild_views.py
+      - name: Remove temporary controller workflow
+        run: rm .github/workflows/controller-hide-zero-run-models.yml
+      - name: Verify generated views and public safety
+        run: |
+          python scripts/rebuild_views.py --check
+          python scripts/check_public_safety.py
+      - name: Commit controller maintenance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/rebuild_views.py README.md scorecard.md .github/workflows/controller-hide-zero-run-models.yml
+          git commit -m "Hide models with no formal evaluation data"
+          git push
