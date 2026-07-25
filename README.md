@@ -15,6 +15,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | GPT-5.6 Sol Medium | Medium | 0 | - | - | - | Formal backfill pending |
 | GPT-5.6 Sol High | High | 0 | - | - | - | Formal backfill pending |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | Anecdotal |
+| Claude Opus 5 Max | Max | 1 | 3.15 | 0% | 1/1 applicable | Anecdotal |
 | MiMo 2.5 Pro | Default | 7 | 3.28 | 0% | 2/6 applicable | Moderate |
 
 ## Task-class scorecard
@@ -23,6 +24,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
+| Claude Opus 5 Max | Max | Complex Repository Change | High | 1 | 3.15 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Incident Diagnosis | High | 1 | 3.63 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Provider Operation | High | 2 | 3.27 | 0% | Anecdotal |

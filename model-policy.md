@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 25 July 2026, 00:35 SGT
+Updated: 25 July 2026, 11:38 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -178,7 +178,62 @@ Before this task can be accepted, the next amendment must:
 - retain exact-head evidence, a draft unmerged state and zero unauthorised live-system actions;
 - receive an accepted controller review.
 
-Because a same-domain launch-blocking P1 survived the Ultra High repair, the next implementation must use the owner-approved **Sol Max** escalation.
+Because a same-domain launch-blocking P1 survived the Ultra High repair, the next implementation used the owner-approved Max escalation and is evaluated separately below.
+
+## Claude Opus 5 Max
+
+Reasoning level: **Max**
+
+Evidence level: **Anecdotal - 1 formal high-difficulty complex-repository-change run**
+
+Observed score:
+
+- fourth amendment: **3.15/5**;
+- first-pass acceptance: **0%**;
+- verified safe draft state: **1/1**.
+
+### Approved
+
+- Narrow high-risk repository remediation in an isolated branch or worktree.
+- Exact-head code, test and continuous-integration evidence for independent controller review.
+- Draft pull-request and tracker updates with no live-system mutation.
+- Directional durable-state redesign where every committed boundary remains independently reviewed.
+
+### Conditional
+
+- Package, ledger, reservation and filesystem-durability changes only while draft and unmerged.
+- Tests must model both fully lost appends and bytes-visible-but-durability-unconfirmed appends.
+- Partial writes, malformed durable state, process restart and every acknowledgement persistence stage must be exercised with real files.
+- Reservation reconciliation must require independent durable completion proof, not merely a readable ledger line.
+- Green tests, mutation tests and continuous integration remain supporting evidence only.
+
+### Not currently approved
+
+- Autonomous merge or self-acceptance of durable-state or write-capable changes.
+- Treating `flush` or `fsync` failure as proof that no bytes reached the ledger.
+- Treating a parseable ledger event as durably committed solely because a later process can read it.
+- Allowing malformed or partial append-only state to escape as an uncontrolled traceback.
+- Autonomous production mutation or package creation from private operational data.
+
+### Current evidence
+
+The Max amendment introduced the correct write-ahead reservation direction, created it exclusively before atomic publication, added explicit reservation/publication/cleanup/ledger outcomes, preserved final and competing paths, retained a draft unmerged state, and performed no live-system action.
+
+The repair nevertheless remains merge-blocked. Its negative-test helper deliberately prevents failed ledger bytes from reaching disk, including the fsync case. A real flush or fsync failure can leave a complete readable `build` line whose durability was never confirmed; the next process treats that line as reconciled and can reopen `--rebuild` under the same approval. A partial append can also leave malformed JSONL that is not converted into a controlled sanitised failure. This is a fourth same-domain non-convergent amendment and another P1.
+
+### Promotion condition
+
+Before this task can be accepted, a narrowly scoped Max amendment must:
+
+- add a separate durable completion acknowledgement, or an equivalent mechanism, created only after the matching ledger event is durably confirmed;
+- reconcile a reservation only when both the exact ledger event and its completion acknowledgement are valid;
+- keep both plain build and `--rebuild` blocked after a full visible line plus flush/fsync failure, a partial append, or any acknowledgement persistence failure;
+- handle malformed or partial ledger state with an explicit sanitised non-success and no traceback;
+- test clean and cleanup-incomplete publication, process restart, acknowledgement tampering and every open/write/flush/fsync/directory-fsync failure;
+- preserve the final package, reservation, strict no-clobber and zero-live-action boundaries;
+- receive an accepted exact-head controller review.
+
+Max is already the highest owner-approved tier. Further progress must come from tighter controller-specified invariants and adversarial tests, not from inventing a higher reasoning label.
 
 ## GPT-5.6 Sol Medium
 
