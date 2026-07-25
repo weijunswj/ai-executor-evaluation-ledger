@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 24 July 2026, 23:12 SGT
+Updated: 25 July 2026, 12:05 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
