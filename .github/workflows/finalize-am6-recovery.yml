@@ -37,6 +37,7 @@ jobs:
             .github/workflows/public-safety.yml \
             .github/workflows/rebuild-ledger-views.yml
           git rm -f scripts/controller_append_opus5_am6.py
+          git rm -f scripts/controller_recovery_trigger.py
           git rm -f .github/workflows/finalize-am6-recovery.yml
 
           python scripts/rebuild_views.py
