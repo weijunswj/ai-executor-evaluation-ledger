@@ -111,7 +111,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - removed the undocumented production debug-output path
   - replaced the duplicate test oracle with the exported production validator
   - preserved earlier fail-closed provenance repairs
-  - kept the exact-head change draft and unmerged with green exact-head continuous integration and zero provider operations
+  - kept the exact-head change draft and unmerged with green continuous integration and zero provider operations
   - produced clean private tracker text at this amendment
 - Principal defects:
   - omitted six explicitly required production-validator negative classes while calling the matrix complete
@@ -296,7 +296,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Principal defects:
   - post-publication single-use state depends on a ledger append that can itself fail
   - a published package may exist without a durable build event after ledger open, write, flush or fsync failure
-  - the same approval can then build another package at a fresh path
+  - the same approval can then build another package at a fresh absent path
   - the command falls back to a generic error rather than an explicit published do-not-retry state
   - tests do not force ledger persistence failures after publication
   - the completion report claims durable approval consumption despite this untested bypass
