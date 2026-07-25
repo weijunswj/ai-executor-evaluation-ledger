@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 25 July 2026, 12:05 SGT
+Updated: 25 July 2026, 12:42 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -11,7 +11,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 |---|---|---:|---:|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
-| Claude Opus 5 Max | Max | 1 | 3.15 | 0% | 1/1 applicable | 4 | Anecdotal |
+| Claude Opus 5 Max | Max | 2 | 3.26 | 0% | 2/2 applicable | 8 | Anecdotal |
 | MiMo 2.5 Pro | Default | 10 | 3.33 | 0% | 4/9 applicable | 53 | Moderate |
 
 ## Formal evaluated runs
@@ -20,6 +20,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 25 Jul 2026 12:42 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.38 | No | Verified |
 | 25 Jul 2026 12:05 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 3.75 | No | Verified |
 | 25 Jul 2026 11:38 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.15 | No | Verified |
 | 25 Jul 2026 11:32 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | HOLD | 3.05 | No | Not controller-verified |
@@ -42,7 +43,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
-| Claude Opus 5 Max | Max | Complex Repository Change | High | 1 | 3.15 | 0% | Anecdotal |
+| Claude Opus 5 Max | Max | Complex Repository Change | High | 2 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Incident Diagnosis | High | 2 | 3.34 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Provider Operation | High | 2 | 3.27 | 0% | Anecdotal |
@@ -52,6 +53,27 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### Claude Opus 5 Max - Complex Repository Change
+
+- Reasoning level: **Max**
+- Reviewed: **25 Jul 2026 12:42 SGT**
+- Run ID: `2026-07-25-claude-opus-5-max-business-automation-a-amendment-005`
+- Subject alias: `business-automation-a`
+- Result: **AMEND**
+- Weighted score: **3.38/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed the prior readable-build-event bypass with a terminal reservation rule
+  - retired same-approval rebuild and preserved fresh-approval recovery
+  - added real-file visible-line and partial-append restart tests
+  - kept the exact-head change draft and unmerged with green continuous integration and zero live-system actions
+- Principal defects:
+  - a complete approval decision line can become build-authoritative after its flush or fsync reports failure
+  - a concurrent reservation loser is reported as retryable even though the competing reservation consumed the approval
+  - dict-shaped malformed ledger records are not schema-validated and can reach uncontrolled timestamp parsing errors
+  - the completion report overstates closure after a fifth same-domain amendment
 
 ### MiMo 2.5 Pro - Security Remediation
 
