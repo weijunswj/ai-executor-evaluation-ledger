@@ -1,0 +1,110 @@
+name: Fix scorecard generated timestamp
+
+on:
+  push:
+    branches:
+      - controller/mimo-run10-final-recovery
+
+permissions:
+  contents: write
+
+concurrency:
+  group: controller-fix-scorecard-timestamp
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out recovery branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: controller/mimo-run10-final-recovery
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Make scorecard timestamp deterministic
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/rebuild_views.py")
+          source = path.read_text(encoding="utf-8")
+          source = source.replace(
+              "import json\nimport subprocess\n",
+              "import json\nimport re\nimport subprocess\n",
+              1,
+          )
+          anchor = '''def expected_files(records: list[dict[str, Any]]) -> tuple[str, str]:
+'''
+          helper = '''def scorecard_updated_line(records: list[dict[str, Any]]) -> str:
+    if not records:
+        fail("cannot derive scorecard update time without formal evaluations")
+    value = max(record_time(record) for record in records)
+    suffix = " SGT" if value.utcoffset() == timedelta(hours=8) else ""
+    return f"Updated: {value.day} {value.strftime('%B %Y, %H:%M')}{suffix}"
+
+
+def expected_files(records: list[dict[str, Any]]) -> tuple[str, str]:
+'''
+          if helper not in source:
+              if anchor not in source:
+                  raise SystemExit("expected_files anchor missing")
+              source = source.replace(anchor, helper, 1)
+          old = '''    expected_scorecard = replace_generated_block(
+        scorecard,
+        SCORECARD_START,
+        SCORECARD_END,
+        render_scorecard_block(records),
+        "## Current interpretation",
+    )
+    return expected_readme, expected_scorecard
+'''
+          new = '''    expected_scorecard = replace_generated_block(
+        scorecard,
+        SCORECARD_START,
+        SCORECARD_END,
+        render_scorecard_block(records),
+        "## Current interpretation",
+    )
+    expected_scorecard, update_count = re.subn(
+        r"(?m)^Updated: .+$",
+        scorecard_updated_line(records),
+        expected_scorecard,
+        count=1,
+    )
+    if update_count != 1:
+        fail("scorecard must contain exactly one top-level Updated line")
+    return expected_readme, expected_scorecard
+'''
+          if new not in source:
+              if old not in source:
+                  raise SystemExit("scorecard generation anchor missing")
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding="utf-8", newline="\n")
+          PY
+
+      - name: Rebuild and validate
+        shell: bash
+        run: |
+          git fetch origin main
+          python scripts/rebuild_views.py
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check --base-ref origin/main
+
+      - name: Remove one-time workflow and commit
+        shell: bash
+        run: |
+          git rm -f .github/workflows/controller-fix-scorecard-timestamp.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add scripts/rebuild_views.py scorecard.md
+          git commit -m "Generate scorecard update time from latest evaluation"
+          git push origin HEAD:controller/mimo-run10-final-recovery
