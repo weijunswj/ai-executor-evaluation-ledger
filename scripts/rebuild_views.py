@@ -32,10 +32,6 @@ MODEL_ALIASES = {
     "Sol High": "GPT-5.6 Sol High",
 }
 
-PLACEHOLDER_MODELS = (
-    ("GPT-5.6 Sol Medium", "Medium"),
-    ("GPT-5.6 Sol High", "High"),
-)
 
 MODEL_ORDER = (
     "Xiaomi MiMo 2.5 Pro",
@@ -206,8 +202,6 @@ def group_models(records: list[dict[str, Any]]) -> dict[tuple[str, str], list[di
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for record in records:
         grouped[(record["model"], record["reasoning_display"])].append(record)
-    for placeholder in PLACEHOLDER_MODELS:
-        grouped.setdefault(placeholder, [])
     return grouped
 
 

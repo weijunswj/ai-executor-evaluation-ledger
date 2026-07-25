@@ -31,6 +31,10 @@ Record the exact public-safe:
 
 Never publish repository identities, user identities, raw revisions, provider identifiers, secrets or private operational evidence.
 
+## Summary-table eligibility
+
+Generated model summaries include only model-and-reasoning groups with at least one formal evaluation merged into `main`. Do not add zero-run placeholder rows or advertise planned backfills as formal evidence.
+
 ## Zero-pending gate
 
 Once an executor completion report has been presented and controller-reviewed, that result is **ledger-pending** until its controller-owned ledger pull request passes required checks and merges.

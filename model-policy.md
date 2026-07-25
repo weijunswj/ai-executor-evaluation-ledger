@@ -1,70 +1,56 @@
 # Model-Use Policy
 
-Updated: 25 July 2026, 11:38 SGT
+Updated: 25 July 2026, 12:05 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default on all five runs**
+Reasoning level: **Provider default across 10 formal runs**
 
-Evidence level: **Provisional across 5 formal mixed-task runs; one run per task class**
+Evidence level: **Moderate across 10 mixed-task formal runs**
 
 Observed scores:
 
 - production deployment, high difficulty: **2.25/5**;
 - routine repository change, low difficulty: **4.60/5**;
-- incident diagnosis, high difficulty: **3.63/5**;
-- security remediation, high difficulty: **2.98/5**;
-- provider preflight, high difficulty: **3.05/5**;
-- mixed-task average: **3.30/5**;
-- first-pass acceptance: **0%**.
+- incident diagnosis, high difficulty: **3.34/5** across 2 runs;
+- provider operation, high difficulty: **3.27/5** across 2 runs;
+- security remediation, high difficulty: **3.30/5** across 4 runs;
+- mixed-task average: **3.33/5**;
+- first-pass acceptance: **0%**;
+- verified safe final state: **4/9 applicable runs**.
 
 ### Approved
 
-- Strictly read-only repository and provider inspection.
-- Narrow evidence recovery with no live mutation.
-- Bounded low-risk repository configuration changes in a branch.
-- Mechanical implementation with exact file and behaviour scope.
+- Strictly read-only repository or provider inspection where direct evidence is available.
+- Narrow mechanical repository changes with exact file scope and mandatory controller review.
+- Low-risk overflow work that does not block release, mutate production or control authentication, data or deployment boundaries.
 
 ### Conditional
 
-- Complex repository repair only when the controller supplies explicit invariants, negative tests, stop conditions and a mandatory exact-head review.
-- Provenance or revision-binding repair only when missing, malformed and command-failure states are explicitly distinguished and tested.
-- Tracker comments and bodies only when the controller independently checks the resulting content, completion state and encoding.
-- Incident diagnosis only when exact log or API evidence is available; inferred root causes must be labelled as hypotheses.
-- Green local tests are supporting evidence only; exact-head continuous integration must be checked before any PASS claim.
+- Tracker writes require immediate controller fetch-back and correction.
+- Root-cause conclusions must be labelled as hypotheses unless supported by direct logs or provider evidence.
+- Green tests and continuous integration are supporting evidence only; they do not authorise self-acceptance.
 
 ### Not currently approved
 
-- Autonomous production deployment or provider mutation.
-- Repeated operational retries without new evidence.
+- Further launch-critical implementation for the current SKR, SQAG or Platform programmes.
+- Authentication, database, migration, DNS, environment, certificate or deployment mutation.
+- Autonomous merge, deployment, rollback or provider operation.
 - Independent tracker-body authority.
-- Authentication, database, DNS or environment mutation.
-- Declaring an exact root cause or PASS gate from repository inspection alone when direct provider evidence is missing.
-- Broad fail-open repairs that weaken provenance, revision binding or safety assertions.
-- Treating a malformed supplied revision or a failed Git command as equivalent to an absent source.
-- Declaring repository repair PASS before exact-head continuous integration completes.
+- Exact root-cause or PASS claims based on repository inspection without direct execution evidence.
+- Further evaluation runs merely to extend the current sample; the agreed 10-run cap has been reached.
 
 ### Current evidence
 
-The latest high-difficulty provenance repair correctly targeted a proven non-Git deployment build context, introduced a truthful deployment-source mode, remained draft and unmerged, and performed no provider operation. It nevertheless required controller amendment because malformed supplied sources could be ignored, Git command failures could be downgraded to Git absence, hosted validation did not bind the declared source, exact-head continuous integration failed, and tracker text was corrupted and prematurely completed.
+Across 10 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. It produced useful partial repairs and evidence recovery, but no run achieved first-pass acceptance. Repeated defects included premature PASS claims, incomplete negative-path coverage, tracker corruption, stale-contract diagnosis and unsupported live root-cause conclusions.
 
-Across five mixed-task runs, MiMo remains strong on narrow mechanical changes and generally respects explicit mutation prohibitions. The latest provider preflight recovered useful inventory without reporting a live mutation, but it failed to separate application-runtime credentials from operator credentials, did not identify the writer restoring those values, and corrupted the authoritative tracker. MiMo remains inconsistent at fail-closed boundaries, exact terminal verdict discipline, provider-evidence completeness and tracker-body hygiene. No formal run has achieved first-pass acceptance.
+The tenth run removed the named production debug path and correctly bound tests to the production validator, with clean trackers and green exact-head continuous integration. It still omitted six explicitly required negative matrix classes and left a reported local test failure unreconciled while claiming the matrix was complete.
 
-### Current promotion condition
+### Current disposition
 
-Before MiMo receives another mutating production task, it must complete at least one bounded high-difficulty repository repair with:
-
-- exact failing behaviour reproduced;
-- secure invariants preserved rather than bypassed;
-- missing, malformed, mismatch and command-failure states covered separately;
-- complete positive and negative tests;
-- green exact-head continuous integration including skipped-on-failure downstream gates;
-- no corrupted or premature tracker updates;
-- an independently accepted controller review.
-
-The provenance repair did not satisfy this condition. The provider preflight also does not justify autonomous provider mutation. Any follow-up provider configuration must therefore be an owner-authorised, exact-name, exact-target scripted operation with independent before/after verification and no deployment, restart or rebuild.
+The evaluation cap is complete. MiMo remains available only as a bounded overflow executor for low-risk or read-only work. The next launch-critical repair must use the next owner-approved model and receive the same exact-head controller review.
 
 ## Claude Opus 4.8 High
 
