@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: 0af780f4cdb683d666b3e8cc25f1cf3507e9a9c4
+          ref: 729198bc0750cc5585a72200eb7ebc7a8d811739
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin main
-          test "$(git rev-parse origin/main)" = "0af780f4cdb683d666b3e8cc25f1cf3507e9a9c4"
+          test "$(git rev-parse origin/main)" = "729198bc0750cc5585a72200eb7ebc7a8d811739"
           git switch -c controller/final-ledger-backlog-20260725
 
       - name: Append sealed reviewed records and policy
