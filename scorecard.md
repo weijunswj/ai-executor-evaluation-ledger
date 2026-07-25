@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 00:53 SGT
+Updated: 26 July 2026, 01:06 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -14,7 +14,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | Max | 1 | 3.90 | 0% | 1/1 applicable | 5 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 1 | 3.94 | 0% | 1/1 applicable | 7 | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | 2 | 4.06 | 0% | 2/2 applicable | 12 | Anecdotal |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -23,6 +23,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 01:06 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 4.18 | No | Verified |
 | 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
 | 26 Jul 2026 00:26 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.94 | No | Verified |
 | 25 Jul 2026 22:10 SGT | DeepSeek V4 Pro | High | Architecture Proposal | High | PASS | 4.14 | Yes | Verified |
@@ -62,7 +63,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 5 | Max | Complex Repository Change | High | 1 | 3.90 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Research | High | 1 | 3.94 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Research | High | 2 | 4.06 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -75,6 +76,28 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 01:06 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-002`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **4.18/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised head and no-mutation boundary while producing a substantially more concrete architecture
+  - replaced the prior reachability-list proposal with an executable detector-registry concept and introduced controlled local side-effect sentinels
+  - made replacement reason and supersession explicit body fields and expanded the implementation pull-request lifecycle cases
+  - specified unconditional locked dependency installation and correctly treated version 2.0.0 as an unmerged pre-release contract
+- Principal defects:
+  - auditSnapshot(snapshot, detectors) and exported buildRegistry expose the detector override to production callers, so the proposed test seam can disable governance checks outside tests
+  - the mutation examples assert that a disabled detector no longer emits instead of running the unchanged exact oracle and proving that oracle fails under the mutation
+  - the registry duplicates severity and group metadata already owned by canonical policy, creating a second normative authority despite the stated single-source requirement
+  - fixture examples mix raw issue identifiers with opaque ordinal subjects, while the proposed module-global encounter-order map is not reset or deterministically precomputed per audit run
+  - the workflow and blast-radius inventories are inconsistent and are not mechanically derived from every repository Node execution path
 
 ### Claude Opus 5 - Complex Repository Change
 
