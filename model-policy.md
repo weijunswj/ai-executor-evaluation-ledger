@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 25 July 2026, 20:42 SGT
+Updated: 26 July 2026, 00:26 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -230,43 +230,45 @@ Max is already the highest owner-approved tier. Further progress must come from 
 
 ## DeepSeek V4 Pro
 
-Reasoning level: **High**
+Evidence level: **Anecdotal — 2 formal high-difficulty architecture and research runs**
 
-Canonical task classification: **Sol High**
-
-Evidence level: **Anecdotal — 1 formal high-difficulty architecture-proposal run**
-
-Observed score:
+Observed scores:
 
 - scheduled batch-review architecture proposal: **4.14/5**;
-- first-pass acceptance: **100%**;
-- verified safe final state: **1/1**.
+- governance architecture reset: **3.94/5**;
+- two-run average: **4.04/5**;
+- first-pass acceptance: **50%**;
+- verified safe final state: **2/2**.
 
 ### Approved
 
 - Exact-revision, no-mutation repository architecture packets.
-- Authority mapping, failure analysis, option comparison, threat modelling and test planning for controller adjudication.
-- Provider-native reasoning labels recorded separately from the canonical task-risk level.
+- Authority mapping, root-cause analysis, option comparison, threat modelling and adversarial test planning for controller adjudication.
+- Narrow architecture resets that preserve the existing branch, pull request and mutation boundary.
 
 ### Conditional
 
-- Architecture recommendations are advisory and require an independent controller lock before implementation.
-- Public intake, durable batching, trusted validation and recovery designs must prove privacy, discoverability and crash persistence rather than relying on labels or chat memory.
-- Broad packets should be narrowed into one mechanically implementable lock before coding.
+- Architecture recommendations remain advisory and require an independent controller lock before implementation.
+- Executable parity must be proven through a policy-keyed detector registry and independent exact oracles, not a second declared reachability list.
+- Mutation-sensitive tests require an explicit test-only injection seam; preload string searches or inaccessible lexical monkeypatches are insufficient.
+- Body-authority designs must encode replacement reason and supersession identity in canonical issue-body fields and cross-check structured data.
+- Side-effect absence must use controlled local sentinels or fakes and must not depend on real external DNS or network effects.
+- Workflow dependency closure requires deterministic installation or a mechanical dependency proof; documentation comments alone are insufficient.
 
 ### Not currently approved
 
-- Independently selecting or locking security, privacy, append-only or workflow authority boundaries.
-- Implementing the scheduled-review trust boundary from its own proposal without controller corrections.
-- Treating provider-native `High` as performance-equivalent to another provider's reasoning tier.
+- Independently locking or implementing security, privacy, append-only, lifecycle or trusted-workflow authority boundaries.
+- Treating exported reachability metadata, candidate-authored fixture manifests or green tests as independent proof.
+- Exposing transformed private issue identifiers in public diagnostics.
+- Implementing the current governance reset until the controller replaces the incomplete architecture choices.
 
 ### Current evidence
 
-The first formal run produced a detailed and materially useful repository-grounded architecture packet, correctly identified missing durable batch state as the cause of repeated manual recovery, preserved JSONL authority and separated canonical task level from provider-native mode. The proposed design nevertheless left material contradictions in private-source resolution through a public issue queue, active-batch discovery, per-job persistence, base-trusted validation and issue immutability. The controller accepted the Gate 1 objective while replacing those choices in the design lock.
+The first run produced a useful scheduled-review architecture proposal but required controller replacement of private-source resolution, batch discovery, durable publication, trusted validation and recovery choices. The second run accurately diagnosed the surviving Toolkit governance defects and produced a strong inventory, authority map and blast radius. It still proposed a self-certified runtime reachability export, a mutation method that cannot patch the current lexical detectors, incomplete replacement-body and lifecycle semantics, unsafe real-effect side-effect probes, transformed caller identifiers in diagnostics and comment-only dependency control.
 
 ### Current disposition
 
-DeepSeek V4 Pro High is approved for bounded no-mutation architecture investigation and option generation. It is not yet independently authoritative for append-only, privacy or trusted-workflow design. Further evidence should come from implementing a tightly prescribed controller lock and receiving exact-head review.
+DeepSeek V4 Pro remains approved for bounded no-mutation architecture investigation and option generation. Before implementation, the controller must lock the executable detector registry, exact oracle tuples, canonical replacement body fields, full lifecycle state machine, controlled side-effect harness, opaque diagnostic references and deterministic workflow dependencies. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model migration.
 
 ## GPT-5.6 Sol Medium
 
