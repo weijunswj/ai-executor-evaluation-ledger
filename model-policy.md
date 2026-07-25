@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 26 July 2026, 01:06 SGT
+Updated: 26 July 2026, 01:49 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -176,6 +176,53 @@ Before this task can be accepted, the next amendment must:
 - receive an accepted controller review.
 
 Because a same-domain launch-blocking P1 survived the Ultra High repair, the next implementation used the owner-approved Max escalation and is evaluated separately below.
+
+## Claude Opus 5
+
+Reasoning evidence: **One Max implementation run and one no-mutation architecture run with provider-native reasoning not exposed**
+
+Evidence level: **Anecdotal across 2 formal high-difficulty runs in different task classes**
+
+Observed scores:
+
+- complex repository change, high difficulty: **3.90/5**;
+- architecture proposal, high difficulty: **4.35/5**;
+- mixed-task average: **4.13/5**;
+- first-pass acceptance: **50%**;
+- verified safe draft/final state: **2/2**.
+
+### Approved
+
+- Exact-revision, no-mutation architecture investigation for high-risk repository boundaries.
+- Root-cause proof using exact-head source, controlled synthetic fixtures and primary documentation.
+- Narrow high-risk implementation on an isolated draft branch when a controller lock already defines the authority, failure and test contract.
+- Exact-head evidence preparation for independent controller review.
+
+### Conditional
+
+- Architecture recommendations remain advisory and require a controller design lock before implementation.
+- Durable-state, SQLite, atomic-publication and write-capable changes must stay draft and unmerged until fresh exact-head acceptance.
+- Platform-wide claims must be bounded to the tested operating systems, SQLite versions and VFS behaviour unless stronger primary evidence proves universality.
+- Path-replacement guarantees require an explicit trusted-directory and cooperating-process threat model.
+- Cross-platform publication needs separate Windows and POSIX contracts; green tests alone are not authority.
+
+### Not currently approved
+
+- Autonomous merge, acceptance or production mutation.
+- Treating read-only SQLite flags as sufficient without pre-open header and sidecar classification.
+- Claiming universal filesystem or SQLite behaviour from one platform experiment.
+- Suppressing temporary cleanup or multiple-hard-link state as ordinary success.
+- Implementing a self-authored architecture recommendation before controller lock.
+
+### Current evidence
+
+The Amendment 7 implementation closed the stale-authority build race and materially strengthened claim recovery and schema validation, but exact-head review found pre-validation database mutation, source-local history validation and missing claim chronology. The subsequent no-mutation architecture reset correctly reproduced all three defects against the exact module, used primary SQLite evidence, proposed a staged trust transition and identified the additional multiple-hard-link cleanup risk.
+
+The architecture run still required controller correction of an overbroad cross-platform claim, an unstated pathname-replacement trust boundary, and Windows-versus-POSIX publication semantics. Controller lock `DL-113-A8-001` now defines pure pre-open triage, read-only inspection, transactional global revalidation, complete chronology, platform-specific no-replace publication and explicit cleanup failure.
+
+### Current disposition
+
+Claude Opus 5 is suitable for exact-head no-mutation architecture work and controller-locked high-risk implementation in a draft branch. It is not independent authority for platform-general claims, durable-state acceptance, merge or live operations. The next comparable run should implement `DL-113-A8-001` and receive a fresh exact-head review.
 
 ## Claude Opus 5 Max
 

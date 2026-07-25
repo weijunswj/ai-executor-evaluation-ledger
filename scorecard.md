@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 01:06 SGT
+Updated: 26 July 2026, 01:49 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -12,6 +12,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | Claude Opus 5 | Max | 1 | 3.90 | 0% | 1/1 applicable | 5 | Anecdotal |
+| Claude Opus 5 | not-exposed | 1 | 4.35 | 100% | 1/1 applicable | 5 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 2 | 4.06 | 0% | 2/2 applicable | 12 | Anecdotal |
@@ -23,6 +24,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
 | 26 Jul 2026 01:06 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 4.18 | No | Verified |
 | 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
 | 26 Jul 2026 00:26 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.94 | No | Verified |
@@ -52,7 +54,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Routine Repository Change | Low | AMEND | 4.60 | No | Not applicable |
 | 24 Jul 2026 22:55 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.27 | No | Verified |
 | 24 Jul 2026 22:54 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.53 | No | Verified |
-| 24 Jul 2026 21:41 SGT | MiMo 2.5 Pro | Default | Production Deployment | High | HOLD | 2.25 | No | Not controller-verified |
 
 ## Task-class aggregates
 
@@ -61,6 +62,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | Claude Opus 5 | Max | Complex Repository Change | High | 1 | 3.90 | 0% | Anecdotal |
+| Claude Opus 5 | not-exposed | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Research | High | 2 | 4.06 | 0% | Anecdotal |
@@ -76,6 +78,28 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### Claude Opus 5 - Architecture Proposal
+
+- Reasoning level: **not-exposed**
+- Reviewed: **26 Jul 2026 01:49 SGT**
+- Run ID: `2026-07-26-claude-opus-5-business-automation-a-architecture-reset-008`
+- Subject alias: `business-automation-a`
+- Result: **PASS**
+- Weighted score: **4.35/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - respected the strict read-only boundary and bound the analysis to the exact draft pull-request head
+  - proved all three surviving defects against the real exact-head module using disposable synthetic stores and byte-level observations
+  - correctly identified that persistent journal-mode assignment before trust can alter or remove foreign SQLite recovery state
+  - proposed the correct separation between pre-open triage read-only inspection trusted writer reopen and transactional revalidation
+  - identified the additional swallowed store-temporary cleanup and multiple-hard-link risk and stopped for controller design lock
+- Principal defects:
+  - stated too broadly that no SQLite open of a WAL-mode database can preserve both bytes and pathnames although the experiments covered one platform version and VFSrather than every supported environment
+  - did not explicitly bound pathname-replacement guarantees to a stable operator-controlled directory and cooperating processes
+  - the user-presented completion report asserted a complete thirty-section packet and detailed matrices but did not include those sections for direct controller inspection
+  - left Windows versus POSIX no-replace publication and post-link cleanup durability semantics for the controller to lock
 
 ### DeepSeek V4 Pro - Research
 
@@ -721,30 +745,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - the package builder could overwrite the preserved historical package
   - the package-build summary falsely implied that an application assignment had occurred
   - reported no technical blockers despite three material review findings
-
-### MiMo 2.5 Pro - Production Deployment
-
-- Reasoning level: **Default**
-- Reviewed: **24 Jul 2026 21:41 SGT**
-- Run ID: `2026-07-24-mimo-2-5-pro-project-a-stage-a-001`
-- Subject alias: `public-web-app-a`
-- Result: **HOLD**
-- Weighted score: **2.25/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - stopped without claiming hosted verification passed
-  - did not perform rollback after reporting that the new revision never activated
-  - did not claim owner authentication testing passed
-- Principal defects:
-  - omitted deployment identifiers, timestamps, final status payloads and decisive build error
-  - did not provide provider-evidence path or hash
-  - did not provide validator command, exit code or assertion results
-  - did not prove fresh OAuth client origin and callback evidence
-  - made three deployment attempts without documented diagnosis between retries
-  - claimed issue bodies were updated when they remained stale
-  - left tracker text encoding-corrupted
-  - used a non-canonical terminal verdict
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
