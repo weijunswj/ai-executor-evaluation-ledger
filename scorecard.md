@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 25 July 2026, 15:27 SGT
+Updated: 25 July 2026, 16:12 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -12,7 +12,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | Claude Opus 5 Max | Max | 2 | 3.26 | 0% | 2/2 applicable | 8 | Anecdotal |
-| MiMo 2.5 Pro | Default | 16 | 3.45 | 0% | 7/15 applicable | 81 | Useful operating baseline |
+| MiMo 2.5 Pro | Default | 17 | 3.51 | 6% | 8/16 applicable | 86 | Useful operating baseline |
 
 ## Formal evaluated runs
 
@@ -20,6 +20,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 25 Jul 2026 16:12 SGT | MiMo 2.5 Pro | Default | Architecture Proposal | High | PASS | 4.40 | Yes | Verified |
 | 25 Jul 2026 15:27 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.05 | No | Verified |
 | 25 Jul 2026 15:18 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.50 | No | Not controller-verified |
 | 25 Jul 2026 15:00 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | HOLD | 4.13 | No | Not controller-verified |
@@ -50,6 +51,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 2 | 3.26 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 1 | 3.05 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
@@ -61,6 +63,28 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### MiMo 2.5 Pro - Architecture Proposal
+
+- Reasoning level: **Default**
+- Reviewed: **25 Jul 2026 16:12 SGT**
+- Run ID: `2026-07-25-mimo-2-5-pro-governance-design-gate-001`
+- Subject alias: `governance-design-gate-a`
+- Result: **PASS**
+- Weighted score: **4.40/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - respected the strict no-mutation boundary and bound the packet to the exact authorised pull-request head
+  - correctly identified the absence of a mechanical policy-to-runtime authority link and the absence of semantic parity across canonical curated generated and published surfaces
+  - accurately rejected another partial handwritten validator and compared maintained-schema execution with deterministic generation
+  - provided a useful invariant list failure model side-effect interception design adversarial test matrix and exact path-level blast radius
+  - explicitly surfaced unresolved decisions for controller adjudication rather than self-issuing acceptance
+- Principal defects:
+  - the proposed complete-child treatment retains category and lifecycle-state conflation and suggests an unsafe strictest-default fallback instead of preserving a stable tracking profile
+  - the GOV023 proposal compares implementation_branch with an Implementation PR body line and therefore mixes branch identity with pull-request identity
+  - the packet incorrectly treats duplicate issue IDs as a canonical JSON Schema concern even though the current schema cannot express uniqueness by object property and GOV025 should remain a semantic finding
+  - the packet proposes coupling toolkit.project.json module version to policy version without evidence that these are the same version domain
 
 ### MiMo 2.5 Pro - Complex Repository Change
 
