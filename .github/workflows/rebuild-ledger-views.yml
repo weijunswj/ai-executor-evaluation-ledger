@@ -118,3 +118,5 @@ jobs:
           git push
 
 # Controller trigger: Second trusted push after workflow staging.
+
+# Owner trigger: SQAG amendment 006
