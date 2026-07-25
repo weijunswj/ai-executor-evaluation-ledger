@@ -1,1 +1,1 @@
-Trigger the one-time revised DeepSeek governance architecture evaluation runner.
+Trigger the revised DeepSeek governance architecture evaluation runner from current main.
