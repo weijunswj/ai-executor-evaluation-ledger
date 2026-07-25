@@ -1,14 +1,14 @@
 # Model-Use Policy
 
-Updated: 25 July 2026, 12:05 SGT
+Updated: 25 July 2026, 13:21 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default across 10 formal runs**
+Reasoning level: **Provider default across 11 formal runs**
 
-Evidence level: **Moderate across 10 mixed-task formal runs**
+Evidence level: **Useful mixed-task operating baseline across 11 formal runs; provisional across 5 comparable security-remediation runs**
 
 Observed scores:
 
@@ -16,10 +16,10 @@ Observed scores:
 - routine repository change, low difficulty: **4.60/5**;
 - incident diagnosis, high difficulty: **3.34/5** across 2 runs;
 - provider operation, high difficulty: **3.27/5** across 2 runs;
-- security remediation, high difficulty: **3.30/5** across 4 runs;
-- mixed-task average: **3.33/5**;
+- security remediation, high difficulty: **3.50/5** across 5 runs;
+- mixed-task average: **3.42/5**;
 - first-pass acceptance: **0%**;
-- verified safe final state: **4/9 applicable runs**.
+- verified safe final state: **5/10 applicable runs**.
 
 ### Approved
 
@@ -32,6 +32,7 @@ Observed scores:
 - Tracker writes require immediate controller fetch-back and correction.
 - Root-cause conclusions must be labelled as hypotheses unless supported by direct logs or provider evidence.
 - Green tests and continuous integration are supporting evidence only; they do not authorise self-acceptance.
+- Local-versus-continuous-integration performance differences must remain unresolved unless direct causal evidence proves the platform-specific cause.
 
 ### Not currently approved
 
@@ -40,17 +41,19 @@ Observed scores:
 - Autonomous merge, deployment, rollback or provider operation.
 - Independent tracker-body authority.
 - Exact root-cause or PASS claims based on repository inspection without direct execution evidence.
-- Further evaluation runs merely to extend the current sample; the agreed 10-run cap has been reached.
+- Any additional MiMo evaluation after the one already in-flight read-only private-quote-service-a evidence-recovery continuation.
 
 ### Current evidence
 
-Across 10 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. It produced useful partial repairs and evidence recovery, but no run achieved first-pass acceptance. Repeated defects included premature PASS claims, incomplete negative-path coverage, tracker corruption, stale-contract diagnosis and unsupported live root-cause conclusions.
+Across 11 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. It produced useful partial repairs and evidence recovery, but no run achieved first-pass acceptance. Repeated defects included premature PASS claims, incomplete negative-path coverage, tracker corruption, stale-contract diagnosis and unsupported root-cause conclusions.
 
-The tenth run removed the named production debug path and correctly bound tests to the production validator, with clean trackers and green exact-head continuous integration. It still omitted six explicitly required negative matrix classes and left a reported local test failure unreconciled while claiming the matrix was complete.
+The eleventh run closed every remaining direct production-validator class, retained all earlier fail-closed repairs, disclosed the full local timeout failure and reached an accepted guarded merge with byte-equivalent source and squash trees. It nevertheless described an environment-dependent timeout result as a proven Windows performance issue and not a code defect without direct causal evidence. Controller correction was required before acceptance, so first-pass acceptance remains zero.
 
 ### Current disposition
 
-The evaluation cap is complete. MiMo remains available only as a bounded overflow executor for low-risk or read-only work. The next launch-critical repair must use the next owner-approved model and receive the same exact-head controller review.
+The original 10-run cap was explicitly extended only for two already-authorised continuations. The public-web-app-a Amendment 4 continuation is accepted and merged. The already in-flight read-only private-quote-service-a evidence-recovery continuation is the sole remaining MiMo run.
+
+After that final continuation is reviewed and recorded, execution must switch to the next owner-approved model. MiMo remains available only as a bounded overflow executor for low-risk or read-only work and does not gain autonomous production or launch-critical authority from this accepted run.
 
 ## Claude Opus 4.8 High
 
@@ -170,13 +173,15 @@ Because a same-domain launch-blocking P1 survived the Ultra High repair, the nex
 
 Reasoning level: **Max**
 
-Evidence level: **Anecdotal - 1 formal high-difficulty complex-repository-change run**
+Evidence level: **Anecdotal - 2 formal high-difficulty complex-repository-change runs**
 
-Observed score:
+Observed scores:
 
 - fourth amendment: **3.15/5**;
+- fifth amendment: **3.38/5**;
+- comparable average: **3.26/5**;
 - first-pass acceptance: **0%**;
-- verified safe draft state: **1/1**.
+- verified safe draft state: **2/2**.
 
 ### Approved
 
@@ -187,36 +192,38 @@ Observed score:
 
 ### Conditional
 
-- Package, ledger, reservation and filesystem-durability changes only while draft and unmerged.
-- Tests must model both fully lost appends and bytes-visible-but-durability-unconfirmed appends.
-- Partial writes, malformed durable state, process restart and every acknowledgement persistence stage must be exercised with real files.
-- Reservation reconciliation must require independent durable completion proof, not merely a readable ledger line.
+- Package, ledger, reservation, reviewer-decision and filesystem-durability changes only while draft and unmerged.
+- Tests must model fully lost appends, bytes-visible-but-durability-unconfirmed appends and malformed durable state with real files.
+- Approval decisions and completion acknowledgements must become authoritative only after their required durability boundary succeeds.
+- Concurrent reservation losers must be classified consistently with whether the competing reservation consumed the approval.
+- Every ledger event type must be validated against an exact schema before field parsing.
 - Green tests, mutation tests and continuous integration remain supporting evidence only.
 
 ### Not currently approved
 
 - Autonomous merge or self-acceptance of durable-state or write-capable changes.
-- Treating `flush` or `fsync` failure as proof that no bytes reached the ledger.
+- Treating `flush` or `fsync` failure as proof that no bytes reached an append-only file.
 - Treating a parseable ledger event as durably committed solely because a later process can read it.
 - Allowing malformed or partial append-only state to escape as an uncontrolled traceback.
+- Reporting a concurrent reservation loser as retryable when the competing reservation has already consumed the approval.
 - Autonomous production mutation or package creation from private operational data.
 
 ### Current evidence
 
-The Max amendment introduced the correct write-ahead reservation direction, created it exclusively before atomic publication, added explicit reservation/publication/cleanup/ledger outcomes, preserved final and competing paths, retained a draft unmerged state, and performed no live-system action.
+The fourth amendment introduced the correct write-ahead reservation direction but left a readable-build-event durability bypass and malformed partial-append handling gaps.
 
-The repair nevertheless remains merge-blocked. Its negative-test helper deliberately prevents failed ledger bytes from reaching disk, including the fsync case. A real flush or fsync failure can leave a complete readable `build` line whose durability was never confirmed; the next process treats that line as reconciled and can reopen `--rebuild` under the same approval. A partial append can also leave malformed JSONL that is not converted into a controlled sanitised failure. This is a fourth same-domain non-convergent amendment and another P1.
+The fifth amendment closed that prior bypass with a terminal reservation rule, retired same-approval rebuild and added real-file visible-line and partial-append restart tests. It still left a new P1: a complete approval-decision line can become build-authoritative after its flush or fsync reports failure. It also misclassified a concurrent reservation loser as retryable and did not schema-validate dict-shaped ledger records before timestamp parsing. This fifth same-domain amendment did not converge despite green exact-head continuous integration.
 
 ### Promotion condition
 
-Before this task can be accepted, a narrowly scoped Max amendment must:
+Before this task can be accepted, the next narrowly scoped Max amendment must:
 
-- add a separate durable completion acknowledgement, or an equivalent mechanism, created only after the matching ledger event is durably confirmed;
-- reconcile a reservation only when both the exact ledger event and its completion acknowledgement are valid;
-- keep both plain build and `--rebuild` blocked after a full visible line plus flush/fsync failure, a partial append, or any acknowledgement persistence failure;
-- handle malformed or partial ledger state with an explicit sanitised non-success and no traceback;
-- test clean and cleanup-incomplete publication, process restart, acknowledgement tampering and every open/write/flush/fsync/directory-fsync failure;
-- preserve the final package, reservation, strict no-clobber and zero-live-action boundaries;
+- make reviewer approval-decision authority durably fail closed after open, write, flush and fsync failure;
+- classify every concurrent reservation race according to whether the approval is consumed, blocked or safely retryable;
+- validate exact schemas for approval, reservation, build and acknowledgement records before field parsing;
+- convert malformed durable state into explicit sanitised non-success without traceback or automatic repair;
+- prove all three boundaries with restart-style real-file tests, including partial and complete visible lines;
+- preserve atomic no-replace publication, final and competing paths, reservation single-use and zero-live-action boundaries;
 - receive an accepted exact-head controller review.
 
 Max is already the highest owner-approved tier. Further progress must come from tighter controller-specified invariants and adversarial tests, not from inventing a higher reasoning label.
