@@ -15,52 +15,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  reconcile-opus5-am6:
+  recover-reviewed-backlog:
     if: >-
       github.event_name == 'pull_request' &&
-      github.head_ref == 'controller/record-opus-5-max-amendment-006' &&
+      github.head_ref == 'controller/run-reviewed-ledger-backlog' &&
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Check out exact controller branch
+      - name: Check out exact authorised ledger main
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: controller/record-opus-5-max-amendment-006
+          ref: 0af780f4cdb683d666b3e8cc25f1cf3507e9a9c4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Apply controller-sealed packet
+      - name: Build clean reviewed-backlog branch
         shell: bash
         run: |
+          set -euo pipefail
           git fetch origin main
+          test "$(git rev-parse origin/main)" = "0af780f4cdb683d666b3e8cc25f1cf3507e9a9c4"
+          git switch -c controller/final-ledger-backlog-20260725
+
           python scripts/controller_append_opus5_am6.py
-          git checkout origin/main -- CONTROLLER_QUICKSTART.md
-          git checkout d1018c060be752170a1d6310c65ac6eef37651f1 -- .github/workflows/public-safety.yml
-          git rm -f .github/workflows/rebuild-ledger-views.yml
+
+          git checkout 3a35a61cb1c5509c1fc743cb67b8a6bf58156413 -- \
+            .github/workflows/public-safety.yml \
+            .github/workflows/rebuild-ledger-views.yml \
+            CONTROLLER_QUICKSTART.md
           git rm -f scripts/controller_append_opus5_am6.py
+          git rm -f scripts/controller_recovery_trigger.py
+          git rm -f .github/workflows/finalize-am6-recovery.yml
+
           python scripts/rebuild_views.py
           python scripts/check_public_safety.py
           python scripts/rebuild_views.py --check --base-ref origin/main
           git diff --check
 
-      - name: Commit final evaluation branch
-        shell: bash
-        run: |
+          test "$(wc -l < evaluations.jsonl)" -eq 29
+          test "$(grep -c '2026-07-25-claude-opus-5-max-business-automation-a-amendment-006' evaluations.jsonl)" -eq 1
+          test "$(grep -c '2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-amendment-006' evaluations.jsonl)" -eq 1
+          test "$(grep -c '2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-003' evaluations.jsonl)" -eq 1
+
           git config user.name "github-actions[bot]"
           git config user.email "ledger-controller"
           git add -A
-          git commit -m "Record Opus 5 Max Amendment 6 evaluation"
-          git push origin HEAD:controller/record-opus-5-max-amendment-006
+          git commit -m "Record reviewed evaluation backlog"
+          git push --force-with-lease origin HEAD:controller/final-ledger-backlog-20260725
 
   scan:
     if: >-
       github.event_name != 'pull_request' ||
-      github.head_ref != 'controller/record-opus-5-max-amendment-006' ||
+      github.head_ref != 'controller/run-reviewed-ledger-backlog' ||
       github.actor == 'github-actions[bot]'
     name: Scan public ledger
     runs-on: ubuntu-latest
