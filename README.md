@@ -14,7 +14,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | Anecdotal |
 | Claude Opus 5 Max | Max | 2 | 3.26 | 0% | 2/2 applicable | Anecdotal |
-| MiMo 2.5 Pro | Default | 16 | 3.45 | 0% | 7/15 applicable | Useful operating baseline |
+| MiMo 2.5 Pro | Default | 17 | 3.51 | 6% | 8/16 applicable | Useful operating baseline |
 
 ## Task-class scorecard
 
@@ -23,6 +23,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 2 | 3.26 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 1 | 3.05 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
