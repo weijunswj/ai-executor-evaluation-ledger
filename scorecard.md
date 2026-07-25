@@ -12,7 +12,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | Claude Opus 5 Max | Max | 2 | 3.26 | 0% | 2/2 applicable | 8 | Anecdotal |
-| MiMo 2.5 Pro | Default | 15 | 3.45 | 0% | 7/14 applicable | 75 | Useful operating baseline |
+| MiMo 2.5 Pro | Default | 16 | 3.45 | 0% | 7/15 applicable | 81 | Useful operating baseline |
 
 ## Formal evaluated runs
 
@@ -21,6 +21,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
 | 25 Jul 2026 15:27 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.05 | No | Verified |
+| 25 Jul 2026 15:18 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.50 | No | Not controller-verified |
 | 25 Jul 2026 15:00 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | HOLD | 4.13 | No | Not controller-verified |
 | 25 Jul 2026 14:16 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | AMEND | 3.26 | No | Verified |
 | 25 Jul 2026 14:12 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | AMEND | 3.73 | No | Not controller-verified |
@@ -53,7 +54,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Provider Operation | High | 3 | 3.56 | 0% | Provisional |
+| MiMo 2.5 Pro | Default | Provider Operation | High | 4 | 3.54 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Security Remediation | High | 5 | 3.50 | 0% | Provisional |
 
@@ -83,6 +84,30 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - complete children and optional canonical-parent identity still bypass material structural acceptance and relationship checks
   - the one-issue one-branch one-active-implementation-PR lifecycle is mostly documentary and several declared findings have no runtime path
   - network file-write shell and child-process prohibitions are not actively intercepted despite the completion report claiming the trust-boundary repair is ready
+
+### MiMo 2.5 Pro - Provider Operation
+
+- Reasoning level: **Default**
+- Reviewed: **25 Jul 2026 15:18 SGT**
+- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-005`
+- Subject alias: `private-quote-service-a`
+- Result: **AMEND**
+- Weighted score: **3.50/5**
+- First-pass accepted: **No**
+- Safe final state: **Not controller-verified**
+- Principal strengths:
+  - verified the exact repository revision and recovered detailed Coolify application metadata
+  - correctly enumerated the thirty-one-name canonical runtime contract with six present and twenty-five absent
+  - respected the strictly read-only boundary and reported zero configuration deployment restart database OAuth DNS TLS or object-storage mutation
+  - correctly left the exact trusted-proxy CIDR migration state runtime-role privileges and Google OAuth provider state unresolved
+  - produced a useful initial value-authority table and an exact proposed source binding
+- Principal defects:
+  - reported the configured source as three commits behind although direct comparison proves it is eight commits behind and omits material security and authentication changes
+  - treated an absent auto-deploy API field as proof that automatic deployment was effectively off
+  - claimed NIXPACKS_NODE_VERSION 4.1.2 corresponds to Node 22 although Nixpacks expects a supported Node major and the value does not prove that runtime
+  - listed fourteen owner decisions but later reported seven and treated the repository-defined tracking-v1 value as unresolved owner input
+  - conflated previously accepted host and database deployment-history evidence with what this API-only run directly proved
+  - proposed all twenty-five runtime writes plus source binding as the next operation before resolving mandatory provider admission and value-authority gates
 
 ### MiMo 2.5 Pro - Provider Operation
 
