@@ -1,4 +1,4 @@
-name: Finalize Amendment 6 ledger recovery
+name: Finalize reviewed ledger backlog
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   recover:
-    if: contains(github.event.head_commit.message, '[run-am6-recovery]')
+    if: contains(github.event.head_commit.message, '[run-ledger-backlog]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -24,12 +24,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build clean recovery branch
+      - name: Build clean reviewed-backlog branch
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin main
-          git switch -c controller/final-opus5-am6-recovery-v2
+          git switch -c controller/final-ledger-backlog-20260725
 
           python scripts/controller_append_opus5_am6.py
 
@@ -46,10 +46,13 @@ jobs:
           python scripts/rebuild_views.py --check --base-ref origin/main
           git diff --check
 
+          test "$(wc -l < evaluations.jsonl)" -eq 29
           test "$(grep -c '2026-07-25-claude-opus-5-max-business-automation-a-amendment-006' evaluations.jsonl)" -eq 1
+          test "$(grep -c '2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-amendment-006' evaluations.jsonl)" -eq 1
+          test "$(grep -c '2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-003' evaluations.jsonl)" -eq 1
 
           git config user.name "github-actions[bot]"
           git config user.email "ledger-controller"
           git add -A
-          git commit -m "Recover and record Opus 5 Max Amendment 6 evaluation"
-          git push --force-with-lease origin HEAD:controller/final-opus5-am6-recovery-v2
+          git commit -m "Record reviewed evaluation backlog"
+          git push --force-with-lease origin HEAD:controller/final-ledger-backlog-20260725
