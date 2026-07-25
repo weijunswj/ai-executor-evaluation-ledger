@@ -1,0 +1,61 @@
+name: Fix governance Gate 1 policy counts
+
+on:
+  push:
+    branches:
+      - controller/ledger-governance-design-gate-001
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: controller/ledger-governance-design-gate-001
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Correct model-policy aggregate counts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('model-policy.md')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              'Provider default across 16 formal runs': 'Provider default across 17 formal runs',
+              'Useful mixed-task operating baseline across 16 formal runs': 'Useful mixed-task operating baseline across 17 formal runs',
+              'first-pass acceptance: **6.25%**': 'first-pass acceptance: **5.88%**',
+              'verified safe final state: **8/15 applicable runs**': 'verified safe final state: **8/16 applicable runs**',
+              'Across 16 formal mixed-task runs': 'Across 17 formal mixed-task runs',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'missing expected text: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8', newline='\n')
+          PY
+
+          rm -f .github/workflows/controller-fix-governance-gate-counts.yml
+          python scripts/rebuild_views.py
+          git add -A
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check --base-ref origin/main
+          git diff --check
+
+      - name: Commit corrected policy counts
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Correct governance Gate 1 aggregate counts'
+          git push origin HEAD:controller/ledger-governance-design-gate-001
