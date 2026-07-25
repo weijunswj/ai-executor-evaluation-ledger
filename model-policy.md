@@ -228,6 +228,46 @@ The next narrowly scoped Max amendment must atomically re-resolve the latest dec
 
 Max is already the highest owner-approved tier. Further progress must come from tighter transactional design and adversarial review, not a higher reasoning label.
 
+## DeepSeek V4 Pro
+
+Reasoning level: **High**
+
+Canonical task classification: **Sol High**
+
+Evidence level: **Anecdotal — 1 formal high-difficulty architecture-proposal run**
+
+Observed score:
+
+- scheduled batch-review architecture proposal: **4.14/5**;
+- first-pass acceptance: **100%**;
+- verified safe final state: **1/1**.
+
+### Approved
+
+- Exact-revision, no-mutation repository architecture packets.
+- Authority mapping, failure analysis, option comparison, threat modelling and test planning for controller adjudication.
+- Provider-native reasoning labels recorded separately from the canonical task-risk level.
+
+### Conditional
+
+- Architecture recommendations are advisory and require an independent controller lock before implementation.
+- Public intake, durable batching, trusted validation and recovery designs must prove privacy, discoverability and crash persistence rather than relying on labels or chat memory.
+- Broad packets should be narrowed into one mechanically implementable lock before coding.
+
+### Not currently approved
+
+- Independently selecting or locking security, privacy, append-only or workflow authority boundaries.
+- Implementing the scheduled-review trust boundary from its own proposal without controller corrections.
+- Treating provider-native `High` as performance-equivalent to another provider's reasoning tier.
+
+### Current evidence
+
+The first formal run produced a detailed and materially useful repository-grounded architecture packet, correctly identified missing durable batch state as the cause of repeated manual recovery, preserved JSONL authority and separated canonical task level from provider-native mode. The proposed design nevertheless left material contradictions in private-source resolution through a public issue queue, active-batch discovery, per-job persistence, base-trusted validation and issue immutability. The controller accepted the Gate 1 objective while replacing those choices in the design lock.
+
+### Current disposition
+
+DeepSeek V4 Pro High is approved for bounded no-mutation architecture investigation and option generation. It is not yet independently authoritative for append-only, privacy or trusted-workflow design. Further evidence should come from implementing a tightly prescribed controller lock and receiving exact-head review.
+
 ## GPT-5.6 Sol Medium
 
 Reasoning level: **Medium**
