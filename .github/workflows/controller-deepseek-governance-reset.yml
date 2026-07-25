@@ -1,0 +1,52 @@
+name: Finalize DeepSeek governance reset evaluation
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: contains(github.event.head_commit.message, '[run-deepseek-governance-reset]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build clean final evaluation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git switch -c controller/final-deepseek-governance-reset-20260726
+
+          python scripts/controller_append_deepseek_governance_reset.py
+
+          rm scripts/controller_append_deepseek_governance_reset.py
+          rm .github/workflows/controller-deepseek-governance-reset.yml
+
+          python scripts/rebuild_views.py
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check --base-ref origin/main
+          git diff --check
+
+          test "$(grep -c '2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-001' evaluations.jsonl)" -eq 1
+          test ! -e scripts/controller_append_deepseek_governance_reset.py
+          test ! -e .github/workflows/controller-deepseek-governance-reset.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add -A
+          git commit -m "Record DeepSeek governance architecture reset evaluation"
+          git push --force-with-lease origin HEAD:controller/final-deepseek-governance-reset-20260726
