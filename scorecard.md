@@ -96,7 +96,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - proposed the correct separation between pre-open triage read-only inspection trusted writer reopen and transactional revalidation
   - identified the additional swallowed store-temporary cleanup and multiple-hard-link risk and stopped for controller design lock
 - Principal defects:
-  - stated too broadly that no SQLite open of a WAL-mode database can preserve both bytes and pathnames although the experiments covered one platform version and VFSrather than every supported environment
+  - stated too broadly that no SQLite open of a WAL-mode database can preserve both bytes and pathnames although the experiments covered one platform version and VFS rather than every supported environment
   - did not explicitly bound pathname-replacement guarantees to a stable operator-controlled directory and cooperating processes
   - the user-presented completion report asserted a complete thirty-section packet and detailed matrices but did not include those sections for direct controller inspection
   - left Windows versus POSIX no-replace publication and post-link cleanup durability semantics for the controller to lock
