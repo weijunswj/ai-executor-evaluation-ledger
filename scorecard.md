@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 25 July 2026, 12:42 SGT
+Updated: 25 July 2026, 13:21 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -12,7 +12,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | Claude Opus 5 Max | Max | 2 | 3.26 | 0% | 2/2 applicable | 8 | Anecdotal |
-| MiMo 2.5 Pro | Default | 10 | 3.33 | 0% | 4/9 applicable | 53 | Moderate |
+| MiMo 2.5 Pro | Default | 11 | 3.42 | 0% | 5/10 applicable | 56 | Useful operating baseline |
 
 ## Formal evaluated runs
 
@@ -20,6 +20,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 25 Jul 2026 13:21 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | ACCEPTED | 4.30 | No | Verified |
 | 25 Jul 2026 12:42 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.38 | No | Verified |
 | 25 Jul 2026 12:05 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 3.75 | No | Verified |
 | 25 Jul 2026 11:38 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.15 | No | Verified |
@@ -48,11 +49,32 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Provider Operation | High | 2 | 3.27 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Security Remediation | High | 4 | 3.30 | 0% | Provisional |
+| MiMo 2.5 Pro | Default | Security Remediation | High | 5 | 3.50 | 0% | Provisional |
 
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### MiMo 2.5 Pro - Security Remediation
+
+- Reasoning level: **Default**
+- Reviewed: **25 Jul 2026 13:21 SGT**
+- Run ID: `2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-007`
+- Subject alias: `public-web-app-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.30/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed every missing direct production-validator class against the exported production function
+  - used complete otherwise-valid fixtures so each negative case isolated its intended field
+  - reran the exact local website command and disclosed the full red timeout result
+  - kept the change draft and unmerged with green exact-head continuous integration and zero provider operations
+  - reached an accepted guarded merge with byte-equivalent source and squash trees
+- Principal defects:
+  - classified the environment-dependent timeout result as a proven Windows performance issue and not a code defect without direct causal evidence
+  - the previous local summary of thirty-one passes and two timeouts was inaccurate and required correction to the complete thirty-five-timeout result
+  - required controller correction of pull-request and tracker wording before final acceptance
 
 ### Claude Opus 5 Max - Complex Repository Change
 
@@ -89,7 +111,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - removed the undocumented production debug-output path
   - replaced the duplicate test oracle with the exported production validator
   - preserved earlier fail-closed provenance repairs
-  - kept the exact-head change draft and unmerged with green continuous integration and zero provider operations
+  - kept the exact-head change draft and unmerged with green exact-head continuous integration and zero provider operations
   - produced clean private tracker text at this amendment
 - Principal defects:
   - omitted six explicitly required production-validator negative classes while calling the matrix complete
