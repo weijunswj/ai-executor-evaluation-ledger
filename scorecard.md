@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 25 July 2026, 16:12 SGT
+Updated: 25 July 2026, 20:37 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -11,8 +11,8 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 |---|---|---:|---:|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
-| Claude Opus 5 Max | Max | 2 | 3.26 | 0% | 2/2 applicable | 8 | Anecdotal |
-| MiMo 2.5 Pro | Default | 17 | 3.51 | 6% | 8/16 applicable | 86 | Useful operating baseline |
+| Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
+| MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
 
@@ -20,7 +20,10 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 25 Jul 2026 20:37 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.42 | No | Verified |
+| 25 Jul 2026 16:13 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.65 | No | Verified |
 | 25 Jul 2026 16:12 SGT | MiMo 2.5 Pro | Default | Architecture Proposal | High | PASS | 4.40 | Yes | Verified |
+| 25 Jul 2026 16:09 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.58 | No | Not controller-verified |
 | 25 Jul 2026 15:27 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.05 | No | Verified |
 | 25 Jul 2026 15:18 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.50 | No | Not controller-verified |
 | 25 Jul 2026 15:00 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | HOLD | 4.13 | No | Not controller-verified |
@@ -50,19 +53,63 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
-| Claude Opus 5 Max | Max | Complex Repository Change | High | 2 | 3.26 | 0% | Anecdotal |
+| Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
-| MiMo 2.5 Pro | Default | Complex Repository Change | High | 1 | 3.05 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Provider Operation | High | 4 | 3.54 | 0% | Provisional |
+| MiMo 2.5 Pro | Default | Provider Operation | High | 5 | 3.55 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Security Remediation | High | 5 | 3.50 | 0% | Provisional |
 
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### MiMo 2.5 Pro - Complex Repository Change
+
+- Reasoning level: **Default**
+- Reviewed: **25 Jul 2026 20:37 SGT**
+- Run ID: `2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-003`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **3.42/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - replaced the partial handwritten schema validator with direct Ajv 2020 execution of the canonical schema
+  - separated stable issue tracking profile from open and closed lifecycle state and migrated the contract to version 2.0.0
+  - derived required sections and implementation-work classification from canonical policy and added a policy-validating finding boundary
+  - kept the exact-head change draft and unmerged with successful core hosted workflows CodeQL and zero live-system actions
+- Principal defects:
+  - the semantic parity gate and finding tests remain string-presence based and candidate-self-certifying rather than executable mutation-sensitive exact oracles
+  - explicit canonical-parent identity and complete parent checklist child-parent and acceptance body authority remain bypassable through omitted or empty structured fields
+  - replacement and supersession semantics do not resolve body metadata existing distinct pull requests or same-PR amendment identity
+  - the side-effect preload omits write-capable open streams promise DNS and TLS or socket alternatives and its self-tests cover only four sample calls
+  - diagnostics still interpolate caller-controlled identifiers and metadata while the privacy fixtures exercise body values that are not emitted
+  - the completion report overstates parity isolation side-effect and diagnostic closure
+
+### Claude Opus 5 Max - Complex Repository Change
+
+- Reasoning level: **Max**
+- Reviewed: **25 Jul 2026 16:13 SGT**
+- Run ID: `2026-07-25-claude-opus-5-max-business-automation-a-amendment-006`
+- Subject alias: `business-automation-a`
+- Result: **AMEND**
+- Weighted score: **3.65/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed the prior readable-approval-line authority defect with separate committed activation state
+  - implemented reopen-and-look recovery for uncertain pending-decision and activation commits
+  - corrected reservation collision truthfulness and added exact supported JSONL event schemas
+  - kept the exact-head change draft and unmerged with green continuous integration and zero live-system actions
+- Principal defects:
+  - a build snapshots approval authority and closes SQLite before reservation so a concurrent newer hold rejection or pending decision can overtake the read while the stale approval still publishes
+  - existing empty foreign or partial SQLite files can be silently augmented and validation checks object names rather than exact constraints trigger bodies index definitions and foreign-key integrity
+  - timezone-naive timestamps pass validation and can escape during the aware-expiry comparison as an uncontrolled TypeError
+  - the completion report overstates closure after a sixth same-domain amendment
 
 ### MiMo 2.5 Pro - Architecture Proposal
 
@@ -85,6 +132,31 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - the GOV023 proposal compares implementation_branch with an Implementation PR body line and therefore mixes branch identity with pull-request identity
   - the packet incorrectly treats duplicate issue IDs as a canonical JSON Schema concern even though the current schema cannot express uniqueness by object property and GOV025 should remain a semantic finding
   - the packet proposes coupling toolkit.project.json module version to policy version without evidence that these are the same version domain
+
+### MiMo 2.5 Pro - Provider Operation
+
+- Reasoning level: **Default**
+- Reviewed: **25 Jul 2026 16:09 SGT**
+- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-amendment-006`
+- Subject alias: `private-quote-service-a`
+- Result: **AMEND**
+- Weighted score: **3.58/5**
+- First-pass accepted: **No**
+- Safe final state: **Not controller-verified**
+- Principal strengths:
+  - continued the same private run and respected the strictly read-only zero-mutation boundary
+  - corrected the source-revision gap and recovered detailed direct host network evidence
+  - correctly blocked migration and runtime-role verification when the restricted database credential was unavailable
+  - correctly separated repository authentication configuration from unverified Google provider state
+  - produced a substantially improved names-only authority inventory and detailed provider-command record
+- Principal defects:
+  - inspected the applications table instead of the application-settings relation and falsely concluded that automatic deployment was not configurable
+  - classified an invalid Node-version override as a mislabelled provider field based only on its resemblance to the platform version
+  - reported eleven owner decisions and then incorrectly claimed the count could fall to ten because of a port value that was not included in the eleven
+  - proposed a broad configuration write while mandatory automatic-deployment database privilege migration and OAuth admission gates remained unresolved
+  - contradicted its own Stage B preconditions by both requiring and not requiring all outstanding owner values
+  - attributed an unverified TLS result to the local trust store without decisive evidence
+  - declared PASS despite surviving launch-critical findings
 
 ### MiMo 2.5 Pro - Complex Repository Change
 
