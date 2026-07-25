@@ -1,3 +1,0 @@
-Trigger the controller-owned run-10 reconciliation after PR #25 merged its one-shot workflow prematurely.
-
-Synchronize trigger: 25 July 2026, controller retry 1.
