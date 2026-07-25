@@ -24,20 +24,54 @@ jobs:
           git checkout --quiet --detach "$MERGE_SHA"
           git show "$BASE_SHA:evaluations.jsonl" > /tmp/base-evaluations.jsonl
           python3 - <<'PY'
+          from __future__ import annotations
+          import json
           from pathlib import Path
-          base = Path('/tmp/base-evaluations.jsonl').read_bytes()
-          current = Path('evaluations.jsonl').read_bytes()
-          limit = min(len(base), len(current))
-          mismatch = next((i for i in range(limit) if base[i] != current[i]), None)
-          if mismatch is None and len(current) < len(base):
-              mismatch = len(current)
-          print(f'base_bytes={len(base)} current_bytes={len(current)} prefix={current.startswith(base)} mismatch={mismatch}')
-          if mismatch is not None:
-              lo = max(0, mismatch - 24)
-              hi = mismatch + 24
-              print('base_window=' + base[lo:hi].hex())
-              print('current_window=' + current[lo:hi].hex())
-          print('base_tail=' + base[-64:].hex())
-          print('current_boundary=' + current[max(0, len(base)-64):len(base)+64].hex())
+
+          base_bytes = Path('/tmp/base-evaluations.jsonl').read_bytes()
+          current_bytes = Path('evaluations.jsonl').read_bytes()
+          base_lines = base_bytes.decode('utf-8').splitlines()
+          current_lines = current_bytes.decode('utf-8').splitlines()
+
+          print(
+              f'base_bytes={len(base_bytes)} current_bytes={len(current_bytes)} '
+              f'prefix={current_bytes.startswith(base_bytes)} '
+              f'base_records={len(base_lines)} current_records={len(current_lines)}'
+          )
+
+          def walk(left, right, path=''):
+              if type(left) is not type(right):
+                  print(f'DIFF {path}: type {type(left).__name__} != {type(right).__name__}')
+                  return
+              if isinstance(left, dict):
+                  for key in sorted(set(left) | set(right)):
+                      child = f'{path}/{key}'
+                      if key not in left:
+                          print(f'DIFF {child}: missing in base; current={right[key]!r}')
+                      elif key not in right:
+                          print(f'DIFF {child}: base={left[key]!r}; missing in current')
+                      else:
+                          walk(left[key], right[key], child)
+                  return
+              if isinstance(left, list):
+                  if len(left) != len(right):
+                      print(f'DIFF {path}: list lengths {len(left)} != {len(right)}')
+                  for index, (a, b) in enumerate(zip(left, right)):
+                      walk(a, b, f'{path}/{index}')
+                  return
+              if left != right:
+                  print(f'DIFF {path}: base={left!r} current={right!r}')
+
+          for index, base_line in enumerate(base_lines):
+              current_line = current_lines[index]
+              if base_line == current_line:
+                  continue
+              base_record = json.loads(base_line)
+              current_record = json.loads(current_line)
+              print(f"RECORD {index + 1} {base_record.get('run_id')}")
+              walk(base_record, current_record)
+              if base_record == current_record:
+                  print('DIFF raw-bytes-only')
+
+          raise SystemExit(1)
           PY
-          python3 scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
