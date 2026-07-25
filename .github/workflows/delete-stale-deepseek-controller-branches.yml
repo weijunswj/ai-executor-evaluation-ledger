@@ -1,0 +1,37 @@
+name: Delete stale DeepSeek controller branches
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: write
+  issues: read
+
+concurrency:
+  group: delete-stale-deepseek-controller-branches
+  cancel-in-progress: false
+
+jobs:
+  delete:
+    if: github.event.issue.number == 43 && contains(github.event.comment.body, '[delete-stale-deepseek-controller-branches]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale refs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          branches=(
+            "controller/ledger-deepseek-governance-reset-20260726"
+            "controller/ledger-deepseek-governance-reset-20260726-self-delete"
+            "controller/ledger-deepseek-governance-reset-20260726-self-delete-2"
+          )
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads "$remote" "refs/heads/$branch" >/dev/null 2>&1; then
+              git push "$remote" --delete "$branch"
+            fi
+          done
