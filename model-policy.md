@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 26 July 2026, 00:26 SGT
+Updated: 26 July 2026, 01:06 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -230,15 +230,16 @@ Max is already the highest owner-approved tier. Further progress must come from 
 
 ## DeepSeek V4 Pro
 
-Evidence level: **Anecdotal — 2 formal high-difficulty architecture and research runs**
+Evidence level: **Provisional — 3 formal high-difficulty architecture and research runs**
 
 Observed scores:
 
 - scheduled batch-review architecture proposal: **4.14/5**;
 - governance architecture reset: **3.94/5**;
-- two-run average: **4.04/5**;
-- first-pass acceptance: **50%**;
-- verified safe final state: **2/2**.
+- revised governance architecture reset: **4.18/5**;
+- three-run average: **4.09/5**;
+- first-pass acceptance: **33%**;
+- verified safe final state: **3/3**.
 
 ### Approved
 
@@ -249,26 +250,27 @@ Observed scores:
 ### Conditional
 
 - Architecture recommendations remain advisory and require an independent controller lock before implementation.
-- Executable parity must be proven through a policy-keyed detector registry and independent exact oracles, not a second declared reachability list.
-- Mutation-sensitive tests require an explicit test-only injection seam; preload string searches or inaccessible lexical monkeypatches are insufficient.
-- Body-authority designs must encode replacement reason and supersession identity in canonical issue-body fields and cross-check structured data.
-- Side-effect absence must use controlled local sentinels or fakes and must not depend on real external DNS or network effects.
-- Workflow dependency closure requires deterministic installation or a mechanical dependency proof; documentation comments alone are insufficient.
+- Production audit dispatch must be hard-bound to an immutable default detector registry; detector substitution belongs in a separate test-only harness.
+- Mutation-sensitive proof must execute the unchanged exact fixture oracle against a mutated registry and prove that oracle fails.
+- Canonical policy alone owns severity, grouping and diagnostic-message metadata; the detector registry maps policy codes to executable functions only.
+- Opaque diagnostic subjects must be deterministically precomputed and reset for every audit invocation.
+- Workflow dependency closure requires a mechanically complete inventory plus deterministic installation for every Node-executing workflow.
 
 ### Not currently approved
 
-- Independently locking or implementing security, privacy, append-only, lifecycle or trusted-workflow authority boundaries.
-- Treating exported reachability metadata, candidate-authored fixture manifests or green tests as independent proof.
-- Exposing transformed private issue identifiers in public diagnostics.
-- Implementing the current governance reset until the controller replaces the incomplete architecture choices.
+- Exposing detector-registry overrides through the production `auditSnapshot` API or CLI path.
+- Treating a test that merely observes a disabled detector as proof that the normal oracle is mutation-sensitive.
+- Duplicating policy severity or grouping metadata inside runtime detector descriptors.
+- Publishing raw identifiers or unstable encounter-order ordinals as diagnostic subjects.
+- Implementing the current governance reset until the controller replaces these remaining architecture choices.
 
 ### Current evidence
 
-The first run produced a useful scheduled-review architecture proposal but required controller replacement of private-source resolution, batch discovery, durable publication, trusted validation and recovery choices. The second run accurately diagnosed the surviving Toolkit governance defects and produced a strong inventory, authority map and blast radius. It still proposed a self-certified runtime reachability export, a mutation method that cannot patch the current lexical detectors, incomplete replacement-body and lifecycle semantics, unsafe real-effect side-effect probes, transformed caller identifiers in diagnostics and comment-only dependency control.
+The first run produced a useful scheduled-review architecture proposal but required controller replacement of private-source resolution, batch discovery, durable publication, trusted validation and recovery choices. The second run accurately diagnosed the surviving Toolkit governance defects but proposed self-certified reachability, an invalid lexical monkeypatch and incomplete lifecycle, diagnostic and dependency controls. The third run materially improved the design with an executable registry, body-authoritative replacement fields, controlled local side-effect sentinels and locked workflow dependencies. It still exposes the test override to production callers, inverts the mutation-oracle proof, duplicates policy metadata in the registry, mixes raw and opaque subject identities and leaves the workflow inventory non-mechanical.
 
 ### Current disposition
 
-DeepSeek V4 Pro remains approved for bounded no-mutation architecture investigation and option generation. Before implementation, the controller must lock the executable detector registry, exact oracle tuples, canonical replacement body fields, full lifecycle state machine, controlled side-effect harness, opaque diagnostic references and deterministic workflow dependencies. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model migration.
+DeepSeek V4 Pro remains useful for bounded no-mutation architecture investigation and revision. Before implementation, the controller must lock a production-hard-bound detector registry, a genuinely test-only mutation harness, unchanged exact-oracle failure proofs, policy-owned detector metadata, deterministic per-run opaque subjects and mechanically complete workflow dependency coverage. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model migration.
 
 ## GPT-5.6 Sol Medium
 
