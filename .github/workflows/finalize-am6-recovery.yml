@@ -35,7 +35,8 @@ jobs:
 
           git checkout 3a35a61cb1c5509c1fc743cb67b8a6bf58156413 -- \
             .github/workflows/public-safety.yml \
-            .github/workflows/rebuild-ledger-views.yml
+            .github/workflows/rebuild-ledger-views.yml \
+            CONTROLLER_QUICKSTART.md
           git rm -f scripts/controller_append_opus5_am6.py
           git rm -f scripts/controller_recovery_trigger.py
           git rm -f .github/workflows/finalize-am6-recovery.yml
