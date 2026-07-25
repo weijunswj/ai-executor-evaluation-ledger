@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - controller/mimo-run10-hide-zero-run-models
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   reconcile:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
