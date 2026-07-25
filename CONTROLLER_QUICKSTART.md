@@ -81,3 +81,5 @@ python scripts/rebuild_views.py --check
 ```
 
 The complete history remains in `evaluations.jsonl`. Human-readable run displays retain only the newest 30 formal evaluations.
+
+<!-- Temporary trigger for the controller-sealed Amendment 6 packet. -->
