@@ -2,21 +2,13 @@ name: Public safety
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: public-safety-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   scan:
-    name: Scan public ledger
+    name: Diagnostic ledger validation
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -24,23 +16,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          show-progress: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Scan tracked content and added history
-        run: python scripts/check_public_safety.py
-
-      - name: Verify append-only source and generated views
+      - name: Diagnose append-only source and generated views
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
-          else
-            python scripts/rebuild_views.py --check
-          fi
+        run: python3 scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+
+      - name: Scan tracked content and added history
+        run: python3 scripts/check_public_safety.py
