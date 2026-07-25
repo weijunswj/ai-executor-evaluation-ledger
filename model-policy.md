@@ -6,9 +6,9 @@ This policy translates verified evaluation evidence into current operating bound
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default across 16 formal runs**
+Reasoning level: **Provider default across 17 formal runs**
 
-Evidence level: **Useful mixed-task operating baseline across 16 formal runs; provisional across 3 comparable incident-diagnosis runs, 3 provider-operation runs and 5 security-remediation runs; anecdotal across 2 complex-repository-change runs and 1 high-difficulty architecture-proposal run**
+Evidence level: **Useful mixed-task operating baseline across 17 formal runs; provisional across 3 comparable incident-diagnosis runs, 3 provider-operation runs and 5 security-remediation runs; anecdotal across 2 complex-repository-change runs and 1 high-difficulty architecture-proposal run**
 
 Observed scores:
 
@@ -20,8 +20,8 @@ Observed scores:
 - complex repository change: **3.16/5** across 2 runs;
 - architecture proposal, high difficulty: **4.40/5** across 1 run;
 - mixed-task average: **3.51/5**;
-- first-pass acceptance: **6.25%**;
-- verified safe final state: **8/15 applicable runs**.
+- first-pass acceptance: **5.88%**;
+- verified safe final state: **8/16 applicable runs**.
 
 ### Approved
 
@@ -54,7 +54,7 @@ Observed scores:
 
 ### Current evidence
 
-Across 16 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. One run achieved first-pass acceptance: the no-mutation governance architecture packet. Repeated implementation defects still include premature PASS claims, incomplete negative-path coverage, tracker corruption, unsupported root-cause conclusions, trust-boundary drift and adversarial tests that do not isolate the claimed boundary.
+Across 17 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. One run achieved first-pass acceptance: the no-mutation governance architecture packet. Repeated implementation defects still include premature PASS claims, incomplete negative-path coverage, tracker corruption, unsupported root-cause conclusions, trust-boundary drift and adversarial tests that do not isolate the claimed boundary.
 
 The first governance implementation run produced a coherent module and broad test surface but left canonical policy/schema authority and derived-state self-certification P1s. Amendment 1 made useful local improvements yet both original trust boundaries survived. The runtime still partially reimplements schema and policy semantics, canonical and published surfaces visibly drift, a checklist contradiction test passes through an unrelated acceptance contradiction, complete children remain under-validated and the lifecycle contract is mainly documentary.
 
