@@ -73,16 +73,24 @@ jobs:
           test "$(grep -c '2026-07-25-claude-opus-5-max-business-automation-a-amendment-006' evaluations.jsonl)" -eq 1
           test "$(grep -c '2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-amendment-006' evaluations.jsonl)" -eq 1
           test "$(grep -c '2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-003' evaluations.jsonl)" -eq 1
+          git diff --name-status origin/main > final-name-status.txt
 
-      - name: Commit and push clean final branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "ledger-controller"
-          git add -A
-          git commit -m "Record reviewed evaluation backlog"
-          git push origin HEAD:controller/final-ledger-backlog-20260725
+      - name: Upload validated final tree
+        uses: actions/upload-artifact@v7
+        with:
+          name: reviewed-ledger-backlog-final-tree
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+          path: |
+            evaluations.jsonl
+            model-policy.md
+            README.md
+            scorecard.md
+            CONTROLLER_QUICKSTART.md
+            .github/workflows/public-safety.yml
+            .github/workflows/rebuild-ledger-views.yml
+            final-name-status.txt
 
   scan:
     if: >-
