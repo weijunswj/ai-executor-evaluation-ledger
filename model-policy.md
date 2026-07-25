@@ -1,14 +1,14 @@
 # Model-Use Policy
 
-Updated: 25 July 2026, 13:21 SGT
+Updated: 25 July 2026, 14:16 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default across 11 formal runs**
+Reasoning level: **Provider default across 12 formal runs**
 
-Evidence level: **Useful mixed-task operating baseline across 11 formal runs; provisional across 5 comparable security-remediation runs**
+Evidence level: **Useful mixed-task operating baseline across 12 formal runs; provisional across 5 comparable security-remediation runs; anecdotal across 1 medium-difficulty complex-repository-change run**
 
 Observed scores:
 
@@ -17,15 +17,17 @@ Observed scores:
 - incident diagnosis, high difficulty: **3.34/5** across 2 runs;
 - provider operation, high difficulty: **3.27/5** across 2 runs;
 - security remediation, high difficulty: **3.50/5** across 5 runs;
-- mixed-task average: **3.42/5**;
+- complex repository change, medium difficulty: **3.26/5** across 1 run;
+- mixed-task average: **3.40/5**;
 - first-pass acceptance: **0%**;
-- verified safe final state: **5/10 applicable runs**.
+- verified safe final state: **6/11 applicable runs**.
 
 ### Approved
 
 - Strictly read-only repository or provider inspection where direct evidence is available.
 - Narrow mechanical repository changes with exact file scope and mandatory controller review.
 - Low-risk overflow work that does not block release, mutate production or control authentication, data or deployment boundaries.
+- Substantial draft-only repository implementation may be attempted when the owner explicitly authorises the experiment, one issue owns one branch and PR, and every initial or amendment head receives full controller review.
 
 ### Conditional
 
@@ -33,6 +35,8 @@ Observed scores:
 - Root-cause conclusions must be labelled as hypotheses unless supported by direct logs or provider evidence.
 - Green tests and continuous integration are supporting evidence only; they do not authorise self-acceptance.
 - Local-versus-continuous-integration performance differences must remain unresolved unless direct causal evidence proves the platform-specific cause.
+- Policy, schema, audit and generated-surface work must prove one trusted authority, reject candidate self-certification and include adversarial negative tests before acceptance.
+- Amendment cycles remain on the same implementation PR and each separately reviewed run receives its own evaluation packet.
 
 ### Not currently approved
 
@@ -41,19 +45,20 @@ Observed scores:
 - Autonomous merge, deployment, rollback or provider operation.
 - Independent tracker-body authority.
 - Exact root-cause or PASS claims based on repository inspection without direct execution evidence.
-- Any additional MiMo evaluation after the one already in-flight read-only private-quote-service-a evidence-recovery continuation.
+- Autonomous acceptance of governance, policy, schema, validation or audit trust boundaries.
+- Treating generated views, caller-supplied derived metadata or candidate-authored tests as independent authority.
 
 ### Current evidence
 
-Across 11 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. It produced useful partial repairs and evidence recovery, but no run achieved first-pass acceptance. Repeated defects included premature PASS claims, incomplete negative-path coverage, tracker corruption, stale-contract diagnosis and unsupported root-cause conclusions.
+Across 12 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. It produced useful partial repairs and evidence recovery, but no run achieved first-pass acceptance. Repeated defects included premature PASS claims, incomplete negative-path coverage, tracker corruption, stale-contract diagnosis and unsupported root-cause conclusions.
 
-The eleventh run closed every remaining direct production-validator class, retained all earlier fail-closed repairs, disclosed the full local timeout failure and reached an accepted guarded merge with byte-equivalent source and squash trees. It nevertheless described an environment-dependent timeout result as a proven Windows performance issue and not a code defect without direct causal evidence. Controller correction was required before acceptance, so first-pass acceptance remains zero.
+The twelfth run produced a coherent first-party governance module, broad fixtures, generated skill surfaces and green core workflows while preserving a safe draft state. Independent review nevertheless found two P1 trust-boundary defects: the advertised canonical policy/schema were not runtime authority, and caller-supplied derived fields could self-certify invalid issue bodies. Further P2 defects affected required dimensions, unknown-mode reporting, drift detection, semantic conservatism, timestamp validity, privacy-safe diagnostics and canonical source notices. The executor also understated the changed-file and fixture counts and reported hosted-check coverage beyond what the controller could independently confirm.
 
 ### Current disposition
 
-The original 10-run cap was explicitly extended only for two already-authorised continuations. The public-web-app-a Amendment 4 continuation is accepted and merged. The already in-flight read-only private-quote-service-a evidence-recovery continuation is the sole remaining MiMo run.
+The owner has explicitly reopened MiMo use during the temporary premium-model capacity constraint. MiMo may continue the governance-tooling amendment on the same draft PR and may undertake other owner-authorised repository work under strict controller orchestration.
 
-After that final continuation is reviewed and recorded, execution must switch to the next owner-approved model. MiMo remains available only as a bounded overflow executor for low-risk or read-only work and does not gain autonomous production or launch-critical authority from this accepted run.
+This is not a promotion to autonomous high-risk authority. Every run remains separately graded; every material finding is repaired on the same implementation PR; merge requires a fresh exact-head review and trusted checks. Repeated non-convergence may trigger redesign or a model switch rather than cosmetic amendment churn.
 
 ## Claude Opus 4.8 High
 
