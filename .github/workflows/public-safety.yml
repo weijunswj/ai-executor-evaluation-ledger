@@ -16,14 +16,16 @@ concurrency:
 
 jobs:
   reconcile:
-    if: github.event_name == 'pull_request' && github.head_ref == 'controller/mimo-run10-hide-zero-run-models'
+    if: >-
+      (github.event_name == 'pull_request' && github.head_ref == 'controller/mimo-run10-hide-zero-run-models') ||
+      (github.event_name == 'workflow_dispatch' && github.ref_name == 'controller/mimo-run10-hide-zero-run-models')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Check out controller branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: controller/mimo-run10-hide-zero-run-models
           fetch-depth: 0
 
       - name: Set up Python
@@ -214,10 +216,12 @@ The evaluation cap is complete. MiMo remains available only as a bounded overflo
           git config user.email "ledger-controller"
           git add -A
           git commit -m "Record MiMo run 10 and hide zero-run models"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:controller/mimo-run10-hide-zero-run-models
 
   scan:
-    if: github.event_name != 'pull_request' || github.head_ref != 'controller/mimo-run10-hide-zero-run-models'
+    if: >-
+      !((github.event_name == 'pull_request' && github.head_ref == 'controller/mimo-run10-hide-zero-run-models') ||
+      (github.event_name == 'workflow_dispatch' && github.ref_name == 'controller/mimo-run10-hide-zero-run-models'))
     name: Scan public ledger
     runs-on: ubuntu-latest
     timeout-minutes: 5
