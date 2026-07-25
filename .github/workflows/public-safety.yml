@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build clean reviewed-backlog branch
+      - name: Verify main and create final branch
         shell: bash
         run: |
           set -euo pipefail
@@ -42,8 +42,13 @@ jobs:
           test "$(git rev-parse origin/main)" = "0af780f4cdb683d666b3e8cc25f1cf3507e9a9c4"
           git switch -c controller/final-ledger-backlog-20260725
 
-          python scripts/controller_append_opus5_am6.py
+      - name: Append sealed reviewed records and policy
+        run: python scripts/controller_append_opus5_am6.py
 
+      - name: Restore trusted workflows and remove recovery residue
+        shell: bash
+        run: |
+          set -euo pipefail
           git checkout 3a35a61cb1c5509c1fc743cb67b8a6bf58156413 -- \
             .github/workflows/public-safety.yml \
             .github/workflows/rebuild-ledger-views.yml \
@@ -52,16 +57,27 @@ jobs:
           git rm -f scripts/controller_recovery_trigger.py
           git rm -f .github/workflows/finalize-am6-recovery.yml
 
-          python scripts/rebuild_views.py
-          python scripts/check_public_safety.py
+      - name: Rebuild deterministic views
+        run: python scripts/rebuild_views.py
+
+      - name: Scan public ledger
+        run: python scripts/check_public_safety.py
+
+      - name: Verify append-only state and expected records
+        shell: bash
+        run: |
+          set -euo pipefail
           python scripts/rebuild_views.py --check --base-ref origin/main
           git diff --check
-
           test "$(wc -l < evaluations.jsonl)" -eq 29
           test "$(grep -c '2026-07-25-claude-opus-5-max-business-automation-a-amendment-006' evaluations.jsonl)" -eq 1
           test "$(grep -c '2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-amendment-006' evaluations.jsonl)" -eq 1
           test "$(grep -c '2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-003' evaluations.jsonl)" -eq 1
 
+      - name: Commit and push clean final branch
+        shell: bash
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "ledger-controller"
           git add -A
