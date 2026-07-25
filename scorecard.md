@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 25 July 2026, 20:37 SGT
+Updated: 25 July 2026, 22:10 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -12,6 +12,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
+| DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -20,6 +21,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 25 Jul 2026 22:10 SGT | DeepSeek V4 Pro | High | Architecture Proposal | High | PASS | 4.14 | Yes | Verified |
 | 25 Jul 2026 20:37 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.42 | No | Verified |
 | 25 Jul 2026 16:13 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.65 | No | Verified |
 | 25 Jul 2026 16:12 SGT | MiMo 2.5 Pro | Default | Architecture Proposal | High | PASS | 4.40 | Yes | Verified |
@@ -54,6 +56,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
+| DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -66,6 +69,30 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Architecture Proposal
+
+- Reasoning level: **High**
+- Reviewed: **25 Jul 2026 22:10 SGT**
+- Run ID: `2026-07-25-deepseek-v4-pro-evaluation-ledger-scheduled-review-architecture-001`
+- Subject alias: `evaluation-ledger-scheduled-review-a`
+- Result: **PASS**
+- Weighted score: **4.14/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - respected the exact-revision no-mutation boundary and produced a detailed repository-grounded authority map
+  - correctly retained append-only JSONL as the first-version source and separated canonical task reasoning from provider-native reasoning
+  - accurately identified missing durable batch state as the root cause behind stale branches generated-view collisions policy collisions and temporary recovery workflows
+  - provided a comprehensive lifecycle threat model test matrix rollout plan and capability-probe design
+  - explicitly surfaced unresolved controller decisions instead of self-issuing implementation authority
+- Principal defects:
+  - the recommended public issue intake cannot both hide private source identity and give the scheduled reviewer enough information to resolve the source repository and completion report
+  - the proposed resume loop scans batch files on main even though an unfinished batch exists only on its unmerged branch so a later run can fail to discover the active batch
+  - per-job review results are described as durable but no mandatory commit and push boundary after each completed job is specified
+  - the trusted-validation claim is false because current pull-request checks execute candidate-branch scripts and the proposal does not create a base-trusted verifier or immutable path allowlist
+  - GitHub issue bodies are editable and are not scanned before public creation so the proposal overstates immutability and public-safety protection
+  - splitting one authorised repository capability into foundation and feature pull requests weakens the one-issue one-branch one-active-pull-request operating model without a demonstrated necessity
 
 ### MiMo 2.5 Pro - Complex Repository Change
 
