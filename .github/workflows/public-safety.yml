@@ -12,17 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out full history
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          show-progress: false
-
-      - name: Diagnose append-only source and generated views
+      - name: Diagnose ledger state
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: python3 scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
-
-      - name: Scan tracked content and added history
-        run: python3 scripts/check_public_safety.py
+          MERGE_SHA: ${{ github.sha }}
+        run: |
+          git clone --quiet --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git fetch --quiet origin "$MERGE_SHA"
+          git checkout --quiet --detach "$MERGE_SHA"
+          python3 scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+          python3 scripts/check_public_safety.py
