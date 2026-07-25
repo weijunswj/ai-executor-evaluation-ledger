@@ -116,3 +116,5 @@ jobs:
           git add evaluations.jsonl model-policy.md README.md scorecard.md .github/workflows/rebuild-ledger-views.yml
           git commit -m "Record MiMo SQAG configuration-admission amendment evaluation"
           git push
+
+# Controller trigger: Second trusted push after workflow staging.
