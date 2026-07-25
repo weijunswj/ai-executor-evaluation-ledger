@@ -1,3 +1,4 @@
+# Triggered after the workflow exists on the recovery branch.
 name: Fix scorecard generated timestamp
 
 on:
