@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 25 July 2026, 13:21 SGT
+Updated: 25 July 2026, 14:16 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -12,7 +12,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
 | Claude Opus 5 Max | Max | 2 | 3.26 | 0% | 2/2 applicable | 8 | Anecdotal |
-| MiMo 2.5 Pro | Default | 11 | 3.42 | 0% | 5/10 applicable | 56 | Useful operating baseline |
+| MiMo 2.5 Pro | Default | 12 | 3.40 | 0% | 6/11 applicable | 60 | Useful operating baseline |
 
 ## Formal evaluated runs
 
@@ -20,6 +20,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 25 Jul 2026 14:16 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | AMEND | 3.26 | No | Verified |
 | 25 Jul 2026 13:21 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | ACCEPTED | 4.30 | No | Verified |
 | 25 Jul 2026 12:42 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.38 | No | Verified |
 | 25 Jul 2026 12:05 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 3.75 | No | Verified |
@@ -45,6 +46,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 2 | 3.26 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Incident Diagnosis | High | 2 | 3.34 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Provider Operation | High | 2 | 3.27 | 0% | Anecdotal |
@@ -54,6 +56,28 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### MiMo 2.5 Pro - Complex Repository Change
+
+- Reasoning level: **Default**
+- Reviewed: **25 Jul 2026 14:16 SGT**
+- Run ID: `2026-07-25-mimo-2-5-pro-governance-tooling-a-implementation-001`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **3.26/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - created a coherent first-party project module with policy templates schema documentation and generated skill surfaces
+  - respected the draft unmerged zero-live-mutation and ledger-isolation boundaries
+  - integrated broad fixtures tests routing packaging and repository validation
+  - reported exact base and head revisions and preserved the primary checkout
+- Principal defects:
+  - the advertised canonical policy and JSON Schema are not trusted runtime authority and the audit duplicates incomplete validation logic
+  - caller-supplied checklist children acceptance and reconciliation metadata can self-certify issue bodies that violate the documented governance contract
+  - several promised findings and safety properties are absent or weakly tested including required dimensions unknown-mode reporting generated drift conservative semantics timestamp validity and privacy-safe diagnostics
+  - canonical source templates are incorrectly marked as generated copies of themselves
+  - the terminal report understated the changed-file and fixture counts and overstated independently verified hosted-check coverage
 
 ### MiMo 2.5 Pro - Security Remediation
 
