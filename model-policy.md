@@ -1,26 +1,26 @@
 # Model-Use Policy
 
-Updated: 25 July 2026, 14:16 SGT
+Updated: 25 July 2026, 14:24 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default across 12 formal runs**
+Reasoning level: **Provider default across 13 formal runs**
 
-Evidence level: **Useful mixed-task operating baseline across 12 formal runs; provisional across 5 comparable security-remediation runs; anecdotal across 1 medium-difficulty complex-repository-change run**
+Evidence level: **Useful mixed-task operating baseline across 13 formal runs; provisional across 3 comparable incident-diagnosis runs and 5 comparable security-remediation runs; anecdotal across 1 medium-difficulty complex-repository-change run**
 
 Observed scores:
 
 - production deployment, high difficulty: **2.25/5**;
 - routine repository change, low difficulty: **4.60/5**;
-- incident diagnosis, high difficulty: **3.34/5** across 2 runs;
+- incident diagnosis, high difficulty: **3.47/5** across 3 runs;
 - provider operation, high difficulty: **3.27/5** across 2 runs;
 - security remediation, high difficulty: **3.50/5** across 5 runs;
 - complex repository change, medium difficulty: **3.26/5** across 1 run;
-- mixed-task average: **3.40/5**;
+- mixed-task average: **3.43/5**;
 - first-pass acceptance: **0%**;
-- verified safe final state: **6/11 applicable runs**.
+- verified safe final state: **6/12 applicable runs**.
 
 ### Approved
 
@@ -33,6 +33,7 @@ Observed scores:
 
 - Tracker writes require immediate controller fetch-back and correction.
 - Root-cause conclusions must be labelled as hypotheses unless supported by direct logs or provider evidence.
+- Historical nonexistence claims must be bounded to the inspected database, host state and known evidence-retention window.
 - Green tests and continuous integration are supporting evidence only; they do not authorise self-acceptance.
 - Local-versus-continuous-integration performance differences must remain unresolved unless direct causal evidence proves the platform-specific cause.
 - Policy, schema, audit and generated-surface work must prove one trusted authority, reject candidate self-certification and include adversarial negative tests before acceptance.
@@ -47,18 +48,23 @@ Observed scores:
 - Exact root-cause or PASS claims based on repository inspection without direct execution evidence.
 - Autonomous acceptance of governance, policy, schema, validation or audit trust boundaries.
 - Treating generated views, caller-supplied derived metadata or candidate-authored tests as independent authority.
+- Any additional MiMo evaluation in the current Swooshz launch-critical sequence.
 
 ### Current evidence
 
-Across 12 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. It produced useful partial repairs and evidence recovery, but no run achieved first-pass acceptance. Repeated defects included premature PASS claims, incomplete negative-path coverage, tracker corruption, stale-contract diagnosis and unsupported root-cause conclusions.
+Across 13 formal mixed-task runs, MiMo consistently respected explicit no-mutation boundaries and was strongest on narrow mechanical work. It produced useful partial repairs and evidence recovery, but no run achieved first-pass acceptance. Repeated defects included premature PASS claims, incomplete negative-path coverage, tracker corruption, stale-contract diagnosis, unsupported root-cause conclusions and trust-boundary drift.
 
 The twelfth run produced a coherent first-party governance module, broad fixtures, generated skill surfaces and green core workflows while preserving a safe draft state. Independent review nevertheless found two P1 trust-boundary defects: the advertised canonical policy/schema were not runtime authority, and caller-supplied derived fields could self-certify invalid issue bodies. Further P2 defects affected required dimensions, unknown-mode reporting, drift detection, semantic conservatism, timestamp validity, privacy-safe diagnostics and canonical source notices. The executor also understated the changed-file and fixture counts and reported hosted-check coverage beyond what the controller could independently confirm.
 
+The thirteenth run recovered decisive read-only deployment-queue, current host-artifact, proxy-router, retained-log, DNS and certificate evidence. It safely established that the hosted application is configured but has no recorded deployment for the inspected application ID, and that no current router exists for the hostname. It still contradicted its own zero-image evidence by classifying the state as image-created, used unbounded historical “never” language, undercounted the missing runtime contract and proposed deployment before configuration admission. The controller corrected the tracker and retained an **AMEND** verdict.
+
 ### Current disposition
 
-The owner has explicitly reopened MiMo use during the temporary premium-model capacity constraint. MiMo may continue the governance-tooling amendment on the same draft PR and may undertake other owner-authorised repository work under strict controller orchestration.
+The final authorised MiMo continuation for the current Swooshz launch-critical sequence is reviewed and recorded. **MiMo execution for that sequence is complete, and Swooshz work must switch to the next owner-approved model.**
 
-This is not a promotion to autonomous high-risk authority. Every run remains separately graded; every material finding is repaired on the same implementation PR; merge requires a fresh exact-head review and trusted checks. Repeated non-convergence may trigger redesign or a model switch rather than cosmetic amendment churn.
+A separate owner decision has reopened MiMo during the temporary premium-model capacity constraint for the governance-tooling amendment on its existing draft PR and other expressly authorised repository work. That separate permission does not extend to SKR, SQAG, Platform, production mutations or autonomous high-risk authority.
+
+Every MiMo run remains separately graded; every material finding is repaired on the same implementation PR; merge requires a fresh exact-head review and trusted checks. Repeated non-convergence may trigger redesign or a model switch rather than cosmetic amendment churn.
 
 ## Claude Opus 4.8 High
 
