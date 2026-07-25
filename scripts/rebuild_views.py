@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import subprocess
 import sys
 from collections import defaultdict
@@ -32,10 +33,6 @@ MODEL_ALIASES = {
     "Sol High": "GPT-5.6 Sol High",
 }
 
-PLACEHOLDER_MODELS = (
-    ("GPT-5.6 Sol Medium", "Medium"),
-    ("GPT-5.6 Sol High", "High"),
-)
 
 MODEL_ORDER = (
     "Xiaomi MiMo 2.5 Pro",
@@ -206,8 +203,6 @@ def group_models(records: list[dict[str, Any]]) -> dict[tuple[str, str], list[di
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for record in records:
         grouped[(record["model"], record["reasoning_display"])].append(record)
-    for placeholder in PLACEHOLDER_MODELS:
-        grouped.setdefault(placeholder, [])
     return grouped
 
 
@@ -397,6 +392,14 @@ def replace_generated_block(text: str, start: str, end: str, replacement: str, f
     return before + wrapped + "\n\n" + fallback_end_heading + after
 
 
+def scorecard_updated_line(records: list[dict[str, Any]]) -> str:
+    if not records:
+        fail("cannot derive scorecard update time without formal evaluations")
+    value = max(record_time(record) for record in records)
+    suffix = " SGT" if value.utcoffset() == timedelta(hours=8) else ""
+    return f"Updated: {value.day} {value.strftime('%B %Y, %H:%M')}{suffix}"
+
+
 def expected_files(records: list[dict[str, Any]]) -> tuple[str, str]:
     readme = README_PATH.read_text(encoding="utf-8")
     scorecard = SCORECARD_PATH.read_text(encoding="utf-8")
@@ -419,6 +422,14 @@ def expected_files(records: list[dict[str, Any]]) -> tuple[str, str]:
         render_scorecard_block(records),
         "## Current interpretation",
     )
+    expected_scorecard, update_count = re.subn(
+        r"(?m)^Updated: .+$",
+        scorecard_updated_line(records),
+        expected_scorecard,
+        count=1,
+    )
+    if update_count != 1:
+        fail("scorecard must contain exactly one top-level Updated line")
     return expected_readme, expected_scorecard
 
 
