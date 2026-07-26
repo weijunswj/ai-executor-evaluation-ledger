@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 21:38 SGT
+Updated: 26 July 2026, 21:42 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -15,8 +15,8 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 16 | 4.05 | 44% | 16/16 applicable | 68 | Useful operating baseline |
-| GPT-5.6 Sol | Not exposed | 7 | 4.15 | 14% | 7/7 applicable | 29 | Moderate |
+| DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | 78 | Useful operating baseline |
+| GPT-5.6 Sol | Not exposed | 8 | 4.16 | 12% | 8/8 applicable | 33 | Moderate |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -25,6 +25,9 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 21:42 SGT | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | AMEND | 4.20 | No | Verified |
+| 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Not exposed | Security Review | High | AMEND | 3.48 | No | Verified |
+| 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Not exposed | Security Remediation | High | AMEND | 3.49 | No | Verified |
 | 26 Jul 2026 21:38 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.80 | Yes | Verified |
 | 26 Jul 2026 21:25 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.38 | No | Verified |
 | 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | Medium | ACCEPTED | 4.85 | Yes | Verified |
@@ -52,9 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
 | 26 Jul 2026 00:26 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.94 | No | Verified |
 | 25 Jul 2026 22:10 SGT | DeepSeek V4 Pro | High | Architecture Proposal | High | PASS | 4.14 | Yes | Verified |
-| 25 Jul 2026 20:37 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.42 | No | Verified |
-| 25 Jul 2026 16:13 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.65 | No | Verified |
-| 25 Jul 2026 16:12 SGT | MiMo 2.5 Pro | Default | Architecture Proposal | High | PASS | 4.40 | Yes | Verified |
 
 ## Task-class aggregates
 
@@ -75,7 +75,10 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Not exposed | Production Operations | High | 4 | 4.35 | 75% | Provisional |
 | DeepSeek V4 Pro | Not exposed | Research | High | 6 | 3.91 | 17% | Moderate |
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Security Remediation | High | 1 | 3.49 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Security Review | High | 1 | 3.48 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
+| GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Research | High | 3 | 4.20 | 0% | Provisional |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
@@ -90,6 +93,70 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### GPT-5.6 Sol - Hosted Product Uat
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 21:42 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-public-web-app-a-rendered-walkthrough-004`
+- Subject alias: `public-web-app-a`
+- Result: **AMEND**
+- Weighted score: **4.20/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - used a real rendered browser and covered every required route at all required viewports plus narrow reflow
+  - identified five concrete P2 product and accessibility repair lanes with reproduction details
+  - kept login submission provider deployment database and tracked-file mutation boundaries intact
+  - reported browser capability limits instead of claiming complete keyboard or developer-tools coverage
+- Principal defects:
+  - did not re-read live provenance through an allowed separate read-only mechanism after in-app navigation was blocked
+  - could not complete reliable Tab and Shift-Tab traversal
+  - screenshot paths were local-only and unavailable to independent controllers
+  - deleted local branches and attached worktrees despite a read-only walkthrough scope
+
+### DeepSeek V4 Pro - Security Review
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 21:42 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-design-amendment-002`
+- Subject alias: `private-quote-service-a`
+- Result: **AMEND**
+- Weighted score: **3.48/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the strict no-mutation boundary and produced a detailed execution-context inventory
+  - correctly separated web runtime retention maintenance and migration authority into three roles
+  - identified current public database schema and routine privilege excess
+  - kept provider-admin role removal outside immediate runtime cutover
+- Principal defects:
+  - GRANT SELECT INSERT ON ALL TABLES gives the runtime INSERT on the migration ledger and retention-control tables despite explicit negative assertions
+  - the staged SQL grants runtime DELETE on a retention-authorisation table that the capability matrix marks read-only
+  - default SELECT and INSERT on every future table contradict the selected explicit per-migration strategy and can overgrant future administrative objects
+  - the disposable trigger test plan does not yet prove the claimed runtime EXECUTE requirement for existing triggers
+  - the cutover plan depends on SQL assertions that would fail against the grants proposed earlier in the same packet
+
+### DeepSeek V4 Pro - Security Remediation
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 21:42 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-hostname-contract-repair-005`
+- Subject alias: `shared-platform-a`
+- Result: **AMEND**
+- Weighted score: **3.49/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - implemented the correct provider-attested proxy-host and region-identity architecture rather than widening label counts
+  - included both new fields in normalised immutable identity and phase-drift fingerprints
+  - preserved the no-production-access boundary and bounded draft pull-request scope
+  - added useful legacy shard mismatch missing-field and drift tests
+- Principal defects:
+  - the packet and authoritative issue report a head that does not equal the actual pull-request head
+  - complete continuous integration fails because the disposable PostgreSQL activation fixture lacks the new mandatory provider fields
+  - the region grammar accepts a DNS label ending in a hyphen when provider region and proxy host agree
+  - the shard label and final pooled authority lack complete DNS label and total-length enforcement
 
 ### DeepSeek V4 Pro - Production Operations
 
@@ -684,72 +751,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - the trusted-validation claim is false because current pull-request checks execute candidate-branch scripts and the proposal does not create a base-trusted verifier or immutable path allowlist
   - GitHub issue bodies are editable and are not scanned before public creation so the proposal overstates immutability and public-safety protection
   - splitting one authorised repository capability into foundation and feature pull requests weakens the one-issue one-branch one-active-pull-request operating model without a demonstrated necessity
-
-### MiMo 2.5 Pro - Complex Repository Change
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 20:37 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-003`
-- Subject alias: `governance-tooling-a`
-- Result: **AMEND**
-- Weighted score: **3.42/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - replaced the partial handwritten schema validator with direct Ajv 2020 execution of the canonical schema
-  - separated stable issue tracking profile from open and closed lifecycle state and migrated the contract to version 2.0.0
-  - derived required sections and implementation-work classification from canonical policy and added a policy-validating finding boundary
-  - kept the exact-head change draft and unmerged with successful core hosted workflows CodeQL and zero live-system actions
-- Principal defects:
-  - the semantic parity gate and finding tests remain string-presence based and candidate-self-certifying rather than executable mutation-sensitive exact oracles
-  - explicit canonical-parent identity and complete parent checklist child-parent and acceptance body authority remain bypassable through omitted or empty structured fields
-  - replacement and supersession semantics do not resolve body metadata existing distinct pull requests or same-PR amendment identity
-  - the side-effect preload omits write-capable open streams promise DNS and TLS or socket alternatives and its self-tests cover only four sample calls
-  - diagnostics still interpolate caller-controlled identifiers and metadata while the privacy fixtures exercise body values that are not emitted
-  - the completion report overstates parity isolation side-effect and diagnostic closure
-
-### Claude Opus 5 Max - Complex Repository Change
-
-- Reasoning level: **Max**
-- Reviewed: **25 Jul 2026 16:13 SGT**
-- Run ID: `2026-07-25-claude-opus-5-max-business-automation-a-amendment-006`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.65/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - closed the prior readable-approval-line authority defect with separate committed activation state
-  - implemented reopen-and-look recovery for uncertain pending-decision and activation commits
-  - corrected reservation collision truthfulness and added exact supported JSONL event schemas
-  - kept the exact-head change draft and unmerged with green continuous integration and zero live-system actions
-- Principal defects:
-  - a build snapshots approval authority and closes SQLite before reservation so a concurrent newer hold rejection or pending decision can overtake the read while the stale approval still publishes
-  - existing empty foreign or partial SQLite files can be silently augmented and validation checks object names rather than exact constraints trigger bodies index definitions and foreign-key integrity
-  - timezone-naive timestamps pass validation and can escape during the aware-expiry comparison as an uncontrolled TypeError
-  - the completion report overstates closure after a sixth same-domain amendment
-
-### MiMo 2.5 Pro - Architecture Proposal
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 16:12 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-governance-design-gate-001`
-- Subject alias: `governance-design-gate-a`
-- Result: **PASS**
-- Weighted score: **4.40/5**
-- First-pass accepted: **Yes**
-- Safe final state: **Verified**
-- Principal strengths:
-  - respected the strict no-mutation boundary and bound the packet to the exact authorised pull-request head
-  - correctly identified the absence of a mechanical policy-to-runtime authority link and the absence of semantic parity across canonical curated generated and published surfaces
-  - accurately rejected another partial handwritten validator and compared maintained-schema execution with deterministic generation
-  - provided a useful invariant list failure model side-effect interception design adversarial test matrix and exact path-level blast radius
-  - explicitly surfaced unresolved decisions for controller adjudication rather than self-issuing acceptance
-- Principal defects:
-  - the proposed complete-child treatment retains category and lifecycle-state conflation and suggests an unsafe strictest-default fallback instead of preserving a stable tracking profile
-  - the GOV023 proposal compares implementation_branch with an Implementation PR body line and therefore mixes branch identity with pull-request identity
-  - the packet incorrectly treats duplicate issue IDs as a canonical JSON Schema concern even though the current schema cannot express uniqueness by object property and GOV025 should remain a semantic finding
-  - the packet proposes coupling toolkit.project.json module version to policy version without evidence that these are the same version domain
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
