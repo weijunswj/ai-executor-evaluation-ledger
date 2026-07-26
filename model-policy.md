@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 26 July 2026, 15:35 SGT
+Updated: 26 July 2026, 18:20 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -284,7 +284,7 @@ Max is already the highest owner-approved tier. Further progress must come from 
 
 ## DeepSeek V4 Pro
 
-Evidence level: **Provisional — 4 formal high-difficulty architecture and research runs**
+Evidence level: **Provisional — 5 formal high-difficulty architecture and research runs**
 
 Observed scores:
 
@@ -292,44 +292,48 @@ Observed scores:
 - governance architecture reset: **3.94/5**;
 - revised governance architecture reset: **4.18/5**;
 - final governance architecture correction: **3.96/5**;
-- four-run average: **4.06/5**;
-- first-pass acceptance: **25%**;
-- verified safe final state: **4/4**.
+- consolidated governance architecture packet: **4.42/5**;
+- five-run average: **4.13/5**;
+- first-pass acceptance: **40%**;
+- verified safe final state: **5/5**.
 
 ### Approved
 
 - Exact-revision, no-mutation repository architecture packets.
 - Authority mapping, root-cause analysis, option comparison, threat modelling and adversarial test planning for controller adjudication.
-- Narrow architecture resets that preserve the existing branch, pull request and mutation boundary.
+- Consolidated architecture packets that carry prior accepted requirements into a mechanically bounded implementation blast radius.
 
 ### Conditional
 
 - Architecture recommendations remain advisory and require an independent controller lock before implementation.
-- Executable parity requires one code-specific detector function or wrapper per canonical finding code; broad shared helpers may not be the mutation authority.
-- Test mutation engines must be assembled under the test tree without production override parameters or mutable registry builders in the supported production surface.
-- Mutation-sensitive proof must run the unchanged exact oracle on the isolated invalid fixture and prove the assertion fails after the exact detector is replaced.
-- Canonical policy alone owns severity, grouping and message identity; message context must be typed, bounded and public-safe.
-- Opaque subjects must use one representation-independent canonical key and reset deterministically per audit invocation.
-- Workflow dependency closure must traverse workflows, reusable workflows, step-level composite actions, shell wrappers, package scripts and module imports, then bind locked installation to the correct checkout and working directory.
-- The final implementation lock must retain all earlier body-authority, replacement lifecycle, side-effect, diagnostic and parity repairs.
+- Production and test registries must reference the same code-specific detector function for every canonical finding code while remaining independently assembled.
+- Mutation-sensitive proof must run the unchanged exact oracle on isolated invalid fixtures and prove the assertion fails after the exact detector is replaced.
+- Canonical policy alone owns severity, grouping, message identity and typed context; diagnostics may contain only policy-controlled text, bounded values and opaque subjects.
+- Missing or wrong canonical-parent identity remains a semantic governance finding rather than a schema admission failure.
+- Opaque subjects must use locale-independent canonical-key ordering and duplicate diagnostics must not expose raw or internal identity keys.
+- Workflow dependency closure must traverse workflows, reusable workflows, step-level composite actions, shell wrappers and package-script chains, then bind locked installation to the correct checkout and working directory.
+- Generated-surface parity must compare the canonical deterministic transform rather than raw curated and published bytes where provenance headers are expected.
+- Filesystem interception must classify every write-capable open flag exactly; DNS proof must use controlled fake adapters without external resolver activity.
 
 ### Not currently approved
 
-- Mapping several finding codes to one broad detector while claiming per-code reachability or mutation proof.
-- Using a valid zero-finding fixture to demonstrate that removal of a violation detector makes an oracle fail.
-- Exporting a mutable registry builder from production-internal code for the test harness.
-- Interpolating arbitrary validated branch, body, PR, property or path values into public diagnostics.
-- Assigning opaque subjects according to encounter order or the first raw numeric/string representation.
-- Hand-waving Node test, composite-action, shell-wrapper or installation-order paths as dependency-free exceptions.
-- Implementing the current governance reset until the controller replaces these remaining architecture choices.
+- Implementing architecture directly without a controller-issued design lock and fresh exact-head review.
+- Allowing test-only detector mappings to drift from the production registry while claiming mutation coverage of production behaviour.
+- Promoting canonical-parent absence to schema failure contrary to the controller-owned semantic finding boundary.
+- Emitting raw duplicate identities, internal canonical keys, branch names, body text, paths or other caller-controlled strings.
+- Locale-dependent subject ordering, overlapping finding ownership or lifecycle fields omitted from the canonical schema.
+- Treating curated and published generated surfaces as raw byte-equal when the generation contract intentionally adds provenance metadata.
+- Performing real DNS or external network activity to prove a side-effect interceptor.
 
 ### Current evidence
 
-The first run produced a useful scheduled-review architecture proposal but required controller replacement of private-source resolution, batch discovery, durable publication, trusted validation and recovery choices. The second run accurately diagnosed the surviving Toolkit governance defects but proposed self-certified reachability, an invalid lexical monkeypatch and incomplete lifecycle, diagnostic and dependency controls. The third run materially improved the design but still exposed detector overrides, inverted mutation proof, duplicated policy metadata, mixed subject identities and left workflow coverage non-mechanical. The fourth run produced a clearer module architecture and stronger policy direction, but its shared detector aliases make code-specific mutation impossible, its diagnostic context remains caller-controlled, its subject ordering is representation-dependent, its workflow traversal has material false-negative paths and its Gate 3 blast radius drops earlier required repairs.
+The first run produced a useful scheduled-review architecture proposal but required controller replacement of private-source resolution, batch discovery, durable publication, trusted validation and recovery choices. The next three governance packets correctly diagnosed the trust-boundary defects but needed repeated correction around executable reachability, production mutation seams, policy authority, opaque identity and workflow closure. The fifth packet materially converged: it defines one detector per code, separate production and test assembly, mutation-sensitive exact oracles, typed diagnostics, deterministic subjects, complete body and pull-request authority, side-effect interception, semantic parity and an exact Gate 3 blast radius.
+
+The remaining issues are bounded controller-lock corrections rather than another architecture reset: preserve semantic canonical-parent handling, bind production and test detector identities, remove duplicate-key disclosure, replace locale-dependent ordering, complete lifecycle schema coverage, compare generated surfaces through their transform and tighten filesystem/DNS proof.
 
 ### Current disposition
 
-DeepSeek V4 Pro remains useful for bounded no-mutation architecture investigation and revision, but has not converged on this policy/schema trust boundary after three corrective architecture passes. The next attempt must use the owner-approved XHigh task classification and produce one consolidated packet with code-specific detector authority, an independently assembled test harness, typed public-safe diagnostic context, stable subject canonicalisation, complete workflow traversal and the full carried-forward implementation scope. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model migration.
+DeepSeek V4 Pro is approved for bounded no-mutation architecture investigation and consolidated design proposals. This governance packet is accepted for controller lock at **4.42/5**. Implementation remains authorised only through the exact controller lock on the existing draft pull request, followed by a completely fresh exact-head Gate 4 review. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model and protocol-cohort migration.
 
 ## GPT-5.6 Sol Medium
 

@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 15:32 SGT
+Updated: 26 July 2026, 18:20 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -15,7 +15,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 3 | 4.03 | 0% | 3/3 applicable | 18 | Provisional |
+| DeepSeek V4 Pro | Not exposed | 4 | 4.12 | 25% | 4/4 applicable | 26 | Provisional |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -24,6 +24,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 18:20 SGT | DeepSeek V4 Pro | Not exposed | Research | High | PASS | 4.42 | Yes | Verified |
 | 26 Jul 2026 15:32 SGT | Claude Opus 5 | not-exposed | Complex Repository Change | High | AMEND | 4.05 | No | Verified |
 | 26 Jul 2026 12:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.96 | No | Verified |
 | 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
@@ -53,7 +54,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 24 Jul 2026 23:50 SGT | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | AMEND | 3.23 | No | Verified |
 | 24 Jul 2026 23:12 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.43 | No | Verified |
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | HOLD | 3.63 | No | Not controller-verified |
-| 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Routine Repository Change | Low | AMEND | 4.60 | No | Not applicable |
 
 ## Task-class aggregates
 
@@ -66,7 +66,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 5 | not-exposed | Complex Repository Change | High | 1 | 4.05 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Research | High | 3 | 4.03 | 0% | Provisional |
+| DeepSeek V4 Pro | Not exposed | Research | High | 4 | 4.12 | 25% | Provisional |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -79,6 +79,32 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 18:20 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-004`
+- Subject alias: `governance-tooling-a`
+- Result: **PASS**
+- Weighted score: **4.42/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised pull-request head and strict no-mutation boundary while producing a complete twenty-four-section packet
+  - replaced broad detector aliases with one code-specific detector unit per finding code and separated immutable production assembly from the test-only registry
+  - defined unchanged exact-oracle mutation proof typed fail-closed diagnostic context and representation-independent subject keys
+  - carried forward body-derived authority implementation pull-request lifecycle side-effect interception semantic parity fixtures and full workflow dependency closure
+  - provided an unusually complete path-level implementation blast radius and adversarial test matrix suitable for a controller-issued design lock
+- Principal defects:
+  - the packet recommends making canonical_parent_tracker schema-required even though the prior controller lock explicitly keeps missing or wrong canonical-parent identity as semantic governance findings
+  - the independent test registry is not mechanically bound per code to the exact function references used by the production registry, so mutation coverage could drift into a test-only implementation
+  - the duplicate-ID section says diagnostics name an internal canonical key even though the typed-context contract prohibits arbitrary identifier-derived strings and requires repository-level opaque output
+  - string subject ordering uses localeCompare while claiming locale-independent Unicode code-point order; deterministic ordinal comparison is required
+  - the lifecycle model introduces is_amendment_of and additional replacement semantics but the schema row in the blast radius does not include those required structural changes and GOV022 versus GOV027 overlap remains ambiguous
+  - the parity contract incorrectly claims published and curated skill files are byte-identical although the published surface contains a generated provenance header and must be checked through the canonical transform
+  - the side-effect contract does not completely specify read-versus-write fs.open flag classification and its DNS proof would risk real resolver activity instead of a controlled fake adapter
+  - the workflow traversal and implementation paths contain minor internal naming and location inconsistencies that the controller lock must normalise before Gate 3
 
 ### Claude Opus 5 - Complex Repository Change
 
@@ -730,25 +756,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - treated deployment admission as passed without proving automatic deployment was disabled
   - did not identify the runtime-major mismatch visible in the later build logs
   - reported an attempt count that remained unverified
-
-### MiMo 2.5 Pro - Routine Repository Change
-
-- Reasoning level: **Default**
-- Reviewed: **24 Jul 2026 22:57 SGT**
-- Run ID: `2026-07-24-mimo-2-5-pro-project-b-config-001`
-- Subject alias: `public-python-service-b`
-- Result: **AMEND**
-- Weighted score: **4.60/5**
-- First-pass accepted: **No**
-- Safe final state: **Not applicable**
-- Principal strengths:
-  - implemented the exact bounded configuration
-  - preserved dependency and security state
-  - reported exact scope and successful checks
-  - avoided all prohibited provider and alert mutations
-- Principal defects:
-  - introduced control characters into authoritative tracker bodies
-  - marked an in-review checklist item complete before merge
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
