@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 21:42 SGT
+Updated: 26 July 2026, 21:46 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -16,7 +16,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | 78 | Useful operating baseline |
-| GPT-5.6 Sol | Not exposed | 8 | 4.16 | 12% | 8/8 applicable | 33 | Moderate |
+| GPT-5.6 Sol | Not exposed | 10 | 4.21 | 20% | 10/10 applicable | 39 | Moderate |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -25,6 +25,8 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 21:46 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.09 | No | Verified |
+| 26 Jul 2026 21:45 SGT | GPT-5.6 Sol | Not exposed | Research | High | ACCEPTED | 4.73 | Yes | Verified |
 | 26 Jul 2026 21:42 SGT | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | AMEND | 4.20 | No | Verified |
 | 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Not exposed | Security Review | High | AMEND | 3.48 | No | Verified |
 | 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Not exposed | Security Remediation | High | AMEND | 3.49 | No | Verified |
@@ -53,8 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
 | 26 Jul 2026 01:06 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 4.18 | No | Verified |
 | 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
-| 26 Jul 2026 00:26 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.94 | No | Verified |
-| 25 Jul 2026 22:10 SGT | DeepSeek V4 Pro | High | Architecture Proposal | High | PASS | 4.14 | Yes | Verified |
 
 ## Task-class aggregates
 
@@ -79,7 +79,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Not exposed | Security Review | High | 1 | 3.48 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Research | High | 3 | 4.20 | 0% | Provisional |
+| GPT-5.6 Sol | Not exposed | Research | High | 5 | 4.28 | 20% | Provisional |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
@@ -93,6 +93,51 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### GPT-5.6 Sol - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 21:46 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-gate1-amendment-001`
+- Subject alias: `external-control-plane-a`
+- Result: **AMEND**
+- Weighted score: **4.09/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - selected an independent first-party authority service rather than retaining connector or process-local authority
+  - defined signed compare-and-swap inventory and catalogue records with rollback detection and hardware-rooted service keys
+  - separated parent revocation from the exact already-started operation's truthful terminalisation authority
+  - removed connector self-authentication of action semantics through independently promoted catalogue records
+  - selected a concrete Windows broker implementation and prohibited pathname, environment and unsupported-platform fallbacks
+  - preserved a clean repository and performed no provider, consumer, credential, service, broker or production mutation
+- Principal defects:
+  - incrementing one physical hardware counter for every authority mutation lacks an exact throughput, rate-limit, queue and prepared-row recovery contract
+  - the Windows broker does not atomically bind the authorised existing destination identity to the later replacement operation
+  - a crash after output publication but before local consumption and authority-service acknowledgement has no durable restart or idempotent reconciliation state machine
+  - the required cross-platform broker decision was replaced with an unapproved exclusion of every POSIX governed-output host
+  - macOS enrolment names hardware-backed key storage without selecting an exact production-supported remote-attestation API and verification chain
+  - service-key compromise and state-loss recovery rely on undefined trusted checkpoints and matching backups
+
+### GPT-5.6 Sol - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 21:45 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-amendment-001`
+- Subject alias: `workflow-compatibility-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.73/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - defined immutable one-record journal segments with exact framing, bounded rescue attempts and raw-object tail seals
+  - selected a stable target-scoped journal root outside every renamed payload root and used only supported public runtime APIs
+  - made logical retirement authoritative while keeping physical cleanup truthful, resumable and non-authoritative
+  - bounded successful terminal history with alternating checkpoints, cumulative roots and explicit residue limits
+  - preserved phase progression, destructive-boundary revalidation, one healthy classification and normal-merge current-main integration
+  - kept the repository clean and performed no installed-cache, consumer, credential, provider or live-system action
+- Principal defects:
+  - none recorded
 
 ### GPT-5.6 Sol - Hosted Product Uat
 
@@ -703,54 +748,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - global validation does not iterate every decision and activation row so corruption under an unrelated source can evade validation for the current source; the exact schema-metadata row set is also not enforced
   - build claims require an aware claimed timestamp but do not prove that the claim timestamp is no earlier than its bound approval and activation
   - the mandatory claim-before-activation hostility case was omitted while the completion report stated the timestamp boundary was closed
-
-### DeepSeek V4 Pro - Research
-
-- Reasoning level: **Not exposed**
-- Reviewed: **26 Jul 2026 00:26 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-001`
-- Subject alias: `governance-tooling-a`
-- Result: **AMEND**
-- Weighted score: **3.94/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - preserved the exact no-mutation boundary and bound the packet to the unchanged authorised base and head
-  - correctly identified the token-presence parity defect, cross-contaminated finding tests, optional canonical-parent identity and body-derived acceptance bypasses
-  - provided useful field-authority classifications, blast-radius analysis, invariants and adversarial cases
-  - correctly retained direct Ajv execution and separated the historical migration from the current trust-boundary repair
-- Principal defects:
-  - the proposed getReachableFindingCodes export would remain a second self-certified declaration rather than proof that each detector is executable and independently exercised
-  - the proposed preload monkeypatch cannot reliably disable non-exported lexical detector functions in the current CommonJS module and therefore is not a mechanically valid mutation seam
-  - the lifecycle proposal says body metadata is authoritative while declining to place replacement reason and supersession identity in canonical body templates
-  - the lifecycle state model does not fully define draft active terminal replacement-of-replacement and reopened-superseded transitions and incorrectly labels pre-PR state as terminal
-  - the side-effect self-test proposes performing real network or DNS effects without the interceptor, creating unsafe and flaky external evidence rather than controlled local sentinel proof
-  - the diagnostic proposal still exposes transformed caller identifiers instead of using bounded opaque references
-  - workflow comments do not enforce dependency closure; every workflow executing repository Node code needs deterministic installation or a mechanical dependency proof
-
-### DeepSeek V4 Pro - Architecture Proposal
-
-- Reasoning level: **High**
-- Reviewed: **25 Jul 2026 22:10 SGT**
-- Run ID: `2026-07-25-deepseek-v4-pro-evaluation-ledger-scheduled-review-architecture-001`
-- Subject alias: `evaluation-ledger-scheduled-review-a`
-- Result: **PASS**
-- Weighted score: **4.14/5**
-- First-pass accepted: **Yes**
-- Safe final state: **Verified**
-- Principal strengths:
-  - respected the exact-revision no-mutation boundary and produced a detailed repository-grounded authority map
-  - correctly retained append-only JSONL as the first-version source and separated canonical task reasoning from provider-native reasoning
-  - accurately identified missing durable batch state as the root cause behind stale branches generated-view collisions policy collisions and temporary recovery workflows
-  - provided a comprehensive lifecycle threat model test matrix rollout plan and capability-probe design
-  - explicitly surfaced unresolved controller decisions instead of self-issuing implementation authority
-- Principal defects:
-  - the recommended public issue intake cannot both hide private source identity and give the scheduled reviewer enough information to resolve the source repository and completion report
-  - the proposed resume loop scans batch files on main even though an unfinished batch exists only on its unmerged branch so a later run can fail to discover the active batch
-  - per-job review results are described as durable but no mandatory commit and push boundary after each completed job is specified
-  - the trusted-validation claim is false because current pull-request checks execute candidate-branch scripts and the proposal does not create a base-trusted verifier or immutable path allowlist
-  - GitHub issue bodies are editable and are not scanned before public creation so the proposal overstates immutability and public-safety protection
-  - splitting one authorised repository capability into foundation and feature pull requests weakens the one-issue one-branch one-active-pull-request operating model without a demonstrated necessity
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
