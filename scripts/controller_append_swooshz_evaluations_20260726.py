@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "evaluations.jsonl"
 
+# Controller fallback trigger: this second merged-main push starts the installed runner.
 RECORDS = [
     {
         "schema_version": 1,
