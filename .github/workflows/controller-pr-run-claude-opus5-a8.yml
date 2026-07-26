@@ -1,0 +1,99 @@
+name: PR-run Claude Opus 5 Amendment 8 evaluation
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+permissions:
+  contents: write
+
+concurrency:
+  group: controller-pr-run-claude-opus5-a8
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: github.event.pull_request.title == 'Run Claude Opus 5 Amendment 8 evaluator'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build clean final evaluation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main controller/ledger-business-automation-amendment-008
+          git show origin/controller/ledger-business-automation-amendment-008:.github/workflows/controller-append-business-automation-a8.yml > /tmp/a8-payload-source.yml
+
+          final_branch="controller/final-claude-opus5-a8-20260726"
+          if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
+            echo "Final evaluation branch already exists; refusing duplicate publication." >&2
+            exit 1
+          fi
+
+          git switch -c "${final_branch}" origin/main
+
+          python - <<'PY'
+          import base64
+          import re
+          from pathlib import Path
+
+          run_id = "2026-07-26-claude-opus-5-business-automation-a-amendment-008"
+          source = Path("/tmp/a8-payload-source.yml").read_text(encoding="utf-8")
+          encoded = re.findall(r'base64\.b64decode\("([A-Za-z0-9+/=]+)"\)', source)
+          if len(encoded) != 2:
+              raise SystemExit("expected exactly two embedded controller payloads")
+          record = base64.b64decode(encoded[0]).decode("utf-8")
+          replacement = base64.b64decode(encoded[1]).decode("utf-8")
+
+          ledger = Path("evaluations.jsonl")
+          text = ledger.read_text(encoding="utf-8")
+          if run_id in text:
+              raise SystemExit("evaluation already exists")
+          with ledger.open("a", encoding="utf-8", newline="") as handle:
+              if text and not text.endswith("\n"):
+                  handle.write("\n")
+              handle.write(record + "\n")
+
+          policy = Path("model-policy.md")
+          policy_text = policy.read_text(encoding="utf-8")
+          start = policy_text.index("## Claude Opus 5\n")
+          end = policy_text.index("## Claude Opus 5 Max\n", start)
+          policy_text = policy_text[:start] + replacement + policy_text[end:]
+          policy_text = re.sub(
+              r"^Updated: .*?$",
+              "Updated: 26 July 2026, 15:35 SGT",
+              policy_text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          policy.write_text(policy_text, encoding="utf-8", newline="\n")
+          PY
+
+          git rm .github/workflows/controller-finalize-claude-opus5-a8.yml
+          python scripts/rebuild_views.py
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check --base-ref origin/main
+          git diff --check
+
+          test "$(grep -c '2026-07-26-claude-opus-5-business-automation-a-amendment-008' evaluations.jsonl)" -eq 1
+          test ! -e .github/workflows/controller-finalize-claude-opus5-a8.yml
+          test ! -e .github/workflows/controller-pr-run-claude-opus5-a8.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add -A
+          git commit -m "Record Claude Opus 5 Amendment 8 evaluation"
+          git push origin "HEAD:${final_branch}"
