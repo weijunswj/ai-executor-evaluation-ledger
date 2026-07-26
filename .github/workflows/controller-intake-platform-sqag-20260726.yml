@@ -1,3 +1,4 @@
+# Controller trigger commit: execute the installed bounded intake.
 name: Finalize Platform and SQAG evaluations 20260726
 
 on:
