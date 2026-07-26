@@ -31,21 +31,25 @@ jobs:
           python-version: "3.12"
 
       - name: Build clean final evaluation branch
+        id: build
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          git fetch origin main controller/ledger-business-automation-amendment-008
-          git show origin/controller/ledger-business-automation-amendment-008:.github/workflows/controller-append-business-automation-a8.yml > /tmp/a8-payload-source.yml
+          set +e
+          {
+            set -euo pipefail
+            git fetch origin main controller/ledger-business-automation-amendment-008
+            git show origin/controller/ledger-business-automation-amendment-008:.github/workflows/controller-append-business-automation-a8.yml > /tmp/a8-payload-source.yml
 
-          final_branch="controller/final-claude-opus5-a8-20260726"
-          if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
-            echo "Final evaluation branch already exists; refusing duplicate publication." >&2
-            exit 1
-          fi
+            final_branch="controller/final-claude-opus5-a8-20260726"
+            if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
+              echo "Final evaluation branch already exists; refusing duplicate publication." >&2
+              exit 1
+            fi
 
-          git switch -c "${final_branch}" origin/main
+            git switch -c "${final_branch}" origin/main
 
-          python - <<'PY'
+            python - <<'PY'
           import base64
           import re
           from pathlib import Path
@@ -82,18 +86,35 @@ jobs:
           policy.write_text(policy_text, encoding="utf-8", newline="\n")
           PY
 
-          git rm .github/workflows/controller-finalize-claude-opus5-a8.yml
-          python scripts/rebuild_views.py
-          python scripts/check_public_safety.py
-          python scripts/rebuild_views.py --check --base-ref origin/main
-          git diff --check
+            git rm .github/workflows/controller-finalize-claude-opus5-a8.yml
+            python scripts/rebuild_views.py
+            python scripts/check_public_safety.py
+            python scripts/rebuild_views.py --check --base-ref origin/main
+            git diff --check
 
-          test "$(grep -c '2026-07-26-claude-opus-5-business-automation-a-amendment-008' evaluations.jsonl)" -eq 1
-          test ! -e .github/workflows/controller-finalize-claude-opus5-a8.yml
-          test ! -e .github/workflows/controller-pr-run-claude-opus5-a8.yml
+            test "$(grep -c '2026-07-26-claude-opus-5-business-automation-a-amendment-008' evaluations.jsonl)" -eq 1
+            test ! -e .github/workflows/controller-finalize-claude-opus5-a8.yml
+            test ! -e .github/workflows/controller-pr-run-claude-opus5-a8.yml
 
-          git config user.name "github-actions[bot]"
-          git config user.email "ledger-controller"
-          git add -A
-          git commit -m "Record Claude Opus 5 Amendment 8 evaluation"
-          git push origin "HEAD:${final_branch}"
+            git config user.name "github-actions[bot]"
+            git config user.email "ledger-controller"
+            git add -A
+            git commit -m "Record Claude Opus 5 Amendment 8 evaluation"
+            git push origin "HEAD:${final_branch}"
+          } > /tmp/a8-run.log 2>&1
+          status=$?
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Preserve diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-opus5-a8-run-log
+          path: /tmp/a8-run.log
+          if-no-files-found: error
+
+      - name: Fail when build failed
+        if: steps.build.outcome == 'failure'
+        shell: bash
+        run: exit 1
