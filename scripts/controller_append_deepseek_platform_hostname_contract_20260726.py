@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Append one controller-reviewed DeepSeek programme evaluation."""
+# Administrative fallback trigger; evaluation bytes below are unchanged.
 
 from __future__ import annotations
 
