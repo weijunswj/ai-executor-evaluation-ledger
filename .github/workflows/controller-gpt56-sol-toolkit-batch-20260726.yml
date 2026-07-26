@@ -1,0 +1,112 @@
+name: Finalize GPT-5.6 Sol Toolkit evaluation batch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/controller_append_gpt56_sol_toolkit_batch_20260726.py
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - scripts/controller_append_gpt56_sol_toolkit_batch_20260726.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: controller-gpt56-sol-toolkit-batch-20260726
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'controller/trigger-gpt56-sol-toolkit-batch-20260726')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build clean final evaluation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+
+          final_branch="controller/final-gpt56-sol-toolkit-batch-20260726"
+          if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
+            echo "Final evaluation branch already exists; refusing duplicate publication." >&2
+            exit 1
+          fi
+
+          git switch -c "${final_branch}" origin/main
+          python scripts/controller_append_gpt56_sol_toolkit_batch_20260726.py
+
+          git rm -- \
+            scripts/controller_append_gpt56_sol_toolkit_batch_20260726.py \
+            .github/workflows/controller-gpt56-sol-toolkit-batch-20260726.yml
+
+          python scripts/rebuild_views.py
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check --base-ref origin/main
+          git diff --check
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          run_ids = {
+              "2026-07-26-gpt-5-6-sol-workflow-compatibility-a-amendment-001",
+              "2026-07-26-gpt-5-6-sol-workflow-transport-a-amendment-001",
+              "2026-07-26-gpt-5-6-sol-external-control-plane-a-amendment-001",
+              "2026-07-26-gpt-5-6-sol-repository-security-gate-a-amendment-001",
+          }
+          forbidden = {
+              "requested_reasoning_level",
+              "canonical_reasoning_level",
+              "requested_provider_reasoning_mode",
+              "observed_reasoning_mode",
+              "observed_provider_reasoning_mode",
+              "reasoning_mode_exposed",
+          }
+          matches = {run_id: [] for run_id in run_ids}
+          for line in Path("evaluations.jsonl").read_text(encoding="utf-8").splitlines():
+              if not line.strip():
+                  continue
+              record = json.loads(line)
+              run_id = record.get("run_id")
+              if run_id in matches:
+                  matches[run_id].append(record)
+          for run_id, records in matches.items():
+              if len(records) != 1:
+                  raise SystemExit(f"Expected one record for {run_id}, found {len(records)}")
+              record = records[0]
+              if record.get("provider") != "OpenAI" or record.get("model") != "GPT-5.6 Sol":
+                  raise SystemExit(f"Identity mismatch for {run_id}")
+              leaked = forbidden.intersection(record)
+              if leaked:
+                  raise SystemExit(f"Reasoning fields present for {run_id}: {sorted(leaked)}")
+          PY
+
+          test ! -e scripts/controller_append_gpt56_sol_toolkit_batch_20260726.py
+          test ! -e .github/workflows/controller-gpt56-sol-toolkit-batch-20260726.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add -A
+          git commit -m "Record four GPT-5.6 Sol Toolkit evaluations"
+          git push origin "HEAD:${final_branch}"
