@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 26 July 2026, 18:20 SGT
+Updated: 26 July 2026, 19:30 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -335,45 +335,59 @@ The remaining issues are bounded controller-lock corrections rather than another
 
 DeepSeek V4 Pro is approved for bounded no-mutation architecture investigation and consolidated design proposals. This governance packet is accepted for controller lock at **4.42/5**. Implementation remains authorised only through the exact controller lock on the existing draft pull request, followed by a completely fresh exact-head Gate 4 review. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model and protocol-cohort migration.
 
-## GPT-5.6 Sol Medium
+## GPT-5.6 Sol
 
-Reasoning level: **Medium**
+Public identity: **Canonical base model only; no reasoning-level recording or aggregation**
 
-Evidence level: **Prior programme experience; formal run backfill pending**
+Evidence level: **Anecdotal across 2 high-difficulty complex-repository-change runs and 2 high-difficulty security-remediation runs**
 
-### Provisional use
+Observed scores:
 
-- Routine implementation, tests, documentation and bounded configuration changes.
-- Independent exact-head review still required.
+- complex repository change: **4.44/5** across 2 runs;
+- security remediation: **3.80/5** across 2 runs;
+- mixed-task average: **4.12/5**;
+- first-pass acceptance: **25%**;
+- verified safe final state: **4/4**.
 
-### Restrictions
+### Approved
 
-- No autonomous production mutation.
-- Security, authentication, migration and complex operational work should normally use GPT-5.6 Sol High.
+- Complex repository implementation and amendment work in an isolated branch with exact-head controller review.
+- Identity-aware portable workflow transport with fail-closed replacement semantics.
+- High-risk architecture and security remediation when the controller independently verifies every authority boundary and keeps the result unmerged until acceptance.
+- Strong evidence preparation across source/generated surfaces, hosted checks, review threads and adversarial fixtures.
 
-## GPT-5.6 Sol High
+### Conditional
 
-Reasoning level: **High**
+- Durable-state, transaction, recovery, authority, security-gate and provider-routing work must follow the Design-gated sequence and remain open and unmerged until fresh exact-head acceptance.
+- Green continuous integration and extensive adversarial tests remain supporting evidence rather than acceptance authority.
+- Same-root P1 or P2 findings after an implementation return the lane to Gate 1 architecture rather than another ordinary patch.
+- Consumer or native UAT requires separate exact-target authorisation and must use disposable data without activation or production mutation by default.
+- Model identity is recorded only as exact provider plus canonical base model; no public reasoning suffix or native reasoning mode is used.
 
-Evidence level: **Prior programme experience; formal run backfill pending**
+### Not currently approved
 
-### Provisional use
+- Autonomous merge, ruleset promotion, live provider operation, workflow activation, credential mutation or production deployment.
+- Treating process-local state, short-lived sessions, lexical containment, prefix-based action admission or candidate-controlled evidence as durable authority.
+- Treating normal validation success as proof that a separate protected sandbox or post-promotion security boundary is operational.
+- Manual copying of Toolkit implementation files into consumer repositories when the maintained refresh, installer or generated publication path exists.
 
-- Complex implementation, authentication/security repair, migration design and production diagnosis.
-- Production operation only with exact gates, stop conditions and independent controller verification.
+### Current evidence
 
-### Restrictions
+The accepted workflow-transport run delivered a strong portable export/import contract: dedicated workflow identity is authoritative, changed existing targets fail closed into a complete manual-application batch, missing targets use exclusive creation, race evidence is deterministic and all published helper copies are byte-identical. It was independently accepted and merged.
 
-- Not treated as one-prompt autonomous completion.
-- Repeated same-root amendment cycles and incomplete evidence remain material evaluation concerns.
+The three amended runs also show strong scope control, evidence quality and repository hygiene, but they expose a convergence limit on durability and authority boundaries. The compatibility lane retained four restart or stale-write defects. The external control plane retained eight risk, admission, lifetime, containment, rollback and identity defects. The repository security gate closed its original trust-root bypasses but remained non-operational under its own protected sandbox and promotion contract.
+
+### Current disposition
+
+GPT-5.6 Sol is suitable for complex repository implementation and high-risk remediation under strict controller gates. It is not independent acceptance authority for transaction durability, provider control planes or protected security promotion. The accepted workflow-transport implementation may proceed to separately authorised disposable native UAT. The other three lanes must return to Gate 1 architecture before further implementation.
 
 ## Universal requirements
 
 Regardless of model:
 
 - exact private repository and revision binding;
-- exact model label and observed reasoning level recorded when exposed;
-- `not-exposed` used instead of guessing a reasoning level;
+- exact provider and canonical base-model label recorded without inference, renaming or normalisation;
+- no public reasoning-level identity or aggregation; historical reasoning metadata remains pending the dedicated migration;
 - public records use opaque subject aliases;
 - no secret or private-identity disclosure;
 - explicit mutation authorisation;
