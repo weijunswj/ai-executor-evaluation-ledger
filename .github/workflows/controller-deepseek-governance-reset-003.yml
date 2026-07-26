@@ -52,6 +52,7 @@ jobs:
 
           git rm -- \
             scripts/controller_append_deepseek_governance_reset_003.py \
+            scripts/controller_deepseek_governance_reset_003.trigger \
             .github/workflows/controller-deepseek-governance-reset-003.yml
 
           python scripts/rebuild_views.py
@@ -61,6 +62,7 @@ jobs:
 
           test "$(grep -c '2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-003' evaluations.jsonl)" -eq 1
           test ! -e scripts/controller_append_deepseek_governance_reset_003.py
+          test ! -e scripts/controller_deepseek_governance_reset_003.trigger
           test ! -e .github/workflows/controller-deepseek-governance-reset-003.yml
 
           git config user.name "github-actions[bot]"
