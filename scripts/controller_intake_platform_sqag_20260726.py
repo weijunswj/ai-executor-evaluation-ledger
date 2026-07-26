@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Append two controller-reviewed public-safe evaluations."""
 
+# Controller trigger: opening this exact administrative branch runs the protected intake.
+
 from __future__ import annotations
 
 import json
