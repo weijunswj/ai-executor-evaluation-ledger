@@ -54,13 +54,17 @@ jobs:
           import re
           from pathlib import Path
 
+          def decode_payload(value):
+              padded = value + ("=" * (-len(value) % 4))
+              return base64.b64decode(padded).decode("utf-8")
+
           run_id = "2026-07-26-claude-opus-5-business-automation-a-amendment-008"
           source = Path("/tmp/a8-payload-source.yml").read_text(encoding="utf-8")
           encoded = re.findall(r'base64\.b64decode\("([A-Za-z0-9+/=]+)"\)', source)
           if len(encoded) != 2:
               raise SystemExit("expected exactly two embedded controller payloads")
-          record = base64.b64decode(encoded[0]).decode("utf-8")
-          replacement = base64.b64decode(encoded[1]).decode("utf-8")
+          record = decode_payload(encoded[0])
+          replacement = decode_payload(encoded[1])
 
           ledger = Path("evaluations.jsonl")
           text = ledger.read_text(encoding="utf-8")
