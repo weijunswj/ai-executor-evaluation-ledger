@@ -38,14 +38,14 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin main
-          final_branch="controller/final-platform-sqag-evaluations-20260726"
+          final_branch="controller/final-platform-sqag-evaluations-20260726-v2"
           if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
             echo "Final branch already exists; refusing duplicate publication." >&2
             exit 1
           fi
 
       - name: Create final branch from current main
-        run: git switch -c controller/final-platform-sqag-evaluations-20260726 origin/main
+        run: git switch -c controller/final-platform-sqag-evaluations-20260726-v2 origin/main
 
       - name: Append reviewed evaluation records
         run: python scripts/controller_intake_platform_sqag_20260726.py
@@ -108,11 +108,11 @@ jobs:
           git config user.email "ledger-controller"
           git add -A
           git commit -m "Record Platform and SQAG evaluations"
-          final_branch="controller/final-platform-sqag-evaluations-20260726"
+          final_branch="controller/final-platform-sqag-evaluations-20260726-v2"
           git push origin "HEAD:${final_branch}"
           gh pr create \
             --repo "${GITHUB_REPOSITORY}" \
             --base main \
             --head "${final_branch}" \
             --title "Record Platform and SQAG evaluations" \
-            --body "Append two independently reviewed public-safe evaluations, rebuild deterministic views, and remove the temporary intake authority. No model-policy boundary changes are required. Merge only after exact-head Public Safety and required checks pass."
+            --body "Append two independently reviewed public-safe evaluations on exact current main, rebuild deterministic views, and remove the temporary intake authority. No model-policy boundary changes are required. Merge only after exact-head Public Safety and required checks pass."
