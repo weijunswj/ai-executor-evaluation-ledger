@@ -33,9 +33,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build clean final branch
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Prepare append-only final branch
         shell: bash
         run: |
           set -euo pipefail
@@ -48,10 +46,21 @@ jobs:
           git switch -c "${final_branch}" origin/main
           python scripts/controller_intake_platform_sqag_20260726.py
           git rm -- scripts/controller_intake_platform_sqag_20260726.py .github/workflows/controller-intake-platform-sqag-20260726.yml
-          python scripts/rebuild_views.py
-          python scripts/check_public_safety.py
+
+      - name: Rebuild deterministic views
+        run: python scripts/rebuild_views.py
+
+      - name: Run public-safety scan
+        run: python scripts/check_public_safety.py
+
+      - name: Verify append-only source and generated views
+        run: |
           python scripts/rebuild_views.py --check --base-ref origin/main
           git diff --check
+
+      - name: Verify exact evaluation identities and results
+        shell: bash
+        run: |
           python - <<'PY'
           import json
           from pathlib import Path
@@ -82,10 +91,18 @@ jobs:
           PY
           test ! -e scripts/controller_intake_platform_sqag_20260726.py
           test ! -e .github/workflows/controller-intake-platform-sqag-20260726.yml
+
+      - name: Publish final branch and pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "ledger-controller"
           git add -A
           git commit -m "Record Platform and SQAG evaluations"
+          final_branch="controller/final-platform-sqag-evaluations-20260726"
           git push origin "HEAD:${final_branch}"
           gh pr create \
             --repo "${GITHUB_REPOSITORY}" \
