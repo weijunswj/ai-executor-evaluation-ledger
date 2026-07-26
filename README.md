@@ -17,7 +17,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 5 | not-exposed | 1 | 4.35 | 100% | 1/1 applicable | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 2 | 4.06 | 0% | 2/2 applicable | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | 3 | 4.03 | 0% | 3/3 applicable | Provisional |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | Useful operating baseline |
 
 ## Task-class scorecard
@@ -30,7 +30,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 5 | not-exposed | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Research | High | 2 | 4.06 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Research | High | 3 | 4.03 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
