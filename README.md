@@ -18,6 +18,8 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | Useful operating baseline |
+| DeepSeek V4 Pro | not-exposed | 1 | 3.49 | 0% | 1/1 applicable | Anecdotal |
+| DeepSeek V4 Pro | standard-thinking | 1 | 4.34 | 0% | 1/1 applicable | Anecdotal |
 | GPT-5.6 Sol | Not exposed | 11 | 4.22 | 18% | 11/11 applicable | Useful operating baseline |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | Useful operating baseline |
 
@@ -42,6 +44,8 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Security Remediation | High | 1 | 3.49 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Security Review | High | 1 | 3.48 | 0% | Anecdotal |
+| DeepSeek V4 Pro | not-exposed | Security Review | High | 1 | 3.49 | 0% | Anecdotal |
+| DeepSeek V4 Pro | standard-thinking | Security Remediation | High | 1 | 4.34 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Research | High | 6 | 4.29 | 17% | Moderate |

@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 22:19 SGT
+Updated: 26 July 2026, 23:40 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -16,6 +16,8 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | 78 | Useful operating baseline |
+| DeepSeek V4 Pro | not-exposed | 1 | 3.49 | 0% | 1/1 applicable | 6 | Anecdotal |
+| DeepSeek V4 Pro | standard-thinking | 1 | 4.34 | 0% | 1/1 applicable | 3 | Anecdotal |
 | GPT-5.6 Sol | Not exposed | 11 | 4.22 | 18% | 11/11 applicable | 42 | Useful operating baseline |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
@@ -25,6 +27,8 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | standard-thinking | Security Remediation | High | ACCEPTED | 4.34 | No | Verified |
+| 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | not-exposed | Security Review | High | AMEND | 3.49 | No | Verified |
 | 26 Jul 2026 22:19 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.32 | No | Verified |
 | 26 Jul 2026 21:46 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.09 | No | Verified |
 | 26 Jul 2026 21:45 SGT | GPT-5.6 Sol | Not exposed | Research | High | ACCEPTED | 4.73 | Yes | Verified |
@@ -53,8 +57,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 18:20 SGT | DeepSeek V4 Pro | Not exposed | Research | High | PASS | 4.42 | Yes | Verified |
 | 26 Jul 2026 15:32 SGT | Claude Opus 5 | not-exposed | Complex Repository Change | High | AMEND | 4.05 | No | Verified |
 | 26 Jul 2026 12:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.96 | No | Verified |
-| 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
-| 26 Jul 2026 01:06 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 4.18 | No | Verified |
 
 ## Task-class aggregates
 
@@ -77,6 +79,8 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Security Remediation | High | 1 | 3.49 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Security Review | High | 1 | 3.48 | 0% | Anecdotal |
+| DeepSeek V4 Pro | not-exposed | Security Review | High | 1 | 3.49 | 0% | Anecdotal |
+| DeepSeek V4 Pro | standard-thinking | Security Remediation | High | 1 | 4.34 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Research | High | 6 | 4.29 | 17% | Moderate |
@@ -93,6 +97,49 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Security Remediation
+
+- Reasoning level: **standard-thinking**
+- Reviewed: **26 Jul 2026 23:40 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-hostname-contract-amendment-006`
+- Subject alias: `shared-platform-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.34/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed every prior controller finding with bounded source and test changes
+  - updated all stale provider-evidence integration fixtures and passed the complete hosted test workflow
+  - enforced exact provider identity, per-label bounds, final authority bounds and independent pooled-label overflow rejection
+  - preserved the no-production-access boundary and merged through an exact-head guard
+- Principal defects:
+  - the executor declared PASS while exact-head continuous integration was still pending
+  - the claimed complete changed-file list described only the amendment delta rather than all files in the change
+  - the pull-request and issue text contained escape and control-character corruption that required controller repair
+
+### DeepSeek V4 Pro - Security Review
+
+- Reasoning level: **not-exposed**
+- Reviewed: **26 Jul 2026 23:40 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-design-amendment-003`
+- Subject alias: `private-quote-service-a`
+- Result: **AMEND**
+- Weighted score: **3.49/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the no-live-mutation boundary and destroyed the disposable test environment
+  - replaced blanket runtime grants with mostly explicit object-level privileges
+  - materially proved that trigger invocation does not require direct caller execute privilege
+  - retained no-login-first creation and a rollback runtime role
+- Principal defects:
+  - the declared sole-authority manifest still disagrees with staged SQL for a publication table
+  - the maintenance SQL omits read access to forensic child tables that repository retention logic queries
+  - the target public privilege posture is not fully implemented by the proposed revokes
+  - provider-administrator membership revocation remains bundled into the runtime-role plan despite explicit scope exclusion
+  - directly authenticated denial of role assumption was inferred rather than executed
+  - the terminal PASS claim is unsupported while these privilege and scope contradictions remain
 
 ### GPT-5.6 Sol - Research
 
@@ -703,50 +750,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - opaque-subject ordering depends on the first raw numeric or string representation and the packet contradicts itself about whether duplicate-ID detection occurs before subject construction
   - the workflow inventory excludes or relaxes real Node execution paths, misses step-level composite actions and does not bind npm ci to the relevant checkout working directory lockfile and execution order
   - the proposed Gate 3 blast radius marks schema and templates unchanged and omits previously required body-authority replacement lifecycle side-effect and hostile-diagnostic repairs
-
-### Claude Opus 5 - Architecture Proposal
-
-- Reasoning level: **not-exposed**
-- Reviewed: **26 Jul 2026 01:49 SGT**
-- Run ID: `2026-07-26-claude-opus-5-business-automation-a-architecture-reset-008`
-- Subject alias: `business-automation-a`
-- Result: **PASS**
-- Weighted score: **4.35/5**
-- First-pass accepted: **Yes**
-- Safe final state: **Verified**
-- Principal strengths:
-  - respected the strict read-only boundary and bound the analysis to the exact draft pull-request head
-  - proved all three surviving defects against the real exact-head module using disposable synthetic stores and byte-level observations
-  - correctly identified that persistent journal-mode assignment before trust can alter or remove foreign SQLite recovery state
-  - proposed the correct separation between pre-open triage read-only inspection trusted writer reopen and transactional revalidation
-  - identified the additional swallowed store-temporary cleanup and multiple-hard-link risk and stopped for controller design lock
-- Principal defects:
-  - stated too broadly that no SQLite open of a WAL-mode database can preserve both bytes and pathnames although the experiments covered one platform version and VFS rather than every supported environment
-  - did not explicitly bound pathname-replacement guarantees to a stable operator-controlled directory and cooperating processes
-  - the user-presented completion report asserted a complete thirty-section packet and detailed matrices but did not include those sections for direct controller inspection
-  - left Windows versus POSIX no-replace publication and post-link cleanup durability semantics for the controller to lock
-
-### DeepSeek V4 Pro - Research
-
-- Reasoning level: **Not exposed**
-- Reviewed: **26 Jul 2026 01:06 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-002`
-- Subject alias: `governance-tooling-a`
-- Result: **AMEND**
-- Weighted score: **4.18/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - preserved the exact authorised head and no-mutation boundary while producing a substantially more concrete architecture
-  - replaced the prior reachability-list proposal with an executable detector-registry concept and introduced controlled local side-effect sentinels
-  - made replacement reason and supersession explicit body fields and expanded the implementation pull-request lifecycle cases
-  - specified unconditional locked dependency installation and correctly treated version 2.0.0 as an unmerged pre-release contract
-- Principal defects:
-  - auditSnapshot(snapshot, detectors) and exported buildRegistry expose the detector override to production callers, so the proposed test seam can disable governance checks outside tests
-  - the mutation examples assert that a disabled detector no longer emits instead of running the unchanged exact oracle and proving that oracle fails under the mutation
-  - the registry duplicates severity and group metadata already owned by canonical policy, creating a second normative authority despite the stated single-source requirement
-  - fixture examples mix raw issue identifiers with opaque ordinal subjects, while the proposed module-global encounter-order map is not reset or deterministically precomputed per audit run
-  - the workflow and blast-radius inventories are inconsistent and are not mechanically derived from every repository Node execution path
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
