@@ -1,0 +1,122 @@
+name: Finalize GPT-5.6 Sol Gate 1 evaluations for PR292 and PR293
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/controller_append_gpt56_sol_gate1_292_293_20260726.py
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - scripts/controller_append_gpt56_sol_gate1_292_293_20260726.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: controller-gpt56-sol-gate1-292-293-20260726
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'controller/trigger-gpt56-sol-gate1-292-293-20260726')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out trusted main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build clean final evaluation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+
+          final_branch="controller/final-gpt56-sol-gate1-292-293-20260726"
+          if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
+            echo "Final evaluation branch already exists; refusing duplicate publication." >&2
+            exit 1
+          fi
+
+          git switch -c "${final_branch}" origin/main
+          python scripts/controller_append_gpt56_sol_gate1_292_293_20260726.py
+
+          git rm -- \
+            scripts/controller_append_gpt56_sol_gate1_292_293_20260726.py \
+            .github/workflows/controller-gpt56-sol-gate1-292-293-20260726.yml
+
+          python scripts/rebuild_views.py
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check --base-ref origin/main
+          git diff --check
+
+          python - <<'PY'
+          from scripts.rebuild_views import load_records, resolved_evaluations
+
+          forbidden = {
+              "requested_reasoning_level",
+              "canonical_reasoning_level",
+              "requested_provider_reasoning_mode",
+              "observed_reasoning_mode",
+              "observed_provider_reasoning_mode",
+              "reasoning_mode_exposed",
+          }
+          records = load_records()
+          by_id = {record["run_id"]: record for record in records}
+          expected = {
+              "2026-07-26-correction-gpt-5-6-sol-workflow-compatibility-gate1-reset-001": ("correction", 4.28),
+              "2026-07-26-gpt-5-6-sol-external-control-plane-gate1-reset-001": ("evaluation", 4.13),
+              "2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-reset-001": ("evaluation", 4.19),
+          }
+          for run_id, (record_type, score) in expected.items():
+              record = by_id.get(run_id)
+              if record is None:
+                  raise SystemExit(f"Missing record: {run_id}")
+              if record.get("record_type") != record_type:
+                  raise SystemExit(f"Record type mismatch: {run_id}")
+              if record.get("provider") != "OpenAI" or record.get("model") != "GPT-5.6 Sol":
+                  raise SystemExit(f"Identity mismatch: {run_id}")
+              if record.get("weighted_score_5") != score:
+                  raise SystemExit(f"Score mismatch: {run_id}")
+              leaked = forbidden.intersection(record)
+              if leaked:
+                  raise SystemExit(f"Reasoning fields present in {run_id}: {sorted(leaked)}")
+
+          resolved = {record["run_id"]: record for record in resolved_evaluations(records)}
+          corrected = resolved["2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-reset-001"]
+          if corrected.get("task_class") != "research":
+              raise SystemExit("Prior Gate 1 task-class correction was not applied")
+          if corrected.get("weighted_score_5") != 4.28 or corrected.get("weighted_score_10") != 8.56:
+              raise SystemExit("Prior Gate 1 score correction was not applied")
+          for run_id in (
+              "2026-07-26-gpt-5-6-sol-external-control-plane-gate1-reset-001",
+              "2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-reset-001",
+          ):
+              record = resolved[run_id]
+              if record.get("task_class") != "research" or record.get("outcome") != "amend":
+                  raise SystemExit(f"Resolved evaluation mismatch: {run_id}")
+          PY
+
+          test ! -e scripts/controller_append_gpt56_sol_gate1_292_293_20260726.py
+          test ! -e .github/workflows/controller-gpt56-sol-gate1-292-293-20260726.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add -A
+          git commit -m "Record GPT-5.6 Sol Gate 1 evaluations"
+          git push origin "HEAD:${final_branch}"
