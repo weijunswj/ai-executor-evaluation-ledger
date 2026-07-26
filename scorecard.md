@@ -18,7 +18,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | 78 | Useful operating baseline |
 | DeepSeek V4 Pro | not-exposed | 1 | 3.49 | 0% | 1/1 applicable | 6 | Anecdotal |
 | DeepSeek V4 Pro | standard-thinking | 1 | 4.34 | 0% | 1/1 applicable | 3 | Anecdotal |
-| GPT-5.6 Sol | Not exposed | 11 | 4.22 | 18% | 11/11 applicable | 42 | Useful operating baseline |
+| GPT-5.6 Sol | Not exposed | 12 | 4.26 | 25% | 12/12 applicable | 42 | Useful operating baseline |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -29,6 +29,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---|---|---:|---:|---|
 | 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | standard-thinking | Security Remediation | High | ACCEPTED | 4.34 | No | Verified |
 | 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | not-exposed | Security Review | High | AMEND | 3.49 | No | Verified |
+| 26 Jul 2026 23:20 SGT | GPT-5.6 Sol | Not exposed | Security Audit | High | ACCEPTED | 4.70 | Yes | Verified |
 | 26 Jul 2026 22:19 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.32 | No | Verified |
 | 26 Jul 2026 21:46 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.09 | No | Verified |
 | 26 Jul 2026 21:45 SGT | GPT-5.6 Sol | Not exposed | Research | High | ACCEPTED | 4.73 | Yes | Verified |
@@ -56,7 +57,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 19:05 SGT | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | AMEND | 4.11 | No | Verified |
 | 26 Jul 2026 18:20 SGT | DeepSeek V4 Pro | Not exposed | Research | High | PASS | 4.42 | Yes | Verified |
 | 26 Jul 2026 15:32 SGT | Claude Opus 5 | not-exposed | Complex Repository Change | High | AMEND | 4.05 | No | Verified |
-| 26 Jul 2026 12:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.96 | No | Verified |
 
 ## Task-class aggregates
 
@@ -84,6 +84,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Research | High | 6 | 4.29 | 17% | Moderate |
+| GPT-5.6 Sol | Not exposed | Security Audit | High | 1 | 4.70 | 100% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
@@ -140,6 +141,25 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - provider-administrator membership revocation remains bundled into the runtime-role plan despite explicit scope exclusion
   - directly authenticated denial of role assumption was inferred rather than executed
   - the terminal PASS claim is unsupported while these privilege and scope contradictions remain
+
+### GPT-5.6 Sol - Security Audit
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 23:20 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-public-web-app-a-production-dependency-audit-005`
+- Subject alias: `public-web-app-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.70/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - kept the audit strictly read-only and preserved a clean exact-main repository state
+  - separated direct framework, transitive build-tool and optional native-runtime exposure instead of treating the audit summary as sufficient evidence
+  - checked repository configuration and call sites against each advisory prerequisite while still requiring remediation of vulnerable installed code
+  - produced a proportionate patch, override and native-compatibility remediation order with explicit uncertainty
+  - replaced the authoritative security-gate issue body with a detailed current-state record rather than relying on comments
+- Principal defects:
+  - the complete npm audit JSON was not preserved in a controller-readable public-safe artefact, so the exact advisory aggregation count was accepted from the executor receipt rather than independently replayed
 
 ### GPT-5.6 Sol - Research
 
@@ -726,30 +746,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - destination-collision paths call temporary cleanup in a mode that suppresses every unlink failure and report only store_not_absent while the complete operation-owned temporary may remain
   - first-use creation recursively creates the authority-state parent before proving a stable pre-existing operator-controlled directory and does not validate redirected intermediate path components
   - the completion report claimed cleanup failures were never suppressed although the lost-race helper and its test deliberately preserve silent suppression
-
-### DeepSeek V4 Pro - Research
-
-- Reasoning level: **Not exposed**
-- Reviewed: **26 Jul 2026 12:12 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-003`
-- Subject alias: `governance-tooling-a`
-- Result: **AMEND**
-- Weighted score: **3.96/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - preserved the exact authorised pull-request head and strict no-mutation boundary
-  - provided a substantially clearer production module split and recognised that policy must own normative finding metadata
-  - moved toward an independent exact-tuple oracle controlled local side-effect proof and mechanically discovered workflow coverage
-  - documented a detailed path-level proposal and correctly retained version 2.0.0 as an unmerged pre-release contract
-- Principal defects:
-  - multiple finding codes still map to the same broad detector function, so replacing one code entry does not suppress that finding and cannot prove code-specific reachability
-  - the sample GOV014 mutation uses a valid zero-finding fixture and therefore cannot make the unchanged exact oracle fail
-  - the test harness imports a mutable buildRegistry export from production-internal code instead of independently assembling code-specific detector units under the test tree
-  - emitFinding interpolates arbitrary schema-valid context values including branch or metadata strings and silently ignores undeclared context rather than enforcing a typed public-safe context contract
-  - opaque-subject ordering depends on the first raw numeric or string representation and the packet contradicts itself about whether duplicate-ID detection occurs before subject construction
-  - the workflow inventory excludes or relaxes real Node execution paths, misses step-level composite actions and does not bind npm ci to the relevant checkout working directory lockfile and execution order
-  - the proposed Gate 3 blast radius marks schema and templates unchanged and omits previously required body-authority replacement lifecycle side-effect and hostile-diagnostic repairs
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
