@@ -18,7 +18,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | Useful operating baseline |
-| GPT-5.6 Sol | Not exposed | 10 | 4.21 | 20% | 10/10 applicable | Moderate |
+| GPT-5.6 Sol | Not exposed | 11 | 4.22 | 18% | 11/11 applicable | Useful operating baseline |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | Useful operating baseline |
 
 ## Task-class scorecard
@@ -44,7 +44,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | DeepSeek V4 Pro | Not exposed | Security Review | High | 1 | 3.48 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Research | High | 5 | 4.28 | 20% | Provisional |
+| GPT-5.6 Sol | Not exposed | Research | High | 6 | 4.29 | 17% | Moderate |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
