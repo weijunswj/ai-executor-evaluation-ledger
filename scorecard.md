@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 01:49 SGT
+Updated: 26 July 2026, 12:12 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -15,7 +15,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 1 | 4.35 | 100% | 1/1 applicable | 5 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 2 | 4.06 | 0% | 2/2 applicable | 12 | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | 3 | 4.03 | 0% | 3/3 applicable | 18 | Provisional |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -24,6 +24,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 12:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.96 | No | Verified |
 | 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
 | 26 Jul 2026 01:06 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 4.18 | No | Verified |
 | 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
@@ -53,7 +54,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | HOLD | 3.63 | No | Not controller-verified |
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Routine Repository Change | Low | AMEND | 4.60 | No | Not applicable |
 | 24 Jul 2026 22:55 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.27 | No | Verified |
-| 24 Jul 2026 22:54 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.53 | No | Verified |
 
 ## Task-class aggregates
 
@@ -65,7 +65,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 5 | not-exposed | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Research | High | 2 | 4.06 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Research | High | 3 | 4.03 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -78,6 +78,30 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 12:12 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-003`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **3.96/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised pull-request head and strict no-mutation boundary
+  - provided a substantially clearer production module split and recognised that policy must own normative finding metadata
+  - moved toward an independent exact-tuple oracle controlled local side-effect proof and mechanically discovered workflow coverage
+  - documented a detailed path-level proposal and correctly retained version 2.0.0 as an unmerged pre-release contract
+- Principal defects:
+  - multiple finding codes still map to the same broad detector function, so replacing one code entry does not suppress that finding and cannot prove code-specific reachability
+  - the sample GOV014 mutation uses a valid zero-finding fixture and therefore cannot make the unchanged exact oracle fail
+  - the test harness imports a mutable buildRegistry export from production-internal code instead of independently assembling code-specific detector units under the test tree
+  - emitFinding interpolates arbitrary schema-valid context values including branch or metadata strings and silently ignores undeclared context rather than enforcing a typed public-safe context contract
+  - opaque-subject ordering depends on the first raw numeric or string representation and the packet contradicts itself about whether duplicate-ID detection occurs before subject construction
+  - the workflow inventory excludes or relaxes real Node execution paths, misses step-level composite actions and does not bind npm ci to the relevant checkout working directory lockfile and execution order
+  - the proposed Gate 3 blast radius marks schema and templates unchanged and omits previously required body-authority replacement lifecycle side-effect and hostile-diagnostic repairs
 
 ### Claude Opus 5 - Architecture Proposal
 
@@ -724,27 +748,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - a crash could leave a partial final package that permanently blocks later builds
   - the atomicity test asserted only post-completion validity and did not test visibility during publication
   - the change summary still reported completion despite a same-domain atomicity defect
-
-### Claude Opus 4.8 High - Complex Repository Change
-
-- Reasoning level: **High**
-- Reviewed: **24 Jul 2026 22:54 SGT**
-- Run ID: `2026-07-24-claude-opus-4-8-business-automation-a-implementation-001`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.53/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - used an isolated worktree and preserved intentional local changes
-  - kept the change draft and unmerged with zero live-system actions
-  - provided exact private revision, test and continuous-integration evidence
-  - correctly implemented the core date assignment and read-back path
-- Principal defects:
-  - the declared package schema did not enforce the exact approved date
-  - the package builder could overwrite the preserved historical package
-  - the package-build summary falsely implied that an application assignment had occurred
-  - reported no technical blockers despite three material review findings
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
