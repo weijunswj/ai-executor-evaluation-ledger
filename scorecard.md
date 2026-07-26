@@ -16,7 +16,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 14 | 4.04 | 43% | 14/14 applicable | 62 | Useful operating baseline |
-| GPT-5.6 Sol | Not exposed | 5 | 4.14 | 20% | 5/5 applicable | 18 | Provisional across mixed tasks |
+| GPT-5.6 Sol | Not exposed | 7 | 4.15 | 14% | 7/7 applicable | 29 | Moderate |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -28,7 +28,9 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | Medium | ACCEPTED | 4.85 | Yes | Verified |
 | 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
 | 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
-| 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Not exposed | Architecture Review | High | AMEND | 4.24 | No | Verified |
+| 26 Jul 2026 20:47 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.19 | No | Verified |
+| 26 Jul 2026 20:46 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.13 | No | Verified |
+| 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.28 | No | Verified |
 | 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Not exposed | Production Deployment | High | ACCEPTED | 4.55 | Yes | Verified |
 | 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | AMEND | 3.84 | No | Verified |
 | 26 Jul 2026 20:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.58 | No | Verified |
@@ -53,8 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 25 Jul 2026 16:12 SGT | MiMo 2.5 Pro | Default | Architecture Proposal | High | PASS | 4.40 | Yes | Verified |
 | 25 Jul 2026 16:09 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.58 | No | Not controller-verified |
 | 25 Jul 2026 15:27 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.05 | No | Verified |
-| 25 Jul 2026 15:18 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.50 | No | Not controller-verified |
-| 25 Jul 2026 15:00 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | HOLD | 4.13 | No | Not controller-verified |
 
 ## Task-class aggregates
 
@@ -75,8 +75,8 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Not exposed | Production Operations | High | 3 | 4.20 | 67% | Provisional |
 | DeepSeek V4 Pro | Not exposed | Research | High | 5 | 4.02 | 20% | Provisional |
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Architecture Review | High | 1 | 4.24 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
+| GPT-5.6 Sol | Not exposed | Research | High | 3 | 4.20 | 0% | Provisional |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
@@ -152,14 +152,61 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Principal defects:
   - the proposed next step relied on manual operator installation even though the existing provider API key can support a bounded read-only official connection-URI recovery path
 
-### GPT-5.6 Sol - Architecture Review
+### GPT-5.6 Sol - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:47 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-reset-001`
+- Subject alias: `repository-security-gate-a`
+- Result: **AMEND**
+- Weighted score: **4.19/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the independently verified separation between protected authority and candidate data
+  - correctly replaced broad ordinary tests with a purpose-built protected-invariant direction
+  - separated advisory post-promotion simulation from enforcement authority
+  - defined a staged promotion sequence that keeps the required ruleset disabled until protected success
+  - kept repository, ruleset, provider and consumer systems untouched
+- Principal defects:
+  - the packet leaves first-party App publication and retained-trigger suppression as materially different live alternatives
+  - the active auto-sync dangerous-trigger finding remains unresolved and would still block a protected pass
+  - the App-to-workflow-to-sealed-report-to-required-check authority and failure protocol is incomplete
+  - the proposal would remove existing mandatory CodeQL and code-quality controls without a separate evidence-backed policy change
+  - the security properties removed with the seven broad suites are not mapped exhaustively to exact protected invariant IDs
+  - current-main integration does not explicitly preserve the reviewed branch through a normal merge
+
+### GPT-5.6 Sol - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:46 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-gate1-reset-001`
+- Subject alias: `external-control-plane-a`
+- Result: **AMEND**
+- Weighted score: **4.13/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - independently confirmed all eight exact-head admission and authority defects
+  - defined one canonical environment and risk authority with exact unknown-by-default action admission
+  - replaced alias-only target matching and duplicated approval references with complete canonical authority
+  - separated start, observation and terminal receipt concepts and preserved cross-route parity
+  - kept repository, provider, credential and consumer systems untouched
+- Principal defects:
+  - the selected signed monotonic authority remains an unspecified external service without an exact protocol, key lifecycle or recovery model
+  - the Windows handle-relative filesystem broker remains a category rather than a selected buildable trust boundary
+  - approval revocation before terminalization can prevent truthful evidence for an already-started external operation
+  - connector-supplied action catalogues lack an independent provenance and rollback authority
+  - the proposed rebase integration would rewrite the heavily reviewed branch instead of normally merging current main
+
+### GPT-5.6 Sol - Research
 
 - Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:31 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-reset-001`
 - Subject alias: `workflow-compatibility-a`
 - Result: **AMEND**
-- Weighted score: **4.24/5**
+- Weighted score: **4.28/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -707,51 +754,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - complete children and optional canonical-parent identity still bypass material structural acceptance and relationship checks
   - the one-issue one-branch one-active-implementation-PR lifecycle is mostly documentary and several declared findings have no runtime path
   - network file-write shell and child-process prohibitions are not actively intercepted despite the completion report claiming the trust-boundary repair is ready
-
-### MiMo 2.5 Pro - Provider Operation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 15:18 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-005`
-- Subject alias: `private-quote-service-a`
-- Result: **AMEND**
-- Weighted score: **3.50/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - verified the exact repository revision and recovered detailed Coolify application metadata
-  - correctly enumerated the thirty-one-name canonical runtime contract with six present and twenty-five absent
-  - respected the strictly read-only boundary and reported zero configuration deployment restart database OAuth DNS TLS or object-storage mutation
-  - correctly left the exact trusted-proxy CIDR migration state runtime-role privileges and Google OAuth provider state unresolved
-  - produced a useful initial value-authority table and an exact proposed source binding
-- Principal defects:
-  - reported the configured source as three commits behind although direct comparison proves it is eight commits behind and omits material security and authentication changes
-  - treated an absent auto-deploy API field as proof that automatic deployment was effectively off
-  - claimed NIXPACKS_NODE_VERSION 4.1.2 corresponds to Node 22 although Nixpacks expects a supported Node major and the value does not prove that runtime
-  - listed fourteen owner decisions but later reported seven and treated the repository-defined tracking-v1 value as unresolved owner input
-  - conflated previously accepted host and database deployment-history evidence with what this API-only run directly proved
-  - proposed all twenty-five runtime writes plus source binding as the next operation before resolving mandatory provider admission and value-authority gates
-
-### MiMo 2.5 Pro - Provider Operation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 15:00 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-public-web-app-a-provider-preflight-008`
-- Subject alias: `public-web-app-a`
-- Result: **HOLD**
-- Weighted score: **4.13/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - stopped before every provider write when the existing approval named a different executor model
-  - reported zero deployment restart rebuild or provider mutation and kept secret values undisclosed
-  - verified the exact repository revision and passed the repository-only Stage A readiness validator
-  - clearly separated repository contract evidence from unproven Coolify Supabase and Google state
-  - proposed the withheld configuration changes without representing them as completed
-- Principal defects:
-  - called the checkout clean while also reporting unstaged modified entries; CRLF-only differences remain Git-dirty
-  - did not produce direct provider evidence or the complete provider-admission JSON because required access was unavailable
-  - did not provide independently reviewable raw receipts for the local Git and validator claims
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
