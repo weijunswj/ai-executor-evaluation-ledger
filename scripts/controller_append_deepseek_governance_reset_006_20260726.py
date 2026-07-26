@@ -112,3 +112,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# Fallback trigger only; canonical final output is produced from main by the trusted workflow.
