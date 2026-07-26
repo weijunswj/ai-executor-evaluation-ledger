@@ -20,7 +20,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | Useful operating baseline |
 | DeepSeek V4 Pro | not-exposed | 1 | 3.49 | 0% | 1/1 applicable | Anecdotal |
 | DeepSeek V4 Pro | standard-thinking | 1 | 4.34 | 0% | 1/1 applicable | Anecdotal |
-| GPT-5.6 Sol | Not exposed | 11 | 4.22 | 18% | 11/11 applicable | Useful operating baseline |
+| GPT-5.6 Sol | Not exposed | 12 | 4.26 | 25% | 12/12 applicable | Useful operating baseline |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | Useful operating baseline |
 
 ## Task-class scorecard
@@ -49,6 +49,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Research | High | 6 | 4.29 | 17% | Moderate |
+| GPT-5.6 Sol | Not exposed | Security Audit | High | 1 | 4.70 | 100% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
