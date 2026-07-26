@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 21:46 SGT
+Updated: 26 July 2026, 22:19 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -16,7 +16,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | 78 | Useful operating baseline |
-| GPT-5.6 Sol | Not exposed | 10 | 4.21 | 20% | 10/10 applicable | 39 | Moderate |
+| GPT-5.6 Sol | Not exposed | 11 | 4.22 | 18% | 11/11 applicable | 42 | Useful operating baseline |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -25,6 +25,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 22:19 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.32 | No | Verified |
 | 26 Jul 2026 21:46 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.09 | No | Verified |
 | 26 Jul 2026 21:45 SGT | GPT-5.6 Sol | Not exposed | Research | High | ACCEPTED | 4.73 | Yes | Verified |
 | 26 Jul 2026 21:42 SGT | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | AMEND | 4.20 | No | Verified |
@@ -54,7 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 12:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.96 | No | Verified |
 | 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
 | 26 Jul 2026 01:06 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 4.18 | No | Verified |
-| 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
 
 ## Task-class aggregates
 
@@ -79,7 +79,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Not exposed | Security Review | High | 1 | 3.48 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Research | High | 5 | 4.28 | 20% | Provisional |
+| GPT-5.6 Sol | Not exposed | Research | High | 6 | 4.29 | 17% | Moderate |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
@@ -93,6 +93,26 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### GPT-5.6 Sol - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 22:19 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-amendment-002`
+- Subject alias: `repository-security-gate-a`
+- Result: **AMEND**
+- Weighted score: **4.32/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - selected one first-party GitHub App publisher and defined signed dispatch OIDC terminal-report artifact and expected-source check authority
+  - removed the repository-security-gate pull-request-target design in favour of protected default-branch dispatch
+  - provided a detailed property map from all seven broad suites into purpose-built protected invariants or retained ordinary checks
+  - preserved mandatory CodeQL and code-quality controls and normal-merge current-main integration
+  - kept the repository clean and performed no App ruleset provider consumer credential or live-system mutation
+- Principal defects:
+  - the proposed auto-sync replacement remains a candidate-controlled pull-request workflow rather than protected default-branch or App-dispatched authority
+  - the seven retained broad suites are called required even though Validate and Validate Toolkit are not bound as required expected-source checks in the current ruleset
 
 ### GPT-5.6 Sol - Research
 
@@ -727,27 +747,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - the registry duplicates severity and group metadata already owned by canonical policy, creating a second normative authority despite the stated single-source requirement
   - fixture examples mix raw issue identifiers with opaque ordinal subjects, while the proposed module-global encounter-order map is not reset or deterministically precomputed per audit run
   - the workflow and blast-radius inventories are inconsistent and are not mechanically derived from every repository Node execution path
-
-### Claude Opus 5 - Complex Repository Change
-
-- Reasoning level: **Max**
-- Reviewed: **26 Jul 2026 00:53 SGT**
-- Run ID: `2026-07-26-claude-opus-5-business-automation-a-amendment-007`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.90/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - closed the stale-authority publication race by re-resolving the newest decision and inserting one exclusive build claim inside the same immediate transaction
-  - implemented exact-claim commit recovery winner ordering terminal post-claim consumption and strong schema-object semantics
-  - added broad deterministic hostile-store timestamp failure and real-process concurrency evidence with green exact-head continuous integration
-  - kept the exact-head change draft and unmerged with zero live-system actions and reconciled the authoritative project tracker
-- Principal defects:
-  - opening an existing untrusted database applies the persistent DELETE journal mode before canonical validation and can mutate a WAL-mode foreign or partial store before refusing it
-  - global validation does not iterate every decision and activation row so corruption under an unrelated source can evade validation for the current source; the exact schema-metadata row set is also not enforced
-  - build claims require an aware claimed timestamp but do not prove that the claim timestamp is no earlier than its bound approval and activation
-  - the mandatory claim-before-activation hostility case was omitted while the completion report stated the timestamp boundary was closed
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
