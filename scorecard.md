@@ -16,7 +16,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 12 | 4.02 | 42% | 12/12 applicable | 55 | Useful operating baseline |
-| GPT-5.6 Sol | Not exposed | 4 | 4.12 | 25% | 4/4 applicable | 13 | Provisional across mixed tasks |
+| GPT-5.6 Sol | Not exposed | 5 | 4.14 | 20% | 5/5 applicable | 18 | Provisional across mixed tasks |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -27,6 +27,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---|---|---:|---:|---|
 | 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
 | 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
+| 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Not exposed | Architecture Review | High | AMEND | 4.24 | No | Verified |
 | 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Not exposed | Production Deployment | High | ACCEPTED | 4.55 | Yes | Verified |
 | 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | AMEND | 3.84 | No | Verified |
 | 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.10 | Yes | Verified |
@@ -54,7 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 25 Jul 2026 15:00 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | HOLD | 4.13 | No | Not controller-verified |
 | 25 Jul 2026 14:16 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | AMEND | 3.26 | No | Verified |
 | 25 Jul 2026 14:12 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | AMEND | 3.73 | No | Not controller-verified |
-| 25 Jul 2026 13:21 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | ACCEPTED | 4.30 | No | Verified |
 
 ## Task-class aggregates
 
@@ -74,6 +74,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Not exposed | Production Operations | High | 3 | 4.20 | 67% | Provisional |
 | DeepSeek V4 Pro | Not exposed | Research | High | 4 | 4.12 | 25% | Provisional |
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
+| GPT-5.6 Sol | Not exposed | Architecture Review | High | 1 | 4.24 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
@@ -130,6 +131,28 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - returned complete zero-mutation and cleanup evidence
 - Principal defects:
   - the proposed next step relied on manual operator installation even though the existing provider API key can support a bounded read-only official connection-URI recovery path
+
+### GPT-5.6 Sol - Architecture Review
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:31 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-reset-001`
+- Subject alias: `workflow-compatibility-a`
+- Result: **AMEND**
+- Weighted score: **4.24/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - independently reproduced the four exact-head transaction and performance defects and accurately mapped their call paths
+  - proposed one coherent transaction-state-machine direction rather than four isolated patches
+  - made phase-30 winner recognition explicit, added final destructive-boundary tree validation and removed the duplicate healthy classification
+  - kept plugin refresh, installed-cache repair and consumer-repository helper propagation as separate authority domains
+  - preserved a clean repository, made zero GitHub mutations and accessed no installed cache or live system
+- Principal defects:
+  - the append-only journal contract simultaneously treats a torn final append as a recoverable durable prefix and malformed evidence, leaving crash recovery undefined
+  - the journal's exact stable placement and supported write-through adapter were not selected, so its authority and durability boundary are not implementable yet
+  - retirement depends on preferred handle-bound Windows operations without selecting a supported implementation or a complete logical-retirement fallback
+  - permanent journal tombstones are only count-bounded and can eventually exhaust future repair authority without an exact safe retention or compaction contract
 
 ### DeepSeek V4 Pro - Production Deployment
 
@@ -730,27 +753,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - reported eighteen or more absent runtime variables although the canonical template has thirty-one names with six present and twenty-five absent
   - described one deployment as the smallest next operation instead of stopping at a separately reviewed configuration and provider-admission preflight
   - treated the exited-unhealthy presentation state as a universally proven Coolify default without independently establishing that product semantic
-
-### MiMo 2.5 Pro - Security Remediation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 13:21 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-007`
-- Subject alias: `public-web-app-a`
-- Result: **ACCEPTED**
-- Weighted score: **4.30/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - closed every missing direct production-validator class against the exported production function
-  - used complete otherwise-valid fixtures so each negative case isolated its intended field
-  - reran the exact local website command and disclosed the full red timeout result
-  - kept the change draft and unmerged with green exact-head continuous integration and zero provider operations
-  - reached an accepted guarded merge with byte-equivalent source and squash trees
-- Principal defects:
-  - classified the environment-dependent timeout result as a proven Windows performance issue and not a code defect without direct causal evidence
-  - the previous local summary of thirty-one passes and two timeouts was inaccurate and required correction to the complete thirty-five-timeout result
-  - required controller correction of pull-request and tracker wording before final acceptance
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
