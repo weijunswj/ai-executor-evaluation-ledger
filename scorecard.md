@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 20:24 SGT
+Updated: 26 July 2026, 20:56 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -15,7 +15,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 10 | 4.04 | 40% | 10/10 applicable | 49 | Moderate |
+| DeepSeek V4 Pro | Not exposed | 12 | 4.02 | 42% | 12/12 applicable | 55 | Useful operating baseline |
 | GPT-5.6 Sol | Not exposed | 4 | 4.12 | 25% | 4/4 applicable | 13 | Provisional across mixed tasks |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
@@ -25,6 +25,8 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
+| 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
 | 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Not exposed | Production Deployment | High | ACCEPTED | 4.55 | Yes | Verified |
 | 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | AMEND | 3.84 | No | Verified |
 | 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.10 | Yes | Verified |
@@ -53,8 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 25 Jul 2026 14:16 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | AMEND | 3.26 | No | Verified |
 | 25 Jul 2026 14:12 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | AMEND | 3.73 | No | Not controller-verified |
 | 25 Jul 2026 13:21 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | ACCEPTED | 4.30 | No | Verified |
-| 25 Jul 2026 12:42 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.38 | No | Verified |
-| 25 Jul 2026 12:05 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 3.75 | No | Verified |
 
 ## Task-class aggregates
 
@@ -68,9 +68,10 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | 1 | 3.15 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Production Operations | High | 2 | 3.97 | 50% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Production Operations | High | 3 | 4.20 | 67% | Provisional |
 | DeepSeek V4 Pro | Not exposed | Research | High | 4 | 4.12 | 25% | Provisional |
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
@@ -87,6 +88,48 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Hosted Product Uat
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:56 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-http-walkthrough-002`
+- Subject alias: `public-web-app-a`
+- Result: **AMEND**
+- Weighted score: **3.15/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - revalidated the exact hosted provenance and principal public/admin-boundary route statuses
+  - kept the run read-only with no login, quote, admin, provider, database, deployment or GitHub mutation
+  - identified genuine content and product-flow gaps from public HTML
+  - correctly preserved the unauthenticated admin boundary and Google admission hold
+- Principal defects:
+  - the required real-browser desktop, tablet and mobile walkthrough was not performed
+  - no screenshots or rendered-layout evidence were produced
+  - overflow, touch targets, focus, keyboard navigation, colour contrast, image presentation and layout shifts were explicitly unobserved but the run still returned PASS
+  - mixed-content, broken-asset, hydration and network assertions were stronger than the reported text/HTTP evidence supported
+  - the summary claimed ten public and three admin-boundary routes while the route table and categories did not reconcile
+  - empty production catalogue content was labelled an expected MVP state despite the programme requirement for an actual company alpha rather than demo readiness
+
+### DeepSeek V4 Pro - Production Operations
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:55 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-canonical-operator-source-003`
+- Subject alias: `shared-platform-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.65/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - revalidated exact repository and continuous-integration identities before credential inspection
+  - inspected the canonical operator file as data and proved the exact key was absent without printing file contents or values
+  - distinguished the nonblank API key and blank unrelated placeholder from the missing operator connection URL
+  - stopped before provider, database, Docker, Bitwarden, password, role, deployment or configuration mutation
+  - returned complete zero-mutation and cleanup evidence
+- Principal defects:
+  - the proposed next step relied on manual operator installation even though the existing provider API key can support a bounded read-only official connection-URI recovery path
 
 ### DeepSeek V4 Pro - Production Deployment
 
@@ -708,50 +751,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - classified the environment-dependent timeout result as a proven Windows performance issue and not a code defect without direct causal evidence
   - the previous local summary of thirty-one passes and two timeouts was inaccurate and required correction to the complete thirty-five-timeout result
   - required controller correction of pull-request and tracker wording before final acceptance
-
-### Claude Opus 5 Max - Complex Repository Change
-
-- Reasoning level: **Max**
-- Reviewed: **25 Jul 2026 12:42 SGT**
-- Run ID: `2026-07-25-claude-opus-5-max-business-automation-a-amendment-005`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.38/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - closed the prior readable-build-event bypass with a terminal reservation rule
-  - retired same-approval rebuild and preserved fresh-approval recovery
-  - added real-file visible-line and partial-append restart tests
-  - kept the exact-head change draft and unmerged with green continuous integration and zero live-system actions
-- Principal defects:
-  - a complete approval decision line can become build-authoritative after its flush or fsync reports failure
-  - a concurrent reservation loser is reported as retryable even though the competing reservation consumed the approval
-  - dict-shaped malformed ledger records are not schema-validated and can reach uncontrolled timestamp parsing errors
-  - the completion report overstates closure after a fifth same-domain amendment
-
-### MiMo 2.5 Pro - Security Remediation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 12:05 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-006`
-- Subject alias: `public-web-app-a`
-- Result: **AMEND**
-- Weighted score: **3.75/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - removed the undocumented production debug-output path
-  - replaced the duplicate test oracle with the exported production validator
-  - preserved earlier fail-closed provenance repairs
-  - kept the exact-head change draft and unmerged with green continuous integration and zero provider operations
-  - produced clean private tracker text at this amendment
-- Principal defects:
-  - omitted six explicitly required production-validator negative classes while calling the matrix complete
-  - did not directly test missing or unknown provenance mode
-  - did not directly test both-invalid missing or non-boolean cleanliness states
-  - reported a local website suite with two timeouts without reconciling that failure against the later green continuous-integration run
-  - declared PASS despite the incomplete required matrix
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
