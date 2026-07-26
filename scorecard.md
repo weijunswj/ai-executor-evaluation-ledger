@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 20:56 SGT
+Updated: 26 July 2026, 21:18 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -15,7 +15,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 13 | 3.98 | 38% | 13/13 applicable | 62 | Useful operating baseline |
+| DeepSeek V4 Pro | Not exposed | 14 | 4.04 | 43% | 14/14 applicable | 62 | Useful operating baseline |
 | GPT-5.6 Sol | Not exposed | 5 | 4.14 | 20% | 5/5 applicable | 18 | Provisional across mixed tasks |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
@@ -25,6 +25,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | Medium | ACCEPTED | 4.85 | Yes | Verified |
 | 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
 | 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
 | 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Not exposed | Architecture Review | High | AMEND | 4.24 | No | Verified |
@@ -54,7 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 25 Jul 2026 15:27 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.05 | No | Verified |
 | 25 Jul 2026 15:18 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.50 | No | Not controller-verified |
 | 25 Jul 2026 15:00 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | HOLD | 4.13 | No | Not controller-verified |
-| 25 Jul 2026 14:16 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | AMEND | 3.26 | No | Verified |
 
 ## Task-class aggregates
 
@@ -69,6 +69,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | 1 | 3.15 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Hosted Product Uat | Medium | 1 | 4.85 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Production Operations | High | 3 | 4.20 | 67% | Provisional |
@@ -89,6 +90,25 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Hosted Product Uat
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 21:18 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-browser-capability-003`
+- Subject alias: `public-web-app-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.85/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - revalidated the exact hosted revision and provenance before capability admission
+  - explicitly inventoried browser binaries, automation, screenshots, developer-tools and accessibility-tree capabilities
+  - correctly distinguished text-only HTTP tooling from rendered-browser evidence
+  - returned the exact required blocked verdict rather than repeating unsupported visual claims
+  - performed no login, submission, provider, database, deployment, repository or GitHub mutation
+- Principal defects:
+  - none recorded
 
 ### DeepSeek V4 Pro - Hosted Product Uat
 
@@ -732,28 +752,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - called the checkout clean while also reporting unstaged modified entries; CRLF-only differences remain Git-dirty
   - did not produce direct provider evidence or the complete provider-admission JSON because required access was unavailable
   - did not provide independently reviewable raw receipts for the local Git and validator claims
-
-### MiMo 2.5 Pro - Complex Repository Change
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 14:16 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-governance-tooling-a-implementation-001`
-- Subject alias: `governance-tooling-a`
-- Result: **AMEND**
-- Weighted score: **3.26/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - created a coherent first-party project module with policy templates schema documentation and generated skill surfaces
-  - respected the draft unmerged zero-live-mutation and ledger-isolation boundaries
-  - integrated broad fixtures tests routing packaging and repository validation
-  - reported exact base and head revisions and preserved the primary checkout
-- Principal defects:
-  - the advertised canonical policy and JSON Schema are not trusted runtime authority and the audit duplicates incomplete validation logic
-  - caller-supplied checklist children acceptance and reconciliation metadata can self-certify issue bodies that violate the documented governance contract
-  - several promised findings and safety properties are absent or weakly tested including required dimensions unknown-mode reporting generated drift conservative semantics timestamp validity and privacy-safe diagnostics
-  - canonical source templates are incorrectly marked as generated copies of themselves
-  - the terminal report understated the changed-file and fixture counts and overstated independently verified hosted-check coverage
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
