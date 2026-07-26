@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Prepare append-only final branch
+      - name: Verify final branch is absent
         shell: bash
         run: |
           set -euo pipefail
@@ -43,9 +43,15 @@ jobs:
             echo "Final branch already exists; refusing duplicate publication." >&2
             exit 1
           fi
-          git switch -c "${final_branch}" origin/main
-          python scripts/controller_intake_platform_sqag_20260726.py
-          git rm -- scripts/controller_intake_platform_sqag_20260726.py .github/workflows/controller-intake-platform-sqag-20260726.yml
+
+      - name: Create final branch from current main
+        run: git switch -c controller/final-platform-sqag-evaluations-20260726 origin/main
+
+      - name: Append reviewed evaluation records
+        run: python scripts/controller_intake_platform_sqag_20260726.py
+
+      - name: Remove temporary intake authority
+        run: git rm -- scripts/controller_intake_platform_sqag_20260726.py .github/workflows/controller-intake-platform-sqag-20260726.yml
 
       - name: Rebuild deterministic views
         run: python scripts/rebuild_views.py
