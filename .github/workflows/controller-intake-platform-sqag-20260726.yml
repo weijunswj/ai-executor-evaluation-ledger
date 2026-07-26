@@ -39,7 +39,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp scripts/controller_intake_platform_sqag_20260726.py /tmp/controller_intake_platform_sqag_20260726.py
           git fetch origin main
           final_branch="controller/final-platform-sqag-evaluations-20260726"
           if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
@@ -47,7 +46,7 @@ jobs:
             exit 1
           fi
           git switch -c "${final_branch}" origin/main
-          python /tmp/controller_intake_platform_sqag_20260726.py
+          python scripts/controller_intake_platform_sqag_20260726.py
           git rm -- scripts/controller_intake_platform_sqag_20260726.py .github/workflows/controller-intake-platform-sqag-20260726.yml
           python scripts/rebuild_views.py
           python scripts/check_public_safety.py
