@@ -37,7 +37,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main
           final_branch="controller/final-platform-sqag-evaluations-20260726-v2"
           if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
             echo "Final branch already exists; refusing duplicate publication." >&2
