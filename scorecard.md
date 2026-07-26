@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 00:26 SGT
+Updated: 26 July 2026, 15:32 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -11,9 +11,11 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 |---|---|---:|---:|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
+| Claude Opus 5 | Max | 1 | 3.90 | 0% | 1/1 applicable | 5 | Anecdotal |
+| Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 1 | 3.94 | 0% | 1/1 applicable | 7 | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | 3 | 4.03 | 0% | 3/3 applicable | 18 | Provisional |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -22,6 +24,11 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 15:32 SGT | Claude Opus 5 | not-exposed | Complex Repository Change | High | AMEND | 4.05 | No | Verified |
+| 26 Jul 2026 12:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.96 | No | Verified |
+| 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
+| 26 Jul 2026 01:06 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 4.18 | No | Verified |
+| 26 Jul 2026 00:53 SGT | Claude Opus 5 | Max | Complex Repository Change | High | AMEND | 3.90 | No | Verified |
 | 26 Jul 2026 00:26 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.94 | No | Verified |
 | 25 Jul 2026 22:10 SGT | DeepSeek V4 Pro | High | Architecture Proposal | High | PASS | 4.14 | Yes | Verified |
 | 25 Jul 2026 20:37 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.42 | No | Verified |
@@ -47,9 +54,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 24 Jul 2026 23:12 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.43 | No | Verified |
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | HOLD | 3.63 | No | Not controller-verified |
 | 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Routine Repository Change | Low | AMEND | 4.60 | No | Not applicable |
-| 24 Jul 2026 22:55 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.27 | No | Verified |
-| 24 Jul 2026 22:54 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.53 | No | Verified |
-| 24 Jul 2026 21:41 SGT | MiMo 2.5 Pro | Default | Production Deployment | High | HOLD | 2.25 | No | Not controller-verified |
 
 ## Task-class aggregates
 
@@ -57,9 +61,12 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---:|---:|---:|---|
 | Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
+| Claude Opus 5 | Max | Complex Repository Change | High | 1 | 3.90 | 0% | Anecdotal |
+| Claude Opus 5 | not-exposed | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
+| Claude Opus 5 | not-exposed | Complex Repository Change | High | 1 | 4.05 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Research | High | 1 | 3.94 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Research | High | 3 | 4.03 | 0% | Provisional |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -72,6 +79,116 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### Claude Opus 5 - Complex Repository Change
+
+- Reasoning level: **not-exposed**
+- Reviewed: **26 Jul 2026 15:32 SGT**
+- Run ID: `2026-07-26-claude-opus-5-business-automation-a-amendment-008`
+- Subject alias: `business-automation-a`
+- Result: **AMEND**
+- Weighted score: **4.05/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed the three Amendment 7 integrity findings with pure pre-open triage distinct read-only and writer paths complete global history validation and aware claim chronology
+  - implemented separate Windows and POSIX no-replace publication paths with exact-head green CI on both operating systems
+  - added broad cross-source hostile-state restart recovery concurrency and mutation evidence while keeping the change draft and unmerged
+  - preserved the package business runner and live-system safety boundaries with zero private or production action
+- Principal defects:
+  - a second POSIX parent-directory fsync failure leaves a complete single-link final store with no durable uncertainty fact so a later ordinary reviewer command can accept and mutate state that the prior invocation classified controlled-recovery-only
+  - destination-collision paths call temporary cleanup in a mode that suppresses every unlink failure and report only store_not_absent while the complete operation-owned temporary may remain
+  - first-use creation recursively creates the authority-state parent before proving a stable pre-existing operator-controlled directory and does not validate redirected intermediate path components
+  - the completion report claimed cleanup failures were never suppressed although the lost-race helper and its test deliberately preserve silent suppression
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 12:12 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-003`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **3.96/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised pull-request head and strict no-mutation boundary
+  - provided a substantially clearer production module split and recognised that policy must own normative finding metadata
+  - moved toward an independent exact-tuple oracle controlled local side-effect proof and mechanically discovered workflow coverage
+  - documented a detailed path-level proposal and correctly retained version 2.0.0 as an unmerged pre-release contract
+- Principal defects:
+  - multiple finding codes still map to the same broad detector function, so replacing one code entry does not suppress that finding and cannot prove code-specific reachability
+  - the sample GOV014 mutation uses a valid zero-finding fixture and therefore cannot make the unchanged exact oracle fail
+  - the test harness imports a mutable buildRegistry export from production-internal code instead of independently assembling code-specific detector units under the test tree
+  - emitFinding interpolates arbitrary schema-valid context values including branch or metadata strings and silently ignores undeclared context rather than enforcing a typed public-safe context contract
+  - opaque-subject ordering depends on the first raw numeric or string representation and the packet contradicts itself about whether duplicate-ID detection occurs before subject construction
+  - the workflow inventory excludes or relaxes real Node execution paths, misses step-level composite actions and does not bind npm ci to the relevant checkout working directory lockfile and execution order
+  - the proposed Gate 3 blast radius marks schema and templates unchanged and omits previously required body-authority replacement lifecycle side-effect and hostile-diagnostic repairs
+
+### Claude Opus 5 - Architecture Proposal
+
+- Reasoning level: **not-exposed**
+- Reviewed: **26 Jul 2026 01:49 SGT**
+- Run ID: `2026-07-26-claude-opus-5-business-automation-a-architecture-reset-008`
+- Subject alias: `business-automation-a`
+- Result: **PASS**
+- Weighted score: **4.35/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - respected the strict read-only boundary and bound the analysis to the exact draft pull-request head
+  - proved all three surviving defects against the real exact-head module using disposable synthetic stores and byte-level observations
+  - correctly identified that persistent journal-mode assignment before trust can alter or remove foreign SQLite recovery state
+  - proposed the correct separation between pre-open triage read-only inspection trusted writer reopen and transactional revalidation
+  - identified the additional swallowed store-temporary cleanup and multiple-hard-link risk and stopped for controller design lock
+- Principal defects:
+  - stated too broadly that no SQLite open of a WAL-mode database can preserve both bytes and pathnames although the experiments covered one platform version and VFS rather than every supported environment
+  - did not explicitly bound pathname-replacement guarantees to a stable operator-controlled directory and cooperating processes
+  - the user-presented completion report asserted a complete thirty-section packet and detailed matrices but did not include those sections for direct controller inspection
+  - left Windows versus POSIX no-replace publication and post-link cleanup durability semantics for the controller to lock
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 01:06 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-002`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **4.18/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised head and no-mutation boundary while producing a substantially more concrete architecture
+  - replaced the prior reachability-list proposal with an executable detector-registry concept and introduced controlled local side-effect sentinels
+  - made replacement reason and supersession explicit body fields and expanded the implementation pull-request lifecycle cases
+  - specified unconditional locked dependency installation and correctly treated version 2.0.0 as an unmerged pre-release contract
+- Principal defects:
+  - auditSnapshot(snapshot, detectors) and exported buildRegistry expose the detector override to production callers, so the proposed test seam can disable governance checks outside tests
+  - the mutation examples assert that a disabled detector no longer emits instead of running the unchanged exact oracle and proving that oracle fails under the mutation
+  - the registry duplicates severity and group metadata already owned by canonical policy, creating a second normative authority despite the stated single-source requirement
+  - fixture examples mix raw issue identifiers with opaque ordinal subjects, while the proposed module-global encounter-order map is not reset or deterministically precomputed per audit run
+  - the workflow and blast-radius inventories are inconsistent and are not mechanically derived from every repository Node execution path
+
+### Claude Opus 5 - Complex Repository Change
+
+- Reasoning level: **Max**
+- Reviewed: **26 Jul 2026 00:53 SGT**
+- Run ID: `2026-07-26-claude-opus-5-business-automation-a-amendment-007`
+- Subject alias: `business-automation-a`
+- Result: **AMEND**
+- Weighted score: **3.90/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed the stale-authority publication race by re-resolving the newest decision and inserting one exclusive build claim inside the same immediate transaction
+  - implemented exact-claim commit recovery winner ordering terminal post-claim consumption and strong schema-object semantics
+  - added broad deterministic hostile-store timestamp failure and real-process concurrency evidence with green exact-head continuous integration
+  - kept the exact-head change draft and unmerged with zero live-system actions and reconciled the authoritative project tracker
+- Principal defects:
+  - opening an existing untrusted database applies the persistent DELETE journal mode before canonical validation and can mutate a WAL-mode foreign or partial store before refusing it
+  - global validation does not iterate every decision and activation row so corruption under an unrelated source can evade validation for the current source; the exact schema-metadata row set is also not enforced
+  - build claims require an aware claimed timestamp but do not prove that the claim timestamp is no earlier than its bound approval and activation
+  - the mandatory claim-before-activation hostility case was omitted while the completion report stated the timestamp boundary was closed
 
 ### DeepSeek V4 Pro - Research
 
@@ -632,72 +749,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Principal defects:
   - introduced control characters into authoritative tracker bodies
   - marked an in-review checklist item complete before merge
-
-### Claude Opus 4.8 High - Complex Repository Change
-
-- Reasoning level: **High**
-- Reviewed: **24 Jul 2026 22:55 SGT**
-- Run ID: `2026-07-24-claude-opus-4-8-business-automation-a-amendment-001`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.27/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - closed all three prior findings with focused tests and fresh continuous integration
-  - preserved the historical package against overwrite
-  - corrected the package-build summary to describe payload state rather than execution
-  - kept the change draft and unmerged with zero live-system actions
-- Principal defects:
-  - the no-clobber repair progressively wrote the final package path and therefore removed atomic publication
-  - a crash could leave a partial final package that permanently blocks later builds
-  - the atomicity test asserted only post-completion validity and did not test visibility during publication
-  - the change summary still reported completion despite a same-domain atomicity defect
-
-### Claude Opus 4.8 High - Complex Repository Change
-
-- Reasoning level: **High**
-- Reviewed: **24 Jul 2026 22:54 SGT**
-- Run ID: `2026-07-24-claude-opus-4-8-business-automation-a-implementation-001`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.53/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - used an isolated worktree and preserved intentional local changes
-  - kept the change draft and unmerged with zero live-system actions
-  - provided exact private revision, test and continuous-integration evidence
-  - correctly implemented the core date assignment and read-back path
-- Principal defects:
-  - the declared package schema did not enforce the exact approved date
-  - the package builder could overwrite the preserved historical package
-  - the package-build summary falsely implied that an application assignment had occurred
-  - reported no technical blockers despite three material review findings
-
-### MiMo 2.5 Pro - Production Deployment
-
-- Reasoning level: **Default**
-- Reviewed: **24 Jul 2026 21:41 SGT**
-- Run ID: `2026-07-24-mimo-2-5-pro-project-a-stage-a-001`
-- Subject alias: `public-web-app-a`
-- Result: **HOLD**
-- Weighted score: **2.25/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - stopped without claiming hosted verification passed
-  - did not perform rollback after reporting that the new revision never activated
-  - did not claim owner authentication testing passed
-- Principal defects:
-  - omitted deployment identifiers, timestamps, final status payloads and decisive build error
-  - did not provide provider-evidence path or hash
-  - did not provide validator command, exit code or assertion results
-  - did not prove fresh OAuth client origin and callback evidence
-  - made three deployment attempts without documented diagnosis between retries
-  - claimed issue bodies were updated when they remained stale
-  - left tracker text encoding-corrupted
-  - used a non-canonical terminal verdict
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation

@@ -1,0 +1,73 @@
+name: Finalize DeepSeek governance reset 004 evaluation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/controller_append_deepseek_governance_reset_004.py
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - scripts/controller_append_deepseek_governance_reset_004.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: controller-deepseek-governance-reset-004
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build clean final evaluation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+
+          final_branch="controller/final-deepseek-governance-reset-004-20260726"
+          if git ls-remote --exit-code --heads origin "refs/heads/${final_branch}" >/dev/null 2>&1; then
+            echo "Final evaluation branch already exists; refusing duplicate publication." >&2
+            exit 1
+          fi
+
+          git switch -c "${final_branch}" origin/main
+          python scripts/controller_append_deepseek_governance_reset_004.py
+
+          git rm -- \
+            scripts/controller_append_deepseek_governance_reset_004.py \
+            .github/workflows/controller-deepseek-governance-reset-004.yml
+
+          python scripts/rebuild_views.py
+          python scripts/check_public_safety.py
+          python scripts/rebuild_views.py --check --base-ref origin/main
+          git diff --check
+
+          test "$(grep -c '2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-004' evaluations.jsonl)" -eq 1
+          test ! -e scripts/controller_append_deepseek_governance_reset_004.py
+          test ! -e .github/workflows/controller-deepseek-governance-reset-004.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "ledger-controller"
+          git add -A
+          git commit -m "Record consolidated DeepSeek governance architecture evaluation"
+          git push origin "HEAD:${final_branch}"

@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 26 July 2026, 00:26 SGT
+Updated: 26 July 2026, 15:35 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -177,6 +177,60 @@ Before this task can be accepted, the next amendment must:
 
 Because a same-domain launch-blocking P1 survived the Ultra High repair, the next implementation used the owner-approved Max escalation and is evaluated separately below.
 
+## Claude Opus 5
+
+Reasoning evidence: **Two implementation runs (one observed Max, one provider-native mode not exposed) and one no-mutation architecture run with provider-native reasoning not exposed**
+
+Evidence level: **Provisional across 2 comparable high-difficulty complex-repository-change runs; anecdotal across 1 high-difficulty architecture-proposal run**
+
+Observed scores:
+
+- complex repository change, high difficulty: **3.98/5** across 2 runs;
+- architecture proposal, high difficulty: **4.35/5**;
+- mixed-task average: **4.10/5**;
+- first-pass acceptance: **33.33%**;
+- verified safe draft/final state: **3/3**.
+
+### Approved
+
+- Exact-revision, no-mutation architecture investigation for high-risk repository boundaries.
+- Root-cause proof using exact-head source, controlled synthetic fixtures and primary documentation.
+- Narrow high-risk implementation on an isolated draft branch when a controller lock already defines the authority, failure and test contract.
+- Exact-head evidence preparation for independent controller review.
+
+### Conditional
+
+- Architecture recommendations remain advisory and require a controller design lock before implementation.
+- Durable-state, SQLite, atomic-publication and write-capable changes must stay draft and unmerged until fresh exact-head acceptance.
+- Platform-wide claims must be bounded to the tested operating systems, SQLite versions and VFS behaviour unless stronger primary evidence proves universality.
+- Path-replacement guarantees require a pre-existing trusted-directory and cooperating-process threat model.
+- Cross-platform publication needs separate Windows and POSIX contracts; green tests alone are not authority.
+- Publication uncertainty must remain mechanically blocking across process restart until controlled reconciliation records a usable state.
+- Every operation-owned temporary cleanup failure, including a lost destination race, must be reported trutyfully and never suppressed.
+- A same-root material finding after a locked implementation returns the task to architecture rather than another ordinary amendment.
+
+### Not currently approved
+
+- Autonomous merge, acceptance or production mutation.
+- Treating read-only SQLite flags as sufficient without pre-open header and sidecar classification.
+- Claiming universal filesystem or SQLite behaviour from one platform experiment.
+- Suppressing temporary cleanup or multiple-hard-link state as ordinary success.
+- Recursively creating an authority-state directory before proving its parent and existing path components are trusted.
+- Treating a readable canonical file as ordinary operational state after the creating invocation reported durability uncertainty.
+- Implementing a self-authored architecture recommendation before controller lock.
+
+### Current evidence
+
+The Amendment 7 implementation closed the stale-authority build race and materially strengthened claim recovery and schema validation, but exact-head review found pre-validation database mutation, source-local history validation and missing claim chronology. The no-mutation architecture reset reproduced all three defects and produced controller lock `DL-113-A8-001`.
+
+Amendment 8 then implemented the locked trust ladder: pure pre-open header and sidecar triage, distinct read-only and trusted-writer paths, global validation of every metadata, decision, activation and claim row, parsed-instant claim chronology, and separate Windows and POSIX publication paths. Exact-head Windows and Ubuntu CI passed, and the previous three material findins are closed.
+
+Gate 4 nevertheless found three narrower P2 boundaries. A second POSIX directory-fsync failure leaves no durable uncertainty fact to block a later ordinary invocation; lost first-creator races deliberately suppress failure to remove the operation-owned temporary; and first-use creation recursively manufactures the authority-state parent before proving a stable pre-existing parent and non-redirected intermediate components. The completion report also overstated the cleanup guarantee.
+
+### Current disposition
+
+Claude Opus 5 remains suitable for exact-head no-mutation architecture work and controller-locked high-risk implementation in a draft branch. It is not independent authority for filesystem durability acceptance, merge or live operations. Because same-domain P2 findings survived the locked Gate 4 review, the next run must return to Gate 1 architecture for sticky publication-uncertainty state, truthful lost-race cleanup and trusted-parent admission before any further implementation.
+
 ## Claude Opus 5 Max
 
 Reasoning level: **Max**
@@ -230,15 +284,17 @@ Max is already the highest owner-approved tier. Further progress must come from 
 
 ## DeepSeek V4 Pro
 
-Evidence level: **Anecdotal — 2 formal high-difficulty architecture and research runs**
+Evidence level: **Provisional — 4 formal high-difficulty architecture and research runs**
 
 Observed scores:
 
 - scheduled batch-review architecture proposal: **4.14/5**;
 - governance architecture reset: **3.94/5**;
-- two-run average: **4.04/5**;
-- first-pass acceptance: **50%**;
-- verified safe final state: **2/2**.
+- revised governance architecture reset: **4.18/5**;
+- final governance architecture correction: **3.96/5**;
+- four-run average: **4.06/5**;
+- first-pass acceptance: **25%**;
+- verified safe final state: **4/4**.
 
 ### Approved
 
@@ -249,26 +305,31 @@ Observed scores:
 ### Conditional
 
 - Architecture recommendations remain advisory and require an independent controller lock before implementation.
-- Executable parity must be proven through a policy-keyed detector registry and independent exact oracles, not a second declared reachability list.
-- Mutation-sensitive tests require an explicit test-only injection seam; preload string searches or inaccessible lexical monkeypatches are insufficient.
-- Body-authority designs must encode replacement reason and supersession identity in canonical issue-body fields and cross-check structured data.
-- Side-effect absence must use controlled local sentinels or fakes and must not depend on real external DNS or network effects.
-- Workflow dependency closure requires deterministic installation or a mechanical dependency proof; documentation comments alone are insufficient.
+- Executable parity requires one code-specific detector function or wrapper per canonical finding code; broad shared helpers may not be the mutation authority.
+- Test mutation engines must be assembled under the test tree without production override parameters or mutable registry builders in the supported production surface.
+- Mutation-sensitive proof must run the unchanged exact oracle on the isolated invalid fixture and prove the assertion fails after the exact detector is replaced.
+- Canonical policy alone owns severity, grouping and message identity; message context must be typed, bounded and public-safe.
+- Opaque subjects must use one representation-independent canonical key and reset deterministically per audit invocation.
+- Workflow dependency closure must traverse workflows, reusable workflows, step-level composite actions, shell wrappers, package scripts and module imports, then bind locked installation to the correct checkout and working directory.
+- The final implementation lock must retain all earlier body-authority, replacement lifecycle, side-effect, diagnostic and parity repairs.
 
 ### Not currently approved
 
-- Independently locking or implementing security, privacy, append-only, lifecycle or trusted-workflow authority boundaries.
-- Treating exported reachability metadata, candidate-authored fixture manifests or green tests as independent proof.
-- Exposing transformed private issue identifiers in public diagnostics.
-- Implementing the current governance reset until the controller replaces the incomplete architecture choices.
+- Mapping several finding codes to one broad detector while claiming per-code reachability or mutation proof.
+- Using a valid zero-finding fixture to demonstrate that removal of a violation detector makes an oracle fail.
+- Exporting a mutable registry builder from production-internal code for the test harness.
+- Interpolating arbitrary validated branch, body, PR, property or path values into public diagnostics.
+- Assigning opaque subjects according to encounter order or the first raw numeric/string representation.
+- Hand-waving Node test, composite-action, shell-wrapper or installation-order paths as dependency-free exceptions.
+- Implementing the current governance reset until the controller replaces these remaining architecture choices.
 
 ### Current evidence
 
-The first run produced a useful scheduled-review architecture proposal but required controller replacement of private-source resolution, batch discovery, durable publication, trusted validation and recovery choices. The second run accurately diagnosed the surviving Toolkit governance defects and produced a strong inventory, authority map and blast radius. It still proposed a self-certified runtime reachability export, a mutation method that cannot patch the current lexical detectors, incomplete replacement-body and lifecycle semantics, unsafe real-effect side-effect probes, transformed caller identifiers in diagnostics and comment-only dependency control.
+The first run produced a useful scheduled-review architecture proposal but required controller replacement of private-source resolution, batch discovery, durable publication, trusted validation and recovery choices. The second run accurately diagnosed the surviving Toolkit governance defects but proposed self-certified reachability, an invalid lexical monkeypatch and incomplete lifecycle, diagnostic and dependency controls. The third run materially improved the design but still exposed detector overrides, inverted mutation proof, duplicated policy metadata, mixed subject identities and left workflow coverage non-mechanical. The fourth run produced a clearer module architecture and stronger policy direction, but its shared detector aliases make code-specific mutation impossible, its diagnostic context remains caller-controlled, its subject ordering is representation-dependent, its workflow traversal has material false-negative paths and its Gate 3 blast radius drops earlier required repairs.
 
 ### Current disposition
 
-DeepSeek V4 Pro remains approved for bounded no-mutation architecture investigation and option generation. Before implementation, the controller must lock the executable detector registry, exact oracle tuples, canonical replacement body fields, full lifecycle state machine, controlled side-effect harness, opaque diagnostic references and deterministic workflow dependencies. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model migration.
+DeepSeek V4 Pro remains useful for bounded no-mutation architecture investigation and revision, but has not converged on this policy/schema trust boundary after three corrective architecture passes. The next attempt must use the owner-approved XHigh task classification and produce one consolidated packet with code-specific detector authority, an independently assembled test harness, typed public-safe diagnostic context, stable subject canonicalisation, complete workflow traversal and the full carried-forward implementation scope. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model migration.
 
 ## GPT-5.6 Sol Medium
 
