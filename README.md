@@ -17,7 +17,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 15 | 4.09 | 47% | 15/15 applicable | Useful operating baseline |
+| DeepSeek V4 Pro | Not exposed | 16 | 4.05 | 44% | 16/16 applicable | Useful operating baseline |
 | GPT-5.6 Sol | Not exposed | 7 | 4.15 | 14% | 7/7 applicable | Moderate |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | Useful operating baseline |
 
@@ -38,7 +38,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Production Operations | High | 4 | 4.35 | 75% | Provisional |
-| DeepSeek V4 Pro | Not exposed | Research | High | 5 | 4.02 | 20% | Provisional |
+| DeepSeek V4 Pro | Not exposed | Research | High | 6 | 3.91 | 17% | Moderate |
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Research | High | 3 | 4.20 | 0% | Provisional |

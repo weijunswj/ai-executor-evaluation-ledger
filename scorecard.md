@@ -15,7 +15,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 15 | 4.09 | 47% | 15/15 applicable | 63 | Useful operating baseline |
+| DeepSeek V4 Pro | Not exposed | 16 | 4.05 | 44% | 16/16 applicable | 68 | Useful operating baseline |
 | GPT-5.6 Sol | Not exposed | 7 | 4.15 | 14% | 7/7 applicable | 29 | Moderate |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
@@ -26,6 +26,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
 | 26 Jul 2026 21:38 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.80 | Yes | Verified |
+| 26 Jul 2026 21:25 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.38 | No | Verified |
 | 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | Medium | ACCEPTED | 4.85 | Yes | Verified |
 | 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
 | 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
@@ -54,7 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 25 Jul 2026 20:37 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | High | AMEND | 3.42 | No | Verified |
 | 25 Jul 2026 16:13 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.65 | No | Verified |
 | 25 Jul 2026 16:12 SGT | MiMo 2.5 Pro | Default | Architecture Proposal | High | PASS | 4.40 | Yes | Verified |
-| 25 Jul 2026 16:09 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.58 | No | Not controller-verified |
 
 ## Task-class aggregates
 
@@ -73,7 +73,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Production Operations | High | 4 | 4.35 | 75% | Provisional |
-| DeepSeek V4 Pro | Not exposed | Research | High | 5 | 4.02 | 20% | Provisional |
+| DeepSeek V4 Pro | Not exposed | Research | High | 6 | 3.91 | 17% | Moderate |
 | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Research | High | 3 | 4.20 | 0% | Provisional |
@@ -109,6 +109,31 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - returned complete zero-mutation and cleanup evidence
 - Principal defects:
   - the proposed repair focused on permitting a six-label shape rather than binding endpoint host and pooled-host derivation to provider-attested proxy_host and region_id fields
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 21:25 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-006`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **3.38/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - bound the packet to the exact public head and current main and respected the strict no-mutation boundary
+  - correctly replaced the prior contradictory rebase direction with normal-merge integration on the existing branch
+  - added explicit missing finding fixtures and broadened the side-effect and hosted-check inventories
+  - reported the absence of a repository Public Safety command and the failing hosted validation checks honestly
+- Principal defects:
+  - compound-command parsing, reusable-workflow resolution, recursion tracking and package-root installation authority remained non-executable
+  - the replacement graph used an edge direction and termination rule that reject a valid original-to-replacement chain
+  - the detector mutation proof did not require exact equality to the expected multiset minus the target tuples
+  - semantic reachability depended on a placeholder interception that would not replace detector-local destructured emitter references and could pass with zero calls
+  - generated parity retained conflicting isolated and active-checkout write paths with no complete output-region manifest
+  - the claimed sentinel count covered families rather than every listed entry point and included invalid or non-portable open-flag assumptions
+  - the exact default CodeQL language and required check identity were not bound
+  - the packet claimed no unresolved decisions despite explicit placeholders, malformed blast-radius paths and contradictory execution contracts
 
 ### DeepSeek V4 Pro - Hosted Product Uat
 
@@ -725,31 +750,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - the GOV023 proposal compares implementation_branch with an Implementation PR body line and therefore mixes branch identity with pull-request identity
   - the packet incorrectly treats duplicate issue IDs as a canonical JSON Schema concern even though the current schema cannot express uniqueness by object property and GOV025 should remain a semantic finding
   - the packet proposes coupling toolkit.project.json module version to policy version without evidence that these are the same version domain
-
-### MiMo 2.5 Pro - Provider Operation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 16:09 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-amendment-006`
-- Subject alias: `private-quote-service-a`
-- Result: **AMEND**
-- Weighted score: **3.58/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - continued the same private run and respected the strictly read-only zero-mutation boundary
-  - corrected the source-revision gap and recovered detailed direct host network evidence
-  - correctly blocked migration and runtime-role verification when the restricted database credential was unavailable
-  - correctly separated repository authentication configuration from unverified Google provider state
-  - produced a substantially improved names-only authority inventory and detailed provider-command record
-- Principal defects:
-  - inspected the applications table instead of the application-settings relation and falsely concluded that automatic deployment was not configurable
-  - classified an invalid Node-version override as a mislabelled provider field based only on its resemblance to the platform version
-  - reported eleven owner decisions and then incorrectly claimed the count could fall to ten because of a port value that was not included in the eleven
-  - proposed a broad configuration write while mandatory automatic-deployment database privilege migration and OAuth admission gates remained unresolved
-  - contradicted its own Stage B preconditions by both requiring and not requiring all outstanding owner values
-  - attributed an unverified TLS result to the local trust store without decisive evidence
-  - declared PASS despite surviving launch-critical findings
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
