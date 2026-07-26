@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 19:22 SGT
+Updated: 26 July 2026, 19:54 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -15,7 +15,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 4 | 4.12 | 25% | 4/4 applicable | 26 | Provisional |
+| DeepSeek V4 Pro | Not exposed | 5 | 3.85 | 20% | 5/5 applicable | 33 | Provisional across mixed tasks |
 | GPT-5.6 Sol | Not exposed | 4 | 4.12 | 25% | 4/4 applicable | 13 | Provisional across mixed tasks |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
@@ -25,6 +25,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 19:54 SGT | DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | AMEND | 2.75 | No | Verified |
 | 26 Jul 2026 19:22 SGT | GPT-5.6 Sol | Not exposed | Security Remediation | High | AMEND | 3.93 | No | Verified |
 | 26 Jul 2026 19:18 SGT | GPT-5.6 Sol | Not exposed | Security Remediation | High | AMEND | 3.67 | No | Verified |
 | 26 Jul 2026 19:12 SGT | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | ACCEPTED | 4.77 | Yes | Verified |
@@ -54,7 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 25 Jul 2026 11:18 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 3.53 | No | Verified |
 | 25 Jul 2026 01:12 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.50 | No | Not controller-verified |
 | 25 Jul 2026 00:55 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 2.95 | No | Verified |
-| 25 Jul 2026 00:35 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.05 | No | Not controller-verified |
 
 ## Task-class aggregates
 
@@ -67,6 +67,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 5 | not-exposed | Complex Repository Change | High | 1 | 4.05 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Research | High | 4 | 4.12 | 25% | Provisional |
 | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
@@ -82,6 +83,29 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Complex Repository Change
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 19:54 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-dl-299-310-002-implementation-001`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **2.75/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised branch and draft unmerged pull-request state
+  - created distinct code-specific detector modules and materially improved canonical policy and diagnostic structure
+  - maintained a clean worktree and performed no live, credential, consumer or production action
+  - left prior controller reviews unresolved and updated the implementation tracker and pull-request body
+- Principal defects:
+  - exact-head Validate and Validate toolkit checks failed, including a direct conflict between the new privileged-workflow npm installation and the repository's trusted writeback validator
+  - the workflow inventory is a flat handwritten scanner and does not recursively traverse reusable workflows, local composite actions, shell wrappers, package-script chains and dynamic execution as locked
+  - the fixture manifest covers only twenty-three of twenty-seven governance codes and mutation sensitivity is demonstrated only for GOV014 rather than every code
+  - replacement-chain enforcement does not prove body and structured agreement, unknown predecessor rejection, broken or cyclic chain detection or superseded reactivation
+  - generated-surface parity and side-effect interception evidence remain incomplete against the controller lock
+  - the terminal file ledger understated the cumulative pull-request scope and the required full validation sequence was not completed
 
 ### GPT-5.6 Sol - Security Remediation
 
@@ -733,28 +757,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - labelled two mandatory negative tests without exercising malformed Git output or the status-command failure path
   - left byte-order marks and collapsed Markdown in authoritative control text despite reporting clean encoding
   - declared PASS while multiple P1 findings survived
-
-### MiMo 2.5 Pro - Provider Operation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 00:35 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-provider-preflight-001`
-- Subject alias: `private-quote-service-a`
-- Result: **AMEND**
-- Weighted score: **3.05/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - recovered useful leads across the application database object-storage and public-hosting surfaces
-  - reported zero provider mutation and no deployment restart or rebuild
-  - identified the existing application bucket and runtime-role candidates
-  - kept the downstream platform handoff disabled and production readiness false
-- Principal defects:
-  - treated application-runtime object-storage credentials as acceptable shared operator-environment values
-  - identified the current environment file but did not identify what wrote or repeatedly restores the values
-  - corrupted the authoritative tracker body with control characters and malformed escaping
-  - reported contradictory application-environment evidence and did not provide enough exact API evidence for independent verification
-  - used a PASS framing despite unresolved P1 environment classification and multiple unverified provider gates
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
