@@ -1,6 +1,6 @@
 # Model-Use Policy
 
-Updated: 26 July 2026, 12:12 SGT
+Updated: 26 July 2026, 15:35 SGT
 
 This policy translates verified evaluation evidence into current operating boundaries. It does not claim that any model is permanently good or bad; permissions should tighten or loosen as comparable evidence accumulates.
 
@@ -179,17 +179,17 @@ Because a same-domain launch-blocking P1 survived the Ultra High repair, the nex
 
 ## Claude Opus 5
 
-Reasoning evidence: **One Max implementation run and one no-mutation architecture run with provider-native reasoning not exposed**
+Reasoning evidence: **Two implementation runs (one observed Max, one provider-native mode not exposed) and one no-mutation architecture run with provider-native reasoning not exposed**
 
-Evidence level: **Anecdotal across 2 formal high-difficulty runs in different task classes**
+Evidence level: **Provisional across 2 comparable high-difficulty complex-repository-change runs; anecdotal across 1 high-difficulty architecture-proposal run**
 
 Observed scores:
 
-- complex repository change, high difficulty: **3.90/5**;
+- complex repository change, high difficulty: **3.98/5** across 2 runs;
 - architecture proposal, high difficulty: **4.35/5**;
-- mixed-task average: **4.13/5**;
-- first-pass acceptance: **50%**;
-- verified safe draft/final state: **2/2**.
+- mixed-task average: **4.10/5**;
+- first-pass acceptance: **33.33%**;
+- verified safe draft/final state: **3/3**.
 
 ### Approved
 
@@ -203,8 +203,11 @@ Observed scores:
 - Architecture recommendations remain advisory and require a controller design lock before implementation.
 - Durable-state, SQLite, atomic-publication and write-capable changes must stay draft and unmerged until fresh exact-head acceptance.
 - Platform-wide claims must be bounded to the tested operating systems, SQLite versions and VFS behaviour unless stronger primary evidence proves universality.
-- Path-replacement guarantees require an explicit trusted-directory and cooperating-process threat model.
+- Path-replacement guarantees require a pre-existing trusted-directory and cooperating-process threat model.
 - Cross-platform publication needs separate Windows and POSIX contracts; green tests alone are not authority.
+- Publication uncertainty must remain mechanically blocking across process restart until controlled reconciliation records a usable state.
+- Every operation-owned temporary cleanup failure, including a lost destination race, must be reported trutyfully and never suppressed.
+- A same-root material finding after a locked implementation returns the task to architecture rather than another ordinary amendment.
 
 ### Not currently approved
 
@@ -212,17 +215,21 @@ Observed scores:
 - Treating read-only SQLite flags as sufficient without pre-open header and sidecar classification.
 - Claiming universal filesystem or SQLite behaviour from one platform experiment.
 - Suppressing temporary cleanup or multiple-hard-link state as ordinary success.
+- Recursively creating an authority-state directory before proving its parent and existing path components are trusted.
+- Treating a readable canonical file as ordinary operational state after the creating invocation reported durability uncertainty.
 - Implementing a self-authored architecture recommendation before controller lock.
 
 ### Current evidence
 
-The Amendment 7 implementation closed the stale-authority build race and materially strengthened claim recovery and schema validation, but exact-head review found pre-validation database mutation, source-local history validation and missing claim chronology. The subsequent no-mutation architecture reset correctly reproduced all three defects against the exact module, used primary SQLite evidence, proposed a staged trust transition and identified the additional multiple-hard-link cleanup risk.
+The Amendment 7 implementation closed the stale-authority build race and materially strengthened claim recovery and schema validation, but exact-head review found pre-validation database mutation, source-local history validation and missing claim chronology. The no-mutation architecture reset reproduced all three defects and produced controller lock `DL-113-A8-001`.
 
-The architecture run still required controller correction of an overbroad cross-platform claim, an unstated pathname-replacement trust boundary, and Windows-versus-POSIX publication semantics. Controller lock `DL-113-A8-001` now defines pure pre-open triage, read-only inspection, transactional global revalidation, complete chronology, platform-specific no-replace publication and explicit cleanup failure.
+Amendment 8 then implemented the locked trust ladder: pure pre-open header and sidecar triage, distinct read-only and trusted-writer paths, global validation of every metadata, decision, activation and claim row, parsed-instant claim chronology, and separate Windows and POSIX publication paths. Exact-head Windows and Ubuntu CI passed, and the previous three material findins are closed.
+
+Gate 4 nevertheless found three narrower P2 boundaries. A second POSIX directory-fsync failure leaves no durable uncertainty fact to block a later ordinary invocation; lost first-creator races deliberately suppress failure to remove the operation-owned temporary; and first-use creation recursively manufactures the authority-state parent before proving a stable pre-existing parent and non-redirected intermediate components. The completion report also overstated the cleanup guarantee.
 
 ### Current disposition
 
-Claude Opus 5 is suitable for exact-head no-mutation architecture work and controller-locked high-risk implementation in a draft branch. It is not independent authority for platform-general claims, durable-state acceptance, merge or live operations. The next comparable run should implement `DL-113-A8-001` and receive a fresh exact-head review.
+Claude Opus 5 remains suitable for exact-head no-mutation architecture work and controller-locked high-risk implementation in a draft branch. It is not independent authority for filesystem durability acceptance, merge or live operations. Because same-domain P2 findings survived the locked Gate 4 review, the next run must return to Gate 1 architecture for sticky publication-uncertainty state, truthful lost-race cleanup and trusted-parent admission before any further implementation.
 
 ## Claude Opus 5 Max
 

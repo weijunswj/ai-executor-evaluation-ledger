@@ -14,7 +14,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | Anecdotal |
 | Claude Opus 5 | Max | 1 | 3.90 | 0% | 1/1 applicable | Anecdotal |
-| Claude Opus 5 | not-exposed | 1 | 4.35 | 100% | 1/1 applicable | Anecdotal |
+| Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | 3 | 4.03 | 0% | 3/3 applicable | Provisional |
@@ -28,6 +28,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
 | Claude Opus 5 | Max | Complex Repository Change | High | 1 | 3.90 | 0% | Anecdotal |
 | Claude Opus 5 | not-exposed | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
+| Claude Opus 5 | not-exposed | Complex Repository Change | High | 1 | 4.05 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Not exposed | Research | High | 3 | 4.03 | 0% | Provisional |
