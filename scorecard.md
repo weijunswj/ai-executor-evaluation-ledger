@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 26 July 2026, 15:32 SGT
+Updated: 26 July 2026, 20:56 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -15,7 +15,8 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
 | Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
 | DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 3 | 4.03 | 0% | 3/3 applicable | 18 | Provisional |
+| DeepSeek V4 Pro | Not exposed | 12 | 4.02 | 42% | 12/12 applicable | 55 | Useful operating baseline |
+| GPT-5.6 Sol | Not exposed | 4 | 4.12 | 25% | 4/4 applicable | 13 | Provisional across mixed tasks |
 | MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
 
 ## Formal evaluated runs
@@ -24,6 +25,19 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
+| 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
+| 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Not exposed | Production Deployment | High | ACCEPTED | 4.55 | Yes | Verified |
+| 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | AMEND | 3.84 | No | Verified |
+| 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.10 | Yes | Verified |
+| 26 Jul 2026 20:04 SGT | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | AMEND | 3.85 | No | Verified |
+| 26 Jul 2026 20:03 SGT | DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | ACCEPTED | 4.80 | Yes | Verified |
+| 26 Jul 2026 19:54 SGT | DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | AMEND | 2.75 | No | Verified |
+| 26 Jul 2026 19:22 SGT | GPT-5.6 Sol | Not exposed | Security Remediation | High | AMEND | 3.93 | No | Verified |
+| 26 Jul 2026 19:18 SGT | GPT-5.6 Sol | Not exposed | Security Remediation | High | AMEND | 3.67 | No | Verified |
+| 26 Jul 2026 19:12 SGT | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | ACCEPTED | 4.77 | Yes | Verified |
+| 26 Jul 2026 19:05 SGT | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | AMEND | 4.11 | No | Verified |
+| 26 Jul 2026 18:20 SGT | DeepSeek V4 Pro | Not exposed | Research | High | PASS | 4.42 | Yes | Verified |
 | 26 Jul 2026 15:32 SGT | Claude Opus 5 | not-exposed | Complex Repository Change | High | AMEND | 4.05 | No | Verified |
 | 26 Jul 2026 12:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.96 | No | Verified |
 | 26 Jul 2026 01:49 SGT | Claude Opus 5 | not-exposed | Architecture Proposal | High | PASS | 4.35 | Yes | Verified |
@@ -41,19 +55,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 25 Jul 2026 14:16 SGT | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | AMEND | 3.26 | No | Verified |
 | 25 Jul 2026 14:12 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | AMEND | 3.73 | No | Not controller-verified |
 | 25 Jul 2026 13:21 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | ACCEPTED | 4.30 | No | Verified |
-| 25 Jul 2026 12:42 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.38 | No | Verified |
-| 25 Jul 2026 12:05 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 3.75 | No | Verified |
-| 25 Jul 2026 11:38 SGT | Claude Opus 5 Max | Max | Complex Repository Change | High | AMEND | 3.15 | No | Verified |
-| 25 Jul 2026 11:32 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | HOLD | 3.05 | No | Not controller-verified |
-| 25 Jul 2026 11:18 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 3.53 | No | Verified |
-| 25 Jul 2026 01:12 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.50 | No | Not controller-verified |
-| 25 Jul 2026 00:55 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 2.95 | No | Verified |
-| 25 Jul 2026 00:35 SGT | MiMo 2.5 Pro | Default | Provider Operation | High | AMEND | 3.05 | No | Not controller-verified |
-| 24 Jul 2026 23:53 SGT | MiMo 2.5 Pro | Default | Security Remediation | High | AMEND | 2.98 | No | Verified |
-| 24 Jul 2026 23:50 SGT | Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | AMEND | 3.23 | No | Verified |
-| 24 Jul 2026 23:12 SGT | Claude Opus 4.8 High | High | Complex Repository Change | High | AMEND | 3.43 | No | Verified |
-| 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Incident Diagnosis | High | HOLD | 3.63 | No | Not controller-verified |
-| 24 Jul 2026 22:57 SGT | MiMo 2.5 Pro | Default | Routine Repository Change | Low | AMEND | 4.60 | No | Not applicable |
 
 ## Task-class aggregates
 
@@ -66,7 +67,15 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | Claude Opus 5 | not-exposed | Complex Repository Change | High | 1 | 4.05 | 0% | Anecdotal |
 | Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
 | DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Research | High | 3 | 4.03 | 0% | Provisional |
+| DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | 1 | 3.15 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Not exposed | Production Operations | High | 3 | 4.20 | 67% | Provisional |
+| DeepSeek V4 Pro | Not exposed | Research | High | 4 | 4.12 | 25% | Provisional |
+| DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
+| GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
+| GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -79,6 +88,286 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### DeepSeek V4 Pro - Hosted Product Uat
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:56 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-http-walkthrough-002`
+- Subject alias: `public-web-app-a`
+- Result: **AMEND**
+- Weighted score: **3.15/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - revalidated the exact hosted provenance and principal public/admin-boundary route statuses
+  - kept the run read-only with no login, quote, admin, provider, database, deployment or GitHub mutation
+  - identified genuine content and product-flow gaps from public HTML
+  - correctly preserved the unauthenticated admin boundary and Google admission hold
+- Principal defects:
+  - the required real-browser desktop, tablet and mobile walkthrough was not performed
+  - no screenshots or rendered-layout evidence were produced
+  - overflow, touch targets, focus, keyboard navigation, colour contrast, image presentation and layout shifts were explicitly unobserved but the run still returned PASS
+  - mixed-content, broken-asset, hydration and network assertions were stronger than the reported text/HTTP evidence supported
+  - the summary claimed ten public and three admin-boundary routes while the route table and categories did not reconcile
+  - empty production catalogue content was labelled an expected MVP state despite the programme requirement for an actual company alpha rather than demo readiness
+
+### DeepSeek V4 Pro - Production Operations
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:55 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-canonical-operator-source-003`
+- Subject alias: `shared-platform-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.65/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - revalidated exact repository and continuous-integration identities before credential inspection
+  - inspected the canonical operator file as data and proved the exact key was absent without printing file contents or values
+  - distinguished the nonblank API key and blank unrelated placeholder from the missing operator connection URL
+  - stopped before provider, database, Docker, Bitwarden, password, role, deployment or configuration mutation
+  - returned complete zero-mutation and cleanup evidence
+- Principal defects:
+  - the proposed next step relied on manual operator installation even though the existing provider API key can support a bounded read-only official connection-URI recovery path
+
+### DeepSeek V4 Pro - Production Deployment
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:24 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-source-commit-deployment-001`
+- Subject alias: `public-web-app-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.55/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - deployed the exact accepted revision and produced matching source-commit provenance without weakening repository validation
+  - proved Node 24, mutation-disabled administration, automatic deployment disabled and the required public and unauthenticated-admin route behaviour
+  - verified removed quote and workflow handoff variables were absent from the active runtime
+  - replaced the stale prior container only after a successful build and required no rollback
+  - performed no quote, admin, identity, application-database, DNS, TLS or repository mutation
+- Principal defects:
+  - the authorised native include-source-commit setting remained disabled and was replaced with a fixed SOURCE_COMMIT application environment value
+  - the fixed revision value can become stale and mis-attest a later build unless it is updated atomically for every new target or replaced by native per-deployment source-revision injection
+
+### DeepSeek V4 Pro - Production Operations
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:22 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-operator-source-admission-002`
+- Subject alias: `shared-platform-a`
+- Result: **AMEND**
+- Weighted score: **3.84/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - revalidated the exact repository main, merged pull request and accepted continuous-integration identity
+  - checked the Process, User and Machine Windows environment scopes without exposing or transforming any value
+  - stopped before provider access, database connection, Docker access, password generation, Bitwarden use or mutation
+  - returned a complete zero-mutation statement and did not misrepresent any activation phase as started
+- Principal defects:
+  - the canonical shared operator source at %USERPROFILE%\.codex\.env was not inspected even though persistent Windows variables are not the default authority
+  - absence from Process, User and Machine scopes was therefore misclassified as operator credential unavailability
+  - controller injection or a manual paste path was proposed before exhausting the approved host-neutral operator environment authority
+
+### DeepSeek V4 Pro - Production Operations
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:05 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-runtime-activation-preflight-001`
+- Subject alias: `shared-platform-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.10/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - revalidated the exact merged repository state and accepted continuous-integration result before attempting production access
+  - stopped before provider access, database connection, password creation, secret-store write or any mutation
+  - reported complete zero-mutation and temporary-resource state with no secret exposure
+  - correctly identified the unavailable container runtime as a decisive activation-host blocker
+- Principal defects:
+  - absence from the current process environment was presented as absence of the operator credential without checking persistent user, machine or approved bootstrap sources
+  - absence of one command-line client was presented as absence of all approved secret-store write capability
+  - stale activation containers were reported absent even though the container daemon was unavailable and the inventory could not be observed
+  - all three conditions were grouped as hardware or environment failures even though two were unresolved credential-source and tooling-admission questions
+
+### DeepSeek V4 Pro - Security Architecture Audit
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:04 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-audit-001`
+- Subject alias: `private-quote-service-a`
+- Result: **AMEND**
+- Weighted score: **3.85/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - proved the current application role lacks superuser, role-creation, database-creation, replication and row-security bypass authority
+  - proved the runtime role owns no application objects and the migrator owns the canonical application tables and trigger functions
+  - identified current excess data-modification grants on migration-ledger and append-only tables
+  - kept the audit read-only with no password, grant, ownership, provider or deployment mutation and no secret exposure
+- Principal defects:
+  - the audit explicitly left transitive memberships, column grants, direct routine grants and legacy-administrator explicit grants incomplete while claiming full admission
+  - the proposed broad table grants would give migration-ledger insert authority to the online runtime
+  - the proposed future default grants would recreate update and delete access on immutable tables and execute access on every future function
+  - the replacement migration and recovery administration path was not proven before proposing membership revocation
+  - the legacy provider-administrator finding was overstated without proving provider support or a material reduction in its existing authority
+  - the proposed role creation installed login credentials before exact privilege validation instead of using a no-login-first sequence
+  - provider utility ownership and provider-role removal were included outside the bounded runtime-role migration scope
+
+### DeepSeek V4 Pro - Incident Diagnosis
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 20:03 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-build-root-cause-001`
+- Subject alias: `public-web-app-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.80/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - recovered the exact post-build provenance failure and correctly separated it from the successful application build
+  - proved the missing revision input through hosted configuration, build arguments and repository call-path evidence
+  - eliminated the runtime-version, dependency, resource and network hypotheses with direct evidence
+  - performed no repository, provider, deployment, database, identity or application-data mutation
+- Principal defects:
+  - the proposed rollback wording initially suggested reverting the required source-revision setting after any later build failure rather than only after evidence that the setting itself was defective
+
+### DeepSeek V4 Pro - Complex Repository Change
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 19:54 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-dl-299-310-002-implementation-001`
+- Subject alias: `governance-tooling-a`
+- Result: **AMEND**
+- Weighted score: **2.75/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised branch and draft unmerged pull-request state
+  - created distinct code-specific detector modules and materially improved canonical policy and diagnostic structure
+  - maintained a clean worktree and performed no live, credential, consumer or production action
+  - left prior controller reviews unresolved and updated the implementation tracker and pull-request body
+- Principal defects:
+  - exact-head Validate and Validate toolkit checks failed, including a direct conflict between the new privileged-workflow npm installation and the repository's trusted writeback validator
+  - the workflow inventory is a flat handwritten scanner and does not recursively traverse reusable workflows, local composite actions, shell wrappers, package-script chains and dynamic execution as locked
+  - the fixture manifest covers only twenty-three of twenty-seven governance codes and mutation sensitivity is demonstrated only for GOV014 rather than every code
+  - replacement-chain enforcement does not prove body and structured agreement, unknown predecessor rejection, broken or cyclic chain detection or superseded reactivation
+  - generated-surface parity and side-effect interception evidence remain incomplete against the controller lock
+  - the terminal file ledger understated the cumulative pull-request scope and the required full validation sequence was not completed
+
+### GPT-5.6 Sol - Security Remediation
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 19:22 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-repository-security-gate-a-amendment-001`
+- Subject alias: `repository-security-gate-a`
+- Result: **AMEND**
+- Weighted score: **3.93/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - closed the original candidate-self-certification bypass by executing enforcement-critical code only from a separate exact trusted checkout
+  - moved active suppression authority out of candidate control and bound it to protected invariant closure and exact candidate inputs
+  - preserved exact Git path case, scanner-specific finding identity and same-candidate ineligibility
+  - reported the bootstrap state honestly as unverified with nine active findings and zero suppressions
+  - kept the bootstrap explicitly non-enforcement and performed no live security, provider, deployment or consumer action
+- Principal defects:
+  - seven required Toolkit invariant tests exit nonzero in the actual unprivileged no-network read-only protected sandbox
+  - the proposed protected gate workflow retains an unsuppressed high-severity dangerous-trigger finding against itself
+  - no deterministic exact-tree simulation proves the expected post-promotion result after the candidate becomes protected authority
+
+### GPT-5.6 Sol - Security Remediation
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 19:18 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-a-amendment-001`
+- Subject alias: `external-control-plane-a`
+- Result: **AMEND**
+- Weighted score: **3.67/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - removed ordinary imported-code access to the production inventory-authority minting path
+  - separated the exact standalone authority session and bound runtime, source, installation and inventory identities
+  - preserved singular parent-bound WeakMap mint sites and rejected reconstructed or cross-copy authority objects
+  - provided strong adversarial evidence and kept every live provider, credential, deployment and consumer boundary untouched
+- Principal defects:
+  - authenticated production aliases and case variants can bypass the generic Tier-2 mutation floor
+  - prefix-based MCP read admission permits compound mutating action names beginning with a read verb
+  - the authenticated receipt session expires after a fixed thirty seconds even when the authorised operation is still running
+  - workflow compiler output containment is lexical and can follow a redirected output or ancestor outside the repository
+  - inventory generation rollback protection is process-local and resets between short-lived authority invocations
+  - the exported default registry paths disagree
+  - target resolution cannot use account or organisation identity to disambiguate otherwise matching targets
+  - top-level and canonical nested approval references are not required to match
+
+### GPT-5.6 Sol - Complex Repository Change
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 19:12 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-workflow-transport-a-amendment-001`
+- Subject alias: `workflow-transport-a`
+- Result: **ACCEPTED**
+- Weighted score: **4.77/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - made dedicated workflow identity authoritative before live discovery and rejected missing recorded targets without same-name fallback
+  - replaced automatic changed-existing-target mutation with a complete fail-closed manual-application batch
+  - used exclusive creation for missing targets and repeatedly revalidated identity, mode, topology and bytes
+  - made the replacement-race fixture deterministic without sleeps, timestamp assumptions or inode-reuse dependence
+  - kept authoritative, generated Skill and Secure Installer helper copies byte-identical and passed exact-head hosted validation and code scanning
+- Principal defects:
+  - none recorded
+
+### GPT-5.6 Sol - Complex Repository Change
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 19:05 SGT**
+- Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-a-amendment-001`
+- Subject alias: `workflow-compatibility-a`
+- Result: **AMEND**
+- Weighted score: **4.11/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - implemented a detailed identity-bound evidence inventory and preserved strict repository-only scope
+  - provided strong exact-head test, source-generated parity and hosted continuous-integration evidence
+  - kept the pull request open and unmerged and performed no live n8n, provider or production operation
+  - materially improved recovery adjudication and replacement detection across the compatibility bridge
+- Principal defects:
+  - phase-30 installed-winner recovery can bypass the required phase-40 verification transition
+  - evidence retirement is not restart-safe and can leave an irrecoverable partially retired authority set
+  - target bytes can change after admission and before displacement without one final exact-byte revalidation
+  - healthy SessionStart repeatedly performs full-tree classification instead of using a bounded valid-state fast path
+
+### DeepSeek V4 Pro - Research
+
+- Reasoning level: **Not exposed**
+- Reviewed: **26 Jul 2026 18:20 SGT**
+- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-004`
+- Subject alias: `governance-tooling-a`
+- Result: **PASS**
+- Weighted score: **4.42/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - preserved the exact authorised pull-request head and strict no-mutation boundary while producing a complete twenty-four-section packet
+  - replaced broad detector aliases with one code-specific detector unit per finding code and separated immutable production assembly from the test-only registry
+  - defined unchanged exact-oracle mutation proof typed fail-closed diagnostic context and representation-independent subject keys
+  - carried forward body-derived authority implementation pull-request lifecycle side-effect interception semantic parity fixtures and full workflow dependency closure
+  - provided an unusually complete path-level implementation blast radius and adversarial test matrix suitable for a controller-issued design lock
+- Principal defects:
+  - the packet recommends making canonical_parent_tracker schema-required even though the prior controller lock explicitly keeps missing or wrong canonical-parent identity as semantic governance findings
+  - the independent test registry is not mechanically bound per code to the exact function references used by the production registry, so mutation coverage could drift into a test-only implementation
+  - the duplicate-ID section says diagnostics name an internal canonical key even though the typed-context contract prohibits arbitrary identifier-derived strings and requires repository-level opaque output
+  - string subject ordering uses localeCompare while claiming locale-independent Unicode code-point order; deterministic ordinal comparison is required
+  - the lifecycle model introduces is_amendment_of and additional replacement semantics but the schema row in the blast radius does not include those required structural changes and GOV022 versus GOV027 overlap remains ambiguous
+  - the parity contract incorrectly claims published and curated skill files are byte-identical although the published surface contains a generated provenance header and must be checked through the canonical transform
+  - the side-effect contract does not completely specify read-versus-write fs.open flag classification and its DNS proof would risk real resolver activity instead of a controlled fake adapter
+  - the workflow traversal and implementation paths contain minor internal naming and location inconsistencies that the controller lock must normalise before Gate 3
 
 ### Claude Opus 5 - Complex Repository Change
 
@@ -462,293 +751,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - classified the environment-dependent timeout result as a proven Windows performance issue and not a code defect without direct causal evidence
   - the previous local summary of thirty-one passes and two timeouts was inaccurate and required correction to the complete thirty-five-timeout result
   - required controller correction of pull-request and tracker wording before final acceptance
-
-### Claude Opus 5 Max - Complex Repository Change
-
-- Reasoning level: **Max**
-- Reviewed: **25 Jul 2026 12:42 SGT**
-- Run ID: `2026-07-25-claude-opus-5-max-business-automation-a-amendment-005`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.38/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - closed the prior readable-build-event bypass with a terminal reservation rule
-  - retired same-approval rebuild and preserved fresh-approval recovery
-  - added real-file visible-line and partial-append restart tests
-  - kept the exact-head change draft and unmerged with green continuous integration and zero live-system actions
-- Principal defects:
-  - a complete approval decision line can become build-authoritative after its flush or fsync reports failure
-  - a concurrent reservation loser is reported as retryable even though the competing reservation consumed the approval
-  - dict-shaped malformed ledger records are not schema-validated and can reach uncontrolled timestamp parsing errors
-  - the completion report overstates closure after a fifth same-domain amendment
-
-### MiMo 2.5 Pro - Security Remediation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 12:05 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-006`
-- Subject alias: `public-web-app-a`
-- Result: **AMEND**
-- Weighted score: **3.75/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - removed the undocumented production debug-output path
-  - replaced the duplicate test oracle with the exported production validator
-  - preserved earlier fail-closed provenance repairs
-  - kept the exact-head change draft and unmerged with green continuous integration and zero provider operations
-  - produced clean private tracker text at this amendment
-- Principal defects:
-  - omitted six explicitly required production-validator negative classes while calling the matrix complete
-  - did not directly test missing or unknown provenance mode
-  - did not directly test both-invalid missing or non-boolean cleanliness states
-  - reported a local website suite with two timeouts without reconciling that failure against the later green continuous-integration run
-  - declared PASS despite the incomplete required matrix
-
-### Claude Opus 5 Max - Complex Repository Change
-
-- Reasoning level: **Max**
-- Reviewed: **25 Jul 2026 11:38 SGT**
-- Run ID: `2026-07-25-claude-opus-5-max-business-automation-a-amendment-004`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.15/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - introduced the correct write-ahead reservation direction before atomic publication
-  - kept the exact-head change draft and unmerged with green continuous integration and zero live-system actions
-  - added explicit non-success states for reservation, publication, cleanup and ledger failure
-  - preserved published, competing and historical package paths and avoided broad state-directory sweeps
-- Principal defects:
-  - the tests force every failed ledger append to leave no readable bytes, including the fsync case
-  - a real flush or fsync failure can leave a complete readable build event whose durability was never confirmed
-  - reservation reconciliation trusts that readable event and can reopen rebuild under the same approval
-  - a partial append can leave malformed JSONL that escapes as an uncontrolled decode failure
-  - the completion report overstates durable single-use closure after a fourth same-domain amendment
-
-### MiMo 2.5 Pro - Incident Diagnosis
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 11:32 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-hosting-diagnosis-003`
-- Subject alias: `private-quote-service-a`
-- Result: **HOLD**
-- Weighted score: **3.05/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - respected the strictly read-only boundary and reported no deployment restart rebuild or configuration mutation
-  - recovered useful application identity routing port health-path environment-inventory and certificate-state metadata
-  - correctly established that the current environment is incomplete for a future current-revision deployment
-  - kept downstream launch readiness false
-- Principal defects:
-  - claimed deploy-mode guard execution while also reporting the custom deploy-mode variable absent
-  - used the current repository authentication contract to explain an older hosted revision that predates that contract
-  - declared an exact application root cause without container exit code startup stderr or deployment logs
-  - treated a default proxy certificate as proof that no certificate request was attempted
-  - proposed one broad multi-provider configuration and deployment operation instead of bounded prerequisite gates
-  - proposed deleting production variables as rollback even though that intentionally restores an unhealthy state
-
-### MiMo 2.5 Pro - Security Remediation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 11:18 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-005`
-- Subject alias: `public-web-app-a`
-- Result: **AMEND**
-- Weighted score: **3.53/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - removed caller-supplied checkout-status authority from the production entry point
-  - made non-absence Git metadata probe failures fail closed
-  - implemented explicit-property presence semantics for invalid supplied revisions
-  - added real malformed-Git-output and post-revision status-command failure coverage
-  - kept the change draft and unmerged with green exact-head continuous integration and zero provider operations
-- Principal defects:
-  - left an undocumented production debug environment hook that can emit revision-source state
-  - tested the hosted provenance matrix against a duplicate local validator instead of the exported production validator
-  - reported clean tracker encoding although both authoritative tracker bodies were collapsed and mojibake-corrupted
-  - declared PASS despite three material P2 findings
-
-### MiMo 2.5 Pro - Provider Operation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 01:12 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-env-migration-002`
-- Subject alias: `private-quote-service-a`
-- Result: **AMEND**
-- Weighted score: **3.50/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - correctly classified the six object-storage values as application-runtime configuration for the exact hosted application
-  - kept the live-evidence flag absent and reported no deployment restart rebuild or unrelated provider mutation
-  - used the honest ONE_SHOT_PRIOR_WRITE limitation instead of inventing an active recurring writer
-  - reported owner-assisted cleanup and preview-duplicate removal rather than claiming fully autonomous completion
-- Principal defects:
-  - did not provide independently reviewable masked provider receipts sufficient to verify the final hosted variable inventory
-  - retained a repository-local environment file without proving that it contains only non-production development or test values
-  - did not perform a fresh post-restart inheritance check
-  - wrote a malformed authoritative tracker body using backslash escapes and marked the migration complete before controller verification
-  - did not reconcile the reusable Toolkit incident record as requested
-
-### MiMo 2.5 Pro - Security Remediation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 00:55 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-004`
-- Subject alias: `public-web-app-a`
-- Result: **AMEND**
-- Weighted score: **2.95/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - added fail-closed handling for malformed string revisions and Git command exceptions
-  - implemented hosted provenance source-mode and cleanliness validation
-  - moved the Node test suite into the repository CI path and obtained green exact-head continuous integration
-  - kept the repair draft and unmerged and performed no prohibited provider or deployment operation
-- Principal defects:
-  - retained caller-supplied checkout-status authority that can bypass real Git cleanliness inspection while claiming it was removed
-  - treated every Git metadata probe error as genuine Git absence
-  - treated supplied null and non-string explicit revisions as absent rather than invalid
-  - labelled two mandatory negative tests without exercising malformed Git output or the status-command failure path
-  - left byte-order marks and collapsed Markdown in authoritative control text despite reporting clean encoding
-  - declared PASS while multiple P1 findings survived
-
-### MiMo 2.5 Pro - Provider Operation
-
-- Reasoning level: **Default**
-- Reviewed: **25 Jul 2026 00:35 SGT**
-- Run ID: `2026-07-25-mimo-2-5-pro-private-quote-service-a-provider-preflight-001`
-- Subject alias: `private-quote-service-a`
-- Result: **AMEND**
-- Weighted score: **3.05/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - recovered useful leads across the application database object-storage and public-hosting surfaces
-  - reported zero provider mutation and no deployment restart or rebuild
-  - identified the existing application bucket and runtime-role candidates
-  - kept the downstream platform handoff disabled and production readiness false
-- Principal defects:
-  - treated application-runtime object-storage credentials as acceptable shared operator-environment values
-  - identified the current environment file but did not identify what wrote or repeatedly restores the values
-  - corrupted the authoritative tracker body with control characters and malformed escaping
-  - reported contradictory application-environment evidence and did not provide enough exact API evidence for independent verification
-  - used a PASS framing despite unresolved P1 environment classification and multiple unverified provider gates
-
-### MiMo 2.5 Pro - Security Remediation
-
-- Reasoning level: **Default**
-- Reviewed: **24 Jul 2026 23:53 SGT**
-- Run ID: `2026-07-24-mimo-2-5-pro-public-web-app-a-provenance-repair-003`
-- Subject alias: `public-web-app-a`
-- Result: **AMEND**
-- Weighted score: **2.98/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - correctly targeted the proven missing-Git deployment build failure
-  - introduced a truthful deployment-source provenance mode instead of pretending a checkout was inspected
-  - kept the repair draft and unmerged and performed no prohibited provider or deployment operation
-  - added useful positive agreement and mismatch tests
-- Principal defects:
-  - malformed present revision sources are silently treated as absent and may be ignored
-  - Git revision and status command failures in an existing checkout are downgraded to Git absence
-  - hosted validation does not enforce the emitted revision source or truthful source-mode combinations
-  - exact-head continuous integration is red because the new test file conflicts with the repository test runner
-  - the terminal report declared PASS before checking continuous integration and claimed validations whose CI steps were skipped
-  - the pull-request and tracker text contained control-character or byte-order-mark corruption
-  - the trackers prematurely marked independent review complete
-
-### Claude Opus 4.8 Ultra High - Complex Repository Change
-
-- Reasoning level: **ultra-high**
-- Reviewed: **24 Jul 2026 23:50 SGT**
-- Run ID: `2026-07-24-claude-opus-4-8-ultra-high-business-automation-a-amendment-003`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.23/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - implemented a clear three-state publication and temporary-cleanup model
-  - forced unlink failures across pre-publication, race and post-publication paths
-  - preserved published and competing final packages and avoided broad temporary-file sweeps
-  - kept the change draft and unmerged with exact-head continuous integration and zero live-system actions
-- Principal defects:
-  - post-publication single-use state depends on a ledger append that can itself fail
-  - a published package may exist without a durable build event after ledger open, write, flush or fsync failure
-  - the same approval can then build another package at a fresh absent path
-  - the command falls back to a generic error rather than an explicit published do-not-retry state
-  - tests do not force ledger persistence failures after publication
-  - the completion report claims durable approval consumption despite this untested bypass
-
-### Claude Opus 4.8 High - Complex Repository Change
-
-- Reasoning level: **High**
-- Reviewed: **24 Jul 2026 23:12 SGT**
-- Run ID: `2026-07-24-claude-opus-4-8-high-business-automation-a-amendment-002`
-- Subject alias: `business-automation-a`
-- Result: **AMEND**
-- Weighted score: **3.43/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - replaced progressive final-path writes with complete same-directory temporary-file publication
-  - used atomic no-replace hard-link publication and preserved concurrent final-path winners
-  - added focused write, publication and race failure tests with fresh continuous integration
-  - kept the change draft and unmerged with zero live-system actions
-- Principal defects:
-  - temporary-file deletion failures are silently suppressed on success and failure paths
-  - a full member package may remain in a temporary file while the command reports success or a handled failure
-  - the tests do not force temporary unlink failure
-  - the completion report claims no stale temporary remains although cleanup is best-effort
-
-### MiMo 2.5 Pro - Incident Diagnosis
-
-- Reasoning level: **Default**
-- Reviewed: **24 Jul 2026 22:57 SGT**
-- Run ID: `2026-07-24-mimo-2-5-pro-project-a-diagnosis-002`
-- Subject alias: `public-web-app-a`
-- Result: **HOLD**
-- Weighted score: **3.63/5**
-- First-pass accepted: **No**
-- Safe final state: **Not controller-verified**
-- Principal strengths:
-  - performed no prohibited mutation
-  - correctly kept several provider gates on hold
-  - recovered useful API and validator evidence
-  - updated both project trackers with clean text
-- Principal defects:
-  - identified the later checkout-status call instead of the first failing revision-discovery call
-  - reported the wrong emitted error code
-  - treated deployment admission as passed without proving automatic deployment was disabled
-  - did not identify the runtime-major mismatch visible in the later build logs
-  - reported an attempt count that remained unverified
-
-### MiMo 2.5 Pro - Routine Repository Change
-
-- Reasoning level: **Default**
-- Reviewed: **24 Jul 2026 22:57 SGT**
-- Run ID: `2026-07-24-mimo-2-5-pro-project-b-config-001`
-- Subject alias: `public-python-service-b`
-- Result: **AMEND**
-- Weighted score: **4.60/5**
-- First-pass accepted: **No**
-- Safe final state: **Not applicable**
-- Principal strengths:
-  - implemented the exact bounded configuration
-  - preserved dependency and security state
-  - reported exact scope and successful checks
-  - avoided all prohibited provider and alert mutations
-- Principal defects:
-  - introduced control characters into authoritative tracker bodies
-  - marked an in-review checklist item complete before merge
 <!-- GENERATED:SCORECARD-RUNS:END -->
 
 ## Current interpretation
