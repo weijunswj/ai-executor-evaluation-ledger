@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Append one controller-reviewed public-safe SKR dependency audit evaluation."""
+# Controller-only trigger: execute the installed bounded intake once.
 
 from __future__ import annotations
 
