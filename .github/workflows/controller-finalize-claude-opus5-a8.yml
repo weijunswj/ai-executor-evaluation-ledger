@@ -101,3 +101,5 @@ jobs:
           git add -A
           git commit -m "Record Claude Opus 5 Amendment 8 evaluation"
           git push origin "HEAD:${final_branch}"
+
+# One-shot trigger revision; removed with this workflow from the generated final branch.
