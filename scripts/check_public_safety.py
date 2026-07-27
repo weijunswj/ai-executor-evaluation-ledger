@@ -260,7 +260,7 @@ def added_lines_for_path(commit: str, label: str) -> str:
             "--no-renames",
             commit,
             "--",
-            label,
+            ":(literal)" + label,
         ],
         cwd=ROOT,
         check=True,
