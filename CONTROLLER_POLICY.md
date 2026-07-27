@@ -109,12 +109,13 @@ Allowed:
 - sanitised task descriptions;
 - scores, verified strengths, defects and controller effort;
 - non-sensitive tool and workflow versions;
-- prompt hashes when the prompt itself is not published.
+- prompt hashes when the prompt itself is not published;
+- the single scanner-allowlisted README link to the companion Custom Instructions document.
 
 Prohibited:
 
 - repository owner names, repository names or owner/repository slugs;
-- raw repository, issue, pull-request or commit URLs;
+- all other raw repository, issue, pull-request or commit URLs;
 - user names, account logins, emails, user IDs or home-directory paths;
 - raw commit revisions that can identify a project;
 - provider project references, application/deployment/workspace/client identifiers or support case identifiers;
@@ -127,6 +128,7 @@ Prohibited:
 
 - `python scripts/check_public_safety.py` must pass before a controller update is accepted.
 - CI scans the tracked tree, structured JSONL and all added lines after the fixed safety baseline.
+- URL exceptions must be exact, boundary-checked, documentation-only allowlist entries; broad host or repository exemptions are prohibited.
 - A failed scan blocks merge or acceptance.
 - The controller must still review sanitisation manually because pattern scanning cannot prove absence of every sensitive inference.
 
