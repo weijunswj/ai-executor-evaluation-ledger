@@ -14,6 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 BASELINE_FILE = ROOT / ".public-safety-baseline"
 MAX_TEXT_BYTES = 2_000_000
 
+ALLOWED_PUBLIC_GITHUB_URLS = frozenset(
+    {
+        "https://github.com/weijunswj/Custom-Instruction-Framework-For-Web-based-LLMs/blob/main/CUSTOM_INSTRUCTIONS.md",
+    }
+)
+URL_TERMINATORS = frozenset(" \t\r\n)>]\"'")
+
 SENSITIVE_JSON_KEYS = {
     "repository",
     "repository_full_name",
@@ -97,10 +104,21 @@ def decode_text(path: Path) -> str | None:
         return None
 
 
+def is_allowed_public_github_url(text: str, start: int) -> bool:
+    for url in ALLOWED_PUBLIC_GITHUB_URLS:
+        if not text.startswith(url, start):
+            continue
+        end = start + len(url)
+        return end == len(text) or text[end] in URL_TERMINATORS
+    return False
+
+
 def scan_text(label: str, text: str) -> list[str]:
     failures: list[str] = []
     for rule_name, pattern in RULES:
         for match in pattern.finditer(text):
+            if rule_name == "GitHub repository URL" and is_allowed_public_github_url(text, match.start()):
+                continue
             line = text.count("\n", 0, match.start()) + 1
             failures.append(f"{label}:{line}: {rule_name}")
     return failures
