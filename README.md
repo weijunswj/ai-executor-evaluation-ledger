@@ -1,6 +1,7 @@
 # AI Executor Evaluation Ledger
 
 Public, controller-owned evidence for evaluating AI coding and operations executors across real project work.
+Used in conjunction with [https://github.com/weijunswj/Custom-Instruction-Framework-For-Web-based-LLMs/blob/main/CUSTOM_INSTRUCTIONS.md](LLM WEB CUSTOM INSTRUCTIONS SET).
 
 > **Controller sessions:** read [`CONTROLLER_QUICKSTART.md`](CONTROLLER_QUICKSTART.md) before editing. Append one JSONL record; do not hand-edit generated score sections.
 
