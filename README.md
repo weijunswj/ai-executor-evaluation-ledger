@@ -11,7 +11,7 @@ Used in conjunction with [LLM WEB CUSTOM INSTRUCTIONS SET](https://github.com/we
 This is the primary at-a-glance tracker. Aggregate scores use the complete append-only history in [`evaluations.jsonl`](evaluations.jsonl), not only the 30 runs displayed in [`scorecard.md`](scorecard.md).
 
 | Model | Reasoning level | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Evidence level |
-|---|---|---:|---:|---:|---:|---|
+|---|---|---:|---:|---:|---:|---:|
 | Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | Provisional |
 | Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | Anecdotal |
 | Claude Opus 5 | Max | 1 | 3.90 | 0% | 1/1 applicable | Anecdotal |
