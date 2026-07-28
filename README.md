@@ -1,6 +1,7 @@
 # AI Executor Evaluation Ledger
 
 Public, controller-owned evidence for evaluating AI coding and operations executors across real project work.
+Used in conjunction with [LLM WEB CUSTOM INSTRUCTIONS SET](https://github.com/weijunswj/Custom-Instruction-Framework-For-Web-based-LLMs/blob/main/CUSTOM_INSTRUCTIONS.md).
 
 > **Controller sessions:** read [`CONTROLLER_QUICKSTART.md`](CONTROLLER_QUICKSTART.md) before editing. Append one JSONL record; do not hand-edit generated score sections.
 
@@ -124,7 +125,7 @@ Every pull request and push to `main` runs fail-closed checks over:
 - append-only evaluation history relative to the pull-request base;
 - deterministic README and scorecard generation.
 
-The scanner rejects common credentials, private keys, emails, user-home paths, repository URLs/slugs, identity fields, provider identifiers, UUIDs and credential-bearing URLs or assignments. CI reduces accidental disclosure risk but does not replace controller review.
+The scanner rejects common credentials, private keys, emails, user-home paths, repository URLs/slugs, identity fields, provider identifiers, UUIDs and credential-bearing URLs or assignments by default. Any exception must be an exact, boundary-checked documentation URL in the scanner allowlist. CI reduces accidental disclosure risk but does not replace controller review.
 
 ## Files
 

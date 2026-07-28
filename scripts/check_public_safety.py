@@ -14,6 +14,54 @@ ROOT = Path(__file__).resolve().parents[1]
 BASELINE_FILE = ROOT / ".public-safety-baseline"
 MAX_TEXT_BYTES = 2_000_000
 
+COMPANION_URL = "".join(
+    (
+        "https://github.com/",
+        "weijunswj/",
+        "Custom-Instruction-Framework-For-Web-based-LLMs/",
+        "blob/main/CUSTOM_INSTRUCTIONS.md",
+    )
+)
+COMPANION_LINK_LABEL = "LLM WEB CUSTOM INSTRUCTIONS SET"
+COMPANION_README_LINE = (
+    f"Used in conjunction with [{COMPANION_LINK_LABEL}]({COMPANION_URL})."
+)
+LEGACY_REVERSED_README_LINE = (
+    f"Used in conjunction with [{COMPANION_URL}]({COMPANION_LINK_LABEL})."
+)
+LEGACY_SCRIPT_URL_LINE = f'        "{COMPANION_URL}",'
+URL_MASK = "COMPANION_DOCUMENT_URL"
+
+# These immutable commits already contain the URL after the fixed safety baseline.
+# Bind each exception to the exact commit, file and complete added line so no future
+# commit or other tracked location inherits the exception.
+HISTORICAL_ALLOWED_LINES: dict[tuple[str, str], frozenset[str]] = {
+    (
+        "fc0c69d71d2e8ca28c8bcae0cf06f0010031377b",
+        "README.md",
+    ): frozenset({LEGACY_REVERSED_README_LINE}),
+    (
+        "674ac399e46b56d20f6f66a83b67d491f387f6af",
+        "README.md",
+    ): frozenset({LEGACY_REVERSED_README_LINE}),
+    (
+        "1b6bef8bb0ae32934a31bad5ac388c9f525205ff",
+        "scripts/check_public_safety.py",
+    ): frozenset({LEGACY_SCRIPT_URL_LINE}),
+    (
+        "4b7da9295ccfbe4cb27867601db0a70f9f3a405b",
+        "README.md",
+    ): frozenset({COMPANION_README_LINE}),
+    (
+        "2b096244fdaeb11875b0c2a88480ef9157ac4ec7",
+        "README.md",
+    ): frozenset({COMPANION_README_LINE}),
+    (
+        "2b096244fdaeb11875b0c2a88480ef9157ac4ec7",
+        "scripts/check_public_safety.py",
+    ): frozenset({LEGACY_SCRIPT_URL_LINE}),
+}
+
 SENSITIVE_JSON_KEYS = {
     "repository",
     "repository_full_name",
@@ -97,6 +145,49 @@ def decode_text(path: Path) -> str | None:
         return None
 
 
+def mask_exact_lines(text: str, allowed_lines: frozenset[str]) -> str:
+    if not allowed_lines:
+        return text
+
+    masked: list[str] = []
+    for raw_line in text.splitlines(keepends=True):
+        content = raw_line.rstrip("\r\n")
+        ending = raw_line[len(content):]
+        if content in allowed_lines:
+            content = content.replace(COMPANION_URL, URL_MASK)
+        masked.append(content + ending)
+    return "".join(masked)
+
+
+def prepare_tracked_text(label: str, text: str) -> tuple[str, list[str]]:
+    if label != "README.md":
+        return text, []
+
+    lines = text.splitlines()
+    canonical_count = sum(line == COMPANION_README_LINE for line in lines)
+    url_count = text.count(COMPANION_URL)
+    failures: list[str] = []
+
+    if canonical_count != 1:
+        failures.append(
+            f"{label}: expected exactly one canonical companion documentation line, "
+            f"found {canonical_count}"
+        )
+    if url_count != 1:
+        failures.append(
+            f"{label}: expected exactly one companion documentation URL, found {url_count}"
+        )
+
+    if failures:
+        return text, failures
+    return mask_exact_lines(text, frozenset({COMPANION_README_LINE})), []
+
+
+def prepare_historical_text(commit: str, label: str, text: str) -> str:
+    allowed_lines = HISTORICAL_ALLOWED_LINES.get((commit, label), frozenset())
+    return mask_exact_lines(text, allowed_lines)
+
+
 def scan_text(label: str, text: str) -> list[str]:
     failures: list[str] = []
     for rule_name, pattern in RULES:
@@ -136,7 +227,55 @@ def scan_jsonl(path: Path) -> list[str]:
     return failures
 
 
-def added_lines_since_baseline() -> Iterable[tuple[str, str]]:
+def changed_files_in_commit(commit: str) -> list[str]:
+    result = subprocess.run(
+        [
+            "git",
+            "diff-tree",
+            "--root",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            "-z",
+            commit,
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    )
+    return [
+        item.decode("utf-8")
+        for item in result.stdout.split(b"\0")
+        if item
+    ]
+
+
+def added_lines_for_path(commit: str, label: str) -> str:
+    patch = subprocess.run(
+        [
+            "git",
+            "show",
+            "--format=",
+            "--unified=0",
+            "--no-renames",
+            commit,
+            "--",
+            ":(literal)" + label,
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        errors="replace",
+    ).stdout
+    return "\n".join(
+        line[1:]
+        for line in patch.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+    )
+
+
+def added_lines_since_baseline() -> Iterable[tuple[str, str, str]]:
     if not BASELINE_FILE.exists():
         raise RuntimeError("missing .public-safety-baseline")
     baseline = BASELINE_FILE.read_text(encoding="utf-8").strip()
@@ -150,20 +289,10 @@ def added_lines_since_baseline() -> Iterable[tuple[str, str]]:
         text=True,
     )
     for commit in result.stdout.splitlines():
-        patch = subprocess.run(
-            ["git", "show", "--format=", "--unified=0", "--no-renames", commit],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-            errors="replace",
-        ).stdout
-        additions = "\n".join(
-            line[1:]
-            for line in patch.splitlines()
-            if line.startswith("+") and not line.startswith("+++")
-        )
-        yield commit[:12], additions
+        for label in changed_files_in_commit(commit):
+            additions = added_lines_for_path(commit, label)
+            if additions:
+                yield commit, label, additions
 
 
 def main() -> int:
@@ -173,15 +302,21 @@ def main() -> int:
         text = decode_text(path)
         if text is None:
             continue
-        failures.extend(scan_text(str(path.relative_to(ROOT)), text))
+        label = str(path.relative_to(ROOT))
+        prepared, policy_failures = prepare_tracked_text(label, text)
+        failures.extend(policy_failures)
+        failures.extend(scan_text(label, prepared))
 
     jsonl = ROOT / "evaluations.jsonl"
     if jsonl.exists():
         failures.extend(scan_jsonl(jsonl))
 
     try:
-        for commit, additions in added_lines_since_baseline():
-            failures.extend(scan_text(f"commit:{commit}:added-lines", additions))
+        for commit, label, additions in added_lines_since_baseline():
+            prepared = prepare_historical_text(commit, label, additions)
+            failures.extend(
+                scan_text(f"commit:{commit[:12]}:{label}:added-lines", prepared)
+            )
     except (RuntimeError, subprocess.CalledProcessError) as exc:
         failures.append(f"history scan failed: {exc}")
 
