@@ -1,6 +1,7 @@
 import json
 import hashlib
 import os
+import re
 from typing import Dict, Any, List, Tuple
 
 REASONING_KEYS = {
@@ -14,6 +15,7 @@ REASONING_KEYS = {
 
 ALLOWED_PROVIDERS = {"Google", "DeepSeek", "Qwen", "Anthropic", "OpenAI", "MiMo"}
 ALLOWED_MODELS = {"MiMo 2.5 Pro", "Claude Opus 4.8", "Claude Opus 5", "DeepSeek V4 Pro", "GPT-5.6 Sol", "Qwen3.7 Plus", "Gemini 3.6 Flash"}
+UUID_PATTERN = re.compile(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b")
 
 def contains_reasoning_keys(obj: Any) -> bool:
     if isinstance(obj, dict):
@@ -59,6 +61,10 @@ def parse_intake_comment(comment_id: int, body: str, recorded_run_ids: set, seen
 
     if not isinstance(payload, dict):
         return "malformed", {}, "Payload must be a JSON object"
+
+    # Check for prohibited UUIDs in intake payload
+    if UUID_PATTERN.search(payload_str):
+        return "ineligible", payload, "Intake payload contains UUID which fails public safety policy"
 
     # Check for prohibited reasoning metadata at any nesting level
     if contains_reasoning_keys(payload):
