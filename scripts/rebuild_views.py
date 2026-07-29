@@ -478,6 +478,7 @@ def rebuild_views(total_queued_count: int = 0) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="verify generated views without writing")
+    parser.add_argument("--base-ref", help="optional Git revision used to enforce append-only JSONL")
     args = parser.parse_args()
 
     try:
