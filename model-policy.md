@@ -383,11 +383,9 @@ GPT-5.6 Sol is suitable for complex repository implementation and high-risk reme
 
 ## Universal requirements
 
-Regardless of model:
-
 - exact private repository and revision binding;
 - exact provider and canonical base-model label recorded without inference, renaming or normalisation;
-- no public reasoning-level identity or aggregation; historical reasoning metadata remains pending the dedicated migration;
+- no public reasoning-level identity or aggregation;
 - public records use opaque subject aliases;
 - no secret or private-identity disclosure;
 - explicit mutation authorisation;
@@ -395,4 +393,4 @@ Regardless of model:
 - complete evidence appropriate to the task;
 - private project tracker reconciliation;
 - evaluation-ledger update before the next prompt;
-- user-facing confirmation of the appended model, reasoning level, run ID, verdict and score after the ledger update merges.
+- user-facing confirmation of the appended model, run ID, verdict and score after the ledger update merges.

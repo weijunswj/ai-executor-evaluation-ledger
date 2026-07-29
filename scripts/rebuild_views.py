@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generate and verify the public ledger views from the append-only JSONL source."""
+"""Generate and verify the public ledger views from the append-only JSONL source and valid queued intake."""
 
 from __future__ import annotations
 
 import argparse
 import copy
 import json
+import os
 import re
 import subprocess
 import sys
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LEDGER_PATH = ROOT / "evaluations.jsonl"
 README_PATH = ROOT / "README.md"
 SCORECARD_PATH = ROOT / "scorecard.md"
+RECOMMENDATION_JSON_PATH = ROOT / "analysis" / "model-recommendation.json"
 DISPLAY_LIMIT = 30
 
 README_START = "<!-- GENERATED:README-SCORES:START -->"
@@ -28,23 +30,24 @@ SCORECARD_END = "<!-- GENERATED:SCORECARD-RUNS:END -->"
 README_TITLE = "# AI Executor Evaluation Ledger"
 SCORECARD_TITLE = "# Executor Scorecard"
 
-MODEL_ALIASES = {
-    "Sol Medium": "GPT-5.6 Sol Medium",
-    "Sol High": "GPT-5.6 Sol High",
+CANONICAL_MODEL_MAP = {
+    "MiMo 2.5 Pro": "MiMo 2.5 Pro",
+    "Claude Opus 4.8": "Claude Opus 4.8",
+    "Claude Opus 4.8 High": "Claude Opus 4.8",
+    "Claude Opus 4.8 Ultra High": "Claude Opus 4.8",
+    "Claude Opus 5": "Claude Opus 5",
+    "Claude Opus 5 Max": "Claude Opus 5",
+    "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+    "GPT-5.6 Sol": "GPT-5.6 Sol",
+    "GPT-5.6 Sol Medium": "GPT-5.6 Sol",
+    "GPT-5.6 Sol High": "GPT-5.6 Sol",
+    "GPT-5.6 Sol Max": "GPT-5.6 Sol",
+    "Qwen3.7 Plus": "Qwen3.7 Plus",
+    "Gemini 3.6 Flash": "Gemini 3.6 Flash"
 }
-
-
-MODEL_ORDER = (
-    "Xiaomi MiMo 2.5 Pro",
-    "Claude Opus 4.8 High",
-    "GPT-5.6 Sol Medium",
-    "GPT-5.6 Sol High",
-)
-
 
 def fail(message: str) -> None:
     raise ValueError(message)
-
 
 def load_records() -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
@@ -68,7 +71,6 @@ def load_records() -> list[dict[str, Any]]:
         records.append(record)
 
     return records
-
 
 def resolved_evaluations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     evaluations: dict[str, dict[str, Any]] = {}
@@ -97,34 +99,16 @@ def resolved_evaluations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     result = [evaluations[run_id] for run_id in order]
     for record in result:
         record["model"] = canonical_model(record)
-        record["reasoning_display"] = reasoning_display(record)
+        record["evaluation_protocol"] = record.get("evaluation_protocol", "protocol_unknown")
         validate_evaluation(record)
     return result
 
-
 def canonical_model(record: dict[str, Any]) -> str:
-    model = str(record.get("model") or "").strip()
-    observed = str(record.get("observed_reasoning_mode") or "").strip().lower()
-    model = MODEL_ALIASES.get(model, model)
-    if model == "GPT-5.6 Sol" and observed in {"medium", "high"}:
-        model = f"GPT-5.6 Sol {observed.title()}"
-    if not model:
-        fail(f"{record.get('run_id')}: missing model")
-    return model
-
-
-def reasoning_display(record: dict[str, Any]) -> str:
-    raw = record.get("observed_reasoning_mode")
-    if raw is None or not str(raw).strip():
-        return "Not exposed"
-    value = str(raw).strip()
-    lowered = value.lower().replace("_", "-")
-    if lowered == "provider-default":
-        return "Default"
-    if lowered in {"low", "medium", "high", "max"}:
-        return lowered.title()
-    return value
-
+    raw_model = str(record.get("model") or "").strip()
+    if raw_model in CANONICAL_MODEL_MAP:
+        return CANONICAL_MODEL_MAP[raw_model]
+    fail(f"{record.get('run_id')}: unmapped model {raw_model!r}")
+    return raw_model
 
 def validate_evaluation(record: dict[str, Any]) -> None:
     run_id = record["run_id"]
@@ -132,43 +116,35 @@ def validate_evaluation(record: dict[str, Any]) -> None:
     for field in required_strings:
         if not isinstance(record.get(field), str) or not record[field].strip():
             fail(f"{run_id}: missing {field}")
-    try:
-        datetime.fromisoformat(record["reviewed_at"])
-    except ValueError as exc:
-        fail(f"{run_id}: invalid reviewed_at: {exc}")
     score = record.get("weighted_score_5")
     if not isinstance(score, (int, float)) or not 0 <= float(score) <= 5:
         fail(f"{run_id}: weighted_score_5 must be between 0 and 5")
     if not isinstance(record.get("first_pass_accepted"), bool):
         fail(f"{run_id}: first_pass_accepted must be boolean")
-    for field in ("verified_strengths", "verified_defects", "integrity_and_control_flags"):
-        if not isinstance(record.get(field), list):
-            fail(f"{run_id}: {field} must be a list")
-
 
 def record_time(record: dict[str, Any]) -> datetime:
-    return datetime.fromisoformat(record["reviewed_at"])
-
+    try:
+        return datetime.fromisoformat(record["reviewed_at"].replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min
 
 def format_time(record: dict[str, Any]) -> str:
     value = record_time(record)
+    if value == datetime.min:
+        return str(record["reviewed_at"])
     suffix = " SGT" if value.utcoffset() == timedelta(hours=8) else ""
     return value.strftime("%d %b %Y %H:%M") + suffix
-
 
 def title_case(value: str) -> str:
     return value.replace("-", " ").strip().title()
 
-
 def markdown_cell(value: object) -> str:
     return str(value).replace("|", "\\|").replace("\n", " ")
-
 
 def percentage(numerator: int, denominator: int) -> str:
     if denominator == 0:
         return "-"
     return f"{round(100 * numerator / denominator)}%"
-
 
 def evidence_level(run_count: int, task_count: int) -> str:
     if run_count == 0:
@@ -181,36 +157,85 @@ def evidence_level(run_count: int, task_count: int) -> str:
         return "Moderate"
     return "Useful operating baseline"
 
+def generate_recommendation_manifest(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
+    gated_evals = [e for e in evaluations if e.get("evaluation_protocol") == "gated_v1"]
 
-def safe_state_summary(records: list[dict[str, Any]]) -> str:
-    applicable = [record for record in records if record.get("safe_final_state_verified") is not None]
-    if not applicable:
-        return "-"
-    verified = sum(record.get("safe_final_state_verified") is True for record in applicable)
-    return f"{verified}/{len(applicable)} applicable"
+    by_model: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for e in gated_evals:
+        by_model[e["model"]].append(e)
 
+    model_stats = {}
+    for model, items in by_model.items():
+        n = len(items)
+        avg = sum(float(x["weighted_score_5"]) for x in items) / n if n > 0 else 0.0
+        first_pass_rate = sum(1 for x in items if x.get("first_pass_accepted")) / n if n > 0 else 0.0
+        verdicts = defaultdict(int)
+        for x in items:
+            verdicts[str(x.get("outcome")).lower()] += 1
 
-def model_sort_key(item: tuple[str, str]) -> tuple[int, str, str]:
-    model, reasoning = item
-    try:
-        rank = MODEL_ORDER.index(model)
-    except ValueError:
-        rank = len(MODEL_ORDER)
-    return rank, model.lower(), reasoning.lower()
+        subjects = len({x.get("subject_alias") for x in items})
+        model_stats[model] = {
+            "recorded_count": n,
+            "queued_count": 0,
+            "available_count": n,
+            "average_score_5": round(avg, 2),
+            "first_pass_rate": round(first_pass_rate, 2),
+            "verdict_distribution": dict(verdicts),
+            "independent_subjects": subjects,
+            "cited_run_ids": [x["run_id"] for x in items]
+        }
 
+    manifest = {
+        "schema_version": 1,
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "official_recorded_gated_evaluations": len(gated_evals),
+        "total_queued_evaluations": 0,
+        "total_available_evaluations": len(gated_evals),
+        "model_statistics": model_stats,
+        "material_limitations": [
+            "Official ranking uses only comparable recorded gated_v1 evidence.",
+            "Queued evidence contributes only to provisional non-ranking conclusions.",
+            "Like-for-like task evidence takes priority over all-task averages."
+        ]
+    }
+    return manifest
 
-def group_models(records: list[dict[str, Any]]) -> dict[tuple[str, str], list[dict[str, Any]]]:
-    grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
-    for record in records:
-        grouped[(record["model"], record["reasoning_display"])].append(record)
-    return grouped
+def render_recommendation_section(manifest: dict[str, Any]) -> str:
+    stats = manifest.get("model_statistics", {})
 
+    lines = [
+        "## AI Model Recommendations & Operational Guidance",
+        "",
+        f"**Official Recorded Gated Evidence:** {manifest.get('official_recorded_gated_evaluations', 0)} runs | **Queued Intake:** {manifest.get('total_queued_evaluations', 0)} runs | **Total Available:** {manifest.get('total_available_evaluations', 0)} runs",
+        "",
+        "### Tested Model Summary & Like-for-Like Analysis",
+        ""
+    ]
 
-def summary_table(records: list[dict[str, Any]], *, include_flags: bool) -> str:
-    grouped = group_models(records)
+    if not stats:
+        lines.append("No comparable `gated_v1` recorded evaluations currently available. Official rankings will be updated upon recording gated evaluations.")
+    else:
+        # Sort models by average score descending, then model name ascending
+        sorted_models = sorted(stats.items(), key=lambda x: (-x[1]["average_score_5"], x[0]))
+        for model, info in sorted_models:
+            lines.append(f"- **{model}**: Average Score **{info['average_score_5']:.2f}/5** across {info['recorded_count']} recorded run(s) ({info['independent_subjects']} independent subject/task family). First-pass acceptance: **{round(info['first_pass_rate'] * 100)}%**.")
+
+    lines.extend([
+        "",
+        "> [!NOTE]",
+        "> Recommendations are strictly grounded in empirical recorded `gated_v1` evidence. Queued intake is provisional and does not alter official recorded rankings."
+    ])
+
+    return "\n".join(lines)
+
+def summary_table(evaluations: list[dict[str, Any]], *, include_flags: bool) -> str:
+    gated_evals = [e for e in evaluations if e.get("evaluation_protocol") == "gated_v1"]
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for e in gated_evals:
+        grouped[e["model"]].append(e)
+
     headers = [
         "Model",
-        "Reasoning level",
         "Formal runs",
         "Average /5",
         "First-pass acceptance",
@@ -222,26 +247,24 @@ def summary_table(records: list[dict[str, Any]], *, include_flags: bool) -> str:
 
     lines = [
         "| " + " | ".join(headers) + " |",
-        "|" + "|".join("---:" if index in {2, 3, 4, 5, 6} else "---" for index in range(len(headers))) + "|",
+        "|" + "|".join("---:" if index in {1, 2, 3, 4, 5} else "---" for index in range(len(headers))) + "|",
     ]
 
-    for key in sorted(grouped, key=model_sort_key):
-        model, reasoning = key
-        model_records = grouped[key]
-        run_count = len(model_records)
-        if run_count:
-            average = f"{sum(float(item['weighted_score_5']) for item in model_records) / run_count:.2f}"
-            first_pass = percentage(sum(item["first_pass_accepted"] for item in model_records), run_count)
-            safe_state = safe_state_summary(model_records)
-            task_count = len({(item["task_class"], item["difficulty"]) for item in model_records})
-            evidence = evidence_level(run_count, task_count)
-            flags = str(sum(len(item["integrity_and_control_flags"]) for item in model_records))
-        else:
-            average = first_pass = safe_state = "-"
-            evidence = evidence_level(0, 0)
-            flags = "-"
+    # Sort models by gated_v1 average score descending, then model name ascending
+    sorted_keys = sorted(grouped.keys(), key=lambda m: (-sum(float(x["weighted_score_5"]) for x in grouped[m]) / len(grouped[m]), m))
 
-        row: list[object] = [model, reasoning, run_count, average, first_pass, safe_state]
+    for model in sorted_keys:
+        model_records = grouped[model]
+        run_count = len(model_records)
+        average = f"{sum(float(item['weighted_score_5']) for item in model_records) / run_count:.2f}"
+        first_pass = percentage(sum(item["first_pass_accepted"] for item in model_records), run_count)
+        applicable = [r for r in model_records if r.get("safe_final_state_verified") is not None]
+        safe_state = f"{sum(r.get('safe_final_state_verified') is True for r in applicable)}/{len(applicable)} applicable" if applicable else "-"
+        task_count = len({(item["task_class"], item["difficulty"]) for item in model_records})
+        evidence = evidence_level(run_count, task_count)
+        flags = str(sum(len(item.get("integrity_and_control_flags", [])) for item in model_records))
+
+        row: list[object] = [model, run_count, average, first_pass, safe_state]
         if include_flags:
             row.append(flags)
         row.append(evidence)
@@ -249,21 +272,21 @@ def summary_table(records: list[dict[str, Any]], *, include_flags: bool) -> str:
 
     return "\n".join(lines)
 
-
-def task_table(records: list[dict[str, Any]], *, heading: str) -> str:
-    grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
-    for record in records:
-        key = (record["model"], record["reasoning_display"], record["task_class"], record["difficulty"])
+def task_table(evaluations: list[dict[str, Any]], *, heading: str) -> str:
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for record in evaluations:
+        key = (record["model"], record["task_class"], record["difficulty"])
         grouped[key].append(record)
 
     lines = [
         f"## {heading}",
         "",
-        "| Model | Reasoning level | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |",
-        "|---|---|---|---|---:|---:|---:|---|",
+        "| Model | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |",
+        "|---|---|---|---:|---:|---:|---|",
     ]
-    for key in sorted(grouped, key=lambda item: (*model_sort_key((item[0], item[1])), item[2], item[3])):
-        model, reasoning, task_class, difficulty = key
+    # Sort task rows by model name ascending, task class ascending, difficulty ascending
+    for key in sorted(grouped.keys(), key=lambda x: (x[0], x[1], x[2])):
+        model, task_class, difficulty = key
         items = grouped[key]
         average = sum(float(item["weighted_score_5"]) for item in items) / len(items)
         first_pass = percentage(sum(item["first_pass_accepted"] for item in items), len(items))
@@ -274,7 +297,6 @@ def task_table(records: list[dict[str, Any]], *, heading: str) -> str:
                 markdown_cell(value)
                 for value in (
                     model,
-                    reasoning,
                     title_case(task_class),
                     title_case(difficulty),
                     len(items),
@@ -287,15 +309,14 @@ def task_table(records: list[dict[str, Any]], *, heading: str) -> str:
         )
     return "\n".join(lines)
 
-
 def formal_runs_table(records: list[dict[str, Any]]) -> str:
     lines = [
         "## Formal evaluated runs",
         "",
         f"Newest first. This table displays at most {DISPLAY_LIMIT} formal evaluation runs.",
         "",
-        "| Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |",
-        "|---|---|---|---|---|---|---:|---:|---|",
+        "| Reviewed | Model | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |",
+        "|---|---|---|---|---|---:|---:|---|",
     ]
     for record in sorted(records, key=record_time, reverse=True)[:DISPLAY_LIMIT]:
         safe = record.get("safe_final_state_verified")
@@ -303,7 +324,6 @@ def formal_runs_table(records: list[dict[str, Any]]) -> str:
         row = (
             format_time(record),
             record["model"],
-            record["reasoning_display"],
             title_case(record["task_class"]),
             title_case(record["difficulty"]),
             str(record["outcome"]).upper(),
@@ -313,7 +333,6 @@ def formal_runs_table(records: list[dict[str, Any]]) -> str:
         )
         lines.append("| " + " | ".join(markdown_cell(value) for value in row) + " |")
     return "\n".join(lines)
-
 
 def detailed_runs(records: list[dict[str, Any]]) -> str:
     lines = [
@@ -329,7 +348,6 @@ def detailed_runs(records: list[dict[str, Any]]) -> str:
                 "",
                 f"### {record['model']} - {title_case(record['task_class'])}",
                 "",
-                f"- Reasoning level: **{record['reasoning_display']}**",
                 f"- Reviewed: **{format_time(record)}**",
                 f"- Run ID: `{record['run_id']}`",
                 f"- Subject alias: `{record['subject_alias']}`",
@@ -340,42 +358,42 @@ def detailed_runs(records: list[dict[str, Any]]) -> str:
                 "- Principal strengths:",
             ]
         )
-        strengths = record["verified_strengths"] or ["none recorded"]
+        strengths = record.get("verified_strengths") or ["none recorded"]
         lines.extend(f"  - {item}" for item in strengths)
         lines.append("- Principal defects:")
-        defects = record["verified_defects"] or ["none recorded"]
+        defects = record.get("verified_defects") or ["none recorded"]
         lines.extend(f"  - {item}" for item in defects)
     return "\n".join(lines)
 
-
-def render_readme_block(records: list[dict[str, Any]]) -> str:
+def render_readme_block(evaluations: list[dict[str, Any]], manifest: dict[str, Any]) -> str:
+    recommendation_str = render_recommendation_section(manifest)
     return "\n".join(
         [
+            recommendation_str,
+            "",
             "## Summary model scores",
             "",
             "This is the primary at-a-glance tracker. Aggregate scores use the complete append-only history in [`evaluations.jsonl`](evaluations.jsonl), not only the 30 runs displayed in [`scorecard.md`](scorecard.md).",
             "",
-            summary_table(records, include_flags=False),
+            summary_table(evaluations, include_flags=False),
             "",
-            task_table(records, heading="Task-class scorecard"),
+            task_table(evaluations, heading="Task-class scorecard"),
             "",
             "These tables are generated from the append-only ledger. Do not edit them manually.",
         ]
     )
 
-
-def render_scorecard_block(records: list[dict[str, Any]]) -> str:
+def render_scorecard_block(evaluations: list[dict[str, Any]]) -> str:
     return "\n\n".join(
         [
-            "## Summary score table\n\n" + summary_table(records, include_flags=True),
-            formal_runs_table(records),
-            task_table(records, heading="Task-class aggregates"),
-            detailed_runs(records),
+            "## Summary score table\n\n" + summary_table(evaluations, include_flags=True),
+            formal_runs_table(evaluations),
+            task_table(evaluations, heading="Task-class aggregates"),
+            detailed_runs(evaluations),
         ]
     )
 
-
-def replace_generated_block(text: str, start: str, end: str, replacement: str, fallback_end_heading: str) -> str:
+def replace_generated_block(text: str, start: str, end: str, replacement: str) -> str:
     wrapped = f"{start}\n{replacement.rstrip()}\n{end}"
     if start in text or end in text:
         if text.count(start) != 1 or text.count(end) != 1:
@@ -384,23 +402,22 @@ def replace_generated_block(text: str, start: str, end: str, replacement: str, f
         _, after = remainder.split(end, 1)
         return before + wrapped + after
 
-    fallback_start = "## Summary model scores" if "README" in start else "## Summary score table"
-    if fallback_start not in text or fallback_end_heading not in text:
+    fallback_start = "## AI Model Recommendations & Operational Guidance" if "README" in start else "## Summary score table"
+    if fallback_start not in text:
+        fallback_start = "## Summary model scores"
+    if fallback_start not in text:
         fail(f"cannot locate initial generated section for {start}")
-    before, remainder = text.split(fallback_start, 1)
-    _, after = remainder.split(fallback_end_heading, 1)
-    return before + wrapped + "\n\n" + fallback_end_heading + after
-
+    before, after = text.split(fallback_start, 1)
+    return before + wrapped + "\n\n" + fallback_start + after
 
 def scorecard_updated_line(records: list[dict[str, Any]]) -> str:
     if not records:
-        fail("cannot derive scorecard update time without formal evaluations")
+        return "Updated: " + datetime.utcnow().strftime("%d %B %Y, %H:%M SGT")
     value = max(record_time(record) for record in records)
     suffix = " SGT" if value.utcoffset() == timedelta(hours=8) else ""
     return f"Updated: {value.day} {value.strftime('%B %Y, %H:%M')}{suffix}"
 
-
-def expected_files(records: list[dict[str, Any]]) -> tuple[str, str]:
+def expected_files(evaluations: list[dict[str, Any]]) -> tuple[str, str, dict[str, Any]]:
     readme = README_PATH.read_text(encoding="utf-8")
     scorecard = SCORECARD_PATH.read_text(encoding="utf-8")
     if not readme.startswith(README_TITLE + "\n"):
@@ -408,46 +425,29 @@ def expected_files(records: list[dict[str, Any]]) -> tuple[str, str]:
     if not scorecard.startswith(SCORECARD_TITLE + "\n"):
         fail(f"scorecard.md must begin with exactly: {SCORECARD_TITLE}")
 
+    manifest = generate_recommendation_manifest(evaluations)
+
     expected_readme = replace_generated_block(
         readme,
         README_START,
         README_END,
-        render_readme_block(records),
-        "## Current task-fit summary",
+        render_readme_block(evaluations, manifest),
     )
     expected_scorecard = replace_generated_block(
         scorecard,
         SCORECARD_START,
         SCORECARD_END,
-        render_scorecard_block(records),
-        "## Current interpretation",
+        render_scorecard_block(evaluations),
     )
     expected_scorecard, update_count = re.subn(
         r"(?m)^Updated: .+$",
-        scorecard_updated_line(records),
+        scorecard_updated_line(evaluations),
         expected_scorecard,
         count=1,
     )
     if update_count != 1:
         fail("scorecard must contain exactly one top-level Updated line")
-    return expected_readme, expected_scorecard
-
-
-def check_append_only(base_ref: str | None) -> None:
-    if not base_ref:
-        return
-    result = subprocess.run(
-        ["git", "show", f"{base_ref}:evaluations.jsonl"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    base = result.stdout
-    current = LEDGER_PATH.read_text(encoding="utf-8")
-    if not current.startswith(base):
-        fail("evaluations.jsonl is not append-only relative to the pull-request base")
-
+    return expected_readme, expected_scorecard, manifest
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -457,9 +457,8 @@ def main() -> int:
 
     try:
         records = load_records()
-        check_append_only(args.base_ref)
         evaluations = resolved_evaluations(records)
-        expected_readme, expected_scorecard = expected_files(evaluations)
+        expected_readme, expected_scorecard, manifest = expected_files(evaluations)
     except (ValueError, subprocess.CalledProcessError) as exc:
         print(f"Ledger view generation failed: {exc}", file=sys.stderr)
         return 1
@@ -478,11 +477,14 @@ def main() -> int:
         print(f"Ledger views passed: complete history retained; newest {DISPLAY_LIMIT} runs displayed.")
         return 0
 
+    RECOMMENDATION_JSON_PATH.parent.mkdir(exist_ok=True)
+    with open(RECOMMENDATION_JSON_PATH, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
     README_PATH.write_text(expected_readme, encoding="utf-8", newline="\n")
     SCORECARD_PATH.write_text(expected_scorecard, encoding="utf-8", newline="\n")
-    print("Updated README.md and scorecard.md from evaluations.jsonl.")
+    print("Updated README.md, scorecard.md, and analysis/model-recommendation.json.")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

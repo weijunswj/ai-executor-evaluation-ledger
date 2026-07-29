@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-29T01:51:24.007306Z",
+  "official_recorded_gated_evaluations": 0,
+  "total_queued_evaluations": 0,
+  "total_available_evaluations": 0,
+  "model_statistics": {},
+  "material_limitations": [
+    "Official ranking uses only comparable recorded gated_v1 evidence.",
+    "Queued evidence contributes only to provisional non-ranking conclusions.",
+    "Like-for-like task evidence takes priority over all-task averages."
+  ]
+}
