@@ -37,7 +37,7 @@ ALLOWED_PAIRS = {
     ("Google", "Gemini 3.1 Pro"),
     ("Google", "Gemini 3.6 Flash"),
     ("MiniMax", "MiniMax M3"),
-    ("Qwen", "Qwen3.6 Plus")  # Identifiable for #150 withdrawal
+    ("Qwen", "Qwen3.6 Plus")
 }
 
 MODEL_ALIASES = {
@@ -49,6 +49,17 @@ MODEL_ALIASES = {
 
 PROVIDER_ALIASES = {
     "Alibaba Cloud": "Qwen"
+}
+
+SCORE_WEIGHTS = {
+    "correctness": 0.20,
+    "safety_and_scope_control": 0.20,
+    "evidence_quality": 0.15,
+    "operational_judgement": 0.15,
+    "task_understanding": 0.10,
+    "tracker_and_repository_hygiene": 0.10,
+    "autonomy": 0.05,
+    "efficiency": 0.05
 }
 
 UUID_PATTERN = re.compile(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b")
@@ -102,88 +113,86 @@ def contains_prohibited_identity_or_secrets(obj: Any, key_path: str = "") -> Tup
 
 def adapt_historical_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Adapts historical intake comment fields to schema v1 standard without inventing missing values.
+    Adapts historical intake comment fields using strictly non-inventive transformations.
+    Renames fields only when source field is present and semantically equivalent.
     """
     adapted = dict(payload)
 
     adapted.setdefault("schema_version", 1)
     adapted.setdefault("record_type", "evaluation_intake")
 
-    if "evaluation_run_id" not in adapted:
-        if "run_id" in adapted:
-            adapted["evaluation_run_id"] = adapted["run_id"]
-        elif "controller_run_id" in adapted:
-            adapted["evaluation_run_id"] = adapted["controller_run_id"]
+    # Permitted rename: run_id -> evaluation_run_id
+    if "evaluation_run_id" not in adapted and "run_id" in adapted:
+        adapted["evaluation_run_id"] = adapted["run_id"]
 
-    if "controller_run_id" not in adapted:
-        adapted["controller_run_id"] = adapted.get("evaluation_run_id", "historical-intake")
+    # DO NOT derive evaluation_run_id from controller_run_id
+    # DO NOT default controller_run_id
 
-    model = adapted.get("canonical_base_model", adapted.get("model", adapted.get("base_model")))
-    if model:
-        model = MODEL_ALIASES.get(model, model)
-        adapted["canonical_base_model"] = model
+    # Permitted rename & model canonicalization
+    model = adapted.get("canonical_base_model") or adapted.get("model") or adapted.get("base_model")
+    if isinstance(model, str):
+        adapted["canonical_base_model"] = MODEL_ALIASES.get(model, model)
 
+    # Permitted provider alias normalization
     provider = adapted.get("provider")
-    if provider:
-        provider = PROVIDER_ALIASES.get(provider, provider)
-        adapted["provider"] = provider
+    if isinstance(provider, str):
+        adapted["provider"] = PROVIDER_ALIASES.get(provider, provider)
 
-    if "evaluation_protocol" not in adapted:
-        adapted["evaluation_protocol"] = adapted.get("protocol", "gated_v1")
+    # Permitted rename: protocol -> evaluation_protocol (DO NOT default missing protocol)
+    if "evaluation_protocol" not in adapted and "protocol" in adapted:
+        adapted["evaluation_protocol"] = adapted["protocol"]
 
-    if "repository_alias" not in adapted:
-        adapted["repository_alias"] = adapted.get("subject_alias", "ai-executor-evaluation-ledger")
+    # Permitted rename: subject_alias -> repository_alias (DO NOT default missing repository_alias)
+    if "repository_alias" not in adapted and "subject_alias" in adapted:
+        adapted["repository_alias"] = adapted["subject_alias"]
 
-    verdict = adapted.get("verdict", adapted.get("outcome", adapted.get("gate_disposition")))
+    # Permitted verdict normalization
+    verdict = adapted.get("verdict") or adapted.get("outcome") or adapted.get("gate_disposition")
     if isinstance(verdict, str):
         verdict_lower = verdict.lower()
         if verdict_lower in ["accepted", "pass", "amend", "hold", "fail", "blocked", "rejected", "rescheduled", "error", "reset", "owner_withdrawn", "withdrawn"]:
             adapted["verdict"] = verdict_lower
 
-    if "outcome" in adapted:
-        del adapted["outcome"]
+    # Permitted rename: revision_binding or source_binding -> source_revision (DO NOT default missing revision)
+    if "source_revision" not in adapted:
+        if "source_binding" in adapted:
+            adapted["source_revision"] = adapted["source_binding"]
+        elif "revision_binding" in adapted:
+            adapted["source_revision"] = adapted["revision_binding"]
 
-    if "source_binding" in adapted:
-        sb = adapted.pop("source_binding")
-        if "source_revision" not in adapted:
-            adapted["source_revision"] = sb
-
-    if "source_revision" not in adapted and "revision_binding" in adapted:
-        adapted["source_revision"] = adapted["revision_binding"]
-
+    # Permitted rename: score -> score_dimensions
     if "score_dimensions" not in adapted and "score" in adapted and isinstance(adapted["score"], dict):
         adapted["score_dimensions"] = adapted["score"]
 
+    # Compute weighted_score_5 ONLY when all 8 required score dimensions are present and weighted_score_5 is absent
     if "weighted_score_5" not in adapted and "score_dimensions" in adapted:
         scores = adapted["score_dimensions"]
-        if isinstance(scores, dict) and scores:
-            vals = [v for v in scores.values() if isinstance(v, (int, float))]
-            if vals:
-                adapted["weighted_score_5"] = round(sum(vals) / len(vals), 2)
+        if isinstance(scores, dict):
+            required_dims = set(SCORE_WEIGHTS.keys())
+            if required_dims.issubset(set(scores.keys())):
+                try:
+                    score_val = sum(float(scores[dim]) * weight for dim, weight in SCORE_WEIGHTS.items())
+                    adapted["weighted_score_5"] = round(score_val, 2)
+                except (ValueError, TypeError):
+                    pass
 
-    pse = adapted.get("public_safe_evidence", adapted.get("evidence", {}))
+    # Public safe evidence adaptation: follow_up_runs_required -> follow_up_count if integer
+    pse = adapted.get("public_safe_evidence") or adapted.get("evidence")
     if isinstance(pse, dict):
         adapted_pse = dict(pse)
-        if "root_cause_result" not in adapted_pse and "root_cause_identified" in adapted_pse:
-            val = adapted_pse["root_cause_identified"]
-            if isinstance(val, bool):
-                adapted_pse["root_cause_result"] = "identified" if val else "unidentified"
-            elif isinstance(val, str):
-                adapted_pse["root_cause_result"] = val
         if "follow_up_count" not in adapted_pse and "follow_up_runs_required" in adapted_pse:
-            adapted_pse["follow_up_count"] = adapted_pse["follow_up_runs_required"]
+            val = adapted_pse["follow_up_runs_required"]
+            if isinstance(val, int):
+                adapted_pse["follow_up_count"] = val
         adapted["public_safe_evidence"] = adapted_pse
-    else:
-        adapted["public_safe_evidence"] = {}
 
+    # Secret exposure status: secret_exposure / secret_exposure_audit -> secret_exposure_status (DO NOT default missing to "none")
     if "secret_exposure_status" not in adapted:
         se = adapted.get("secret_exposure") or adapted.get("secret_exposure_audit")
-        if se and isinstance(se, str):
+        if isinstance(se, str):
             adapted["secret_exposure_status"] = se
-        else:
-            adapted["secret_exposure_status"] = "none"
 
-    # Clean up non-schema historical alias keys so additionalProperties validation passes
+    # Clean up legacy alias keys so additionalProperties validation passes
     alias_keys_to_clean = [
         "run_id", "model", "base_model", "protocol", "subject_alias",
         "gate_disposition", "outcome", "source_binding", "revision_binding",
@@ -266,12 +275,12 @@ def parse_intake_comment(
     try:
         jsonschema.validate(instance=adapted_payload, schema=INTAKE_SCHEMA)
     except jsonschema.ValidationError as ve:
-        # Schema mismatch in legacy comments remains pending rather than terminally malformed
-        return "pending_controller_action", adapted_payload, f"Ambiguous legacy shape schema check: {ve.message}"
+        # Schema mismatch or missing required field in legacy shapes remains pending rather than terminal error
+        return "pending_controller_action", adapted_payload, f"Intake schema validation failed: {ve.message}"
 
     run_id = adapted_payload.get("evaluation_run_id")
     if not run_id:
-        return "pending_controller_action", adapted_payload, "Missing evaluation_run_id in legacy shape"
+        return "pending_controller_action", adapted_payload, "Missing evaluation_run_id in payload"
 
     # Check if already recorded in canonical history
     if run_id in recorded_run_ids:

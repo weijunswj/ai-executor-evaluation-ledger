@@ -99,7 +99,47 @@
     },
     "cleanup_workflow_identity": {"type": "string"},
     "exact_result": {"type": "string"},
-    "cleanup_receipt_pr_identity": {"type": "string"}
+    "cleanup_receipt_pr_identity": {"type": "string"},
+    "batch_mode": {"type": "string", "enum": ["initial", "incremental"]},
+    "queue_snapshot_sha256": {"type": "string"},
+    "comment_bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "comment_id",
+          "author",
+          "created_at",
+          "updated_at",
+          "body_sha256",
+          "classification",
+          "cleanup_eligible"
+        ],
+        "properties": {
+          "comment_id": {"type": "integer"},
+          "author": {"type": ["string", "null"]},
+          "created_at": {"type": ["string", "null"]},
+          "updated_at": {"type": ["string", "null"]},
+          "body_sha256": {"type": "string"},
+          "classification": {"type": "string", "enum": ["admitted", "terminal", "pending"]},
+          "evaluation_run_id": {"type": ["string", "null"]},
+          "canonical_record_sha256": {"type": ["string", "null"]},
+          "terminal_disposition": {"type": ["string", "null"]},
+          "pending_reason_code": {"type": ["string", "null"]},
+          "cleanup_eligible": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "verified_deletion_candidates": {
+      "type": "array",
+      "items": {"type": "integer"}
+    },
+    "cleanup_publication_status": {"type": "string"},
+    "publication_plan": {
+      "type": "object",
+      "additionalProperties": true
+    }
   },
   "additionalProperties": false,
   "allOf": [

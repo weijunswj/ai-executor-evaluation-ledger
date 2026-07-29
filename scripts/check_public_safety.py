@@ -140,6 +140,8 @@ def tracked_files() -> list[Path]:
 
 
 def decode_text(path: Path) -> str | None:
+    if not path.exists():
+        return None
     data = path.read_bytes()
     if len(data) > MAX_TEXT_BYTES or b"\0" in data:
         return None

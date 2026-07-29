@@ -1,4 +1,5 @@
 import unittest
+import os
 from unittest.mock import patch, MagicMock
 from scripts.processor.cleanup_classifier import classify_pr_scope
 from scripts.processor.cleanup_workflow import run_cleanup
@@ -39,20 +40,39 @@ class TestCleanupAndAutoMerge(unittest.TestCase):
         self.assertFalse(res["auto_merge_allowed"])
 
     @patch("scripts.processor.cleanup_workflow.fetch_live_comment")
-    def test_dry_run_performs_no_writes(self, mock_fetch):
+    def test_dry_run_reports_dry_run_verified_and_verified_candidates(self, mock_fetch):
         mock_fetch.return_value = {"id": 1001, "body": "test"}
         result = run_cleanup(dry_run=True)
         self.assertTrue(result["dry_run"])
-        self.assertIn("status", result)
-        self.assertNotEqual(result.get("exact_result"), "SUCCESS")
+        self.assertEqual(result["status"], "DRY_RUN_PASSED")
+        self.assertEqual(result["deleted_count"], 0)
+        for rec in result.get("cleanup_receipts", []):
+            self.assertEqual(rec.get("exact_result"), "DRY_RUN_VERIFIED")
+            self.assertEqual(rec.get("deleted_comment_ids"), [])
+            self.assertIn("verified_deletion_candidates", rec)
 
     @patch("scripts.processor.cleanup_workflow.fetch_live_comment")
     def test_disabled_activation_performs_no_delete(self, mock_fetch):
         mock_fetch.return_value = {"id": 1001, "body": "test"}
-        result = run_cleanup(dry_run=True)
-        self.assertEqual(result["status"], "DRY_RUN_PASSED")
-        for rec in result.get("cleanup_receipts", []):
-            self.assertEqual(rec.get("exact_result"), "DRY_RUN_PASSED")
+        with patch.dict(os.environ, {}, clear=True):
+            result = run_cleanup(dry_run=False)
+            self.assertFalse(result["live_cleanup_active"])
+            self.assertEqual(result["deleted_count"], 0)
+            for rec in result.get("cleanup_receipts", []):
+                self.assertEqual(rec.get("exact_result"), "DRY_RUN_VERIFIED")
+
+    @patch("scripts.processor.cleanup_workflow.fetch_live_comment")
+    @patch("scripts.processor.cleanup_workflow.delete_live_comment")
+    @patch("scripts.processor.cleanup_workflow.verify_comment_absent")
+    def test_live_cleanup_with_activation_switch_verifies_absence(self, mock_absent, mock_delete, mock_fetch):
+        mock_fetch.return_value = {"id": 1001, "body": "test"}
+        mock_delete.return_value = True
+        mock_absent.return_value = True
+
+        with patch.dict(os.environ, {"LEDGER_CLEANUP_ENABLED": "true"}):
+            result = run_cleanup(dry_run=False)
+            self.assertTrue(result["live_cleanup_active"])
+            self.assertIn("status", result)
 
     def test_cleanup_only_pr_contains_exactly_one_authorised_receipt_path(self):
         valid = ["ledger/receipts/cleanup/batch-20260729-gate3-amendment-003.json"]

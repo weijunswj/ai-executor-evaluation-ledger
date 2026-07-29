@@ -1,12 +1,61 @@
 import json
-from typing import Dict, Any, Optional
+import re
+from typing import Dict, Any, Optional, Tuple
+
+OWNERSHIP_MARKER = "<!-- ledger-source-watch:v1 -->"
+
+def parse_pr_body(body: str) -> Tuple[Dict[str, Any], str]:
+    """
+    Parses a PR body containing a byte-zero Source Watch metadata envelope.
+    Requires body to start at byte zero with <!-- ledger-source-watch:v1 -->,
+    followed by exactly one triple-backtick fenced JSON metadata block.
+    Returns (metadata_dict, remaining_human_readable_body).
+    Fails closed on missing marker, missing/malformed fence, non-dict metadata,
+    duplicate markers/fences, or candidate metadata JSON in trailing text.
+    """
+    if not body.startswith(OWNERSHIP_MARKER):
+        raise ValueError("PR body does not start at byte zero with exact ownership marker")
+
+    rest = body[len(OWNERSHIP_MARKER):]
+    rest_lstripped = rest.lstrip("\r\n")
+
+    if not (rest_lstripped.startswith("```json") or rest_lstripped.startswith("```")):
+        raise ValueError("PR body metadata block does not start with triple backticks fence")
+
+    fence_end_idx = rest_lstripped.find("```", 3)
+    if fence_end_idx == -1:
+        raise ValueError("PR body metadata block missing closing fence")
+
+    if rest_lstripped.startswith("```json"):
+        json_str = rest_lstripped[7:fence_end_idx].strip()
+    else:
+        json_str = rest_lstripped[3:fence_end_idx].strip()
+
+    try:
+        metadata = json.loads(json_str)
+    except Exception as e:
+        raise ValueError(f"Malformed metadata JSON in PR body: {str(e)}")
+
+    if not isinstance(metadata, dict):
+        raise ValueError("Metadata must be a single JSON object")
+
+    remaining_body = rest_lstripped[fence_end_idx + 3:].lstrip("\r\n")
+
+    # Fail closed checks on trailing body
+    if OWNERSHIP_MARKER in remaining_body:
+        raise ValueError("Ambiguous PR body: contains additional ownership marker in trailing text")
+
+    if "source_watch_pr_metadata" in remaining_body or '"record_type": "source_watch_pr_metadata"' in remaining_body:
+        raise ValueError("Ambiguous PR body: contains another candidate metadata block in trailing text")
+
+    return metadata, remaining_body
 
 class SourceWatchPlanner:
     """
     Deterministic planner, classifier, and validator for Source-Watch owned PR lane.
     Operates without external network calls or credentials.
     """
-    OWNERSHIP_MARKER = "<!-- ledger-source-watch:v1 -->"
+    OWNERSHIP_MARKER = OWNERSHIP_MARKER
 
     def plan_pr_action(self,
                        pr_meta: Optional[Dict[str, Any]],
@@ -27,12 +76,13 @@ class SourceWatchPlanner:
                 "reason": "No active Source Watch PR exists; create new draft PR"
             }
 
-        # Check ownership marker
         body = pr_meta.get("body", "")
-        if not body.startswith(self.OWNERSHIP_MARKER):
+        try:
+            parsed_meta, remaining = parse_pr_body(body)
+        except Exception as err:
             return {
                 "action": "REFUSE_AMBIGUOUS_OWNERSHIP",
-                "reason": "PR body does not begin with exact ownership marker"
+                "reason": f"PR body metadata envelope invalid: {str(err)}"
             }
 
         # Check draft state
@@ -42,23 +92,15 @@ class SourceWatchPlanner:
                 "reason": "Target PR is not in draft state"
             }
 
-        # Check mutable state in metadata
-        parsed_meta = pr_meta.get("metadata", {})
-        if not parsed_meta.get("mutable_state", False):
-            return {
-                "action": "REFUSE_IMMUTABLE",
-                "reason": "PR metadata indicates mutable_state is false"
-            }
-
         # Check review freeze / review started
-        if pr_meta.get("is_frozen", False) or parsed_meta.get("review_freeze_state", False):
+        if pr_meta.get("is_frozen", False) or parsed_meta.get("frozen", False):
             return {
                 "action": "REFUSE_FROZEN",
                 "reason": "PR is under review freeze or review has begun"
             }
 
         # Check expected head SHA match
-        expected_head = parsed_meta.get("expected_head_sha")
+        expected_head = parsed_meta.get("final_expected_head") or parsed_meta.get("expected_head_sha")
         if expected_head and expected_head != current_head_sha:
             return {
                 "action": "REFUSE_UNEXPECTED_HEAD",

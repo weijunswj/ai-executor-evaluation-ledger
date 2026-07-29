@@ -1,15 +1,57 @@
 {
   "schema_version": 1,
   "manifest_type": "historical_intake_adapter_manifest",
-  "generated_at": "2026-07-29T11:45:00Z",
-  "field_aliases": {
-    "evaluation_run_id": ["run_id", "controller_run_id"],
-    "canonical_base_model": ["model"],
-    "outcome": ["verdict", "gate_disposition"],
-    "source_revision": ["revision_binding"],
-    "root_cause_result": ["root_cause_identified"],
-    "follow_up_count": ["follow_up_runs_required"]
-  },
+  "field_aliases": [
+    {
+      "destination_field": "evaluation_run_id",
+      "source_field": "run_id",
+      "accepted_source_type": "string",
+      "rationale": "Exact field rename when run_id is present in legacy intake shape and evaluation_run_id is absent",
+      "applies_to": "legacy intake comments v1"
+    },
+    {
+      "destination_field": "canonical_base_model",
+      "source_field": "model",
+      "accepted_source_type": "string",
+      "rationale": "Exact field rename when model is present in legacy intake shape, subject to approved model mapping",
+      "applies_to": "legacy intake comments v1"
+    },
+    {
+      "destination_field": "canonical_base_model",
+      "source_field": "base_model",
+      "accepted_source_type": "string",
+      "rationale": "Exact field rename when base_model is present in legacy intake shape, subject to approved model mapping",
+      "applies_to": "legacy intake comments v1"
+    },
+    {
+      "destination_field": "source_revision",
+      "source_field": "revision_binding",
+      "accepted_source_type": "string",
+      "rationale": "Exact field rename when revision_binding is present in legacy intake shape",
+      "applies_to": "legacy intake comments v1"
+    },
+    {
+      "destination_field": "source_revision",
+      "source_field": "source_binding",
+      "accepted_source_type": "string",
+      "rationale": "Exact field rename when source_binding is present in legacy intake shape",
+      "applies_to": "legacy intake comments v1"
+    },
+    {
+      "destination_field": "score_dimensions",
+      "source_field": "score",
+      "accepted_source_type": "object",
+      "rationale": "Exact field rename when score dictionary is present in legacy intake shape",
+      "applies_to": "legacy intake comments v1"
+    },
+    {
+      "destination_field": "follow_up_count",
+      "source_field": "follow_up_runs_required",
+      "accepted_source_type": "integer",
+      "rationale": "Exact field rename in public_safe_evidence when follow_up_runs_required is an integer",
+      "applies_to": "legacy intake comments v1"
+    }
+  ],
   "verdict_case_normalization": {
     "AMEND": "amend",
     "PASS": "pass",

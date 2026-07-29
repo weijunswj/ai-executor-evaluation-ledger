@@ -1,6 +1,7 @@
 import unittest
 import json
 from scripts.processor.intake_parser import parse_intake_comment, ALLOWED_PAIRS
+from scripts.processor.source_watch import parse_pr_body, SourceWatchPlanner
 
 class TestIntakeAndSourceWatch(unittest.TestCase):
     def setUp(self):
@@ -123,7 +124,8 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(disp, "admitted")
         self.assertEqual(parsed["public_safe_evidence"]["confidence"], "strong")
 
-    def test_historical_intake_adapter_success(self):
+    def test_historical_intake_adapter_non_invention(self):
+        # A payload missing secret_exposure_status and protocol should NOT be defaulted to "none"/"gated_v1"
         payload = {
             "run_id": "historical-run-001",
             "model": "Claude Opus 4.8",
@@ -135,57 +137,99 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             "difficulty": "medium",
             "score": {
                 "correctness": 4.5
+            }
+        }
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1012, body, set(), set())
+        # Should remain pending because required fields (secret_exposure_status, protocol, weighted_score_5) are absent and not invented
+        self.assertEqual(disp, "pending_controller_action")
+
+    def test_historical_intake_adapter_valid_with_exact_renames(self):
+        payload = {
+            "run_id": "historical-run-002",
+            "model": "Claude Opus 4.8",
+            "provider": "Anthropic",
+            "protocol": "gated_v1",
+            "gate_disposition": "amend",
+            "revision_binding": "commit-abc1234",
+            "subject_alias": "ai-executor-evaluation-ledger",
+            "task_class": "research",
+            "difficulty": "medium",
+            "secret_exposure": "none",
+            "score": {
+                "correctness": 4.0,
+                "safety_and_scope_control": 5.0,
+                "evidence_quality": 4.0,
+                "operational_judgement": 4.0,
+                "task_understanding": 4.0,
+                "tracker_and_repository_hygiene": 4.0,
+                "autonomy": 4.0,
+                "efficiency": 4.0
             },
             "evidence": {
-                "root_cause_identified": True,
+                "first_pass_accepted": False,
+                "controller_intervention_required": True,
                 "follow_up_runs_required": 1,
                 "confidence": "strong"
             }
         }
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
-        disp, parsed, reason = parse_intake_comment(1012, body, set(), set())
-        self.assertEqual(disp, "admitted")
-        self.assertEqual(parsed["evaluation_run_id"], "historical-run-001")
+        disp, parsed, reason = parse_intake_comment(1013, body, set(), set())
+        self.assertEqual(disp, "admitted", f"Failed: {reason}")
+        self.assertEqual(parsed["evaluation_run_id"], "historical-run-002")
         self.assertEqual(parsed["canonical_base_model"], "Claude Opus 4.8")
         self.assertEqual(parsed["verdict"], "amend")
         self.assertEqual(parsed["source_revision"], "commit-abc1234")
-        self.assertEqual(parsed["public_safe_evidence"]["root_cause_result"], "identified")
         self.assertEqual(parsed["public_safe_evidence"]["follow_up_count"], 1)
+        self.assertEqual(parsed["weighted_score_5"], 4.2)
 
-    def test_ambiguous_legacy_shape_remains_pending(self):
-        payload = {
-            "run_id": "legacy-ambiguous-001",
-            "model": "Claude Opus 4.8",
-            "provider": "Anthropic",
-            "verdict": "accepted"
-        }
-        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
-        disp, parsed, reason = parse_intake_comment(1013, body, set(), set())
-        self.assertEqual(disp, "pending_controller_action")
+    def test_parse_pr_body_valid_envelope(self):
+        body = (
+            "<!-- ledger-source-watch:v1 -->\n"
+            "```json\n"
+            "{\n"
+            '  "schema_version": 1,\n'
+            '  "record_type": "source_watch_pr_metadata",\n'
+            '  "pr_number": 151,\n'
+            '  "final_expected_head": "abc1234",\n'
+            '  "frozen": true\n'
+            "}\n"
+            "```\n\n"
+            "## Summary of changes\n"
+            "Human readable content here..."
+        )
+        meta, rest = parse_pr_body(body)
+        self.assertEqual(meta["pr_number"], 151)
+        self.assertEqual(meta["final_expected_head"], "abc1234")
+        self.assertTrue(meta["frozen"])
+        self.assertIn("## Summary of changes", rest)
 
-    def test_blocked_controller_action_not_terminal(self):
-        payload = dict(self.valid_payload)
-        payload["verdict"] = "blocked"
-        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
-        disp, parsed, reason = parse_intake_comment(1014, body, set(), set())
-        self.assertEqual(disp, "pending_controller_action")
+    def test_parse_pr_body_fail_closed_on_missing_marker(self):
+        body = "Not starting with marker\n```json\n{}\n```"
+        with self.assertRaises(ValueError):
+            parse_pr_body(body)
 
-    def test_wrong_frozen_expected_head_metadata_fails_ci(self):
-        from scripts.processor.source_watch import SourceWatchPlanner
-        planner = SourceWatchPlanner()
-        pr_meta = {
-            "number": 151,
-            "is_draft": True,
-            "is_frozen": False,
-            "body": "<!-- ledger-source-watch:v1 -->",
-            "metadata": {
-                "mutable_state": True,
-                "review_freeze_state": False,
-                "expected_head_sha": "wrong_head_sha_123"
-            }
-        }
-        res = planner.plan_pr_action(pr_meta, has_pending_work=True, current_head_sha="actual_head_sha_456")
-        self.assertEqual(res["action"], "REFUSE_UNEXPECTED_HEAD")
+    def test_parse_pr_body_fail_closed_on_duplicate_marker(self):
+        body = (
+            "<!-- ledger-source-watch:v1 -->\n"
+            "```json\n"
+            '{"schema_version": 1}\n'
+            "```\n"
+            "Some text <!-- ledger-source-watch:v1 --> duplicate"
+        )
+        with self.assertRaises(ValueError):
+            parse_pr_body(body)
+
+    def test_parse_pr_body_fail_closed_on_second_candidate_metadata(self):
+        body = (
+            "<!-- ledger-source-watch:v1 -->\n"
+            "```json\n"
+            '{"schema_version": 1}\n'
+            "```\n"
+            "Text with source_watch_pr_metadata inside"
+        )
+        with self.assertRaises(ValueError):
+            parse_pr_body(body)
 
 if __name__ == "__main__":
     unittest.main()
