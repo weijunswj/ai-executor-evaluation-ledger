@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "manifest_type": "correction_migration_manifest",
+  "generated_at": "2026-07-29T09:50:00Z",
+  "starting_corrections": 4,
+  "withdrawn_corrections": [
+    "2026-07-24-correction-claude-opus-4-8-high-implementation-001",
+    "2026-07-24-correction-claude-opus-4-8-high-amendment-001"
+  ],
+  "reasoning_only_corrections_removed": [
+    "2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003"
+  ],
+  "substantive_corrections_preserved": [
+    "2026-07-26-correction-gpt-5-6-sol-workflow-compatibility-gate1-reset-001"
+  ],
+  "final_correction_count": 1
+}

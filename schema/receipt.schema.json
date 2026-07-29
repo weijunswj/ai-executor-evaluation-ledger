@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-executor-evaluation-ledger:receipt:v1",
+  "title": "AI Executor Evaluation Receipt Schema v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "batch_id"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "receipt_type": {"type": "string", "enum": ["batch", "cleanup"]},
+    "batch_id": {"type": "string", "minLength": 1},
+    "source_comment_ids": {"type": "array", "items": {"type": "integer"}},
+    "source_body_sha256": {"type": "object"},
+    "admitted_run_ids": {"type": "array", "items": {"type": "string"}},
+    "terminal_dispositions": {"type": "object"},
+    "canonical_record_hashes": {"type": "object"},
+    "analysis_manifest_hash": {"type": "string"},
+    "generated_readme_hash": {"type": "string"},
+    "generated_scorecard_hash": {"type": "string"},
+    "pull_request_number": {"type": ["integer", "null"]},
+    "base_sha": {"type": "string"},
+    "exact_head_sha": {"type": "string"},
+    "controller_authority": {"type": "string"},
+    "cleanup_candidates": {"type": "array", "items": {"type": "integer"}},
+    "canonical_merge_sha": {"type": "string"},
+    "canonical_evaluations_blob_sha": {"type": "string"},
+    "deleted_comment_ids": {"type": "array", "items": {"type": "integer"}},
+    "deleted_comment_hashes": {"type": "object"},
+    "retained_comment_ids": {"type": "array", "items": {"type": "integer"}},
+    "retained_comment_reasons": {"type": "object"},
+    "cleanup_workflow_identity": {"type": "string"},
+    "exact_result": {"type": "string"},
+    "cleanup_receipt_pr_identity": {"type": "string"}
+  },
+  "additionalProperties": false
+}

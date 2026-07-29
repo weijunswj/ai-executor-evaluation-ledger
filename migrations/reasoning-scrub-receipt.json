@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "manifest_type": "reasoning_scrub_receipt",
+  "generated_at": "2026-07-29T09:50:00Z",
+  "scrubbed_fields_count": 59,
+  "reasoning_keys_removed": [
+    "thinking_setting",
+    "observed_reasoning_mode",
+    "reasoning_exposure_status",
+    "requested_reasoning_level",
+    "native_reasoning_classification",
+    "reasoning_grouping"
+  ],
+  "removed_reasoning_only_correction_ids": [
+    "2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003"
+  ]
+}
