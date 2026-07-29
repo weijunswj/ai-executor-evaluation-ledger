@@ -25,12 +25,16 @@
         "non_evaluable",
         "owner_withdrawn",
         "ineligible",
-        "blocked_controller_action"
+        "blocked_controller_action",
+        "no_marker",
+        "invalid_json",
+        "prohibited_identity",
+        "pending_controller_action"
       ]
     },
     "reason": {"type": "string"},
     "evaluation_run_id": {"type": ["string", "null"]},
-    "processed_at": {"type": "string", "format": "date-time"}
+    "processed_at": {"type": "string"}
   },
   "additionalProperties": false
 }

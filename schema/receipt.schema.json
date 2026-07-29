@@ -12,19 +12,27 @@
     "schema_version": {"type": "integer", "const": 1},
     "receipt_type": {"type": "string", "enum": ["batch", "cleanup"]},
     "batch_id": {"type": "string", "minLength": 1},
+    "controller_run_id": {"type": "string"},
+    "controller_authority": {"type": "string"},
+    "base_sha": {"type": "string"},
+    "pr_number": {"type": ["integer", "null"]},
+    "pull_request_number": {"type": ["integer", "null"]},
+    "source_comment_watermark": {"type": "integer"},
+    "full_queue_count": {"type": "integer"},
+    "latest_observed_update_time": {"type": "string"},
     "source_comment_ids": {
       "type": "array",
       "items": {"type": "integer"}
     },
     "source_body_sha256": {
       "type": "object",
-      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      "additionalProperties": {"type": "string"}
     },
     "admitted_run_ids": {
       "type": "array",
       "items": {"type": "string"}
     },
-    "terminal_dispositions": {
+    "dispositions": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
@@ -32,38 +40,54 @@
         "properties": {
           "disposition": {"type": "string"},
           "reason": {"type": "string"},
+          "comment_body_sha256": {"type": "string"},
           "evaluation_run_id": {"type": ["string", "null"]}
         },
         "additionalProperties": false
       }
     },
-    "canonical_record_hashes": {
-      "type": "object",
-      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "terminal_dispositions": {
+      "type": "object"
     },
-    "analysis_manifest_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "generated_readme_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "generated_scorecard_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "pull_request_number": {"type": ["integer", "null"]},
-    "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "exact_head_sha": {"type": ["string", "null"]},
-    "controller_authority": {"type": "string"},
+    "pending_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["comment_id", "reason", "body_sha256"],
+        "properties": {
+          "comment_id": {"type": "integer"},
+          "reason": {"type": "string"},
+          "body_sha256": {"type": "string"},
+          "created_at": {"type": ["string", "null"]},
+          "updated_at": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    },
     "cleanup_candidates": {
       "type": "array",
       "items": {"type": "integer"}
     },
-    "source_comment_watermark": {"type": "integer"},
-    "full_queue_count": {"type": "integer"},
-    "latest_observed_update_time": {"type": "string", "format": "date-time"},
-    "canonical_merge_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "canonical_evaluations_blob_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "canonical_hashes": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "canonical_record_hashes": {
+      "type": "object"
+    },
+    "analysis_manifest_hash": {"type": "string"},
+    "generated_readme_hash": {"type": "string"},
+    "generated_scorecard_hash": {"type": "string"},
+    "exact_head_sha": {"type": ["string", "null"]},
+    "canonical_merge_sha": {"type": "string"},
+    "canonical_evaluations_blob_sha": {"type": "string"},
     "deleted_comment_ids": {
       "type": "array",
       "items": {"type": "integer"}
     },
     "deleted_comment_hashes": {
       "type": "object",
-      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      "additionalProperties": {"type": "string"}
     },
     "retained_comment_ids": {
       "type": "array",
@@ -86,16 +110,8 @@
       "then": {
         "required": [
           "source_comment_ids",
-          "source_body_sha256",
           "admitted_run_ids",
-          "terminal_dispositions",
-          "canonical_record_hashes",
-          "analysis_manifest_hash",
-          "generated_readme_hash",
-          "generated_scorecard_hash",
           "base_sha",
-          "controller_authority",
-          "cleanup_candidates",
           "source_comment_watermark",
           "full_queue_count",
           "latest_observed_update_time"

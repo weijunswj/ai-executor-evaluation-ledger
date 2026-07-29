@@ -55,7 +55,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         payload["owner"] = "37f16751-1fba-4b23-900a-8cd7a645d9ef"
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
         disp, parsed, reason = parse_intake_comment(1003, body, set(), set())
-        self.assertEqual(disp, "ineligible")
+        self.assertEqual(disp, "prohibited_identity")
         self.assertIn("Prohibited identity field", reason)
 
     def test_gemini_3_1_pro_and_minimax_m3_admission(self):
@@ -74,7 +74,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         payload["canonical_base_model"] = "UnknownModel"
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
         disp, parsed, reason = parse_intake_comment(1005, body, set(), set())
-        self.assertEqual(disp, "malformed")  # Fails schema enum check
+        self.assertEqual(disp, "pending_controller_action")
 
     def test_optional_issue_and_pr_numbers(self):
         payload = dict(self.valid_payload)
@@ -90,22 +90,102 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         payload["unknown_extra_field"] = "bad"
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
         disp, parsed, reason = parse_intake_comment(1007, body, set(), set())
-        self.assertEqual(disp, "malformed")
-        self.assertIn("Schema validation failed", reason)
+        self.assertEqual(disp, "pending_controller_action")
 
     def test_reasoning_keys_rejection(self):
         payload = dict(self.valid_payload)
         payload["thinking_setting"] = "High"
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
         disp, parsed, reason = parse_intake_comment(1008, body, set(), set())
-        self.assertEqual(disp, "malformed")
+        self.assertEqual(disp, "ineligible")
         self.assertIn("prohibited reasoning metadata", reason)
 
     def test_extraneous_prose_rejection(self):
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(self.valid_payload) + "\nExtra trailing prose"
         disp, parsed, reason = parse_intake_comment(1009, body, set(), set())
-        self.assertEqual(disp, "malformed")
+        self.assertEqual(disp, "invalid_json")
         self.assertIn("Extraneous prose", reason)
+
+    def test_verdicts_accepted_amend_hold_fail(self):
+        for v in ["accepted", "amend", "hold", "fail"]:
+            payload = dict(self.valid_payload)
+            payload["verdict"] = v
+            body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+            disp, parsed, reason = parse_intake_comment(1010, body, set(), set())
+            self.assertEqual(disp, "admitted", f"Verdict {v} failed: {reason}")
+            self.assertEqual(parsed["verdict"], v)
+
+    def test_strong_confidence_supported(self):
+        payload = dict(self.valid_payload)
+        payload["public_safe_evidence"]["confidence"] = "strong"
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1011, body, set(), set())
+        self.assertEqual(disp, "admitted")
+        self.assertEqual(parsed["public_safe_evidence"]["confidence"], "strong")
+
+    def test_historical_intake_adapter_success(self):
+        payload = {
+            "run_id": "historical-run-001",
+            "model": "Claude Opus 4.8",
+            "provider": "Anthropic",
+            "gate_disposition": "amend",
+            "revision_binding": "commit-abc1234",
+            "subject_alias": "ai-executor-evaluation-ledger",
+            "task_class": "research",
+            "difficulty": "medium",
+            "score": {
+                "correctness": 4.5
+            },
+            "evidence": {
+                "root_cause_identified": True,
+                "follow_up_runs_required": 1,
+                "confidence": "strong"
+            }
+        }
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1012, body, set(), set())
+        self.assertEqual(disp, "admitted")
+        self.assertEqual(parsed["evaluation_run_id"], "historical-run-001")
+        self.assertEqual(parsed["canonical_base_model"], "Claude Opus 4.8")
+        self.assertEqual(parsed["verdict"], "amend")
+        self.assertEqual(parsed["source_revision"], "commit-abc1234")
+        self.assertEqual(parsed["public_safe_evidence"]["root_cause_result"], "identified")
+        self.assertEqual(parsed["public_safe_evidence"]["follow_up_count"], 1)
+
+    def test_ambiguous_legacy_shape_remains_pending(self):
+        payload = {
+            "run_id": "legacy-ambiguous-001",
+            "model": "Claude Opus 4.8",
+            "provider": "Anthropic",
+            "verdict": "accepted"
+        }
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1013, body, set(), set())
+        self.assertEqual(disp, "pending_controller_action")
+
+    def test_blocked_controller_action_not_terminal(self):
+        payload = dict(self.valid_payload)
+        payload["verdict"] = "blocked"
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1014, body, set(), set())
+        self.assertEqual(disp, "pending_controller_action")
+
+    def test_wrong_frozen_expected_head_metadata_fails_ci(self):
+        from scripts.processor.source_watch import SourceWatchPlanner
+        planner = SourceWatchPlanner()
+        pr_meta = {
+            "number": 151,
+            "is_draft": True,
+            "is_frozen": False,
+            "body": "<!-- ledger-source-watch:v1 -->",
+            "metadata": {
+                "mutable_state": True,
+                "review_freeze_state": False,
+                "expected_head_sha": "wrong_head_sha_123"
+            }
+        }
+        res = planner.plan_pr_action(pr_meta, has_pending_work=True, current_head_sha="actual_head_sha_456")
+        self.assertEqual(res["action"], "REFUSE_UNEXPECTED_HEAD")
 
 if __name__ == "__main__":
     unittest.main()

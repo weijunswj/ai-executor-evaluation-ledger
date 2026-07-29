@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "manifest_type": "historical_intake_adapter_manifest",
+  "generated_at": "2026-07-29T11:45:00Z",
+  "field_aliases": {
+    "evaluation_run_id": ["run_id", "controller_run_id"],
+    "canonical_base_model": ["model"],
+    "outcome": ["verdict", "gate_disposition"],
+    "source_revision": ["revision_binding"],
+    "root_cause_result": ["root_cause_identified"],
+    "follow_up_count": ["follow_up_runs_required"]
+  },
+  "verdict_case_normalization": {
+    "AMEND": "amend",
+    "PASS": "pass",
+    "FAIL": "fail",
+    "HOLD": "hold",
+    "ACCEPTED": "accepted"
+  },
+  "model_aliases": {
+    "Mimo 2.5 Pro": "MiMo 2.5 Pro",
+    "Claude Opus 4.8 Ultra High": "Claude Opus 4.8",
+    "Claude Opus 5 Max": "Claude Opus 5",
+    "Qwen 3.6 Plus": "Qwen3.6 Plus"
+  },
+  "provider_aliases": {
+    "Alibaba Cloud": "Qwen"
+  }
+}

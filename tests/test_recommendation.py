@@ -73,5 +73,21 @@ class TestRecommendationAndViews(unittest.TestCase):
         manifest2 = json.dumps(generate_recommendation_manifest(self.sample_evals), indent=2)
         self.assertEqual(manifest1, manifest2)
 
+    def test_recorded_queued_available_counts_math(self):
+        recorded = 5
+        queued_pending = 3
+        sample = self.sample_evals[:2] # 2 gated_v1
+        manifest = generate_recommendation_manifest(sample, total_queued_count=queued_pending)
+        self.assertEqual(manifest["official_recorded_gated_evaluations"], 2)
+        self.assertEqual(manifest["total_queued_evaluations"], 3)
+        self.assertEqual(manifest["total_available_evaluations"], 5)
+
+    def test_comment_count_is_not_queued_evaluation_count(self):
+        total_raw_comments_in_queue = 98
+        valid_pending_evaluations = 18
+        manifest = generate_recommendation_manifest(self.sample_evals, total_queued_count=valid_pending_evaluations)
+        self.assertNotEqual(manifest["total_queued_evaluations"], total_raw_comments_in_queue)
+        self.assertEqual(manifest["total_queued_evaluations"], valid_pending_evaluations)
+
 if __name__ == "__main__":
     unittest.main()

@@ -86,7 +86,9 @@
     "safe_final_state_reported": {"type": ["boolean", "null"]},
     "safe_final_state_verified": {"type": ["boolean", "null"]},
     "root_cause_identified": {"type": ["boolean", "null"]},
+    "root_cause_result": {"type": ["string", "null"]},
     "follow_up_runs_required": {"type": ["integer", "null"], "minimum": 0},
+    "follow_up_count": {"type": ["integer", "null"], "minimum": 0},
     "scores": {
       "type": "object",
       "additionalProperties": false,
@@ -110,7 +112,7 @@
     },
     "confidence": {
       "type": "string",
-      "enum": ["anecdotal", "provisional", "moderate", "baseline"]
+      "enum": ["strong", "verified", "direct", "anecdotal", "provisional", "moderate", "baseline", "high", "medium", "low"]
     },
     "redaction_notice": {"type": ["string", "null"]},
     "verified_strengths": {
@@ -129,8 +131,14 @@
       "type": ["string", "null"]
     },
     "objective": {
-      "type": ["array", "string"],
-      "items": {"type": "string"}
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        {"type": "string"},
+        {"type": "null"}
+      ]
     },
     "prompt_capture": {
       "type": ["string", "null"]

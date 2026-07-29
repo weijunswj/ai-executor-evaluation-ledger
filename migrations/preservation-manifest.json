@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "manifest_type": "canonical_base_preservation_manifest",
+  "generated_at": "2026-07-29T11:45:00Z",
+  "source_base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "starting_canonical_records": 66,
+  "withdrawn_records_count": 6,
+  "withdrawn_record_ids": [
+    "2026-07-24-claude-opus-4-8-business-automation-a-implementation-001",
+    "2026-07-24-claude-opus-4-8-business-automation-a-amendment-001",
+    "2026-07-24-correction-claude-opus-4-8-high-implementation-001",
+    "2026-07-24-correction-claude-opus-4-8-high-amendment-001",
+    "2026-07-24-claude-opus-4-8-high-business-automation-a-amendment-002",
+    "2026-07-24-claude-opus-4-8-ultra-high-business-automation-a-amendment-003"
+  ],
+  "reasoning_only_corrections_removed": [
+    "2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003"
+  ],
+  "preserved_canonical_records_count": 59,
+  "newly_admitted_queue_evaluations_count": 77,
+  "resulting_total_recorded_evaluations": 136
+}

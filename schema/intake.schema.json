@@ -57,7 +57,7 @@
     "difficulty": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
     "verdict": {
       "type": "string",
-      "enum": ["accepted", "pass", "rejected", "rescheduled", "error", "reset", "owner_withdrawn"]
+      "enum": ["accepted", "pass", "amend", "hold", "fail", "blocked", "rejected", "rescheduled", "error", "reset", "owner_withdrawn", "withdrawn"]
     },
     "score_dimensions": {
       "type": "object",
@@ -86,7 +86,7 @@
         "root_cause_result": {"type": ["string", "null"]},
         "follow_up_count": {"type": ["integer", "null"], "minimum": 0},
         "follow_up_runs_required": {"type": ["integer", "null"], "minimum": 0},
-        "confidence": {"type": "string", "enum": ["anecdotal", "provisional", "moderate", "baseline"]},
+        "confidence": {"type": "string", "enum": ["strong", "verified", "direct", "anecdotal", "provisional", "moderate", "baseline", "high", "medium", "low"]},
         "verified_strengths": {
           "type": "array",
           "items": {"type": "string"}

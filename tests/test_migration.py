@@ -61,7 +61,10 @@ class TestMigrationAndPreservation(unittest.TestCase):
             "Claude Opus 5",
             "DeepSeek V4 Pro",
             "GPT-5.6 Sol",
-            "Qwen3.7 Plus"
+            "Qwen3.7 Plus",
+            "Gemini 3.1 Pro",
+            "Gemini 3.6 Flash",
+            "MiniMax M3"
         }
         for r in self.records:
             model = r.get("model")

@@ -1,58 +1,192 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-28T15:47:25+00:00",
-  "official_recorded_gated_evaluations": 8,
+  "generated_at": "2026-07-29T04:29:56+00:00",
+  "official_recorded_gated_evaluations": 79,
   "total_queued_evaluations": 0,
-  "total_available_evaluations": 8,
+  "total_available_evaluations": 79,
   "model_statistics": {
     "Claude Opus 5": {
-      "recorded_count": 2,
+      "recorded_count": 3,
       "queued_count": 0,
-      "available_count": 2,
-      "average_score_5": 4.71,
+      "available_count": 3,
+      "average_score_5": 4.63,
       "first_pass_rate": 0.0,
       "verdict_distribution": {
+        "amend": 1,
         "pass": 2
       },
       "independent_subjects": 1,
-      "task_cohort_count": 2,
+      "task_cohort_count": 3,
       "cited_run_ids": [
+        "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
         "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
         "6a3d5523-45a9-46f3-9b1f-dd0016eac160"
       ]
     },
+    "DeepSeek V4 Pro": {
+      "recorded_count": 19,
+      "queued_count": 0,
+      "available_count": 19,
+      "average_score_5": 3.9,
+      "first_pass_rate": 0.05,
+      "verdict_distribution": {
+        "amend": 18,
+        "pass": 1
+      },
+      "independent_subjects": 7,
+      "task_cohort_count": 7,
+      "cited_run_ids": [
+        "2026-07-27-governance-tooling-a-gate3-remediation-014",
+        "2026-07-27-governance-tooling-a-gate4-amendment-006",
+        "2026-07-27-governance-tooling-a-gate4-amendment-008",
+        "2026-07-27-governance-tooling-a-gate4-amendment-012",
+        "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b",
+        "platform-post-merge-review-remediation-20260726-01",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
+        "skr-production-dependency-remediation-20260726-01",
+        "skr-structured-quote-ux-g4-review-remediation-20260727-04",
+        "skr-structured-quote-ux-g4-review-remediation-20260727-05",
+        "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
+        "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14",
+        "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15",
+        "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21",
+        "sqag-production-admission-archive-contract-repair-20260727-10",
+        "sqag-production-admission-design-regeneration-20260727-08",
+        "sqag-production-admission-design-regeneration-correction-20260727-09"
+      ]
+    },
     "GPT-5.6 Sol": {
+      "recorded_count": 32,
+      "queued_count": 0,
+      "available_count": 32,
+      "average_score_5": 4.55,
+      "first_pass_rate": 0.19,
+      "verdict_distribution": {
+        "accepted": 7,
+        "amend": 20,
+        "hold": 4,
+        "pass": 1
+      },
+      "independent_subjects": 11,
+      "task_cohort_count": 18,
+      "cited_run_ids": [
+        "019f9ee5-8959-7351-bf3c-6e440b810d77",
+        "019f9f62-12f0-73b2-a930-d3dda2b091bd",
+        "019f9f66-5e5c-7222-a907-f222fd291a16",
+        "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
+        "019fa0dd-e9a5-7af0-802a-48c9d51b5836",
+        "019fa15d-bd42-7301-a4e6-75a59b0627d9",
+        "019fa161-cdad-7ed0-b507-6792fe8317ed",
+        "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
+        "2026-07-27-governance-tooling-a-gate3-remediation-004",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
+        "d0c73db8-2910-4104-9c32-932481707574",
+        "f643d85d-14a4-464d-9997-34061467a3fc",
+        "platform-operator-source-recovery-20260727-04",
+        "platform-post-merge-review-remediation-amendment-20260727-02",
+        "platform-runtime-activation-20260727-05",
+        "platform-runtime-grant-contract-correction-20260727-07",
+        "platform-runtime-grant-contract-network-capability-amendment-20260727-11",
+        "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
+        "platform-runtime-grant-reconciliation-20260727-06",
+        "skr-post-merge-review-remediation-20260727-03",
+        "skr-production-dependency-remediation-amendment-20260727-02",
+        "skr-structured-quote-ux-architecture-20260727-01",
+        "skr-structured-quote-ux-g3-implementation-20260727-03",
+        "sqag-internal-alpha-fast-track-20260727-08",
+        "sqag-internal-alpha-managed-state-admission-20260727-10a",
+        "workflow-compatibility-a-gate3-amendment-20260728-03",
+        "workflow-compatibility-a-gate3-amendment-20260728-04",
+        "workflow-compatibility-a-gate3-amendment-20260728-05"
+      ]
+    },
+    "Gemini 3.1 Pro": {
+      "recorded_count": 3,
+      "queued_count": 0,
+      "available_count": 3,
+      "average_score_5": 3.44,
+      "first_pass_rate": 0.0,
+      "verdict_distribution": {
+        "amend": 3
+      },
+      "independent_subjects": 1,
+      "task_cohort_count": 2,
+      "cited_run_ids": [
+        "2026-07-28-governance-tooling-a-gate3-remediation-021",
+        "2026-07-28-governance-tooling-a-gate3-remediation-022",
+        "2026-07-28-governance-tooling-a-gate3-remediation-023"
+      ]
+    },
+    "MiMo 2.5 Pro": {
       "recorded_count": 4,
       "queued_count": 0,
       "available_count": 4,
-      "average_score_5": 4.83,
-      "first_pass_rate": 0.5,
+      "average_score_5": 3.02,
+      "first_pass_rate": 0.0,
       "verdict_distribution": {
-        "accepted": 4
+        "amend": 3,
+        "fail": 1
       },
-      "independent_subjects": 4,
+      "independent_subjects": 2,
       "task_cohort_count": 3,
       "cited_run_ids": [
-        "019f9f62-12f0-73b2-a930-d3dda2b091bd",
-        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
-        "d0c73db8-2910-4104-9c32-932481707574",
-        "skr-production-dependency-remediation-amendment-20260727-02"
+        "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
+        "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
+        "b96bcf1b-0434-4674-926a-f1ea578b7820",
+        "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713"
+      ]
+    },
+    "MiniMax M3": {
+      "recorded_count": 5,
+      "queued_count": 0,
+      "available_count": 5,
+      "average_score_5": 4.18,
+      "first_pass_rate": 0.0,
+      "verdict_distribution": {
+        "amend": 5
+      },
+      "independent_subjects": 4,
+      "task_cohort_count": 4,
+      "cited_run_ids": [
+        "2026-07-28-governance-tooling-a-gate3-remediation-016",
+        "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
+        "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
+        "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
+        "sqag-main-worktree-recovery-postgresql17-pr-20260728-13"
       ]
     },
     "Qwen3.7 Plus": {
-      "recorded_count": 2,
+      "recorded_count": 13,
       "queued_count": 0,
-      "available_count": 2,
-      "average_score_5": 4.91,
-      "first_pass_rate": 1.0,
+      "available_count": 13,
+      "average_score_5": 4.31,
+      "first_pass_rate": 0.15,
       "verdict_distribution": {
-        "accepted": 2
+        "accepted": 2,
+        "amend": 11
       },
-      "independent_subjects": 2,
-      "task_cohort_count": 2,
+      "independent_subjects": 4,
+      "task_cohort_count": 9,
       "cited_run_ids": [
+        "ee0e5d56-c322-4292-ba68-435174decb97",
+        "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
         "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
-        "sqag-postgresql17-fixed-error-category-20260728-15"
+        "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
+        "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
+        "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
+        "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
+        "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
+        "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
+        "sqag-postgresql17-assertion-output-safety-20260728-14",
+        "sqag-postgresql17-fixed-error-category-20260728-15",
+        "sqag-production-inspection-authority-recovery-20260728-17",
+        "swooshz-host-environment-stale-credential-containment-20260728-01"
       ]
     }
   },
