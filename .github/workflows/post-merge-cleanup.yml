@@ -1,0 +1,29 @@
+name: Post-Merge Comment Cleanup
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Execute Post-Merge Cleanup (Dry Run)
+        run: |
+          python scripts/processor/cleanup_workflow.py --dry-run
