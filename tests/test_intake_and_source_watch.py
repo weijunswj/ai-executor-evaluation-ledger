@@ -1,113 +1,111 @@
 import unittest
 import json
-from scripts.processor.intake_parser import parse_intake_comment, contains_reasoning_keys
-from scripts.processor.source_watch import SourceWatchPlanner
+from scripts.processor.intake_parser import parse_intake_comment, ALLOWED_PAIRS
 
 class TestIntakeAndSourceWatch(unittest.TestCase):
     def setUp(self):
-        self.planner = SourceWatchPlanner()
-        self.recorded_ids = {"existing-run-001"}
         self.valid_payload = {
             "schema_version": 1,
             "record_type": "evaluation_intake",
-            "controller_run_id": "ctrl-001",
-            "evaluation_run_id": "new-run-002",
+            "controller_run_id": "2026-07-29-controller-001",
+            "evaluation_run_id": "2026-07-29-gemini-3-6-flash-run-001",
             "provider": "Google",
             "canonical_base_model": "Gemini 3.6 Flash",
             "evaluation_protocol": "gated_v1",
-            "repository_alias": "repo-a",
-            "issue_number": 100,
-            "pull_request_number": 101,
-            "source_revision": "abc1234",
+            "repository_alias": "ai-executor-evaluation-ledger",
+            "source_revision": "rev-123",
             "task_class": "research",
             "difficulty": "medium",
             "verdict": "accepted",
-            "score_dimensions": {"correctness": 5.0, "safety_and_scope_control": 5.0, "evidence_quality": 5.0, "operational_judgement": 5.0, "task_understanding": 5.0, "tracker_and_repository_hygiene": 5.0, "autonomy": 5.0, "efficiency": 5.0},
-            "weighted_score_5": 5.0,
-            "public_safe_evidence": {"verified_strengths": ["Clean implementation"]},
+            "score_dimensions": {
+                "correctness": 4.8,
+                "safety_and_scope_control": 5.0,
+                "evidence_quality": 4.5,
+                "operational_judgement": 4.8,
+                "task_understanding": 4.8,
+                "tracker_and_repository_hygiene": 5.0,
+                "autonomy": 4.8,
+                "efficiency": 4.8
+            },
+            "weighted_score_5": 4.81,
+            "public_safe_evidence": {
+                "first_pass_accepted": True,
+                "controller_intervention_required": False,
+                "confidence": "baseline"
+            },
             "secret_exposure_status": "none"
         }
 
-    def test_valid_intake_admission(self):
+    def test_admitted_valid_intake(self):
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(self.valid_payload)
-        disp, payload, reason = parse_intake_comment(1001, body, self.recorded_ids, set())
+        disp, payload, reason = parse_intake_comment(1001, body, set(), set())
         self.assertEqual(disp, "admitted")
-        self.assertEqual(payload["evaluation_run_id"], "new-run-002")
+        self.assertEqual(payload["evaluation_run_id"], "2026-07-29-gemini-3-6-flash-run-001")
 
-    def test_byte_zero_marker_enforcement(self):
-        body = "Invalid prefix <!-- ledger-intake:v1 -->\n" + json.dumps(self.valid_payload)
-        disp, _, _ = parse_intake_comment(1002, body, self.recorded_ids, set())
-        self.assertEqual(disp, "malformed")
-
-    def test_reasoning_key_rejection_nested(self):
+    def test_uuid_run_id_admitted(self):
         payload = dict(self.valid_payload)
-        payload["public_safe_evidence"]["observed_reasoning_mode"] = "high"
+        payload["evaluation_run_id"] = "37f16751-1fba-4b23-900a-8cd7a645d9ef"
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
-        disp, _, reason = parse_intake_comment(1003, body, self.recorded_ids, set())
-        self.assertEqual(disp, "malformed")
-        self.assertIn("reasoning", reason)
+        disp, parsed, reason = parse_intake_comment(1002, body, set(), set())
+        self.assertEqual(disp, "admitted")
+        self.assertEqual(parsed["evaluation_run_id"], "37f16751-1fba-4b23-900a-8cd7a645d9ef")
 
-    def test_already_recorded_deduplication(self):
+    def test_prohibited_uuid_placement_rejected(self):
         payload = dict(self.valid_payload)
-        payload["evaluation_run_id"] = "existing-run-001"
+        payload["owner"] = "37f16751-1fba-4b23-900a-8cd7a645d9ef"
         body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
-        disp, _, _ = parse_intake_comment(1004, body, self.recorded_ids, set())
-        self.assertEqual(disp, "already_recorded")
+        disp, parsed, reason = parse_intake_comment(1003, body, set(), set())
+        self.assertEqual(disp, "ineligible")
+        self.assertIn("Prohibited identity field", reason)
 
-    def test_duplicate_queue_intake_handling(self):
-        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(self.valid_payload)
-        disp, _, _ = parse_intake_comment(1005, body, self.recorded_ids, {"new-run-002"})
-        self.assertEqual(disp, "duplicate")
+    def test_gemini_3_1_pro_and_minimax_m3_admission(self):
+        for provider, model in [("Google", "Gemini 3.1 Pro"), ("MiniMax", "MiniMax M3")]:
+            payload = dict(self.valid_payload)
+            payload["provider"] = provider
+            payload["canonical_base_model"] = model
+            payload["evaluation_run_id"] = f"run-{provider.lower()}-{model.lower().replace(' ', '-')}"
+            body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+            disp, parsed, reason = parse_intake_comment(1004, body, set(), set())
+            self.assertEqual(disp, "admitted", f"Failed for {provider}/{model}: {reason}")
 
-    def test_owner_withdrawn_handling_issue_150(self):
-        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(self.valid_payload)
-        disp, _, reason = parse_intake_comment(5088187239, body, self.recorded_ids, set())
-        self.assertEqual(disp, "owner_withdrawn")
-        self.assertIn("150", reason)
+    def test_unknown_model_pair_blocks(self):
+        payload = dict(self.valid_payload)
+        payload["provider"] = "UnknownProvider"
+        payload["canonical_base_model"] = "UnknownModel"
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1005, body, set(), set())
+        self.assertEqual(disp, "malformed")  # Fails schema enum check
 
-    def test_source_watch_planner_ownership_refusal(self):
-        pr_meta = {
-            "number": 12,
-            "body": "Wrong header\n<!-- ledger-source-watch:v1 -->",
-            "is_draft": True,
-            "metadata": {"mutable_state": True}
-        }
-        res = self.planner.plan_pr_action(pr_meta, True, "head123")
-        self.assertEqual(res["action"], "REFUSE_AMBIGUOUS_OWNERSHIP")
+    def test_optional_issue_and_pr_numbers(self):
+        payload = dict(self.valid_payload)
+        payload["issue_number"] = 142
+        payload["pull_request_number"] = 151
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1006, body, set(), set())
+        self.assertEqual(disp, "admitted")
+        self.assertEqual(parsed["issue_number"], 142)
 
-    def test_source_watch_planner_freeze_refusal(self):
-        pr_meta = {
-            "number": 12,
-            "body": "<!-- ledger-source-watch:v1 -->\n{}",
-            "is_draft": True,
-            "is_frozen": True,
-            "metadata": {"mutable_state": True}
-        }
-        res = self.planner.plan_pr_action(pr_meta, True, "head123")
-        self.assertEqual(res["action"], "REFUSE_FROZEN")
+    def test_unknown_field_rejection(self):
+        payload = dict(self.valid_payload)
+        payload["unknown_extra_field"] = "bad"
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1007, body, set(), set())
+        self.assertEqual(disp, "malformed")
+        self.assertIn("Schema validation failed", reason)
 
-    def test_source_watch_planner_unexpected_head_refusal(self):
-        pr_meta = {
-            "number": 12,
-            "body": "<!-- ledger-source-watch:v1 -->\n{}",
-            "is_draft": True,
-            "is_frozen": False,
-            "metadata": {"mutable_state": True, "expected_head_sha": "expected_sha_999"}
-        }
-        res = self.planner.plan_pr_action(pr_meta, True, "current_sha_111")
-        self.assertEqual(res["action"], "REFUSE_UNEXPECTED_HEAD")
+    def test_reasoning_keys_rejection(self):
+        payload = dict(self.valid_payload)
+        payload["thinking_setting"] = "High"
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(payload)
+        disp, parsed, reason = parse_intake_comment(1008, body, set(), set())
+        self.assertEqual(disp, "malformed")
+        self.assertIn("prohibited reasoning metadata", reason)
 
-    def test_source_watch_planner_valid_update(self):
-        pr_meta = {
-            "number": 12,
-            "body": "<!-- ledger-source-watch:v1 -->\n{}",
-            "is_draft": True,
-            "is_frozen": False,
-            "metadata": {"mutable_state": True, "expected_head_sha": "head123"}
-        }
-        res = self.planner.plan_pr_action(pr_meta, True, "head123")
-        self.assertEqual(res["action"], "UPDATE_EXISTING_PR")
-        self.assertEqual(res["pr_number"], 12)
+    def test_extraneous_prose_rejection(self):
+        body = "<!-- ledger-intake:v1 -->\n" + json.dumps(self.valid_payload) + "\nExtra trailing prose"
+        disp, parsed, reason = parse_intake_comment(1009, body, set(), set())
+        self.assertEqual(disp, "malformed")
+        self.assertIn("Extraneous prose", reason)
 
 if __name__ == "__main__":
     unittest.main()

@@ -114,7 +114,11 @@ RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
         \s*[:=]\s*
         ["'][^"']+["']
     """)),
-    ("UUID", re.compile(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b")),
+    ("prohibited UUID assignment", re.compile(r"""(?ix)
+        ["']?(?:workspace_uuid|project_ref|project_id|application_uuid|deployment_uuid|client_id|support_case_id?|owner|user_id|owner_id)["']?
+        \s*[:=]\s*
+        ["'][0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}["']
+    """)),
     ("credential in URL", re.compile(r"(?i)https?://[^/\s:@]+:[^/\s@]+@")),
     ("sensitive query parameter", re.compile(r"(?i)[?&](?:token|api_key|apikey|secret|password|key)=[^&\s]+")),
     ("credential assignment", re.compile(r"""(?ix)

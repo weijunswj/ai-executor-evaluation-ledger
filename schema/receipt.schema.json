@@ -12,28 +12,112 @@
     "schema_version": {"type": "integer", "const": 1},
     "receipt_type": {"type": "string", "enum": ["batch", "cleanup"]},
     "batch_id": {"type": "string", "minLength": 1},
-    "source_comment_ids": {"type": "array", "items": {"type": "integer"}},
-    "source_body_sha256": {"type": "object"},
-    "admitted_run_ids": {"type": "array", "items": {"type": "string"}},
-    "terminal_dispositions": {"type": "object"},
-    "canonical_record_hashes": {"type": "object"},
-    "analysis_manifest_hash": {"type": "string"},
-    "generated_readme_hash": {"type": "string"},
-    "generated_scorecard_hash": {"type": "string"},
+    "source_comment_ids": {
+      "type": "array",
+      "items": {"type": "integer"}
+    },
+    "source_body_sha256": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "admitted_run_ids": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "terminal_dispositions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["disposition", "reason"],
+        "properties": {
+          "disposition": {"type": "string"},
+          "reason": {"type": "string"},
+          "evaluation_run_id": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "canonical_record_hashes": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "analysis_manifest_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "generated_readme_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "generated_scorecard_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "pull_request_number": {"type": ["integer", "null"]},
-    "base_sha": {"type": "string"},
-    "exact_head_sha": {"type": "string"},
+    "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "exact_head_sha": {"type": ["string", "null"]},
     "controller_authority": {"type": "string"},
-    "cleanup_candidates": {"type": "array", "items": {"type": "integer"}},
-    "canonical_merge_sha": {"type": "string"},
-    "canonical_evaluations_blob_sha": {"type": "string"},
-    "deleted_comment_ids": {"type": "array", "items": {"type": "integer"}},
-    "deleted_comment_hashes": {"type": "object"},
-    "retained_comment_ids": {"type": "array", "items": {"type": "integer"}},
-    "retained_comment_reasons": {"type": "object"},
+    "cleanup_candidates": {
+      "type": "array",
+      "items": {"type": "integer"}
+    },
+    "source_comment_watermark": {"type": "integer"},
+    "full_queue_count": {"type": "integer"},
+    "latest_observed_update_time": {"type": "string", "format": "date-time"},
+    "canonical_merge_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "canonical_evaluations_blob_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "deleted_comment_ids": {
+      "type": "array",
+      "items": {"type": "integer"}
+    },
+    "deleted_comment_hashes": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "retained_comment_ids": {
+      "type": "array",
+      "items": {"type": "integer"}
+    },
+    "retained_comment_reasons": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
     "cleanup_workflow_identity": {"type": "string"},
     "exact_result": {"type": "string"},
     "cleanup_receipt_pr_identity": {"type": "string"}
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {"receipt_type": {"const": "batch"}}
+      },
+      "then": {
+        "required": [
+          "source_comment_ids",
+          "source_body_sha256",
+          "admitted_run_ids",
+          "terminal_dispositions",
+          "canonical_record_hashes",
+          "analysis_manifest_hash",
+          "generated_readme_hash",
+          "generated_scorecard_hash",
+          "base_sha",
+          "controller_authority",
+          "cleanup_candidates",
+          "source_comment_watermark",
+          "full_queue_count",
+          "latest_observed_update_time"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {"receipt_type": {"const": "cleanup"}}
+      },
+      "then": {
+        "required": [
+          "canonical_merge_sha",
+          "canonical_evaluations_blob_sha",
+          "deleted_comment_ids",
+          "deleted_comment_hashes",
+          "retained_comment_ids",
+          "retained_comment_reasons",
+          "cleanup_workflow_identity",
+          "exact_result"
+        ]
+      }
+    }
+  ]
 }

@@ -1,8 +1,15 @@
 import json
 import hashlib
-import os
 import re
-from typing import Dict, Any, List, Tuple
+from pathlib import Path
+from typing import Dict, Any, Tuple, Optional, Set
+import jsonschema
+
+ROOT = Path(__file__).resolve().parents[2]
+INTAKE_SCHEMA_PATH = ROOT / "schema" / "intake.schema.json"
+
+with open(INTAKE_SCHEMA_PATH, "r", encoding="utf-8") as f:
+    INTAKE_SCHEMA = json.load(f)
 
 REASONING_KEYS = {
     "requested_reasoning_level",
@@ -13,9 +20,33 @@ REASONING_KEYS = {
     "reasoning_grouping"
 }
 
-ALLOWED_PROVIDERS = {"Google", "DeepSeek", "Qwen", "Anthropic", "OpenAI", "MiMo"}
-ALLOWED_MODELS = {"MiMo 2.5 Pro", "Claude Opus 4.8", "Claude Opus 5", "DeepSeek V4 Pro", "GPT-5.6 Sol", "Qwen3.7 Plus", "Gemini 3.6 Flash"}
+PROHIBITED_IDENTITY_KEYS = {
+    "owner", "username", "login", "email", "user_id", "owner_id",
+    "workspace_uuid", "project_ref", "project_id", "application_uuid",
+    "deployment_uuid", "client_id", "support_case", "support_case_id"
+}
+
+ALLOWED_PAIRS = {
+    ("Xiaomi", "MiMo 2.5 Pro"),
+    ("MiMo", "MiMo 2.5 Pro"),
+    ("Anthropic", "Claude Opus 4.8"),
+    ("Anthropic", "Claude Opus 5"),
+    ("DeepSeek", "DeepSeek V4 Pro"),
+    ("OpenAI", "GPT-5.6 Sol"),
+    ("Qwen", "Qwen3.7 Plus"),
+    ("Google", "Gemini 3.1 Pro"),
+    ("Google", "Gemini 3.6 Flash"),
+    ("MiniMax", "MiniMax M3"),
+    ("Qwen", "Qwen3.6 Plus")  # Identifiable for #150 withdrawal
+}
+
 UUID_PATTERN = re.compile(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b")
+SECRET_PATTERNS = [
+    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
+    re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
+    re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),
+    re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b"),
+]
 
 def contains_reasoning_keys(obj: Any) -> bool:
     if isinstance(obj, dict):
@@ -30,18 +61,48 @@ def contains_reasoning_keys(obj: Any) -> bool:
                 return True
     return False
 
-def parse_intake_comment(comment_id: int, body: str, recorded_run_ids: set, seen_candidate_ids: set) -> Tuple[str, Dict[str, Any], str]:
+def contains_prohibited_identity_or_secrets(obj: Any, key_path: str = "") -> Optional[str]:
     """
-    Parses a single #142 intake comment fail-closed.
-    Returns (disposition, payload, reason_or_error).
+    Checks object for prohibited identity fields or secrets.
+    Permits UUID syntax ONLY in evaluation_run_id and controller_run_id.
+    """
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k in PROHIBITED_IDENTITY_KEYS:
+                return f"Prohibited identity field '{k}'"
+            err = contains_prohibited_identity_or_secrets(v, f"{key_path}.{k}")
+            if err:
+                return err
+    elif isinstance(obj, list):
+        for idx, item in enumerate(obj):
+            err = contains_prohibited_identity_or_secrets(item, f"{key_path}[{idx}]")
+            if err:
+                return err
+    elif isinstance(obj, str):
+        # Allow UUID in run IDs
+        is_run_id_field = key_path.endswith(".evaluation_run_id") or key_path.endswith(".controller_run_id")
+        if not is_run_id_field and UUID_PATTERN.search(obj):
+            return f"Prohibited UUID syntax found at '{key_path}'"
+
+        for pat in SECRET_PATTERNS:
+            if pat.search(obj):
+                return f"Secret pattern found at '{key_path}'"
+    return None
+
+def parse_intake_comment(
+    comment_id: int,
+    body: str,
+    recorded_run_ids: Set[str],
+    seen_candidate_ids: Set[str]
+) -> Tuple[str, Dict[str, Any], str]:
+    """
+    Parses a single intake comment.
+    Returns (disposition, payload, reason).
     Dispositions:
       'admitted', 'already_recorded', 'duplicate', 'malformed', 'conflicted',
       'non_evaluable', 'owner_withdrawn', 'ineligible', 'blocked_controller_action'
     """
-    body_bytes = body.encode('utf-8')
-    body_sha256 = hashlib.sha256(body_bytes).hexdigest()
-
-    # Special handling for explicitly withdrawn comment under #150
+    # Special handling for issue #150 explicitly withdrawn comment
     if comment_id == 5088187239:
         return "owner_withdrawn", {}, "Owner withdrawn under issue #150 (Qwen3.6 Plus intake)"
 
@@ -49,66 +110,59 @@ def parse_intake_comment(comment_id: int, body: str, recorded_run_ids: set, seen
     if not body.startswith("<!-- ledger-intake:v1 -->"):
         return "malformed", {}, "Missing or invalid byte-zero intake marker"
 
-    # Remove marker and leading whitespace/newlines
-    payload_str = body[len("<!-- ledger-intake:v1 -->"):].strip()
-    if not payload_str:
+    # Extract content after marker
+    raw_payload_str = body[len("<!-- ledger-intake:v1 -->"):].strip()
+    if not raw_payload_str:
         return "malformed", {}, "Empty intake payload"
 
+    # Require exactly one JSON object after marker with no trailing prose/JSON
+    decoder = json.JSONDecoder()
     try:
-        payload = json.loads(payload_str)
-    except json.JSONDecodeError as e:
+        payload, idx = decoder.raw_decode(raw_payload_str)
+        trailing = raw_payload_str[idx:].strip()
+        if trailing:
+            return "malformed", {}, "Extraneous prose or trailing JSON after intake object"
+    except Exception as e:
         return "malformed", {}, f"Invalid JSON payload: {str(e)}"
 
     if not isinstance(payload, dict):
-        return "malformed", {}, "Payload must be a JSON object"
+        return "malformed", {}, "Payload must be a single JSON object"
 
-    # Check for prohibited UUIDs in intake payload
-    if UUID_PATTERN.search(payload_str):
-        return "ineligible", payload, "Intake payload contains UUID which fails public safety policy"
-
-    # Check for prohibited reasoning metadata at any nesting level
+    # Check for forbidden reasoning metadata
     if contains_reasoning_keys(payload):
         return "malformed", {}, "Payload contains prohibited reasoning metadata"
 
-    # Schema validation
-    required_fields = [
-        "schema_version", "record_type", "controller_run_id", "evaluation_run_id",
-        "provider", "canonical_base_model", "evaluation_protocol", "repository_alias",
-        "issue_number", "source_revision", "task_class", "difficulty", "verdict",
-        "score_dimensions", "weighted_score_5", "public_safe_evidence", "secret_exposure_status"
-    ]
-    for field in required_fields:
-        if field not in payload:
-            return "malformed", {}, f"Missing required field: {field}"
+    # Check for prohibited identity fields or secrets
+    identity_err = contains_prohibited_identity_or_secrets(payload, "$")
+    if identity_err:
+        return "ineligible", payload, identity_err
 
-    if payload.get("schema_version") != 1 or payload.get("record_type") != "evaluation_intake":
-        return "malformed", {}, "Invalid schema_version or record_type"
+    # Draft 2020-12 schema validation
+    try:
+        jsonschema.validate(instance=payload, schema=INTAKE_SCHEMA)
+    except jsonschema.ValidationError as ve:
+        return "malformed", payload, f"Schema validation failed: {ve.message}"
 
     run_id = payload.get("evaluation_run_id")
     if not run_id:
-        return "malformed", {}, "Missing evaluation_run_id"
+        return "malformed", payload, "Missing evaluation_run_id"
 
     # Check if already recorded in canonical history
     if run_id in recorded_run_ids:
         return "already_recorded", payload, "Already recorded in canonical history"
 
-    # Check for duplicate within queue intake batch
+    # Check for duplicate within intake queue
     if run_id in seen_candidate_ids:
         return "duplicate", payload, "Duplicate intake in queue"
 
-    # Model and provider authority check
+    # Provider / model pairing check
     provider = payload.get("provider")
     model = payload.get("canonical_base_model")
-    if model not in ALLOWED_MODELS:
-        return "ineligible", payload, f"Unsupported model mapping: {model}"
+    if (provider, model) not in ALLOWED_PAIRS:
+        return "blocked_controller_action", payload, f"Unknown exact provider/model pair: ({provider}, {model})"
 
-    # Secret exposure check
+    # Secret exposure status
     if payload.get("secret_exposure_status") != "none":
-        return "blocked_controller_action", payload, "Possible or confirmed secret exposure"
-
-    # Evaluation protocol check
-    protocol = payload.get("evaluation_protocol")
-    if protocol not in ["gated_v1", "legacy_pre_gate", "protocol_unknown"]:
-        return "malformed", payload, f"Invalid evaluation_protocol: {protocol}"
+        return "blocked_controller_action", payload, "Secret exposure status is not none"
 
     return "admitted", payload, "Valid candidate intake admitted"

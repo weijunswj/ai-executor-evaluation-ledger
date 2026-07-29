@@ -43,7 +43,10 @@ CANONICAL_MODEL_MAP = {
     "GPT-5.6 Sol High": "GPT-5.6 Sol",
     "GPT-5.6 Sol Max": "GPT-5.6 Sol",
     "Qwen3.7 Plus": "Qwen3.7 Plus",
-    "Gemini 3.6 Flash": "Gemini 3.6 Flash"
+    "Gemini 3.1 Pro": "Gemini 3.1 Pro",
+    "Gemini 3.6 Flash": "Gemini 3.6 Flash",
+    "MiniMax M3": "MiniMax M3",
+    "Qwen3.6 Plus": "Qwen3.6 Plus"
 }
 
 def fail(message: str) -> None:
@@ -124,8 +127,9 @@ def validate_evaluation(record: dict[str, Any]) -> None:
 
 def record_time(record: dict[str, Any]) -> datetime:
     try:
-        return datetime.fromisoformat(record["reviewed_at"].replace("Z", "+00:00"))
-    except ValueError:
+        dt_str = record["reviewed_at"].replace("Z", "+00:00")
+        return datetime.fromisoformat(dt_str)
+    except Exception:
         return datetime.min
 
 def format_time(record: dict[str, Any]) -> str:
@@ -157,7 +161,7 @@ def evidence_level(run_count: int, task_count: int) -> str:
         return "Moderate"
     return "Useful operating baseline"
 
-def generate_recommendation_manifest(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
+def generate_recommendation_manifest(evaluations: list[dict[str, Any]], total_queued_count: int = 0) -> dict[str, Any]:
     gated_evals = [e for e in evaluations if e.get("evaluation_protocol") == "gated_v1"]
 
     by_model: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -165,7 +169,8 @@ def generate_recommendation_manifest(evaluations: list[dict[str, Any]]) -> dict[
         by_model[e["model"]].append(e)
 
     model_stats = {}
-    for model, items in by_model.items():
+    for model in sorted(by_model.keys()):
+        items = by_model[model]
         n = len(items)
         avg = sum(float(x["weighted_score_5"]) for x in items) / n if n > 0 else 0.0
         first_pass_rate = sum(1 for x in items if x.get("first_pass_accepted")) / n if n > 0 else 0.0
@@ -174,23 +179,32 @@ def generate_recommendation_manifest(evaluations: list[dict[str, Any]]) -> dict[
             verdicts[str(x.get("outcome")).lower()] += 1
 
         subjects = len({x.get("subject_alias") for x in items})
+        task_cohorts = len({(x.get("task_class"), x.get("difficulty")) for x in items})
+
         model_stats[model] = {
             "recorded_count": n,
             "queued_count": 0,
             "available_count": n,
             "average_score_5": round(avg, 2),
             "first_pass_rate": round(first_pass_rate, 2),
-            "verdict_distribution": dict(verdicts),
+            "verdict_distribution": dict(sorted(verdicts.items())),
             "independent_subjects": subjects,
-            "cited_run_ids": [x["run_id"] for x in items]
+            "task_cohort_count": task_cohorts,
+            "cited_run_ids": sorted([x["run_id"] for x in items])
         }
+
+    # Deterministic timestamp based on latest evaluated record
+    latest_dt = max((record_time(e) for e in evaluations if record_time(e) != datetime.min), default=None)
+    gen_time = latest_dt.isoformat() if latest_dt else "2026-07-29T10:00:00Z"
+    if not gen_time.endswith("Z") and "+" not in gen_time:
+        gen_time += "Z"
 
     manifest = {
         "schema_version": 1,
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": gen_time,
         "official_recorded_gated_evaluations": len(gated_evals),
-        "total_queued_evaluations": 0,
-        "total_available_evaluations": len(gated_evals),
+        "total_queued_evaluations": total_queued_count,
+        "total_available_evaluations": len(gated_evals) + total_queued_count,
         "model_statistics": model_stats,
         "material_limitations": [
             "Official ranking uses only comparable recorded gated_v1 evidence.",
@@ -412,12 +426,12 @@ def replace_generated_block(text: str, start: str, end: str, replacement: str) -
 
 def scorecard_updated_line(records: list[dict[str, Any]]) -> str:
     if not records:
-        return "Updated: " + datetime.utcnow().strftime("%d %B %Y, %H:%M SGT")
+        return "Updated: 29 July 2026, 10:00 SGT"
     value = max(record_time(record) for record in records)
     suffix = " SGT" if value.utcoffset() == timedelta(hours=8) else ""
     return f"Updated: {value.day} {value.strftime('%B %Y, %H:%M')}{suffix}"
 
-def expected_files(evaluations: list[dict[str, Any]]) -> tuple[str, str, dict[str, Any]]:
+def expected_files(evaluations: list[dict[str, Any]], total_queued_count: int = 0) -> tuple[str, str, dict[str, Any]]:
     readme = README_PATH.read_text(encoding="utf-8")
     scorecard = SCORECARD_PATH.read_text(encoding="utf-8")
     if not readme.startswith(README_TITLE + "\n"):
@@ -425,7 +439,7 @@ def expected_files(evaluations: list[dict[str, Any]]) -> tuple[str, str, dict[st
     if not scorecard.startswith(SCORECARD_TITLE + "\n"):
         fail(f"scorecard.md must begin with exactly: {SCORECARD_TITLE}")
 
-    manifest = generate_recommendation_manifest(evaluations)
+    manifest = generate_recommendation_manifest(evaluations, total_queued_count=total_queued_count)
 
     expected_readme = replace_generated_block(
         readme,
@@ -449,10 +463,21 @@ def expected_files(evaluations: list[dict[str, Any]]) -> tuple[str, str, dict[st
         fail("scorecard must contain exactly one top-level Updated line")
     return expected_readme, expected_scorecard, manifest
 
+def rebuild_views(total_queued_count: int = 0) -> None:
+    records = load_records()
+    evaluations = resolved_evaluations(records)
+    expected_readme, expected_scorecard, manifest = expected_files(evaluations, total_queued_count=total_queued_count)
+
+    RECOMMENDATION_JSON_PATH.parent.mkdir(exist_ok=True)
+    with open(RECOMMENDATION_JSON_PATH, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    README_PATH.write_text(expected_readme, encoding="utf-8", newline="\n")
+    SCORECARD_PATH.write_text(expected_scorecard, encoding="utf-8", newline="\n")
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="verify generated views without writing")
-    parser.add_argument("--base-ref", help="optional Git revision used to enforce append-only JSONL")
     args = parser.parse_args()
 
     try:
@@ -477,12 +502,7 @@ def main() -> int:
         print(f"Ledger views passed: complete history retained; newest {DISPLAY_LIMIT} runs displayed.")
         return 0
 
-    RECOMMENDATION_JSON_PATH.parent.mkdir(exist_ok=True)
-    with open(RECOMMENDATION_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
-
-    README_PATH.write_text(expected_readme, encoding="utf-8", newline="\n")
-    SCORECARD_PATH.write_text(expected_scorecard, encoding="utf-8", newline="\n")
+    rebuild_views()
     print("Updated README.md, scorecard.md, and analysis/model-recommendation.json.")
     return 0
 

@@ -1,0 +1,52 @@
+name: CI Integrated Ledger Validation
+
+on:
+  push:
+    branches:
+      - main
+      - "gemini/**"
+      - "controller/**"
+  pull_request:
+    branches:
+      - main
+      - "gemini/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema
+
+      - name: Run complete unit test suite
+        run: |
+          python -m unittest discover -s tests
+
+      - name: Verify deterministic view rebuild twice
+        run: |
+          python scripts/rebuild_views.py --check
+          python scripts/rebuild_views.py --check
+
+      - name: Run Public Safety Scan
+        run: |
+          python scripts/check_public_safety.py
+
+      - name: Git diff whitespace check
+        run: |
+          git diff --check

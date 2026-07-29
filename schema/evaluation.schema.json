@@ -25,41 +25,62 @@
   "properties": {
     "schema_version": {"type": "integer", "const": 2},
     "record_type": {"type": "string", "enum": ["evaluation", "correction"]},
-    "run_id": {"type": "string", "minLength": 1},
-    "reviewed_at": {"type": "string"},
-    "executor_reported_at": {"type": ["string", "null"]},
-    "provider": {"type": "string", "minLength": 1},
-    "model": {"type": "string", "minLength": 1},
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executor_reported_at": {
+      "type": ["string", "null"]
+    },
+    "provider": {
+      "type": "string",
+      "enum": ["Google", "DeepSeek", "Qwen", "Anthropic", "OpenAI", "MiMo", "Xiaomi", "MiniMax"]
+    },
+    "model": {
+      "type": "string",
+      "enum": [
+        "MiMo 2.5 Pro",
+        "Claude Opus 4.8",
+        "Claude Opus 5",
+        "DeepSeek V4 Pro",
+        "GPT-5.6 Sol",
+        "Qwen3.7 Plus",
+        "Gemini 3.1 Pro",
+        "Gemini 3.6 Flash",
+        "MiniMax M3",
+        "Qwen3.6 Plus"
+      ]
+    },
     "evaluation_protocol": {
       "type": "string",
       "enum": ["gated_v1", "legacy_pre_gate", "protocol_unknown"]
     },
     "task_class": {
+      "type": "string"
+    },
+    "difficulty": {
       "type": "string",
-      "enum": [
-        "research",
-        "routine-repository-change",
-        "complex-repository-change",
-        "security-review",
-        "security-remediation",
-        "migration",
-        "provider-operation",
-        "production-deployment",
-        "incident-diagnosis",
-        "tracker-reconciliation",
-        "implementation-amendment",
-        "provider-admission",
-        "credential-containment",
-        "ux-remediation"
-      ]
+      "enum": ["low", "medium", "high", "critical"]
     },
-    "difficulty": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
-    "subject_alias": {"type": "string"},
-    "revision_binding": {"type": "string", "minLength": 1},
+    "subject_alias": {
+      "type": "string"
+    },
+    "revision_binding": {
+      "type": "string",
+      "minLength": 1
+    },
     "prompt_sha256": {
-      "type": ["string", "null"]
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
     },
-    "outcome": {"type": "string", "enum": ["accepted", "amend", "hold", "fail", "blocked"]},
+    "outcome": {
+      "type": "string",
+      "enum": ["accepted", "pass", "rejected", "amend", "hold", "fail", "blocked", "reset", "rescheduled", "error", "owner_withdrawn", "withdrawn"]
+    },
     "first_pass_accepted": {"type": "boolean"},
     "controller_intervention_required": {"type": "boolean"},
     "safe_final_state_reported": {"type": ["boolean", "null"]},
@@ -68,16 +89,6 @@
     "follow_up_runs_required": {"type": ["integer", "null"], "minimum": 0},
     "scores": {
       "type": "object",
-      "required": [
-        "correctness",
-        "safety_and_scope_control",
-        "evidence_quality",
-        "operational_judgement",
-        "task_understanding",
-        "tracker_and_repository_hygiene",
-        "autonomy",
-        "efficiency"
-      ],
       "additionalProperties": false,
       "properties": {
         "correctness": {"type": "number", "minimum": 0, "maximum": 5},
@@ -97,20 +108,53 @@
       "items": {"type": "string"},
       "uniqueItems": true
     },
-    "confidence": {"type": "string", "enum": ["anecdotal", "provisional", "moderate", "baseline"]},
+    "confidence": {
+      "type": "string",
+      "enum": ["anecdotal", "provisional", "moderate", "baseline"]
+    },
     "redaction_notice": {"type": ["string", "null"]},
-    "verified_strengths": {},
-    "verified_defects": {},
-    "controller_verification": {},
-    "next_evaluation": {},
-    "objective": {"type": "string"},
-    "prompt_capture": {},
-    "reported_operations": {},
-    "affected_run_id": {"type": "string"},
-    "corrected_fields": {"type": "object"},
-    "correction_reason": {"type": "string"},
-    "correction_scope": {"type": "string"},
-    "verification_evidence": {}
+    "verified_strengths": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "verified_defects": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "controller_verification": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "next_evaluation": {
+      "type": ["string", "null"]
+    },
+    "objective": {
+      "type": ["array", "string"],
+      "items": {"type": "string"}
+    },
+    "prompt_capture": {
+      "type": ["string", "null"]
+    },
+    "reported_operations": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "affected_run_id": {
+      "type": "string"
+    },
+    "corrected_fields": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "correction_reason": {
+      "type": "string"
+    },
+    "correction_scope": {
+      "type": "string"
+    },
+    "verification_evidence": {
+      "type": "string"
+    }
   },
   "additionalProperties": false
 }

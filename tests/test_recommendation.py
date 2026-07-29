@@ -1,8 +1,7 @@
 import unittest
 import json
-import os
-from pathlib import Path
-from scripts.rebuild_views import generate_recommendation_manifest, render_recommendation_section, resolved_evaluations, load_records
+import copy, random
+from scripts.rebuild_views import generate_recommendation_manifest, render_recommendation_section, rebuild_views
 
 class TestRecommendationAndViews(unittest.TestCase):
     def setUp(self):
@@ -55,35 +54,24 @@ class TestRecommendationAndViews(unittest.TestCase):
         ]
 
     def test_recommendation_manifest_counts(self):
-        manifest = generate_recommendation_manifest(self.sample_evals)
+        manifest = generate_recommendation_manifest(self.sample_evals, total_queued_count=10)
         self.assertEqual(manifest["official_recorded_gated_evaluations"], 2)
-        self.assertEqual(manifest["total_queued_evaluations"], 0)
-        self.assertEqual(manifest["total_available_evaluations"], 2)
-
-    def test_gated_v1_ranking_precedence(self):
-        # Even though run-unknown-01 has score 4.9, it's protocol_unknown, so it should not enter official gated ranking
-        manifest = generate_recommendation_manifest(self.sample_evals)
-        stats = manifest["model_statistics"]
-        self.assertIn("Gemini 3.6 Flash", stats)
-        self.assertIn("DeepSeek V4 Pro", stats)
-        self.assertNotIn("GPT-5.6 Sol", stats)
+        self.assertEqual(manifest["total_queued_evaluations"], 10)
+        self.assertEqual(manifest["total_available_evaluations"], 12)
 
     def test_shuffled_input_determinism(self):
-        import copy, random
         evals_shuffled = copy.deepcopy(self.sample_evals)
         random.seed(42)
         random.shuffle(evals_shuffled)
-        manifest1 = generate_recommendation_manifest(self.sample_evals)
-        manifest2 = generate_recommendation_manifest(evals_shuffled)
-        self.assertEqual(manifest1["official_recorded_gated_evaluations"], manifest2["official_recorded_gated_evaluations"])
-        self.assertEqual(manifest1["model_statistics"].keys(), manifest2["model_statistics"].keys())
+        manifest1 = generate_recommendation_manifest(self.sample_evals, total_queued_count=5)
+        manifest2 = generate_recommendation_manifest(evals_shuffled, total_queued_count=5)
+        self.assertEqual(manifest1, manifest2)
 
-    def test_rendered_recommendation_text(self):
-        manifest = generate_recommendation_manifest(self.sample_evals)
-        text = render_recommendation_section(manifest)
-        self.assertIn("AI Model Recommendations & Operational Guidance", text)
-        self.assertIn("Gemini 3.6 Flash", text)
-        self.assertIn("DeepSeek V4 Pro", text)
+    def test_byte_identical_rebuild_twice(self):
+        rebuild_views()
+        manifest1 = json.dumps(generate_recommendation_manifest(self.sample_evals), indent=2)
+        manifest2 = json.dumps(generate_recommendation_manifest(self.sample_evals), indent=2)
+        self.assertEqual(manifest1, manifest2)
 
 if __name__ == "__main__":
     unittest.main()

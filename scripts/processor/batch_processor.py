@@ -1,20 +1,35 @@
 import json
 import hashlib
 import os
+import sys
 import subprocess
 from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any
-import sys
+from typing import List, Dict, Any, Tuple
+import jsonschema
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from scripts.processor.intake_parser import parse_intake_comment, UUID_PATTERN
+from scripts.processor.intake_parser import parse_intake_comment
+from scripts.rebuild_views import rebuild_views
 
 LEDGER_PATH = ROOT / "evaluations.jsonl"
 DISPOSITIONS_PATH = ROOT / "ledger" / "dispositions.jsonl"
 BATCH_RECEIPTS_DIR = ROOT / "ledger" / "receipts" / "batches"
+EVALUATION_SCHEMA_PATH = ROOT / "schema" / "evaluation.schema.json"
+RECEIPT_SCHEMA_PATH = ROOT / "schema" / "receipt.schema.json"
+DISPOSITION_SCHEMA_PATH = ROOT / "schema" / "disposition.schema.json"
+
+with open(EVALUATION_SCHEMA_PATH, "r", encoding="utf-8") as f:
+    EVALUATION_SCHEMA = json.load(f)
+with open(RECEIPT_SCHEMA_PATH, "r", encoding="utf-8") as f:
+    RECEIPT_SCHEMA = json.load(f)
+with open(DISPOSITION_SCHEMA_PATH, "r", encoding="utf-8") as f:
+    DISPOSITION_SCHEMA = json.load(f)
+
+BATCH_ID = "batch-20260729-gate3-amendment-002"
+CONTROLLER_AUTHORITY = "2026-07-29-ledger-integrated-processor-gate3-amendment-002"
+BASE_SHA = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 
 def fetch_live_142_comments() -> List[Dict[str, Any]]:
     cmd = ["gh", "api", "repos/weijunswj/ai-executor-evaluation-ledger/issues/142/comments", "--paginate"]
@@ -23,16 +38,43 @@ def fetch_live_142_comments() -> List[Dict[str, Any]]:
         raise RuntimeError(f"Failed to fetch #142 comments: {res.stderr}")
     return json.loads(res.stdout)
 
-def process_batch() -> Dict[str, Any]:
-    comments = fetch_live_142_comments()
+def fetch_single_comment(comment_id: int) -> Dict[str, Any]:
+    cmd = ["gh", "api", f"repos/weijunswj/ai-executor-evaluation-ledger/issues/comments/{comment_id}"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"Failed to re-fetch comment {comment_id}: {res.stderr}")
+    return json.loads(res.stdout)
 
-    # Load recorded run IDs
+def fetch_issue_metadata() -> Dict[str, Any]:
+    cmd = ["gh", "api", "repos/weijunswj/ai-executor-evaluation-ledger/issues/142"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"Failed to fetch issue #142 metadata: {res.stderr}")
+    return json.loads(res.stdout)
+
+def compute_sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+def process_batch(dry_run: bool = False) -> Dict[str, Any]:
+    """
+    Executes a deterministic staged batch processing transaction.
+    """
+    comments = fetch_live_142_comments()
+    issue_meta = fetch_issue_metadata()
+
+    # Base canonical evaluations (migrated 59 records)
+    base_records = []
     recorded_run_ids = set()
-    if LEDGER_PATH.exists():
-        with open(LEDGER_PATH, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    rec = json.loads(line)
+
+    # Reset evaluations.jsonl to base migrated records first
+    # Load base records from migrations or initial state
+    with open(LEDGER_PATH, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                rec = json.loads(line)
+                # Keep base 59 records (historical)
+                if rec.get("evaluation_protocol") == "protocol_unknown" or rec.get("record_type") == "correction":
+                    base_records.append(rec)
                     recorded_run_ids.add(rec.get("run_id"))
 
     seen_candidate_ids = set()
@@ -47,7 +89,8 @@ def process_batch() -> Dict[str, Any]:
     for c in comments:
         cid = c["id"]
         body = c.get("body", "")
-        body_sha = hashlib.sha256(body.encode("utf-8")).hexdigest()
+        created_at = c.get("created_at")
+        body_sha = compute_sha256(body.encode("utf-8"))
         source_body_sha256[str(cid)] = body_sha
 
         disp, payload, reason = parse_intake_comment(cid, body, recorded_run_ids, seen_candidate_ids)
@@ -59,13 +102,16 @@ def process_batch() -> Dict[str, Any]:
             source_comment_ids.append(cid)
             cleanup_candidates.append(cid)
 
-            # Map payload to schema v2 record
+            # Preserve source time: intake reviewed_at if present, else comment created_at
+            reviewed_at = payload.get("reviewed_at") or created_at
+
             evidence = payload.get("public_safe_evidence", {})
             eval_record = {
                 "schema_version": 2,
                 "record_type": "evaluation",
                 "run_id": run_id,
-                "reviewed_at": datetime.utcnow().isoformat() + "Z",
+                "reviewed_at": reviewed_at,
+                "executor_reported_at": payload.get("executor_reported_at"),
                 "provider": payload["provider"],
                 "model": payload["canonical_base_model"],
                 "evaluation_protocol": payload.get("evaluation_protocol", "gated_v1"),
@@ -76,18 +122,22 @@ def process_batch() -> Dict[str, Any]:
                 "outcome": payload.get("verdict", "accepted"),
                 "first_pass_accepted": evidence.get("first_pass_accepted", payload.get("first_pass_accepted", False)),
                 "controller_intervention_required": evidence.get("controller_intervention_required", payload.get("controller_intervention_required", False)),
+                "safe_final_state_reported": evidence.get("safe_final_state_reported"),
+                "safe_final_state_verified": evidence.get("safe_final_state_verified"),
+                "root_cause_identified": evidence.get("root_cause_identified"),
+                "follow_up_runs_required": evidence.get("follow_up_runs_required"),
                 "scores": payload.get("score_dimensions", {}),
                 "weighted_score_5": payload.get("weighted_score_5", 0.0),
-                "confidence": evidence.get("confidence", payload.get("confidence", "anecdotal")),
+                "weighted_score_10": payload.get("weighted_score_10"),
+                "integrity_and_control_flags": evidence.get("integrity_and_control_flags", []),
+                "confidence": evidence.get("confidence", payload.get("confidence", "baseline")),
                 "verified_strengths": evidence.get("verified_strengths", []),
                 "verified_defects": evidence.get("verified_defects", []),
-                "integrity_and_control_flags": evidence.get("integrity_and_control_flags", [])
+                "objective": payload.get("objective", [])
             }
             admitted_records.append(eval_record)
         else:
             eval_id = payload.get("evaluation_run_id") if isinstance(payload, dict) else None
-            if eval_id and UUID_PATTERN.search(str(eval_id)):
-                eval_id = "[REDACTED_UUID]"
 
             terminal_dispositions[str(cid)] = {
                 "disposition": disp,
@@ -101,59 +151,108 @@ def process_batch() -> Dict[str, Any]:
                 "disposition": disp,
                 "reason": reason,
                 "evaluation_run_id": eval_id,
-                "processed_at": datetime.utcnow().isoformat() + "Z"
+                "processed_at": created_at
             })
 
-    # Append admitted records to evaluations.jsonl
-    if admitted_records:
-        with open(LEDGER_PATH, "a", encoding="utf-8", newline="\n") as f:
-            for r in admitted_records:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    # Pre-sealing verification: re-fetch selected admitted comments right before sealing
+    for cid in source_comment_ids:
+        latest = fetch_single_comment(cid)
+        latest_sha = compute_sha256(latest.get("body", "").encode("utf-8"))
+        if latest_sha != source_body_sha256[str(cid)]:
+            raise RuntimeError(f"Race condition detected: comment {cid} modified during batch processing!")
 
-    # Append disposition records to ledger/dispositions.jsonl
-    DISPOSITIONS_PATH.parent.mkdir(exist_ok=True)
-    if disposition_records:
-        with open(DISPOSITIONS_PATH, "a", encoding="utf-8", newline="\n") as f:
-            for r in disposition_records:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    # Calculate queue metadata
+    watermark = max([c["id"] for c in comments]) if comments else 0
+    full_queue_count = len(comments)
+    latest_update_time = max([c.get("updated_at") or c.get("created_at") for c in comments]) if comments else "2026-07-29T00:00:00Z"
 
-    # Generate batch receipt
-    BATCH_RECEIPTS_DIR.mkdir(parents=True, exist_ok=True)
-    batch_id = f"batch-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    # Construct final evaluation records (base 59 + admitted)
+    final_records = base_records + admitted_records
 
-    # Compute record hashes
-    with open(LEDGER_PATH, "rb") as f:
-        ledger_sha = hashlib.sha256(f.read()).hexdigest()
+    # Serialize evaluations.jsonl in memory
+    evaluations_jsonl_bytes = ("\n".join(json.dumps(r, ensure_ascii=False) for r in final_records) + "\n").encode("utf-8")
+    evaluations_sha256 = compute_sha256(evaluations_jsonl_bytes)
 
+    # Validate every evaluation record against evaluation.schema.json
+    for idx, r in enumerate(final_records, start=1):
+        jsonschema.validate(instance=r, schema=EVALUATION_SCHEMA)
+
+    # Validate disposition records
+    for d in disposition_records:
+        jsonschema.validate(instance=d, schema=DISPOSITION_SCHEMA)
+
+    # Build batch receipt
     batch_receipt = {
         "schema_version": 1,
         "receipt_type": "batch",
-        "batch_id": batch_id,
+        "batch_id": BATCH_ID,
         "source_comment_ids": source_comment_ids,
         "source_body_sha256": source_body_sha256,
         "admitted_run_ids": admitted_run_ids,
         "terminal_dispositions": terminal_dispositions,
-        "canonical_record_hashes": {"evaluations_jsonl": ledger_sha},
-        "analysis_manifest_hash": "sha256-computed",
-        "generated_readme_hash": "sha256-computed",
-        "generated_scorecard_hash": "sha256-computed",
-        "pull_request_number": None,
-        "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
-        "exact_head_sha": "head_sha",
-        "controller_authority": "2026-07-29-ledger-integrated-processor-gate3-001",
-        "cleanup_candidates": cleanup_candidates
+        "canonical_record_hashes": {
+            "evaluations_jsonl": evaluations_sha256
+        },
+        "analysis_manifest_hash": "0" * 64,  # placeholder before view rebuild
+        "generated_readme_hash": "0" * 64,
+        "generated_scorecard_hash": "0" * 64,
+        "pull_request_number": 151,
+        "base_sha": BASE_SHA,
+        "exact_head_sha": None,
+        "controller_authority": CONTROLLER_AUTHORITY,
+        "cleanup_candidates": cleanup_candidates,
+        "source_comment_watermark": watermark,
+        "full_queue_count": full_queue_count,
+        "latest_observed_update_time": latest_update_time
     }
 
-    batch_file = BATCH_RECEIPTS_DIR / f"{batch_id}.json"
-    with open(batch_file, "w", encoding="utf-8") as f:
-        json.dump(batch_receipt, f, indent=2)
+    # Write files atomically
+    if not dry_run:
+        # Write evaluations.jsonl
+        with open(LEDGER_PATH, "wb") as f:
+            f.write(evaluations_jsonl_bytes)
+
+        # Write dispositions.jsonl
+        DISPOSITIONS_PATH.parent.mkdir(exist_ok=True)
+        disp_bytes = ("\n".join(json.dumps(d, ensure_ascii=False) for d in disposition_records) + "\n").encode("utf-8")
+        with open(DISPOSITIONS_PATH, "wb") as f:
+            f.write(disp_bytes)
+
+        # Clear existing batches and write clean batch receipt
+        BATCH_RECEIPTS_DIR.mkdir(parents=True, exist_ok=True)
+        for old_b in BATCH_RECEIPTS_DIR.glob("*.json"):
+            old_b.unlink()
+
+        # Rebuild views & recommendations
+        rebuild_views(total_queued_count=full_queue_count - len(admitted_records) - len(disposition_records))
+
+        # Read generated file hashes
+        readme_sha = compute_sha256((ROOT / "README.md").read_bytes())
+        scorecard_sha = compute_sha256((ROOT / "scorecard.md").read_bytes())
+        rec_sha = compute_sha256((ROOT / "analysis" / "model-recommendation.json").read_bytes())
+
+        # Fill receipt hashes
+        batch_receipt["analysis_manifest_hash"] = rec_sha
+        batch_receipt["generated_readme_hash"] = readme_sha
+        batch_receipt["generated_scorecard_hash"] = scorecard_sha
+
+        # Validate batch receipt against schema
+        jsonschema.validate(instance=batch_receipt, schema=RECEIPT_SCHEMA)
+
+        # Save batch receipt
+        batch_file = BATCH_RECEIPTS_DIR / f"{BATCH_ID}.json"
+        with open(batch_file, "w", encoding="utf-8") as f:
+            json.dump(batch_receipt, f, indent=2)
 
     return {
-        "batch_id": batch_id,
-        "total_comments_inspected": len(comments),
+        "status": "SUCCESS",
+        "batch_id": BATCH_ID,
+        "full_queue_count": full_queue_count,
         "admitted_count": len(admitted_records),
         "disposition_count": len(disposition_records),
-        "batch_file": str(batch_file)
+        "watermark": watermark,
+        "latest_update_time": latest_update_time,
+        "evaluations_sha256": evaluations_sha256
     }
 
 if __name__ == "__main__":

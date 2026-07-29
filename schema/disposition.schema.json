@@ -14,7 +14,7 @@
   "properties": {
     "schema_version": {"type": "integer", "const": 1},
     "comment_id": {"type": "integer"},
-    "comment_body_sha256": {"type": "string"},
+    "comment_body_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "disposition": {
       "type": "string",
       "enum": [
@@ -30,7 +30,7 @@
     },
     "reason": {"type": "string"},
     "evaluation_run_id": {"type": ["string", "null"]},
-    "processed_at": {"type": "string"}
+    "processed_at": {"type": "string", "format": "date-time"}
   },
   "additionalProperties": false
 }

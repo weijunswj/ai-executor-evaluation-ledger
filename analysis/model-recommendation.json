@@ -1,125 +1,58 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T01:55:58.784333Z",
-  "official_recorded_gated_evaluations": 58,
+  "generated_at": "2026-07-28T15:47:25+00:00",
+  "official_recorded_gated_evaluations": 8,
   "total_queued_evaluations": 0,
-  "total_available_evaluations": 58,
+  "total_available_evaluations": 8,
   "model_statistics": {
-    "GPT-5.6 Sol": {
-      "recorded_count": 25,
-      "queued_count": 0,
-      "available_count": 25,
-      "average_score_5": 4.52,
-      "first_pass_rate": 0.16,
-      "verdict_distribution": {
-        "amend": 16,
-        "hold": 2,
-        "accepted": 6,
-        "blocked": 1
-      },
-      "independent_subjects": 8,
-      "cited_run_ids": [
-        "019f9ee5-8959-7351-bf3c-6e440b810d77",
-        "platform-post-merge-review-remediation-amendment-20260727-02",
-        "019f9f66-5e5c-7222-a907-f222fd291a16",
-        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
-        "019f9f62-12f0-73b2-a930-d3dda2b091bd",
-        "skr-production-dependency-remediation-amendment-20260727-02",
-        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
-        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
-        "platform-operator-source-recovery-20260727-04",
-        "019fa15d-bd42-7301-a4e6-75a59b0627d9",
-        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
-        "skr-post-merge-review-remediation-20260727-03",
-        "platform-runtime-activation-20260727-05",
-        "platform-runtime-grant-reconciliation-20260727-06",
-        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
-        "019fa161-cdad-7ed0-b507-6792fe8317ed",
-        "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
-        "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
-        "2026-07-27-governance-tooling-a-gate3-remediation-004",
-        "skr-structured-quote-ux-g3-implementation-20260727-02",
-        "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
-        "skr-structured-quote-ux-g3-implementation-20260727-03",
-        "workflow-compatibility-a-gate3-amendment-20260728-03",
-        "workflow-compatibility-a-gate3-amendment-20260728-04",
-        "workflow-compatibility-a-gate3-amendment-20260728-05"
-      ]
-    },
-    "DeepSeek V4 Pro": {
-      "recorded_count": 18,
-      "queued_count": 0,
-      "available_count": 18,
-      "average_score_5": 3.87,
-      "first_pass_rate": 0.0,
-      "verdict_distribution": {
-        "amend": 16,
-        "blocked": 2
-      },
-      "independent_subjects": 4,
-      "cited_run_ids": [
-        "platform-post-merge-review-remediation-20260726-01",
-        "skr-production-dependency-remediation-20260726-01",
-        "sqag-internal-alpha-role-acl-cutover-20260727-10b",
-        "2026-07-27-governance-tooling-a-gate4-amendment-006",
-        "2026-07-27-governance-tooling-a-gate4-amendment-008",
-        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
-        "sqag-production-admission-design-regeneration-20260727-08",
-        "skr-structured-quote-ux-g4-review-remediation-20260727-04",
-        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
-        "sqag-production-admission-design-regeneration-correction-20260727-09",
-        "2026-07-27-governance-tooling-a-gate4-amendment-012",
-        "sqag-production-admission-archive-contract-repair-20260727-10",
-        "skr-structured-quote-ux-g4-review-remediation-20260727-05",
-        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
-        "2026-07-27-governance-tooling-a-gate3-remediation-014",
-        "sqag-google-oauth-provider-metadata-admission-20260728-19",
-        "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
-        "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14"
-      ]
-    },
     "Claude Opus 5": {
       "recorded_count": 2,
       "queued_count": 0,
       "available_count": 2,
-      "average_score_5": 4.51,
+      "average_score_5": 4.71,
       "first_pass_rate": 0.0,
       "verdict_distribution": {
-        "pass": 1,
-        "amend": 1
+        "pass": 2
       },
       "independent_subjects": 1,
+      "task_cohort_count": 2,
       "cited_run_ids": [
         "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
-        "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001"
+        "6a3d5523-45a9-46f3-9b1f-dd0016eac160"
+      ]
+    },
+    "GPT-5.6 Sol": {
+      "recorded_count": 4,
+      "queued_count": 0,
+      "available_count": 4,
+      "average_score_5": 4.83,
+      "first_pass_rate": 0.5,
+      "verdict_distribution": {
+        "accepted": 4
+      },
+      "independent_subjects": 4,
+      "task_cohort_count": 3,
+      "cited_run_ids": [
+        "019f9f62-12f0-73b2-a930-d3dda2b091bd",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
+        "d0c73db8-2910-4104-9c32-932481707574",
+        "skr-production-dependency-remediation-amendment-20260727-02"
       ]
     },
     "Qwen3.7 Plus": {
-      "recorded_count": 13,
+      "recorded_count": 2,
       "queued_count": 0,
-      "available_count": 13,
-      "average_score_5": 4.26,
-      "first_pass_rate": 0.15,
+      "available_count": 2,
+      "average_score_5": 4.91,
+      "first_pass_rate": 1.0,
       "verdict_distribution": {
-        "amend": 10,
-        "accepted": 2,
-        "blocked": 1
+        "accepted": 2
       },
-      "independent_subjects": 3,
+      "independent_subjects": 2,
+      "task_cohort_count": 2,
       "cited_run_ids": [
-        "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
-        "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
-        "sqag-postgresql17-assertion-output-safety-20260728-14",
         "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
-        "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
-        "sqag-postgresql17-fixed-error-category-20260728-15",
-        "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
-        "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
-        "sqag-production-inspection-authority-recovery-20260728-17",
-        "swooshz-host-environment-stale-credential-containment-20260728-01",
-        "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
-        "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
-        "platform-stale-credential-conditional-invalidation-20260728-10"
+        "sqag-postgresql17-fixed-error-category-20260728-15"
       ]
     }
   },

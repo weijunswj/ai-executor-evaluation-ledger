@@ -12,7 +12,6 @@
     "canonical_base_model",
     "evaluation_protocol",
     "repository_alias",
-    "issue_number",
     "source_revision",
     "task_class",
     "difficulty",
@@ -27,20 +26,86 @@
     "record_type": {"type": "string", "const": "evaluation_intake"},
     "controller_run_id": {"type": "string", "minLength": 1},
     "evaluation_run_id": {"type": "string", "minLength": 1},
-    "provider": {"type": "string", "minLength": 1},
-    "canonical_base_model": {"type": "string", "minLength": 1},
-    "evaluation_protocol": {"type": "string", "enum": ["gated_v1", "legacy_pre_gate", "protocol_unknown"]},
+    "provider": {
+      "type": "string",
+      "enum": ["Google", "DeepSeek", "Qwen", "Anthropic", "OpenAI", "MiMo", "Xiaomi", "MiniMax"]
+    },
+    "canonical_base_model": {
+      "type": "string",
+      "enum": [
+        "MiMo 2.5 Pro",
+        "Claude Opus 4.8",
+        "Claude Opus 5",
+        "DeepSeek V4 Pro",
+        "GPT-5.6 Sol",
+        "Qwen3.7 Plus",
+        "Gemini 3.1 Pro",
+        "Gemini 3.6 Flash",
+        "MiniMax M3",
+        "Qwen3.6 Plus"
+      ]
+    },
+    "evaluation_protocol": {
+      "type": "string",
+      "enum": ["gated_v1", "legacy_pre_gate", "protocol_unknown"]
+    },
     "repository_alias": {"type": "string", "minLength": 1},
-    "issue_number": {"type": "integer"},
-    "pull_request_number": {"type": ["integer", "null"]},
+    "issue_number": {"type": ["integer", "string", "null"]},
+    "pull_request_number": {"type": ["integer", "string", "null"]},
     "source_revision": {"type": "string", "minLength": 1},
-    "task_class": {"type": "string"},
-    "difficulty": {"type": "string"},
-    "verdict": {"type": "string"},
-    "score_dimensions": {"type": "object"},
-    "weighted_score_5": {"type": "number"},
-    "public_safe_evidence": {"type": "object"},
-    "secret_exposure_status": {"type": "string", "enum": ["none", "possible", "confirmed"]}
+    "task_class": {"type": "string", "minLength": 1},
+    "difficulty": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+    "verdict": {
+      "type": "string",
+      "enum": ["accepted", "pass", "rejected", "rescheduled", "error", "reset", "owner_withdrawn"]
+    },
+    "score_dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "correctness": {"type": "number", "minimum": 0, "maximum": 5},
+        "safety_and_scope_control": {"type": "number", "minimum": 0, "maximum": 5},
+        "evidence_quality": {"type": "number", "minimum": 0, "maximum": 5},
+        "operational_judgement": {"type": "number", "minimum": 0, "maximum": 5},
+        "task_understanding": {"type": "number", "minimum": 0, "maximum": 5},
+        "tracker_and_repository_hygiene": {"type": "number", "minimum": 0, "maximum": 5},
+        "autonomy": {"type": "number", "minimum": 0, "maximum": 5},
+        "efficiency": {"type": "number", "minimum": 0, "maximum": 5}
+      }
+    },
+    "weighted_score_5": {"type": "number", "minimum": 0, "maximum": 5},
+    "public_safe_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "first_pass_accepted": {"type": "boolean"},
+        "controller_intervention_required": {"type": "boolean"},
+        "safe_final_state_reported": {"type": ["boolean", "null"]},
+        "safe_final_state_verified": {"type": ["boolean", "null"]},
+        "root_cause_identified": {"type": ["boolean", "null"]},
+        "root_cause_result": {"type": ["string", "null"]},
+        "follow_up_count": {"type": ["integer", "null"], "minimum": 0},
+        "follow_up_runs_required": {"type": ["integer", "null"], "minimum": 0},
+        "confidence": {"type": "string", "enum": ["anecdotal", "provisional", "moderate", "baseline"]},
+        "verified_strengths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "verified_defects": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "integrity_and_control_flags": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "secret_exposure_status": {
+      "type": "string",
+      "enum": ["none", "possible", "confirmed"]
+    },
+    "reviewed_at": {"type": ["string", "null"], "format": "date-time"}
   },
   "additionalProperties": false
 }

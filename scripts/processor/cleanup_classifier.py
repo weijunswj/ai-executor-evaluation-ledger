@@ -1,37 +1,34 @@
 from typing import List, Dict, Any
 
-ALLOWED_CLEANUP_PATHS_PREFIXES = (
+ALLOWED_CLEANUP_PREFIXES = (
     "ledger/receipts/cleanup/",
 )
-
-ALLOWED_GENERATED_FILES = {
-    "README.md",
-    "scorecard.md",
-    "analysis/model-recommendation.json"
-}
 
 def classify_pr_scope(changed_files: List[str]) -> Dict[str, Any]:
     """
     Classifies PR scope to determine if automatic merge is permitted.
-    Cleanup-only PRs may auto-merge under strict conditions.
-    Semantic PRs require fresh controller exact-head approval.
+    Standalone cleanup-only PRs may contain ONLY ledger/receipts/cleanup/*.json.
+    Any changes to README.md, scorecard.md, analysis/model-recommendation.json,
+    evaluations.jsonl, schemas, workflows, or scripts make the PR scope SEMANTIC_EVALUATION.
     """
     if not changed_files:
-        return {"scope": "SEMANTIC_EVALUATION", "auto_merge_allowed": False, "reason": "No changed files"}
+        return {
+            "scope": "SEMANTIC_EVALUATION",
+            "auto_merge_allowed": False,
+            "reason": "No changed files provided"
+        }
 
-    for f in changed_files:
-        is_cleanup_receipt = any(f.startswith(prefix) for prefix in ALLOWED_CLEANUP_PATHS_PREFIXES)
-        is_generated_file = f in ALLOWED_GENERATED_FILES
-
-        if not (is_cleanup_receipt or is_generated_file):
+    for file_path in changed_files:
+        is_cleanup_receipt = any(file_path.startswith(prefix) for prefix in ALLOWED_CLEANUP_PREFIXES)
+        if not is_cleanup_receipt:
             return {
                 "scope": "SEMANTIC_EVALUATION",
                 "auto_merge_allowed": False,
-                "reason": f"File '{f}' is not an authorized cleanup-receipt or generated file"
+                "reason": f"File '{file_path}' is not a standalone cleanup receipt. Changed generated or code files require semantic review."
             }
 
     return {
         "scope": "CLEANUP_ONLY",
         "auto_merge_allowed": True,
-        "reason": "PR contains only authorized cleanup receipts and byte-deterministic generated files"
+        "reason": "PR contains only standalone cleanup receipts under ledger/receipts/cleanup/"
     }
