@@ -1,3 +1,4 @@
+from pathlib import PurePosixPath
 from typing import List, Dict, Any
 
 ALLOWED_CLEANUP_PREFIXES = (
@@ -19,12 +20,21 @@ def classify_pr_scope(changed_files: List[str]) -> Dict[str, Any]:
         }
 
     for file_path in changed_files:
-        is_cleanup_receipt = any(file_path.startswith(prefix) for prefix in ALLOWED_CLEANUP_PREFIXES)
+        normalized = file_path.replace("\\", "/")
+        relative = normalized.removeprefix(ALLOWED_CLEANUP_PREFIXES[0])
+        is_cleanup_receipt = (
+            normalized == file_path
+            and normalized.startswith(ALLOWED_CLEANUP_PREFIXES[0])
+            and relative.endswith(".json")
+            and relative not in {"", ".", ".."}
+            and PurePosixPath(relative).name == relative
+            and ".." not in PurePosixPath(relative).parts
+        )
         if not is_cleanup_receipt:
             return {
                 "scope": "SEMANTIC_EVALUATION",
                 "auto_merge_allowed": False,
-                "reason": f"File '{file_path}' is not a standalone cleanup receipt. Changed generated or code files require semantic review."
+                "reason": "non_receipt_path_requires_semantic_review"
             }
 
     return {

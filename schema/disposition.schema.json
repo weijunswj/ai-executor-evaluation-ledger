@@ -1,40 +1,68 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ai-executor-evaluation-ledger:disposition:v1",
-  "title": "AI Executor Evaluation Disposition Schema v1",
-  "type": "object",
-  "required": [
-    "schema_version",
-    "comment_id",
-    "comment_body_sha256",
-    "disposition",
-    "reason",
-    "processed_at"
-  ],
-  "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "comment_id": {"type": "integer"},
-    "comment_body_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "disposition": {
-      "type": "string",
-      "enum": [
-        "already_recorded",
-        "duplicate",
-        "malformed",
-        "conflicted",
-        "non_evaluable",
-        "owner_withdrawn",
-        "ineligible",
-        "blocked_controller_action",
-        "no_marker",
-        "invalid_json",
-        "prohibited_identity",
-        "pending_controller_action"
-      ]
+  "$id": "urn:ai-executor-evaluation-ledger:disposition:v2",
+  "title": "AI Executor Evaluation Disposition Schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "comment_id", "comment_body_sha256", "disposition", "reason", "processed_at"],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "comment_id": {"type": "integer", "minimum": 1},
+        "comment_body_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "already_recorded",
+            "duplicate",
+            "malformed",
+            "conflicted",
+            "non_evaluable",
+            "owner_withdrawn",
+            "ineligible",
+            "blocked_controller_action",
+            "no_marker",
+            "invalid_json",
+            "prohibited_identity",
+            "pending_controller_action"
+          ]
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "evaluation_run_id": {"type": ["string", "null"]},
+        "processed_at": {"type": "string", "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"}
+      }
     },
-    "reason": {"type": "string"},
-    "evaluation_run_id": {"type": ["string", "null"]},
-    "processed_at": {"type": "string"}
-  },
-  "additionalProperties": false
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "comment_id", "comment_body_sha256", "disposition_code", "processed_at"],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 2},
+        "comment_id": {"type": "integer", "minimum": 1},
+        "comment_body_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "disposition_code": {
+          "type": "string",
+          "enum": [
+            "already_recorded",
+            "authority_missing",
+            "conflicting_identity",
+            "duplicate_identity",
+            "ineligible_identity",
+            "invalid_schema",
+            "no_marker",
+            "source_changed",
+            "unsafe_content",
+            "unsupported_identity",
+            "withdrawn_identity"
+          ]
+        },
+        "evaluation_run_id": {
+          "type": ["string", "null"],
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+        },
+        "processed_at": {"type": "string", "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"}
+      }
+    }
+  ]
 }

@@ -1,7 +1,10 @@
 import unittest
 import json
 import copy, random
-from scripts.rebuild_views import generate_recommendation_manifest, render_recommendation_section, rebuild_views
+from pathlib import Path
+from scripts.rebuild_views import expected_files_for_records, generate_recommendation_manifest
+
+ROOT = Path(__file__).resolve().parents[1]
 
 class TestRecommendationAndViews(unittest.TestCase):
     def setUp(self):
@@ -11,7 +14,7 @@ class TestRecommendationAndViews(unittest.TestCase):
                 "record_type": "evaluation",
                 "reviewed_at": "2026-07-28T10:00:00Z",
                 "provider": "Google",
-                "model": "Gemini 3.6 Flash",
+                "model": "Gemini 3.1 Pro",
                 "evaluation_protocol": "gated_v1",
                 "task_class": "research",
                 "difficulty": "medium",
@@ -68,10 +71,11 @@ class TestRecommendationAndViews(unittest.TestCase):
         self.assertEqual(manifest1, manifest2)
 
     def test_byte_identical_rebuild_twice(self):
-        rebuild_views()
-        manifest1 = json.dumps(generate_recommendation_manifest(self.sample_evals), indent=2)
-        manifest2 = json.dumps(generate_recommendation_manifest(self.sample_evals), indent=2)
-        self.assertEqual(manifest1, manifest2)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        scorecard = (ROOT / "scorecard.md").read_text(encoding="utf-8")
+        first = expected_files_for_records(self.sample_evals, readme, scorecard)
+        second = expected_files_for_records(self.sample_evals, readme, scorecard)
+        self.assertEqual(first, second)
 
     def test_recorded_queued_available_counts_math(self):
         recorded = 5

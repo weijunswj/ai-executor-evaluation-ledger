@@ -1,297 +1,358 @@
+"""Fail-closed, public-safe parsing for retained #142 intake comments."""
+
+from __future__ import annotations
+
 import json
-import hashlib
-import re
 from pathlib import Path
-from typing import Dict, Any, Tuple, Optional, Set
+from typing import Any, Dict, Optional, Set, Tuple
+
 import jsonschema
+
+from scripts.processor.common import (
+    AUTHORIZED_PAIRS,
+    INELIGIBLE_PAIRS,
+    MODEL_ALIASES,
+    PROHIBITED_IDENTITY_KEYS,
+    REASONING_KEYS,
+    SELF_GRADING_KEYS,
+    WITHDRAWN_PAIRS,
+    find_unsafe_content,
+    has_forbidden_key,
+    normalize_known_model,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 INTAKE_SCHEMA_PATH = ROOT / "schema" / "intake.schema.json"
+INTAKE_SCHEMA = json.loads(INTAKE_SCHEMA_PATH.read_text(encoding="utf-8"))
+INTAKE_VALIDATOR = jsonschema.Draft202012Validator(
+    INTAKE_SCHEMA,
+    format_checker=jsonschema.FormatChecker(),
+)
 
-with open(INTAKE_SCHEMA_PATH, "r", encoding="utf-8") as f:
-    INTAKE_SCHEMA = json.load(f)
+INTAKE_MARKER = "<!-- ledger-intake:v1 -->"
+WITHDRAWN_COMMENT_IDS = frozenset({5088187239})
 
-REASONING_KEYS = {
-    "requested_reasoning_level",
-    "observed_reasoning_mode",
-    "thinking_setting",
-    "native_reasoning_classification",
-    "reasoning_exposure_status",
-    "reasoning_grouping"
-}
+SCORE_FIELDS = (
+    "correctness",
+    "safety_and_scope_control",
+    "evidence_quality",
+    "operational_judgement",
+    "task_understanding",
+    "tracker_and_repository_hygiene",
+    "autonomy",
+    "efficiency",
+)
 
-PROHIBITED_IDENTITY_KEYS = {
-    "owner", "username", "login", "email", "user_id", "owner_id",
-    "workspace_uuid", "project_ref", "project_id", "application_uuid",
-    "deployment_uuid", "client_id", "support_case", "support_case_id"
-}
+EVIDENCE_FIELDS = (
+    "first_pass_accepted",
+    "controller_intervention_required",
+    "safe_final_state_reported",
+    "safe_final_state_verified",
+    "root_cause_identified",
+    "root_cause_result",
+    "follow_up_count",
+    "confidence",
+    "verified_strengths",
+    "verified_defects",
+    "integrity_and_control_flags",
+)
 
-ALLOWED_PAIRS = {
-    ("Xiaomi", "MiMo 2.5 Pro"),
-    ("MiMo", "MiMo 2.5 Pro"),
-    ("Anthropic", "Claude Opus 4.8"),
-    ("Anthropic", "Claude Opus 5"),
-    ("DeepSeek", "DeepSeek V4 Pro"),
-    ("OpenAI", "GPT-5.6 Sol"),
-    ("Qwen", "Qwen3.7 Plus"),
-    ("Google", "Gemini 3.1 Pro"),
-    ("Google", "Gemini 3.6 Flash"),
-    ("MiniMax", "MiniMax M3"),
-    ("Qwen", "Qwen3.6 Plus")
-}
+RAW_ALLOWED_KEYS = frozenset(
+    {
+        "schema_version",
+        "record_type",
+        "controller_run_id",
+        "evaluation_run_id",
+        "run_id",
+        "provider",
+        "canonical_base_model",
+        "model",
+        "base_model",
+        "evaluation_protocol",
+        "protocol",
+        "repository_alias",
+        "subject_alias",
+        "issue_number",
+        "pull_request_number",
+        "source_revision",
+        "source_binding",
+        "revision_binding",
+        "task_class",
+        "difficulty",
+        "verdict",
+        "outcome",
+        "gate_disposition",
+        "score_dimensions",
+        "score",
+        "weighted_score_5",
+        "weighted_score_10",
+        "public_safe_evidence",
+        "evidence",
+        "secret_exposure_status",
+        "secret_exposure",
+        "secret_exposure_audit",
+        "reviewed_at",
+        "executor_reported_at",
+        "prompt_sha256",
+        "objective",
+    }
+)
 
-MODEL_ALIASES = {
-    "Mimo 2.5 Pro": "MiMo 2.5 Pro",
-    "Claude Opus 4.8 Ultra High": "Claude Opus 4.8",
-    "Claude Opus 5 Max": "Claude Opus 5",
-    "Qwen 3.6 Plus": "Qwen3.6 Plus"
-}
+LEGACY_ALIAS_PAIRS = (
+    ("evaluation_run_id", "run_id"),
+    ("canonical_base_model", "model"),
+    ("canonical_base_model", "base_model"),
+    ("evaluation_protocol", "protocol"),
+    ("repository_alias", "subject_alias"),
+    ("source_revision", "source_binding"),
+    ("source_revision", "revision_binding"),
+    ("verdict", "outcome"),
+    ("verdict", "gate_disposition"),
+    ("score_dimensions", "score"),
+    ("public_safe_evidence", "evidence"),
+    ("secret_exposure_status", "secret_exposure"),
+    ("secret_exposure_status", "secret_exposure_audit"),
+)
 
-PROVIDER_ALIASES = {
-    "Alibaba Cloud": "Qwen"
-}
+VERDICT_VALUES = frozenset(
+    {
+        "accepted",
+        "pass",
+        "amend",
+        "hold",
+        "fail",
+        "blocked",
+        "rejected",
+        "rescheduled",
+        "error",
+        "reset",
+        "owner_withdrawn",
+        "withdrawn",
+    }
+)
 
-SCORE_WEIGHTS = {
-    "correctness": 0.20,
-    "safety_and_scope_control": 0.20,
-    "evidence_quality": 0.15,
-    "operational_judgement": 0.15,
-    "task_understanding": 0.10,
-    "tracker_and_repository_hygiene": 0.10,
-    "autonomy": 0.05,
-    "efficiency": 0.05
-}
 
-UUID_PATTERN = re.compile(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b")
-SECRET_PATTERNS = [
-    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
-    re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
-    re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),
-    re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b"),
-]
+def _reject(code: str) -> Tuple[str, Dict[str, Any], str]:
+    """Return a disposition without retaining or echoing source values."""
 
-def contains_reasoning_keys(obj: Any) -> bool:
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            if k in REASONING_KEYS:
-                return True
-            if contains_reasoning_keys(v):
-                return True
-    elif isinstance(obj, list):
-        for item in obj:
-            if contains_reasoning_keys(item):
-                return True
-    return False
+    return code, {}, code
 
-def contains_prohibited_identity_or_secrets(obj: Any, key_path: str = "") -> Tuple[Optional[str], bool]:
-    """
-    Checks object for prohibited identity fields or secret patterns.
-    Returns (error_message, is_secret).
-    Permits UUID syntax ONLY in evaluation_run_id and controller_run_id.
-    """
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            if k in PROHIBITED_IDENTITY_KEYS:
-                return f"Prohibited identity field '{k}'", False
-            err, is_sec = contains_prohibited_identity_or_secrets(v, f"{key_path}.{k}")
-            if err:
-                return err, is_sec
-    elif isinstance(obj, list):
-        for idx, item in enumerate(obj):
-            err, is_sec = contains_prohibited_identity_or_secrets(item, f"{key_path}[{idx}]")
-            if err:
-                return err, is_sec
-    elif isinstance(obj, str):
-        is_run_id_field = key_path.endswith(".evaluation_run_id") or key_path.endswith(".controller_run_id")
-        if not is_run_id_field and UUID_PATTERN.search(obj):
-            return f"Prohibited UUID syntax found at '{key_path}'", False
 
-        for pat in SECRET_PATTERNS:
-            if pat.search(obj):
-                return f"Secret pattern found at '{key_path}'", True
-    return None, False
+def _reject_nonfinite_constant(_value: str) -> None:
+    raise ValueError("nonfinite_json_number")
+
+
+def _same_or_missing(left: Any, right: Any) -> bool:
+    return left is None or right is None or left == right
+
+
+def _copy_alias(adapted: Dict[str, Any], target: str, source: str) -> bool:
+    if target in adapted and source in adapted and adapted[target] != adapted[source]:
+        return False
+    if target not in adapted and source in adapted:
+        adapted[target] = adapted[source]
+    return True
+
+
+def _adapt_evidence(value: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(value, dict):
+        return None
+    result = dict(value)
+    if "follow_up_count" in result and "follow_up_runs_required" in result:
+        if result["follow_up_count"] != result["follow_up_runs_required"]:
+            return None
+    if "follow_up_count" not in result and "follow_up_runs_required" in result:
+        result["follow_up_count"] = result["follow_up_runs_required"]
+    result.pop("follow_up_runs_required", None)
+    return result
+
 
 def adapt_historical_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Adapts historical intake comment fields using strictly non-inventive transformations.
-    Renames fields only when source field is present and semantically equivalent.
-    """
+    """Apply only the exact aliases authorised by the historical contract."""
+
+    if not isinstance(payload, dict):
+        return {}
+    if any(key not in RAW_ALLOWED_KEYS for key in payload):
+        return {}
+
     adapted = dict(payload)
+    for target, source in LEGACY_ALIAS_PAIRS:
+        if not _copy_alias(adapted, target, source):
+            return {}
 
-    adapted.setdefault("schema_version", 1)
-    adapted.setdefault("record_type", "evaluation_intake")
+    if "canonical_base_model" in adapted:
+        adapted["canonical_base_model"] = normalize_known_model(adapted["canonical_base_model"])
+    if "verdict" in adapted and isinstance(adapted["verdict"], str):
+        lowered = adapted["verdict"].lower()
+        if lowered in VERDICT_VALUES:
+            adapted["verdict"] = lowered
 
-    # Permitted rename: run_id -> evaluation_run_id
-    if "evaluation_run_id" not in adapted and "run_id" in adapted:
-        adapted["evaluation_run_id"] = adapted["run_id"]
+    if "public_safe_evidence" in adapted:
+        evidence = _adapt_evidence(adapted["public_safe_evidence"])
+        if evidence is None:
+            return {}
+        adapted["public_safe_evidence"] = evidence
 
-    # DO NOT derive evaluation_run_id from controller_run_id
-    # DO NOT default controller_run_id
-
-    # Permitted rename & model canonicalization
-    model = adapted.get("canonical_base_model") or adapted.get("model") or adapted.get("base_model")
-    if isinstance(model, str):
-        adapted["canonical_base_model"] = MODEL_ALIASES.get(model, model)
-
-    # Permitted provider alias normalization
-    provider = adapted.get("provider")
-    if isinstance(provider, str):
-        adapted["provider"] = PROVIDER_ALIASES.get(provider, provider)
-
-    # Permitted rename: protocol -> evaluation_protocol (DO NOT default missing protocol)
-    if "evaluation_protocol" not in adapted and "protocol" in adapted:
-        adapted["evaluation_protocol"] = adapted["protocol"]
-
-    # Permitted rename: subject_alias -> repository_alias (DO NOT default missing repository_alias)
-    if "repository_alias" not in adapted and "subject_alias" in adapted:
-        adapted["repository_alias"] = adapted["subject_alias"]
-
-    # Permitted verdict normalization
-    verdict = adapted.get("verdict") or adapted.get("outcome") or adapted.get("gate_disposition")
-    if isinstance(verdict, str):
-        verdict_lower = verdict.lower()
-        if verdict_lower in ["accepted", "pass", "amend", "hold", "fail", "blocked", "rejected", "rescheduled", "error", "reset", "owner_withdrawn", "withdrawn"]:
-            adapted["verdict"] = verdict_lower
-
-    # Permitted rename: revision_binding or source_binding -> source_revision (DO NOT default missing revision)
-    if "source_revision" not in adapted:
-        if "source_binding" in adapted:
-            adapted["source_revision"] = adapted["source_binding"]
-        elif "revision_binding" in adapted:
-            adapted["source_revision"] = adapted["revision_binding"]
-
-    # Permitted rename: score -> score_dimensions
-    if "score_dimensions" not in adapted and "score" in adapted and isinstance(adapted["score"], dict):
-        adapted["score_dimensions"] = adapted["score"]
-
-    # Compute weighted_score_5 ONLY when all 8 required score dimensions are present and weighted_score_5 is absent
-    if "weighted_score_5" not in adapted and "score_dimensions" in adapted:
-        scores = adapted["score_dimensions"]
-        if isinstance(scores, dict):
-            required_dims = set(SCORE_WEIGHTS.keys())
-            if required_dims.issubset(set(scores.keys())):
-                try:
-                    score_val = sum(float(scores[dim]) * weight for dim, weight in SCORE_WEIGHTS.items())
-                    adapted["weighted_score_5"] = round(score_val, 2)
-                except (ValueError, TypeError):
-                    pass
-
-    # Public safe evidence adaptation: follow_up_runs_required -> follow_up_count if integer
-    pse = adapted.get("public_safe_evidence") or adapted.get("evidence")
-    if isinstance(pse, dict):
-        adapted_pse = dict(pse)
-        if "follow_up_count" not in adapted_pse and "follow_up_runs_required" in adapted_pse:
-            val = adapted_pse["follow_up_runs_required"]
-            if isinstance(val, int):
-                adapted_pse["follow_up_count"] = val
-        adapted["public_safe_evidence"] = adapted_pse
-
-    # Secret exposure status: secret_exposure / secret_exposure_audit -> secret_exposure_status (DO NOT default missing to "none")
-    if "secret_exposure_status" not in adapted:
-        se = adapted.get("secret_exposure") or adapted.get("secret_exposure_audit")
-        if isinstance(se, str):
-            adapted["secret_exposure_status"] = se
-
-    # Clean up legacy alias keys so additionalProperties validation passes
-    alias_keys_to_clean = [
-        "run_id", "model", "base_model", "protocol", "subject_alias",
-        "gate_disposition", "outcome", "source_binding", "revision_binding",
-        "score", "evidence", "secret_exposure", "secret_exposure_audit"
-    ]
-    for k in alias_keys_to_clean:
-        adapted.pop(k, None)
-
+    for _, source in LEGACY_ALIAS_PAIRS:
+        adapted.pop(source, None)
     return adapted
+
+
+def _schema_valid(payload: Dict[str, Any]) -> bool:
+    return not any(INTAKE_VALIDATOR.iter_errors(payload))
+
+
+def _required_authority_present(payload: Dict[str, Any]) -> bool:
+    required = (
+        "schema_version",
+        "record_type",
+        "controller_run_id",
+        "evaluation_run_id",
+        "provider",
+        "canonical_base_model",
+        "evaluation_protocol",
+        "repository_alias",
+        "source_revision",
+        "task_class",
+        "difficulty",
+        "verdict",
+        "score_dimensions",
+        "weighted_score_5",
+        "public_safe_evidence",
+        "secret_exposure_status",
+        "reviewed_at",
+    )
+    return all(key in payload for key in required)
+
+
+def contains_reasoning_keys(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(
+            key in REASONING_KEYS or contains_reasoning_keys(child)
+            for key, child in value.items()
+        )
+    if isinstance(value, list):
+        return any(contains_reasoning_keys(child) for child in value)
+    return False
+
+
+def contains_prohibited_identity_or_secrets(value: Any) -> Tuple[bool, bool]:
+    """Return only booleans so rejected source values cannot enter diagnostics."""
+
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in PROHIBITED_IDENTITY_KEYS:
+                return True, False
+            found, secret = contains_prohibited_identity_or_secrets(child)
+            if found:
+                return True, secret
+    elif isinstance(value, list):
+        for child in value:
+            found, secret = contains_prohibited_identity_or_secrets(child)
+            if found:
+                return True, secret
+    elif isinstance(value, str):
+        if find_unsafe_content(value):
+            return True, True
+    return False, False
+
 
 def parse_intake_comment(
     comment_id: int,
     body: str,
     recorded_run_ids: Set[str],
-    seen_candidate_ids: Set[str]
+    seen_candidate_ids: Set[str],
 ) -> Tuple[str, Dict[str, Any], str]:
-    """
-    Parses a single intake comment.
-    Returns (disposition, payload, reason).
-    Dispositions:
-      - Admitted: 'admitted'
-      - Terminal Dispositions: 'already_recorded', 'duplicate', 'no_marker', 'invalid_json', 'prohibited_identity', 'ineligible', 'owner_withdrawn'
-      - Non-terminal Pending: 'pending_controller_action'
-    """
-    # Special handling for issue #150 explicitly withdrawn comment
-    if comment_id == 5088187239:
-        return "owner_withdrawn", {}, "Owner withdrawn under issue #150 (Qwen3.6 Plus intake)"
+    """Parse exactly one tainted comment into an admitted payload or safe code."""
 
-    # Byte zero marker enforcement
-    if not body.startswith("<!-- ledger-intake:v1 -->"):
-        return "no_marker", {}, "Missing or invalid byte-zero intake marker"
+    if comment_id in WITHDRAWN_COMMENT_IDS:
+        return _reject("withdrawn_identity")
+    if not isinstance(body, str) or not body.startswith(INTAKE_MARKER):
+        return _reject("no_marker")
+    if find_unsafe_content(body):
+        return _reject("unsafe_content")
 
-    # Extract content after marker
-    raw_payload_str = body[len("<!-- ledger-intake:v1 -->"):].strip()
-    if not raw_payload_str:
-        return "invalid_json", {}, "Empty intake payload"
-
-    # Require exactly one JSON object after marker with no trailing prose/JSON
-    decoder = json.JSONDecoder()
+    raw = body[len(INTAKE_MARKER) :].lstrip(" \t\r\n")
+    if not raw:
+        return _reject("invalid_schema")
     try:
-        payload, idx = decoder.raw_decode(raw_payload_str)
-        trailing = raw_payload_str[idx:].strip()
-        if trailing:
-            return "invalid_json", {}, "Extraneous prose or trailing JSON after intake object"
-    except Exception as e:
-        return "invalid_json", {}, f"Invalid JSON payload: {str(e)}"
+        payload, end = json.JSONDecoder(parse_constant=_reject_nonfinite_constant).raw_decode(raw)
+    except (TypeError, ValueError):
+        return _reject("invalid_schema")
+    if not isinstance(payload, dict) or raw[end:].strip():
+        return _reject("invalid_schema")
+    if contains_reasoning_keys(payload) or has_forbidden_key(payload):
+        return _reject("ineligible_identity")
+    identity_found, identity_is_secret = contains_prohibited_identity_or_secrets(payload)
+    if identity_found:
+        return _reject("unsafe_content" if identity_is_secret else "ineligible_identity")
 
-    if not isinstance(payload, dict):
-        return "invalid_json", {}, "Payload must be a single JSON object"
+    adapted = adapt_historical_payload(payload)
+    if not adapted:
+        return _reject("invalid_schema")
+    if not _required_authority_present(adapted):
+        return _reject("authority_missing")
 
-    # Check for forbidden reasoning metadata
-    if contains_reasoning_keys(payload):
-        return "ineligible", payload, "Payload contains prohibited reasoning metadata"
+    provider = adapted["provider"]
+    model = adapted["canonical_base_model"]
+    pair = (provider, model)
+    if pair in WITHDRAWN_PAIRS:
+        return _reject("withdrawn_identity")
+    if pair in INELIGIBLE_PAIRS:
+        return _reject("ineligible_identity")
+    if pair not in AUTHORIZED_PAIRS:
+        return _reject("unsupported_identity")
+    if not _schema_valid(adapted):
+        return _reject("invalid_schema")
+    if adapted["verdict"] == "blocked":
+        return _reject("ineligible_identity")
+    if adapted["secret_exposure_status"] != "none":
+        return _reject("unsafe_content")
 
-    # Check for prohibited identity fields or secrets
-    identity_err, is_secret = contains_prohibited_identity_or_secrets(payload, "$")
-    if identity_err:
-        if is_secret:
-            return "pending_controller_action", payload, identity_err
-        return "prohibited_identity", payload, identity_err
-
-    # Adapt historical payload aliases
-    adapted_payload = adapt_historical_payload(payload)
-
-    # Check provider / model withdrawal & allowed pairs
-    provider = adapted_payload.get("provider")
-    model = adapted_payload.get("canonical_base_model")
-
-    if model == "Qwen3.6 Plus":
-        return "owner_withdrawn", adapted_payload, "Owner withdrawn under issue #150 (Qwen3.6 Plus)"
-
-    if (provider, model) not in ALLOWED_PAIRS:
-        return "pending_controller_action", adapted_payload, f"Unknown exact provider/model pair: ({provider}, {model})"
-
-    verdict = adapted_payload.get("verdict")
-    if verdict == "blocked":
-        return "pending_controller_action", adapted_payload, "Verdict is blocked"
-
-    # Schema validation check
-    try:
-        jsonschema.validate(instance=adapted_payload, schema=INTAKE_SCHEMA)
-    except jsonschema.ValidationError as ve:
-        # Schema mismatch or missing required field in legacy shapes remains pending rather than terminal error
-        return "pending_controller_action", adapted_payload, f"Intake schema validation failed: {ve.message}"
-
-    run_id = adapted_payload.get("evaluation_run_id")
-    if not run_id:
-        return "pending_controller_action", adapted_payload, "Missing evaluation_run_id in payload"
-
-    # Check if already recorded in canonical history
+    run_id = adapted["evaluation_run_id"]
     if run_id in recorded_run_ids:
-        return "already_recorded", adapted_payload, "Already recorded in canonical history"
-
-    # Check for duplicate within intake queue
+        return _reject("already_recorded")
     if run_id in seen_candidate_ids:
-        return "duplicate", adapted_payload, "Duplicate intake in queue"
+        return _reject("duplicate_identity")
+    seen_candidate_ids.add(run_id)
+    return "admitted", adapted, "admitted"
 
-    # Secret exposure status check
-    if adapted_payload.get("secret_exposure_status") != "none":
-        return "pending_controller_action", adapted_payload, "Secret exposure status is not none"
 
-    return "admitted", adapted_payload, "Valid candidate intake admitted"
+def canonical_record_from_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Construct a canonical record field-by-field from validated authority."""
+
+    evidence = payload["public_safe_evidence"]
+    record: Dict[str, Any] = {
+        "schema_version": 2,
+        "record_type": "evaluation",
+        "run_id": payload["evaluation_run_id"],
+        "reviewed_at": payload["reviewed_at"],
+        "provider": payload["provider"],
+        "model": payload["canonical_base_model"],
+        "evaluation_protocol": payload["evaluation_protocol"],
+        "task_class": payload["task_class"],
+        "difficulty": payload["difficulty"],
+        "subject_alias": payload["repository_alias"],
+        "revision_binding": payload["source_revision"],
+        "outcome": payload["verdict"],
+        "first_pass_accepted": evidence["first_pass_accepted"],
+        "controller_intervention_required": evidence["controller_intervention_required"],
+        "scores": {field: payload["score_dimensions"][field] for field in SCORE_FIELDS},
+        "weighted_score_5": payload["weighted_score_5"],
+        "confidence": evidence["confidence"],
+    }
+
+    optional_top_level = (
+        "executor_reported_at",
+        "prompt_sha256",
+        "weighted_score_10",
+        "objective",
+    )
+    for field in optional_top_level:
+        if field in payload:
+            record[field] = payload[field]
+
+    for field in EVIDENCE_FIELDS:
+        if field in evidence and field not in record:
+            record[field] = evidence[field]
+    return record

@@ -1,179 +1,377 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ai-executor-evaluation-ledger:receipt:v1",
-  "title": "AI Executor Evaluation Receipt Schema v1",
-  "type": "object",
-  "required": [
-    "schema_version",
-    "receipt_type",
-    "batch_id"
+  "$id": "urn:ai-executor-evaluation-ledger:receipt:v2",
+  "title": "AI Executor Evaluation Receipt Schema",
+  "oneOf": [
+    {"$ref": "#/$defs/legacyBatch"},
+    {"$ref": "#/$defs/batch"},
+    {"$ref": "#/$defs/cleanup"}
   ],
-  "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "receipt_type": {"type": "string", "enum": ["batch", "cleanup"]},
-    "batch_id": {"type": "string", "minLength": 1},
-    "controller_run_id": {"type": "string"},
-    "controller_authority": {"type": "string"},
-    "base_sha": {"type": "string"},
-    "pr_number": {"type": ["integer", "null"]},
-    "pull_request_number": {"type": ["integer", "null"]},
-    "source_comment_watermark": {"type": "integer"},
-    "full_queue_count": {"type": "integer"},
-    "latest_observed_update_time": {"type": "string"},
-    "source_comment_ids": {
-      "type": "array",
-      "items": {"type": "integer"}
-    },
-    "source_body_sha256": {
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "identifier": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"},
+    "hashMap": {
       "type": "object",
-      "additionalProperties": {"type": "string"}
-    },
-    "admitted_run_ids": {
-      "type": "array",
-      "items": {"type": "string"}
-    },
-    "dispositions": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "required": ["disposition", "reason"],
-        "properties": {
-          "disposition": {"type": "string"},
-          "reason": {"type": "string"},
-          "comment_body_sha256": {"type": "string"},
-          "evaluation_run_id": {"type": ["string", "null"]}
-        },
-        "additionalProperties": false
-      }
-    },
-    "terminal_dispositions": {
-      "type": "object"
-    },
-    "pending_items": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["comment_id", "reason", "body_sha256"],
-        "properties": {
-          "comment_id": {"type": "integer"},
-          "reason": {"type": "string"},
-          "body_sha256": {"type": "string"},
-          "created_at": {"type": ["string", "null"]},
-          "updated_at": {"type": ["string", "null"]}
-        },
-        "additionalProperties": false
-      }
-    },
-    "cleanup_candidates": {
-      "type": "array",
-      "items": {"type": "integer"}
-    },
-    "canonical_hashes": {
-      "type": "object",
-      "additionalProperties": {"type": "string"}
-    },
-    "canonical_record_hashes": {
-      "type": "object"
-    },
-    "analysis_manifest_hash": {"type": "string"},
-    "generated_readme_hash": {"type": "string"},
-    "generated_scorecard_hash": {"type": "string"},
-    "exact_head_sha": {"type": ["string", "null"]},
-    "canonical_merge_sha": {"type": "string"},
-    "canonical_evaluations_blob_sha": {"type": "string"},
-    "deleted_comment_ids": {
-      "type": "array",
-      "items": {"type": "integer"}
-    },
-    "deleted_comment_hashes": {
-      "type": "object",
-      "additionalProperties": {"type": "string"}
-    },
-    "retained_comment_ids": {
-      "type": "array",
-      "items": {"type": "integer"}
-    },
-    "retained_comment_reasons": {
-      "type": "object",
-      "additionalProperties": {"type": "string"}
-    },
-    "cleanup_workflow_identity": {"type": "string"},
-    "exact_result": {"type": "string"},
-    "cleanup_receipt_pr_identity": {"type": "string"},
-    "batch_mode": {"type": "string", "enum": ["initial", "incremental"]},
-    "queue_snapshot_sha256": {"type": "string"},
-    "comment_bindings": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "comment_id",
-          "author",
-          "created_at",
-          "updated_at",
-          "body_sha256",
-          "classification",
-          "cleanup_eligible"
-        ],
-        "properties": {
-          "comment_id": {"type": "integer"},
-          "author": {"type": ["string", "null"]},
-          "created_at": {"type": ["string", "null"]},
-          "updated_at": {"type": ["string", "null"]},
-          "body_sha256": {"type": "string"},
-          "classification": {"type": "string", "enum": ["admitted", "terminal", "pending"]},
-          "evaluation_run_id": {"type": ["string", "null"]},
-          "canonical_record_sha256": {"type": ["string", "null"]},
-          "terminal_disposition": {"type": ["string", "null"]},
-          "pending_reason_code": {"type": ["string", "null"]},
-          "cleanup_eligible": {"type": "boolean"}
-        },
-        "additionalProperties": false
-      }
-    },
-    "verified_deletion_candidates": {
-      "type": "array",
-      "items": {"type": "integer"}
-    },
-    "cleanup_publication_status": {"type": "string"},
-    "publication_plan": {
-      "type": "object",
-      "additionalProperties": true
-    }
-  },
-  "additionalProperties": false,
-  "allOf": [
-    {
-      "if": {
-        "properties": {"receipt_type": {"const": "batch"}}
+      "patternProperties": {
+        "^[0-9]+$": {"$ref": "#/$defs/sha256"}
       },
-      "then": {
-        "required": [
-          "source_comment_ids",
-          "admitted_run_ids",
-          "base_sha",
-          "source_comment_watermark",
-          "full_queue_count",
-          "latest_observed_update_time"
-        ]
+      "additionalProperties": false
+    },
+    "identifierHashMap": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "outcomeCode": {
+      "type": "string",
+      "enum": [
+        "admitted",
+        "already_recorded",
+        "authority_missing",
+        "conflicting_identity",
+        "duplicate_identity",
+        "ineligible_identity",
+        "invalid_schema",
+        "no_marker",
+        "source_changed",
+        "unsafe_content",
+        "unsupported_identity",
+        "withdrawn_identity"
+      ]
+    },
+    "legacyDisposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition", "reason"],
+      "properties": {
+        "disposition": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "comment_body_sha256": {"$ref": "#/$defs/sha256"},
+        "evaluation_run_id": {"type": ["string", "null"]}
       }
     },
-    {
-      "if": {
-        "properties": {"receipt_type": {"const": "cleanup"}}
+    "legacyPending": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comment_id", "reason", "body_sha256"],
+      "properties": {
+        "comment_id": {"type": "integer", "minimum": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "body_sha256": {"$ref": "#/$defs/sha256"},
+        "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+        "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"}
+      }
+    },
+    "legacyBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comment_id",
+        "author",
+        "created_at",
+        "updated_at",
+        "body_sha256",
+        "classification",
+        "cleanup_eligible"
+      ],
+      "properties": {
+        "comment_id": {"type": "integer", "minimum": 1},
+        "author": {"type": ["string", "null"]},
+        "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+        "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+        "body_sha256": {"$ref": "#/$defs/sha256"},
+        "classification": {"type": "string", "enum": ["admitted", "terminal", "pending"]},
+        "evaluation_run_id": {"type": ["string", "null"]},
+        "canonical_record_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "terminal_disposition": {"type": ["string", "null"]},
+        "pending_reason_code": {"type": ["string", "null"]},
+        "cleanup_eligible": {"type": "boolean"}
+      }
+    },
+    "hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evaluations_jsonl",
+        "dispositions_jsonl",
+        "readme_md",
+        "scorecard_md",
+        "model_recommendation_json"
+      ],
+      "properties": {
+        "evaluations_jsonl": {"$ref": "#/$defs/sha256"},
+        "dispositions_jsonl": {"$ref": "#/$defs/sha256"},
+        "readme_md": {"$ref": "#/$defs/sha256"},
+        "scorecard_md": {"$ref": "#/$defs/sha256"},
+        "model_recommendation_json": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "terminalOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_code", "evaluation_run_id", "canonical_record_sha256", "cleanup_eligible"],
+      "properties": {
+        "outcome_code": {
+          "$ref": "#/$defs/outcomeCode"
+        },
+        "evaluation_run_id": {
+          "oneOf": [
+            {"$ref": "#/$defs/identifier"},
+            {"type": "null"}
+          ]
+        },
+        "canonical_record_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "cleanup_eligible": {"type": "boolean"}
+      }
+    },
+    "recordProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "outcome", "weighted_score_5"],
+      "properties": {
+        "provider": {"type": "string", "enum": ["Xiaomi", "MiMo", "Anthropic", "DeepSeek", "OpenAI", "Qwen", "Google", "MiniMax"]},
+        "model": {"type": "string", "enum": ["MiMo 2.5 Pro", "Claude Opus 5", "DeepSeek V4 Pro", "GPT-5.6 Sol", "Qwen3.7 Plus", "Gemini 3.1 Pro", "MiniMax M3"]},
+        "outcome": {"type": "string", "enum": ["accepted", "pass", "rejected", "amend", "hold", "fail", "blocked", "reset", "rescheduled", "error", "owner_withdrawn", "withdrawn"]},
+        "weighted_score_5": {"type": "number", "minimum": 0, "maximum": 5}
       },
-      "then": {
-        "required": [
-          "canonical_merge_sha",
-          "canonical_evaluations_blob_sha",
-          "deleted_comment_ids",
-          "deleted_comment_hashes",
-          "retained_comment_ids",
-          "retained_comment_reasons",
-          "cleanup_workflow_identity",
-          "exact_result"
-        ]
+      "allOf": [
+        {"oneOf": [
+          {"properties": {"provider": {"const": "Xiaomi"}, "model": {"const": "MiMo 2.5 Pro"}}},
+          {"properties": {"provider": {"const": "MiMo"}, "model": {"const": "MiMo 2.5 Pro"}}},
+          {"properties": {"provider": {"const": "Anthropic"}, "model": {"const": "Claude Opus 5"}}},
+          {"properties": {"provider": {"const": "DeepSeek"}, "model": {"const": "DeepSeek V4 Pro"}}},
+          {"properties": {"provider": {"const": "OpenAI"}, "model": {"const": "GPT-5.6 Sol"}}},
+          {"properties": {"provider": {"const": "Qwen"}, "model": {"const": "Qwen3.7 Plus"}}},
+          {"properties": {"provider": {"const": "Google"}, "model": {"const": "Gemini 3.1 Pro"}}},
+          {"properties": {"provider": {"const": "MiniMax"}, "model": {"const": "MiniMax M3"}}}
+        ]}
+      ]
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comment_id",
+        "author_sha256",
+        "created_at",
+        "updated_at",
+        "body_sha256",
+        "outcome_code",
+        "evaluation_run_id",
+        "canonical_record_sha256",
+        "cleanup_eligible"
+      ],
+      "properties": {
+        "comment_id": {"type": "integer", "minimum": 1},
+        "author_sha256": {"$ref": "#/$defs/sha256"},
+        "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+        "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+        "body_sha256": {"$ref": "#/$defs/sha256"},
+        "outcome_code": {"$ref": "#/$defs/outcomeCode"},
+        "evaluation_run_id": {
+          "oneOf": [
+            {"$ref": "#/$defs/identifier"},
+            {"type": "null"}
+          ]
+        },
+        "canonical_record_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "cleanup_eligible": {"type": "boolean"}
+      }
+    },
+    "legacyBatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "receipt_type",
+        "batch_id",
+        "source_comment_ids",
+        "admitted_run_ids",
+        "base_sha",
+        "source_comment_watermark",
+        "full_queue_count",
+        "latest_observed_update_time"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "receipt_type": {"type": "string", "const": "batch"},
+        "batch_id": {"$ref": "#/$defs/identifier"},
+        "batch_mode": {"type": "string", "enum": ["initial", "incremental"]},
+        "controller_run_id": {"type": "string", "minLength": 1},
+        "controller_authority": {"type": "string", "minLength": 1},
+        "base_sha": {"type": "string", "minLength": 1},
+        "pr_number": {"type": ["integer", "null"]},
+        "pull_request_number": {"type": ["integer", "null"]},
+        "source_comment_watermark": {"type": "integer", "minimum": 0},
+        "full_queue_count": {"type": "integer", "minimum": 0},
+        "latest_observed_update_time": {"type": "string", "minLength": 1},
+        "source_comment_ids": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "source_body_sha256": {"$ref": "#/$defs/hashMap"},
+        "admitted_run_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "dispositions": {
+          "type": "object",
+          "patternProperties": {"^[0-9]+$": {"$ref": "#/$defs/legacyDisposition"}},
+          "additionalProperties": false
+        },
+        "pending_items": {"type": "array", "items": {"$ref": "#/$defs/legacyPending"}},
+        "cleanup_candidates": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "canonical_hashes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["evaluations_jsonl", "readme_md", "scorecard_md", "model_recommendation_json", "dispositions_jsonl"],
+          "properties": {
+            "evaluations_jsonl": {"$ref": "#/$defs/sha256"},
+            "readme_md": {"$ref": "#/$defs/sha256"},
+            "scorecard_md": {"$ref": "#/$defs/sha256"},
+            "model_recommendation_json": {"$ref": "#/$defs/sha256"},
+            "dispositions_jsonl": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "queue_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "comment_bindings": {"type": "array", "items": {"$ref": "#/$defs/legacyBinding"}}
+      }
+    },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "receipt_type",
+        "batch_id",
+        "batch_mode",
+        "controller_run_id",
+        "base_sha",
+        "canonical_main_sha",
+        "pr_number",
+        "expected_head_sha",
+        "source_issue_number",
+        "receipt_issue_number",
+        "full_queue_count",
+        "latest_observed_comment_id",
+        "latest_observed_update_time",
+        "queue_snapshot_sha256",
+        "source_comment_ids",
+        "source_body_sha256",
+        "selected_comment_ids",
+        "selected_comment_count",
+        "terminal_outcome_count",
+        "terminal_outcomes",
+        "admitted_run_ids",
+        "accepted_record_proofs",
+        "canonical_record_hashes",
+        "canonical_hashes",
+        "comment_bindings"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 2},
+        "receipt_type": {"type": "string", "const": "batch"},
+        "batch_id": {"$ref": "#/$defs/identifier"},
+        "batch_mode": {"type": "string", "enum": ["initial", "incremental"]},
+        "controller_run_id": {"$ref": "#/$defs/identifier"},
+        "base_sha": {"$ref": "#/$defs/gitSha"},
+        "canonical_main_sha": {"$ref": "#/$defs/gitSha"},
+        "pr_number": {"type": "integer", "minimum": 1},
+        "expected_head_sha": {"$ref": "#/$defs/gitSha"},
+        "source_issue_number": {"type": "integer", "const": 142},
+        "receipt_issue_number": {"type": "integer", "const": 143},
+        "full_queue_count": {"type": "integer", "minimum": 0},
+        "latest_observed_comment_id": {"type": ["integer", "null"], "minimum": 1},
+        "latest_observed_update_time": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+        "queue_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "source_comment_ids": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "source_body_sha256": {"$ref": "#/$defs/hashMap"},
+        "selected_comment_ids": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "selected_comment_count": {"type": "integer", "minimum": 0},
+        "terminal_outcome_count": {"type": "integer", "minimum": 0},
+        "terminal_outcomes": {
+          "type": "object",
+          "patternProperties": {"^[0-9]+$": {"$ref": "#/$defs/terminalOutcome"}},
+          "additionalProperties": false
+        },
+        "admitted_run_ids": {"type": "array", "items": {"$ref": "#/$defs/identifier"}, "uniqueItems": true},
+        "accepted_record_proofs": {
+          "type": "object",
+          "patternProperties": {"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$": {"$ref": "#/$defs/recordProof"}},
+          "additionalProperties": false
+        },
+        "canonical_record_hashes": {"$ref": "#/$defs/identifierHashMap"},
+        "canonical_hashes": {"$ref": "#/$defs/hashes"},
+        "comment_bindings": {"type": "array", "items": {"$ref": "#/$defs/binding"}}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"full_queue_count": {"const": 0}}},
+          "then": {"properties": {"selected_comment_count": {"const": 0}}}
+        },
+        {
+          "if": {"properties": {"selected_comment_count": {"minimum": 1}}},
+          "then": {"properties": {"terminal_outcomes": {"minProperties": 1}}}
+        },
+        {"properties": {"receipt_type": {"const": "batch"}}}
+      ]
+    },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "receipt_type",
+        "cleanup_status",
+        "batch_id",
+        "canonical_merge_sha",
+        "canonical_main_sha",
+        "expected_head_sha",
+        "pr_number",
+        "source_issue_number",
+        "receipt_issue_number",
+        "canonical_hashes",
+        "canonical_record_hashes",
+        "source_comment_ids",
+        "source_body_sha256",
+        "retained_comment_ids",
+        "source_retention_verified",
+        "canonical_record_proofs",
+        "recorded_receipt_status",
+        "branch_cleanup_eligible",
+        "branch_cleanup_reason",
+        "publication_status",
+        "platform_limitation_code",
+        "batch_receipt_sha256",
+        "batch_receipt_bytes_sha256"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 2},
+        "receipt_type": {"type": "string", "const": "cleanup"},
+        "cleanup_status": {"type": "string", "enum": ["verified", "blocked", "pending_operator_publication"]},
+        "batch_id": {"$ref": "#/$defs/identifier"},
+        "canonical_merge_sha": {"$ref": "#/$defs/gitSha"},
+        "canonical_main_sha": {"$ref": "#/$defs/gitSha"},
+        "expected_head_sha": {"$ref": "#/$defs/gitSha"},
+        "pr_number": {"type": "integer", "minimum": 1},
+        "source_issue_number": {"type": "integer", "const": 142},
+        "receipt_issue_number": {"type": "integer", "const": 143},
+        "canonical_hashes": {"$ref": "#/$defs/hashes"},
+        "canonical_record_hashes": {"$ref": "#/$defs/identifierHashMap"},
+        "source_comment_ids": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "source_body_sha256": {"$ref": "#/$defs/hashMap"},
+        "retained_comment_ids": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "source_retention_verified": {"type": "boolean"},
+        "canonical_record_proofs": {
+          "type": "object",
+          "patternProperties": {"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$": {"$ref": "#/$defs/recordProof"}},
+          "additionalProperties": false
+        },
+        "recorded_receipt_status": {"type": "string", "enum": ["absent", "present_matching", "conflicting", "unverified"]},
+        "branch_cleanup_eligible": {"type": "boolean"},
+        "branch_cleanup_reason": {"type": "string", "enum": ["not_merged", "open_pr", "head_moved", "canonical_unverified", "receipt_unverified", "source_retention_unverified", "checks_unverified", "review_unverified", "eligible"]},
+        "publication_status": {"type": "string", "enum": ["not_attempted", "pending_operator_publication", "published"]},
+        "platform_limitation_code": {"type": "string", "enum": ["web_orchestrator_publication_required", "none"]},
+        "batch_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "batch_receipt_bytes_sha256": {"$ref": "#/$defs/sha256"}
       }
     }
-  ]
+  }
 }

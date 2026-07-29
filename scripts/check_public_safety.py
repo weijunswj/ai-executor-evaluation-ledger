@@ -218,7 +218,7 @@ def walk_json(value: object, label: str, path: str = "$") -> list[str]:
     return failures
 
 
-def scan_jsonl(path: Path) -> list[str]:
+def scan_jsonl(path: Path, *, root: Path = ROOT) -> list[str]:
     failures: list[str] = []
     text = path.read_text(encoding="utf-8")
     for number, line in enumerate(text.splitlines(), start=1):
@@ -227,9 +227,9 @@ def scan_jsonl(path: Path) -> list[str]:
         try:
             record = json.loads(line)
         except json.JSONDecodeError as exc:
-            failures.append(f"{path.relative_to(ROOT)}:{number}: invalid JSON: {exc.msg}")
+            failures.append(f"{path.relative_to(root)}:{number}: invalid JSON: {exc.msg}")
             continue
-        failures.extend(walk_json(record, f"{path.relative_to(ROOT)}:{number}"))
+        failures.extend(walk_json(record, f"{path.relative_to(root)}:{number}"))
     return failures
 
 
@@ -301,21 +301,46 @@ def added_lines_since_baseline() -> Iterable[tuple[str, str, str]]:
                 yield commit, label, additions
 
 
-def main() -> int:
-    failures: list[str] = []
+def audit_tree(root: Path) -> int:
+    """Scan an isolated candidate tree without consulting the live checkout."""
 
-    for path in tracked_files():
+    failures: list[str] = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or ".git" in path.parts:
+            continue
         text = decode_text(path)
         if text is None:
             continue
-        label = str(path.relative_to(ROOT))
+        label = path.relative_to(root).as_posix()
         prepared, policy_failures = prepare_tracked_text(label, text)
         failures.extend(policy_failures)
         failures.extend(scan_text(label, prepared))
 
-    jsonl = ROOT / "evaluations.jsonl"
+    jsonl = root / "evaluations.jsonl"
     if jsonl.exists():
-        failures.extend(scan_jsonl(jsonl))
+        failures.extend(scan_jsonl(jsonl, root=root))
+
+    if failures:
+        return 1
+    return 0
+
+
+def main() -> int:
+    failures: list[str] = []
+
+    if audit_tree(ROOT) != 0:
+        for path in tracked_files():
+            text = decode_text(path)
+            if text is None:
+                continue
+            label = str(path.relative_to(ROOT))
+            prepared, policy_failures = prepare_tracked_text(label, text)
+            failures.extend(policy_failures)
+            failures.extend(scan_text(label, prepared))
+
+        jsonl = ROOT / "evaluations.jsonl"
+        if jsonl.exists():
+            failures.extend(scan_jsonl(jsonl))
 
     try:
         for commit, label, additions in added_lines_since_baseline():

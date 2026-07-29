@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import json
 import os
 import re
@@ -20,6 +21,7 @@ LEDGER_PATH = ROOT / "evaluations.jsonl"
 README_PATH = ROOT / "README.md"
 SCORECARD_PATH = ROOT / "scorecard.md"
 RECOMMENDATION_JSON_PATH = ROOT / "analysis" / "model-recommendation.json"
+MIGRATION_MANIFEST_PATH = ROOT / "migrations" / "base-model-v2.json"
 DISPLAY_LIMIT = 30
 
 README_START = "<!-- GENERATED:README-SCORES:START -->"
@@ -48,9 +50,26 @@ CANONICAL_MODEL_MAP = {
     "MiniMax M3": "MiniMax M3",
     "Qwen3.6 Plus": "Qwen3.6 Plus"
 }
+REASONING_KEYS = frozenset(
+    {
+        "requested_reasoning_level",
+        "observed_reasoning_mode",
+        "thinking_setting",
+        "native_reasoning_classification",
+        "reasoning_exposure_status",
+        "reasoning_grouping",
+        "reasoning_level",
+        "reasoning_mode",
+    }
+)
+CORRECTION_ALLOWED_FIELDS = frozenset({"task_class", "weighted_score_5", "weighted_score_10"})
 
 def fail(message: str) -> None:
-    raise ValueError(message)
+    raise ValueError("rebuild_failed")
+
+
+def _reject_nonfinite_constant(_value: str) -> None:
+    raise ValueError("nonfinite_json_number")
 
 def load_records() -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
@@ -60,16 +79,16 @@ def load_records() -> list[dict[str, Any]]:
         if not raw_line.strip():
             continue
         try:
-            record = json.loads(raw_line)
-        except json.JSONDecodeError as exc:
-            fail(f"evaluations.jsonl:{line_number}: invalid JSON: {exc.msg}")
+            record = json.loads(raw_line, parse_constant=_reject_nonfinite_constant)
+        except (json.JSONDecodeError, ValueError):
+            fail("invalid_json")
         if not isinstance(record, dict):
-            fail(f"evaluations.jsonl:{line_number}: record must be an object")
+            fail("invalid_record")
         run_id = record.get("run_id")
         if not isinstance(run_id, str) or not run_id:
-            fail(f"evaluations.jsonl:{line_number}: missing run_id")
+            fail("missing_run_id")
         if run_id in seen_ids:
-            fail(f"evaluations.jsonl:{line_number}: duplicate run_id {run_id}")
+            fail("duplicate_run_id")
         seen_ids.add(run_id)
         records.append(record)
 
@@ -94,15 +113,18 @@ def resolved_evaluations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         affected = record.get("affected_run_id")
         corrected = record.get("corrected_fields")
         if affected not in evaluations:
-            fail(f"{record['run_id']}: unknown affected_run_id {affected!r}")
+            fail("unknown_affected_run")
         if not isinstance(corrected, dict) or not corrected:
-            fail(f"{record['run_id']}: corrected_fields must be a non-empty object")
+            fail("invalid_corrected_fields")
+        if not set(corrected).issubset(CORRECTION_ALLOWED_FIELDS):
+            fail("protected_correction_field")
         evaluations[affected].update(copy.deepcopy(corrected))
 
     result = [evaluations[run_id] for run_id in order]
     for record in result:
         record["model"] = canonical_model(record)
-        record["evaluation_protocol"] = record.get("evaluation_protocol", "protocol_unknown")
+        if not isinstance(record.get("evaluation_protocol"), str):
+            fail("missing_evaluation_protocol")
         validate_evaluation(record)
     return result
 
@@ -115,7 +137,7 @@ def canonical_model(record: dict[str, Any]) -> str:
 
 def validate_evaluation(record: dict[str, Any]) -> None:
     run_id = record["run_id"]
-    required_strings = ("reviewed_at", "model", "task_class", "difficulty", "outcome", "subject_alias")
+    required_strings = ("reviewed_at", "model", "evaluation_protocol", "task_class", "difficulty", "outcome", "subject_alias")
     for field in required_strings:
         if not isinstance(record.get(field), str) or not record[field].strip():
             fail(f"{run_id}: missing {field}")
@@ -431,9 +453,12 @@ def scorecard_updated_line(records: list[dict[str, Any]]) -> str:
     suffix = " SGT" if value.utcoffset() == timedelta(hours=8) else ""
     return f"Updated: {value.day} {value.strftime('%B %Y, %H:%M')}{suffix}"
 
-def expected_files(evaluations: list[dict[str, Any]], total_queued_count: int = 0) -> tuple[str, str, dict[str, Any]]:
-    readme = README_PATH.read_text(encoding="utf-8")
-    scorecard = SCORECARD_PATH.read_text(encoding="utf-8")
+def expected_files_for_records(
+    evaluations: list[dict[str, Any]],
+    readme: str,
+    scorecard: str,
+    total_queued_count: int = 0,
+) -> tuple[str, str, dict[str, Any]]:
     if not readme.startswith(README_TITLE + "\n"):
         fail(f"README.md must begin with exactly: {README_TITLE}")
     if not scorecard.startswith(SCORECARD_TITLE + "\n"):
@@ -463,6 +488,15 @@ def expected_files(evaluations: list[dict[str, Any]], total_queued_count: int = 
         fail("scorecard must contain exactly one top-level Updated line")
     return expected_readme, expected_scorecard, manifest
 
+
+def expected_files(evaluations: list[dict[str, Any]], total_queued_count: int = 0) -> tuple[str, str, dict[str, Any]]:
+    return expected_files_for_records(
+        evaluations,
+        README_PATH.read_text(encoding="utf-8"),
+        SCORECARD_PATH.read_text(encoding="utf-8"),
+        total_queued_count=total_queued_count,
+    )
+
 def rebuild_views(total_queued_count: int = 0) -> None:
     records = load_records()
     evaluations = resolved_evaluations(records)
@@ -475,6 +509,82 @@ def rebuild_views(total_queued_count: int = 0) -> None:
     README_PATH.write_text(expected_readme, encoding="utf-8", newline="\n")
     SCORECARD_PATH.write_text(expected_scorecard, encoding="utf-8", newline="\n")
 
+
+def _migration_prefix_from_base(base_bytes: bytes, manifest: dict[str, Any]) -> bytes:
+    """Reproduce the one pre-existing v1-to-v2 migration admitted by the PR."""
+
+    try:
+        base_records = [json.loads(line) for line in base_bytes.decode("utf-8").splitlines() if line.strip()]
+        withdrawn = set(manifest["withdrawn_records"])
+        reasoning_only = set(manifest["reasoning_only_corrections_removed"])
+        expected: list[dict[str, Any]] = []
+        for source in base_records:
+            if not isinstance(source, dict):
+                fail("invalid_migration_source")
+            run_id = source.get("run_id")
+            if run_id in withdrawn or run_id in reasoning_only:
+                continue
+            migrated = copy.deepcopy(source)
+            for key in REASONING_KEYS:
+                migrated.pop(key, None)
+            if migrated.get("record_type") == "correction":
+                corrected = migrated.get("corrected_fields")
+                if not isinstance(corrected, dict):
+                    fail("invalid_migration_correction")
+                for key in REASONING_KEYS:
+                    corrected.pop(key, None)
+                if not corrected:
+                    continue
+            raw_model = migrated.get("model")
+            if raw_model not in CANONICAL_MODEL_MAP:
+                fail("invalid_migration_model")
+            migrated["model"] = CANONICAL_MODEL_MAP[raw_model]
+            migrated["schema_version"] = 2
+            migrated["evaluation_protocol"] = migrated.get("evaluation_protocol", "protocol_unknown")
+            expected.append(migrated)
+        return b"".join(
+            (json.dumps(record, ensure_ascii=False) + "\n").encode("utf-8")
+            for record in expected
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
+        fail("invalid_migration_source")
+    return b""
+
+
+def verify_append_only(base_ref: str) -> None:
+    """Require a base prefix, allowing only checkout line endings and the recorded v1 migration."""
+
+    if not re.fullmatch(r"[0-9a-f]{40}|[A-Za-z0-9._/-]+", base_ref):
+        fail("invalid append-only base reference")
+    result = subprocess.run(
+        ["git", "show", f"{base_ref}:evaluations.jsonl"],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        fail("append_only_base_unavailable")
+    base_bytes = result.stdout
+    current_bytes = LEDGER_PATH.read_bytes()
+    normalized_current = current_bytes.replace(b"\r\n", b"\n")
+    normalized_base = base_bytes.replace(b"\r\n", b"\n")
+    if normalized_current.startswith(normalized_base):
+        return
+
+    try:
+        manifest = json.loads(MIGRATION_MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        fail("migration_manifest_unavailable")
+    if not isinstance(manifest, dict):
+        fail("migration_manifest_invalid")
+    if manifest.get("source_base_sha") != base_ref:
+        fail("migration_source_mismatch")
+    expected_prefix = _migration_prefix_from_base(base_bytes, manifest)
+    if hashlib.sha256(expected_prefix).hexdigest() != manifest.get("after_sha256"):
+        fail("migration_manifest_output_mismatch")
+    if not normalized_current.startswith(expected_prefix):
+        fail("append_only_base_unverified")
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="verify generated views without writing")
@@ -482,11 +592,13 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        if args.base_ref:
+            verify_append_only(args.base_ref)
         records = load_records()
         evaluations = resolved_evaluations(records)
         expected_readme, expected_scorecard, manifest = expected_files(evaluations)
-    except (ValueError, subprocess.CalledProcessError) as exc:
-        print(f"Ledger view generation failed: {exc}", file=sys.stderr)
+    except (ValueError, subprocess.CalledProcessError):
+        print("Ledger view generation failed: rebuild_failed", file=sys.stderr)
         return 1
 
     mismatches: list[str] = []

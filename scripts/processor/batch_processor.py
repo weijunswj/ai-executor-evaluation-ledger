@@ -1,20 +1,38 @@
+"""Candidate-first integrated Ledger batch processor."""
+
+from __future__ import annotations
+
+import argparse
 import json
-import hashlib
-import os
-import sys
 import subprocess
-from pathlib import Path
 from dataclasses import dataclass
-from typing import List, Dict, Any, Tuple, Optional, Set
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+
 import jsonschema
 
+from scripts.check_public_safety import audit_tree
+from scripts.processor.common import (
+    AUTHORIZED_PAIRS,
+    ProcessorError,
+    canonical_json_bytes,
+    canonical_json_line_bytes,
+    safe_author_hash,
+    safe_comment_body_hash,
+    sha256_bytes,
+    validate_batch_receipt_closure,
+    valid_author_login,
+    valid_git_sha,
+    valid_identifier,
+)
+from scripts.processor.intake_parser import (
+    canonical_record_from_payload,
+    parse_intake_comment,
+)
+from scripts.processor.transaction import build_complete_candidate_tree, replace_tracked_files
+from scripts.rebuild_views import expected_files_for_records, resolved_evaluations
+
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-
-from scripts.processor.intake_parser import parse_intake_comment
-from scripts.rebuild_views import rebuild_views
-from scripts.check_public_safety import main as audit_public_safety_main
-
 LEDGER_PATH = ROOT / "evaluations.jsonl"
 DISPOSITIONS_PATH = ROOT / "ledger" / "dispositions.jsonl"
 BATCH_RECEIPTS_DIR = ROOT / "ledger" / "receipts" / "batches"
@@ -22,447 +40,631 @@ EVALUATION_SCHEMA_PATH = ROOT / "schema" / "evaluation.schema.json"
 RECEIPT_SCHEMA_PATH = ROOT / "schema" / "receipt.schema.json"
 DISPOSITION_SCHEMA_PATH = ROOT / "schema" / "disposition.schema.json"
 
-with open(EVALUATION_SCHEMA_PATH, "r", encoding="utf-8") as f:
-    EVALUATION_SCHEMA = json.load(f)
-with open(RECEIPT_SCHEMA_PATH, "r", encoding="utf-8") as f:
-    RECEIPT_SCHEMA = json.load(f)
-with open(DISPOSITION_SCHEMA_PATH, "r", encoding="utf-8") as f:
-    DISPOSITION_SCHEMA = json.load(f)
+EVALUATION_SCHEMA = json.loads(EVALUATION_SCHEMA_PATH.read_text(encoding="utf-8"))
+RECEIPT_SCHEMA = json.loads(RECEIPT_SCHEMA_PATH.read_text(encoding="utf-8"))
+DISPOSITION_SCHEMA = json.loads(DISPOSITION_SCHEMA_PATH.read_text(encoding="utf-8"))
+FORMAT_CHECKER = jsonschema.FormatChecker()
+EVALUATION_VALIDATOR = jsonschema.Draft202012Validator(EVALUATION_SCHEMA, format_checker=FORMAT_CHECKER)
+RECEIPT_VALIDATOR = jsonschema.Draft202012Validator(RECEIPT_SCHEMA, format_checker=FORMAT_CHECKER)
+DISPOSITION_VALIDATOR = jsonschema.Draft202012Validator(DISPOSITION_SCHEMA, format_checker=FORMAT_CHECKER)
 
-WITHDRAWN_BASE_RUN_IDS = {
-    "2026-07-24-claude-opus-4-8-business-automation-a-implementation-001",
-    "2026-07-24-claude-opus-4-8-business-automation-a-amendment-001",
-    "2026-07-24-correction-claude-opus-4-8-high-implementation-001",
-    "2026-07-24-correction-claude-opus-4-8-high-amendment-001",
-    "2026-07-24-claude-opus-4-8-high-business-automation-a-amendment-002",
-    "2026-07-24-claude-opus-4-8-ultra-high-business-automation-a-amendment-003",
-    "2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003"
-}
 
-@dataclass
+def _reject_nonfinite_constant(_value: str) -> None:
+    raise ValueError("nonfinite_json_number")
+
+
+@dataclass(frozen=True)
 class ProcessBatchConfig:
-    operating_mode: str = "initial"  # "initial" or "incremental"
-    base_sha: str = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
-    batch_id: str = "batch-20260729-gate3-amendment-004"
-    controller_authority: str = "2026-07-29-ledger-integrated-processor-gate3-amendment-004"
-    pr_number: int = 151
-    dry_run: bool = False
+    operating_mode: str
+    base_sha: str
+    canonical_main_sha: str
+    batch_id: str
+    controller_run_id: str
+    pr_number: int
+    expected_head_sha: str
+    activation_mode: str
+    dry_run: bool
+    source_issue_number: int
+    receipt_issue_number: int
+    repository_root: Path
+    operator_intent: Optional[str] = None
+    reviewed_pr_state: Optional[str] = None
+    merge_state: Optional[str] = None
+    checks_state: Optional[str] = None
+    review_state: Optional[str] = None
 
-def fetch_live_142_comments() -> List[Dict[str, Any]]:
-    cmd = ["gh", "api", "repos/weijunswj/ai-executor-evaluation-ledger/issues/142/comments", "--paginate"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        raise RuntimeError(f"Failed to fetch #142 comments: {res.stderr}")
-    return json.loads(res.stdout)
-
-def fetch_single_comment(comment_id: int) -> Dict[str, Any]:
-    cmd = ["gh", "api", f"repos/weijunswj/ai-executor-evaluation-ledger/issues/comments/{comment_id}"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        raise RuntimeError(f"Failed to re-fetch comment {comment_id}: {res.stderr}")
-    return json.loads(res.stdout)
-
-def fetch_issue_metadata() -> Dict[str, Any]:
-    cmd = ["gh", "api", "repos/weijunswj/ai-executor-evaluation-ledger/issues/142"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        raise RuntimeError(f"Failed to fetch issue #142 metadata: {res.stderr}")
-    return json.loads(res.stdout)
 
 def compute_sha256(content: bytes) -> str:
-    return hashlib.sha256(content).hexdigest()
+    return sha256_bytes(content)
 
-def load_canonical_base_records(base_sha: str) -> List[Dict[str, Any]]:
-    """
-    Initial Mode: Loads evaluations.jsonl from original migration base commit,
-    applies schema v2 migration, excludes 6 #150 withdrawals and 1 reasoning correction.
-    Returns preserved canonical base records.
-    """
-    cmd = ["git", "show", f"{base_sha}:evaluations.jsonl"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        raise RuntimeError(f"Failed to read base evaluations.jsonl from {base_sha}: {res.stderr}")
 
-    records = []
-    forbidden_keys = {
-        "requested_reasoning_level", "observed_reasoning_mode",
-        "thinking_setting", "native_reasoning_classification",
-        "reasoning_exposure_status", "reasoning_grouping"
-    }
+def _run_git(repository_root: Path, args: List[str], *, text: bool = False) -> subprocess.CompletedProcess:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=repository_root,
+        capture_output=True,
+        text=text,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise ProcessorError("authority_missing")
+    return result
 
-    for line in res.stdout.splitlines():
+
+def read_git_object(repository_root: Path, revision: str, relative_path: str) -> bytes:
+    if not valid_git_sha(revision):
+        raise ProcessorError("authority_missing")
+    result = _run_git(repository_root, ["show", f"{revision}:{relative_path}"])
+    return result.stdout
+
+
+def list_git_paths(repository_root: Path, revision: str, prefix: str) -> List[str]:
+    result = _run_git(repository_root, ["ls-tree", "-r", "--name-only", revision, "--", prefix], text=True)
+    return [line for line in result.stdout.splitlines() if line.endswith(".json")]
+
+
+def _validate_json_lines(content: bytes) -> List[Dict[str, Any]]:
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ProcessorError("authority_missing")
+    records: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
         if not line.strip():
             continue
-        rec = json.loads(line)
-        run_id = rec.get("run_id")
-        if run_id in WITHDRAWN_BASE_RUN_IDS:
-            continue
-
-        # Scrub reasoning fields
-        for k in list(rec.keys()):
-            if k in forbidden_keys:
-                del rec[k]
-
-        # Model canonicalization
-        model = rec.get("model")
-        if model == "Claude Opus 4.8 Ultra High":
-            rec["model"] = "Claude Opus 4.8"
-        elif model == "Claude Opus 5 Max":
-            rec["model"] = "Claude Opus 5"
-        elif model == "Mimo 2.5 Pro":
-            rec["model"] = "MiMo 2.5 Pro"
-
-        if "evaluation_protocol" not in rec:
-            rec["evaluation_protocol"] = "protocol_unknown"
-
-        rec["schema_version"] = 2
-        records.append(rec)
-
-    return records
-
-def load_canonical_main_records() -> List[Dict[str, Any]]:
-    """
-    Incremental Mode: Reads evaluations.jsonl from checked-out canonical main.
-    Preserves every existing canonical record without re-migrating.
-    """
-    if not LEDGER_PATH.exists():
-        return []
-    records = []
-    with open(LEDGER_PATH, "r", encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                records.append(json.loads(line))
-    return records
-
-def process_batch(config: Optional[ProcessBatchConfig] = None) -> Dict[str, Any]:
-    if config is None:
-        config = ProcessBatchConfig()
-
-    # Immutable receipt collision check in Incremental Mode
-    BATCH_RECEIPTS_DIR.mkdir(parents=True, exist_ok=True)
-    target_receipt_path = BATCH_RECEIPTS_DIR / f"{config.batch_id}.json"
-    if config.operating_mode == "incremental" and target_receipt_path.exists():
-        raise ValueError(f"Duplicate batch ID collision: {config.batch_id} already exists in canonical receipts")
-
-    # Load canonical baseline records according to operating mode
-    if config.operating_mode == "initial":
-        preserved_base_records = load_canonical_base_records(config.base_sha)
-    else:
-        preserved_base_records = load_canonical_main_records()
-
-    recorded_run_ids = {r.get("run_id") for r in preserved_base_records}
-
-    # 1. Snapshot 1: Fetch live queue comments & issue metadata
-    comments_snap1 = fetch_live_142_comments()
-    issue_meta1 = fetch_issue_metadata()
-
-    full_queue_count = len(comments_snap1)
-    max_comment_id = max((c["id"] for c in comments_snap1), default=0)
-    max_updated_at = max((c["updated_at"] for c in comments_snap1), default="2026-07-29T00:00:00Z")
-
-    snap1_canon_str = json.dumps([{
-        "id": c["id"],
-        "user": c.get("user", {}).get("login"),
-        "created_at": c.get("created_at"),
-        "updated_at": c.get("updated_at"),
-        "body_sha256": compute_sha256(c.get("body", "").encode("utf-8"))
-    } for c in comments_snap1], sort_keys=True)
-    snap1_hash = compute_sha256(snap1_canon_str.encode("utf-8"))
-
-    snap1_comment_hashes = {}
-    for c in comments_snap1:
-        cid = c["id"]
-        body = c.get("body", "")
-        snap1_comment_hashes[cid] = compute_sha256(body.encode("utf-8"))
-
-    seen_candidate_ids = set()
-    admitted_records = []
-    admitted_run_ids = []
-    source_comment_ids = []
-    terminal_dispositions = {}
-    disposition_records = []
-    pending_items = []
-    cleanup_candidates = []
-    comment_bindings = []
-
-    # Parse and classify each comment
-    for c in comments_snap1:
-        cid = c["id"]
-        author = c.get("user", {}).get("login")
-        created_at = c.get("created_at")
-        updated_at = c.get("updated_at")
-        body = c.get("body", "")
-        body_sha = snap1_comment_hashes[cid]
-
-        disp, payload, reason = parse_intake_comment(cid, body, recorded_run_ids, seen_candidate_ids)
-
-        if disp == "admitted":
-            run_id = payload["evaluation_run_id"]
-            seen_candidate_ids.add(run_id)
-            admitted_run_ids.append(run_id)
-            source_comment_ids.append(cid)
-            cleanup_candidates.append(cid)
-
-            pse = payload.get("public_safe_evidence", {})
-            out_rec = {
-                "schema_version": 2,
-                "record_type": "evaluation",
-                "run_id": run_id,
-                "reviewed_at": payload.get("reviewed_at") or created_at,
-                "executor_reported_at": payload.get("executor_reported_at"),
-                "provider": payload.get("provider"),
-                "model": payload.get("canonical_base_model"),
-                "evaluation_protocol": payload.get("evaluation_protocol", "gated_v1"),
-                "task_class": payload.get("task_class", "general-capability"),
-                "difficulty": payload.get("difficulty", "medium"),
-                "subject_alias": payload.get("repository_alias", "ai-executor-evaluation-ledger"),
-                "revision_binding": payload.get("source_revision") or payload.get("revision_binding") or "exact repository commit",
-                "prompt_sha256": payload.get("prompt_sha256"),
-                "outcome": payload.get("outcome") or payload.get("verdict") or "accepted",
-                "first_pass_accepted": pse.get("first_pass_accepted", False),
-                "controller_intervention_required": pse.get("controller_intervention_required", False),
-                "safe_final_state_reported": pse.get("safe_final_state_reported"),
-                "safe_final_state_verified": pse.get("safe_final_state_verified"),
-                "root_cause_identified": pse.get("root_cause_identified"),
-                "root_cause_result": pse.get("root_cause_result"),
-                "follow_up_runs_required": pse.get("follow_up_runs_required") or pse.get("follow_up_count"),
-                "follow_up_count": pse.get("follow_up_count") or pse.get("follow_up_runs_required"),
-                "scores": payload.get("score_dimensions", {}),
-                "weighted_score_5": payload.get("weighted_score_5", 0.0),
-                "weighted_score_10": round(payload.get("weighted_score_5", 0.0) * 2, 2) if payload.get("weighted_score_5") is not None else None,
-                "integrity_and_control_flags": pse.get("integrity_and_control_flags", []),
-                "confidence": pse.get("confidence", "provisional"),
-                "verified_strengths": pse.get("verified_strengths", []),
-                "verified_defects": pse.get("verified_defects", []),
-                "objective": payload.get("objective", [])
-            }
-            jsonschema.validate(instance=out_rec, schema=EVALUATION_SCHEMA)
-            admitted_records.append(out_rec)
-
-            rec_sha = compute_sha256(json.dumps(out_rec, sort_keys=True).encode("utf-8"))
-
-            comment_bindings.append({
-                "comment_id": cid,
-                "author": author,
-                "created_at": created_at,
-                "updated_at": updated_at,
-                "body_sha256": body_sha,
-                "classification": "admitted",
-                "evaluation_run_id": run_id,
-                "canonical_record_sha256": rec_sha,
-                "terminal_disposition": None,
-                "pending_reason_code": None,
-                "cleanup_eligible": True
-            })
-
-        elif disp == "pending_controller_action":
-            stable_reason_code = "PENDING_CONTROLLER_ACTION"
-            pending_items.append({
-                "comment_id": cid,
-                "reason": str(reason),
-                "body_sha256": body_sha,
-                "created_at": created_at,
-                "updated_at": updated_at
-            })
-            comment_bindings.append({
-                "comment_id": cid,
-                "author": author,
-                "created_at": created_at,
-                "updated_at": updated_at,
-                "body_sha256": body_sha,
-                "classification": "pending",
-                "evaluation_run_id": None,
-                "canonical_record_sha256": None,
-                "terminal_disposition": None,
-                "pending_reason_code": stable_reason_code,
-                "cleanup_eligible": False
-            })
-
+        try:
+            value = json.loads(line, parse_constant=_reject_nonfinite_constant)
+        except (TypeError, ValueError):
+            raise ProcessorError("processor_schema_failure")
+        if not isinstance(value, dict):
+            raise ProcessorError("processor_schema_failure")
+        run_id = value.get("run_id")
+        if not isinstance(run_id, str) or run_id in seen:
+            raise ProcessorError("processor_schema_failure")
+        if not any(EVALUATION_VALIDATOR.iter_errors(value)):
+            records.append(value)
+            seen.add(run_id)
         else:
-            # Terminal disposition (already_recorded, duplicate, owner_withdrawn, no_marker, invalid_json, prohibited_identity, ineligible)
-            terminal_dispositions[str(cid)] = {
-                "disposition": disp,
-                "reason": str(reason),
-                "comment_body_sha256": body_sha
+            raise ProcessorError("processor_schema_failure")
+    return records
+
+
+def load_canonical_base_records(repository_root: Path, base_sha: str) -> List[Dict[str, Any]]:
+    return _validate_json_lines(read_git_object(repository_root, base_sha, "evaluations.jsonl"))
+
+
+def load_canonical_main_records(repository_root: Path, canonical_main_sha: str) -> List[Dict[str, Any]]:
+    """Always read incremental authority through an immutable Git object."""
+
+    return _validate_json_lines(read_git_object(repository_root, canonical_main_sha, "evaluations.jsonl"))
+
+
+def _ensure_newline(content: bytes) -> bytes:
+    return content if not content or content.endswith(b"\n") else content + b"\n"
+
+
+def _safe_gh_json(repository_root: Path, args: List[str], *, paginate: bool = False) -> Any:
+    command = ["gh", "api", *args]
+    if paginate:
+        command.extend(["--paginate", "--slurp"])
+    result = subprocess.run(command, cwd=repository_root, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise ProcessorError("processor_source_unavailable")
+    try:
+        return json.loads(result.stdout)
+    except (TypeError, ValueError):
+        raise ProcessorError("processor_source_unavailable")
+
+
+def fetch_live_142_comments(repository_root: Path = ROOT) -> List[Dict[str, Any]]:
+    pages = _safe_gh_json(
+        repository_root,
+        ["repos/weijunswj/ai-executor-evaluation-ledger/issues/142/comments"],
+        paginate=True,
+    )
+    if not isinstance(pages, list):
+        raise ProcessorError("processor_source_unavailable")
+    comments: List[Dict[str, Any]] = []
+    for page in pages:
+        if not isinstance(page, list):
+            raise ProcessorError("processor_source_unavailable")
+        comments.extend(item for item in page if isinstance(item, dict))
+    return comments
+
+
+def fetch_single_comment(comment_id: int, repository_root: Path = ROOT) -> Dict[str, Any]:
+    value = _safe_gh_json(
+        repository_root,
+        [f"repos/weijunswj/ai-executor-evaluation-ledger/issues/comments/{comment_id}"],
+    )
+    if not isinstance(value, dict):
+        raise ProcessorError("processor_source_unavailable")
+    return value
+
+
+def fetch_issue_metadata(repository_root: Path = ROOT) -> Dict[str, Any]:
+    value = _safe_gh_json(
+        repository_root,
+        ["repos/weijunswj/ai-executor-evaluation-ledger/issues/142"],
+    )
+    if not isinstance(value, dict):
+        raise ProcessorError("processor_source_unavailable")
+    return value
+
+
+def _comment_fingerprint(comment: Mapping[str, Any]) -> Dict[str, Any]:
+    comment_id = comment.get("id")
+    body = comment.get("body")
+    user = comment.get("user")
+    author = user.get("login") if isinstance(user, dict) else None
+    created_at = comment.get("created_at")
+    updated_at = comment.get("updated_at")
+    if (
+        not isinstance(comment_id, int)
+        or comment_id <= 0
+        or not isinstance(body, str)
+        or not valid_author_login(author)
+    ):
+        raise ProcessorError("source_changed")
+    if created_at is not None and not isinstance(created_at, str):
+        raise ProcessorError("source_changed")
+    if updated_at is not None and not isinstance(updated_at, str):
+        raise ProcessorError("source_changed")
+    return {
+        "id": comment_id,
+        "author_sha256": safe_author_hash(author),
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "body_sha256": safe_comment_body_hash(body),
+    }
+
+
+def _queue_snapshot(comments: Iterable[Mapping[str, Any]]) -> Tuple[List[Dict[str, Any]], str]:
+    fingerprints = [_comment_fingerprint(comment) for comment in comments]
+    fingerprints.sort(key=lambda item: item["id"])
+    ids = [item["id"] for item in fingerprints]
+    if len(ids) != len(set(ids)):
+        raise ProcessorError("source_changed")
+    return fingerprints, sha256_bytes(canonical_json_bytes(fingerprints))
+
+
+def _same_snapshot(left: List[Mapping[str, Any]], right: List[Mapping[str, Any]]) -> bool:
+    try:
+        return _queue_snapshot(left)[0] == _queue_snapshot(right)[0]
+    except ProcessorError:
+        return False
+
+
+def _verify_selected_comment(ref: Mapping[str, Any], fresh: Mapping[str, Any]) -> None:
+    if _comment_fingerprint(ref) != _comment_fingerprint(fresh):
+        raise ProcessorError("source_changed")
+
+
+def _validate_config(config: ProcessBatchConfig) -> None:
+    if config.operating_mode not in {"initial", "incremental"}:
+        raise ProcessorError("processor_invalid_contract")
+    if not valid_git_sha(config.base_sha) or not valid_git_sha(config.canonical_main_sha):
+        raise ProcessorError("processor_invalid_contract")
+    if not valid_git_sha(config.expected_head_sha):
+        raise ProcessorError("processor_invalid_contract")
+    if not valid_identifier(config.batch_id) or not valid_identifier(config.controller_run_id):
+        raise ProcessorError("processor_invalid_contract")
+    if not isinstance(config.pr_number, int) or config.pr_number <= 0:
+        raise ProcessorError("processor_invalid_contract")
+    if config.source_issue_number != 142 or config.receipt_issue_number != 143:
+        raise ProcessorError("processor_invalid_contract")
+    if config.activation_mode not in {"dry-run", "reviewed-live"}:
+        raise ProcessorError("processor_invalid_contract")
+    if config.dry_run != (config.activation_mode == "dry-run"):
+        raise ProcessorError("processor_invalid_contract")
+    if not config.repository_root.exists():
+        raise ProcessorError("processor_invalid_contract")
+    if config.operating_mode == "incremental" and config.base_sha != config.canonical_main_sha:
+        raise ProcessorError("processor_invalid_contract")
+    if config.activation_mode == "reviewed-live":
+        if config.operator_intent != "reviewed":
+            raise ProcessorError("processor_activation_denied")
+        if config.reviewed_pr_state != "merged" or config.merge_state != "merged":
+            raise ProcessorError("processor_activation_denied")
+        if config.checks_state != "passed" or config.review_state != "clear":
+            raise ProcessorError("processor_activation_denied")
+    _run_git(config.repository_root, ["cat-file", "-e", f"{config.base_sha}^{{commit}}"])
+    _run_git(config.repository_root, ["cat-file", "-e", f"{config.canonical_main_sha}^{{commit}}"])
+    _run_git(config.repository_root, ["cat-file", "-e", f"{config.expected_head_sha}^{{commit}}"])
+    head_result = _run_git(config.repository_root, ["rev-parse", "HEAD"], text=True)
+    if head_result.stdout.strip() != config.expected_head_sha:
+        raise ProcessorError("processor_authority_mismatch")
+    read_git_object(config.repository_root, config.base_sha, "evaluations.jsonl")
+    read_git_object(config.repository_root, config.canonical_main_sha, "evaluations.jsonl")
+
+
+def _authority_files(config: ProcessBatchConfig) -> Tuple[Dict[str, bytes], List[Dict[str, Any]]]:
+    authority_sha = config.base_sha if config.operating_mode == "initial" else config.canonical_main_sha
+    view_sha = authority_sha if config.operating_mode == "initial" else config.canonical_main_sha
+    evaluation_bytes = read_git_object(config.repository_root, authority_sha, "evaluations.jsonl")
+    records = _validate_json_lines(evaluation_bytes)
+    files = {
+        "evaluations.jsonl": evaluation_bytes,
+        "ledger/dispositions.jsonl": read_git_object(config.repository_root, authority_sha, "ledger/dispositions.jsonl"),
+        "README.md": read_git_object(config.repository_root, view_sha, "README.md"),
+        "scorecard.md": read_git_object(config.repository_root, view_sha, "scorecard.md"),
+        "analysis/model-recommendation.json": read_git_object(
+            config.repository_root,
+            view_sha,
+            "analysis/model-recommendation.json",
+        ),
+    }
+    for path in list_git_paths(config.repository_root, authority_sha, "ledger/receipts/batches"):
+        files[path] = read_git_object(config.repository_root, authority_sha, path)
+    return files, records
+
+
+def _append_jsonl(existing: bytes, lines: Iterable[bytes]) -> bytes:
+    output = _ensure_newline(existing)
+    for line in lines:
+        output += line
+    return output
+
+
+def _validate_candidate_tree(
+    candidate_path: Path,
+    candidate_files: Mapping[str, bytes],
+    records: List[Dict[str, Any]],
+    dispositions: List[Dict[str, Any]],
+    batch_receipt: Dict[str, Any],
+    rejected_sentinels: Iterable[bytes] = (),
+) -> None:
+    for error in EVALUATION_VALIDATOR.iter_errors(records[0]) if records else ():
+        raise ProcessorError("processor_schema_failure")
+    for record in records:
+        if any(EVALUATION_VALIDATOR.iter_errors(record)):
+            raise ProcessorError("processor_schema_failure")
+    for disposition in dispositions:
+        if any(DISPOSITION_VALIDATOR.iter_errors(disposition)):
+            raise ProcessorError("processor_schema_failure")
+    if any(RECEIPT_VALIDATOR.iter_errors(batch_receipt)):
+        raise ProcessorError("processor_schema_failure")
+    if not validate_batch_receipt_closure(batch_receipt):
+        raise ProcessorError("processor_schema_failure")
+    if not validate_batch_receipt_closure(batch_receipt):
+        raise ProcessorError("processor_schema_failure")
+    for relative_path, expected in candidate_files.items():
+        actual = (candidate_path / relative_path).read_bytes()
+        if actual != expected:
+            raise ProcessorError("processor_integrity_failure")
+    for sentinel in rejected_sentinels:
+        if any(sentinel in content for content in candidate_files.values()):
+            raise ProcessorError("unsafe_content")
+    try:
+        readme = (candidate_path / "README.md").read_text(encoding="utf-8")
+        scorecard = (candidate_path / "scorecard.md").read_text(encoding="utf-8")
+        expected_readme, expected_scorecard, _ = expected_files_for_records(
+            resolved_evaluations(records),
+            readme,
+            scorecard,
+            total_queued_count=0,
+        )
+    except Exception:
+        raise ProcessorError("processor_integrity_failure")
+    if readme != expected_readme or scorecard != expected_scorecard:
+        raise ProcessorError("processor_integrity_failure")
+    if audit_tree(candidate_path) != 0:
+        raise ProcessorError("processor_public_safety_failure")
+
+
+def build_batch_candidate(
+    config: ProcessBatchConfig,
+    comments: Optional[List[Dict[str, Any]]] = None,
+    *,
+    failure_hook: Optional[Callable[[str, str], None]] = None,
+    queue_fetcher: Optional[Callable[[Path], List[Dict[str, Any]]]] = None,
+    comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
+) -> Tuple[Dict[str, bytes], Dict[str, Any]]:
+    _validate_config(config)
+    authority_files, preserved_records = _authority_files(config)
+    queue_fetcher = queue_fetcher or fetch_live_142_comments
+    comment_fetcher = comment_fetcher or fetch_single_comment
+    existing_receipt_path = f"ledger/receipts/batches/{config.batch_id}.json"
+    if existing_receipt_path in authority_files:
+        raise ProcessorError("receipt_conflict")
+    if comments is None:
+        comments = queue_fetcher(config.repository_root)
+    comments = sorted(comments, key=lambda item: item.get("id", 0))
+    first_fingerprints, first_queue_hash = _queue_snapshot(comments)
+
+    for comment in comments:
+        fresh = comment_fetcher(int(comment["id"]), config.repository_root)
+        _verify_selected_comment(comment, fresh)
+
+    recorded_run_ids = {record.get("run_id") for record in preserved_records}
+    existing_disposition_bindings: set[tuple[int, str]] = set()
+    for line in authority_files["ledger/dispositions.jsonl"].decode("utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            disposition_value = json.loads(line, parse_constant=_reject_nonfinite_constant)
+        except ValueError:
+            raise ProcessorError("processor_schema_failure")
+        if isinstance(disposition_value, dict):
+            existing_id = disposition_value.get("comment_id")
+            existing_hash = disposition_value.get("comment_body_sha256") or disposition_value.get("body_sha256")
+            if isinstance(existing_id, int) and isinstance(existing_hash, str):
+                existing_disposition_bindings.add((existing_id, existing_hash))
+    seen_candidate_ids: set[str] = set()
+    admitted_records: List[Dict[str, Any]] = []
+    new_record_lines: List[bytes] = []
+    new_record_hashes: Dict[str, str] = {}
+    admitted_record_proofs: Dict[str, Dict[str, Any]] = {}
+    disposition_lines: List[bytes] = []
+    terminal_outcomes: Dict[str, Dict[str, Any]] = {}
+    bindings: List[Dict[str, Any]] = []
+    admitted_run_ids: List[str] = []
+
+    for comment, fingerprint in zip(comments, first_fingerprints):
+        comment_id = int(comment["id"])
+        body = comment.get("body", "")
+        code, payload, _ = parse_intake_comment(comment_id, body, recorded_run_ids, seen_candidate_ids)
+        evaluation_run_id = None
+        record_hash = None
+        if code == "admitted":
+            try:
+                record = canonical_record_from_payload(payload)
+            except (KeyError, TypeError):
+                raise ProcessorError("authority_missing")
+            if any(EVALUATION_VALIDATOR.iter_errors(record)):
+                raise ProcessorError("processor_schema_failure")
+            line_bytes = canonical_json_line_bytes(record)
+            evaluation_run_id = record["run_id"]
+            record_hash = sha256_bytes(line_bytes)
+            admitted_records.append(record)
+            new_record_lines.append(line_bytes)
+            new_record_hashes[evaluation_run_id] = record_hash
+            admitted_record_proofs[evaluation_run_id] = {
+                "provider": record["provider"],
+                "model": record["model"],
+                "outcome": record["outcome"],
+                "weighted_score_5": record["weighted_score_5"],
             }
-            disp_rec = {
-                "schema_version": 1,
-                "comment_id": cid,
-                "disposition": disp,
-                "reason": str(reason),
-                "processed_at": created_at,
-                "comment_body_sha256": body_sha
+            admitted_run_ids.append(evaluation_run_id)
+            recorded_run_ids.add(evaluation_run_id)
+        else:
+            disposition = {
+                "schema_version": 2,
+                "comment_id": comment_id,
+                "comment_body_sha256": fingerprint["body_sha256"],
+                "disposition_code": code,
+                "processed_at": fingerprint["updated_at"] or fingerprint["created_at"],
+                "evaluation_run_id": None,
             }
-            jsonschema.validate(instance=disp_rec, schema=DISPOSITION_SCHEMA)
-            disposition_records.append(disp_rec)
+            if any(DISPOSITION_VALIDATOR.iter_errors(disposition)):
+                raise ProcessorError("processor_schema_failure")
+            if (comment_id, fingerprint["body_sha256"]) not in existing_disposition_bindings:
+                disposition_lines.append(canonical_json_line_bytes(disposition))
 
-            is_cleanup_eligible = disp in ["already_recorded", "duplicate", "owner_withdrawn"]
-            if is_cleanup_eligible:
-                cleanup_candidates.append(cid)
+        terminal_outcomes[str(comment_id)] = {
+            "outcome_code": code,
+            "evaluation_run_id": evaluation_run_id,
+            "canonical_record_sha256": record_hash,
+            "cleanup_eligible": False,
+        }
+        bindings.append(
+            {
+                "comment_id": comment_id,
+                "author_sha256": fingerprint["author_sha256"],
+                "created_at": fingerprint["created_at"],
+                "updated_at": fingerprint["updated_at"],
+                "body_sha256": fingerprint["body_sha256"],
+                "outcome_code": code,
+                "evaluation_run_id": evaluation_run_id,
+                "canonical_record_sha256": record_hash,
+                "cleanup_eligible": False,
+            }
+        )
 
-            comment_bindings.append({
-                "comment_id": cid,
-                "author": author,
-                "created_at": created_at,
-                "updated_at": updated_at,
-                "body_sha256": body_sha,
-                "classification": "terminal",
-                "evaluation_run_id": payload.get("evaluation_run_id") if isinstance(payload, dict) else None,
-                "canonical_record_sha256": None,
-                "terminal_disposition": disp,
-                "pending_reason_code": None,
-                "cleanup_eligible": is_cleanup_eligible
-            })
+    final_comments = queue_fetcher(config.repository_root)
+    final_fingerprints, final_queue_hash = _queue_snapshot(final_comments)
+    if first_queue_hash != final_queue_hash or first_fingerprints != final_fingerprints:
+        raise ProcessorError("source_changed")
 
-    # 2. Snapshot 2: Re-fetch queue comments and verify complete queue snapshot equality
-    comments_snap2 = fetch_live_142_comments()
-    issue_meta2 = fetch_issue_metadata()
+    final_records = preserved_records + admitted_records
+    final_evaluations = _append_jsonl(authority_files["evaluations.jsonl"], new_record_lines)
+    final_dispositions = _append_jsonl(authority_files["ledger/dispositions.jsonl"], disposition_lines)
+    final_record_objects = _validate_json_lines(final_evaluations)
+    final_disposition_objects = []
+    for line in final_dispositions.decode("utf-8").splitlines():
+        if line.strip():
+            final_disposition_objects.append(
+                json.loads(
+                    line,
+                    parse_constant=_reject_nonfinite_constant,
+                )
+            )
 
-    if len(comments_snap2) != len(comments_snap1):
-        raise RuntimeError(f"Race condition detected: queue count changed from {len(comments_snap1)} to {len(comments_snap2)}")
+    readme_text = authority_files["README.md"].decode("utf-8")
+    scorecard_text = authority_files["scorecard.md"].decode("utf-8")
+    expected_readme, expected_scorecard, manifest = expected_files_for_records(
+        resolved_evaluations(final_record_objects),
+        readme_text,
+        scorecard_text,
+        total_queued_count=0,
+    )
+    readme_bytes = expected_readme.encode("utf-8")
+    scorecard_bytes = expected_scorecard.encode("utf-8")
+    recommendation_bytes = (json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
 
-    snap2_canon_str = json.dumps([{
-        "id": c["id"],
-        "user": c.get("user", {}).get("login"),
-        "created_at": c.get("created_at"),
-        "updated_at": c.get("updated_at"),
-        "body_sha256": compute_sha256(c.get("body", "").encode("utf-8"))
-    } for c in comments_snap2], sort_keys=True)
-    snap2_hash = compute_sha256(snap2_canon_str.encode("utf-8"))
-
-    if snap2_hash != snap1_hash:
-        raise RuntimeError("Race condition detected: full queue snapshot SHA-256 mismatch!")
-
-    # Complete final dataset
-    final_ledger_records = preserved_base_records + admitted_records
-
-    # Construct candidate serialized strings for staged hash validation
-    evaluations_bytes = "".join(json.dumps(r) + "\n" for r in final_ledger_records).encode("utf-8")
-    dispositions_bytes = "".join(json.dumps(d) + "\n" for d in disposition_records).encode("utf-8")
-
-    evaluations_sha = compute_sha256(evaluations_bytes)
-    dispositions_sha = compute_sha256(dispositions_bytes)
-
-    # Staged rebuild of views
-    # Build view strings in memory
-    readme_sha = compute_sha256((ROOT / "README.md").read_bytes()) if (ROOT / "README.md").exists() else ""
-    scorecard_sha = compute_sha256((ROOT / "scorecard.md").read_bytes()) if (ROOT / "scorecard.md").exists() else ""
-    recommendation_sha = compute_sha256((ROOT / "analysis" / "model-recommendation.json").read_bytes()) if (ROOT / "analysis" / "model-recommendation.json").exists() else ""
-
-    # Construct candidate batch receipt
+    canonical_files = {
+        "evaluations.jsonl": final_evaluations,
+        "ledger/dispositions.jsonl": final_dispositions,
+        "README.md": readme_bytes,
+        "scorecard.md": scorecard_bytes,
+        "analysis/model-recommendation.json": recommendation_bytes,
+    }
+    hashes = {
+        "evaluations_jsonl": sha256_bytes(final_evaluations),
+        "dispositions_jsonl": sha256_bytes(final_dispositions),
+        "readme_md": sha256_bytes(readme_bytes),
+        "scorecard_md": sha256_bytes(scorecard_bytes),
+        "model_recommendation_json": sha256_bytes(recommendation_bytes),
+    }
+    latest_id = first_fingerprints[-1]["id"] if first_fingerprints else None
+    latest_update = max(
+        (item["updated_at"] for item in first_fingerprints if item["updated_at"]),
+        default=None,
+    )
     batch_receipt = {
-        "schema_version": 1,
+        "schema_version": 2,
         "receipt_type": "batch",
         "batch_id": config.batch_id,
         "batch_mode": config.operating_mode,
-        "controller_run_id": config.controller_authority,
-        "controller_authority": config.controller_authority,
+        "controller_run_id": config.controller_run_id,
         "base_sha": config.base_sha,
+        "canonical_main_sha": config.canonical_main_sha,
         "pr_number": config.pr_number,
-        "source_comment_watermark": max_comment_id,
-        "full_queue_count": full_queue_count,
-        "latest_observed_update_time": max_updated_at,
-        "queue_snapshot_sha256": snap1_hash,
-        "source_comment_ids": [c["id"] for c in comments_snap1],
-        "source_body_sha256": {str(k): v for k, v in snap1_comment_hashes.items()},
+        "expected_head_sha": config.expected_head_sha,
+        "source_issue_number": config.source_issue_number,
+        "receipt_issue_number": config.receipt_issue_number,
+        "full_queue_count": len(first_fingerprints),
+        "latest_observed_comment_id": latest_id,
+        "latest_observed_update_time": latest_update,
+        "queue_snapshot_sha256": first_queue_hash,
+        "source_comment_ids": [item["id"] for item in first_fingerprints],
+        "source_body_sha256": {str(item["id"]): item["body_sha256"] for item in first_fingerprints},
+        "selected_comment_ids": [item["id"] for item in first_fingerprints],
+        "selected_comment_count": len(first_fingerprints),
+        "terminal_outcome_count": len(terminal_outcomes),
+        "terminal_outcomes": terminal_outcomes,
         "admitted_run_ids": admitted_run_ids,
-        "dispositions": terminal_dispositions,
-        "pending_items": pending_items,
-        "cleanup_candidates": cleanup_candidates,
-        "comment_bindings": comment_bindings,
-        "canonical_hashes": {
-            "evaluations_jsonl": evaluations_sha,
-            "readme_md": readme_sha,
-            "scorecard_md": scorecard_sha,
-            "model_recommendation_json": recommendation_sha,
-            "dispositions_jsonl": dispositions_sha
-        }
+        "accepted_record_proofs": admitted_record_proofs,
+        "canonical_record_hashes": new_record_hashes,
+        "canonical_hashes": hashes,
+        "comment_bindings": bindings,
+    }
+    if any(RECEIPT_VALIDATOR.iter_errors(batch_receipt)):
+        raise ProcessorError("processor_schema_failure")
+
+    receipt_bytes = (json.dumps(batch_receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+    candidate_files = dict(authority_files)
+    candidate_files.update(canonical_files)
+    candidate_files[existing_receipt_path] = receipt_bytes
+
+    with build_complete_candidate_tree(config.repository_root, candidate_files) as candidate_tree:
+        _validate_candidate_tree(
+            candidate_tree.path,
+            candidate_files,
+            final_record_objects,
+            final_disposition_objects,
+            batch_receipt,
+        )
+        if failure_hook:
+            failure_hook("candidate_validation_complete", "")
+
+    return candidate_files, {
+        "status": "CANDIDATE_VALIDATED",
+        "batch_id": config.batch_id,
+        "full_queue_count": len(first_fingerprints),
+        "selected_comment_count": len(first_fingerprints),
+        "admitted_count": len(admitted_records),
+        "terminal_count": len(terminal_outcomes),
+        "snapshot_hash": first_queue_hash,
+        "evaluations_sha256": hashes["evaluations_jsonl"],
+        "record_hashes": new_record_hashes,
+        "receipt_sha256": sha256_bytes(receipt_bytes),
+        "candidate_files": tuple(sorted(candidate_files)),
     }
 
-    # Validate batch receipt against schema
-    jsonschema.validate(instance=batch_receipt, schema=RECEIPT_SCHEMA)
 
+def process_batch(
+    config: ProcessBatchConfig,
+    *,
+    failure_hook: Optional[Callable[[str, str], None]] = None,
+    comments: Optional[List[Dict[str, Any]]] = None,
+    queue_fetcher: Optional[Callable[[Path], List[Dict[str, Any]]]] = None,
+    comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    candidate_files, evidence = build_batch_candidate(
+        config,
+        comments,
+        failure_hook=failure_hook,
+        queue_fetcher=queue_fetcher,
+        comment_fetcher=comment_fetcher,
+    )
+    queue_fetcher = queue_fetcher or fetch_live_142_comments
+    final_queue = queue_fetcher(config.repository_root)
+    _, final_snapshot_hash = _queue_snapshot(final_queue)
+    if final_snapshot_hash != evidence["snapshot_hash"]:
+        raise ProcessorError("source_changed")
     if config.dry_run:
         return {
-            "status": "DRY_RUN_PASSED",
-            "operating_mode": config.operating_mode,
-            "full_queue_count": full_queue_count,
-            "preserved_base_count": len(preserved_base_records),
-            "admitted_count": len(admitted_records),
-            "total_final_records": len(final_ledger_records),
-            "disposition_count": len(disposition_records),
-            "pending_count": len(pending_items),
-            "watermark": max_comment_id,
-            "latest_update_time": max_updated_at,
-            "snapshot_hash": snap1_hash
+            **evidence,
+            "candidate_files": candidate_files,
+            "status": "DRY_RUN_VALIDATED",
+            "tracked_replacement": False,
         }
-
-    # Atomic Tracked Mutations (only after all staged validations passed)
-    # 1. Write evaluations.jsonl
-    with open(LEDGER_PATH, "wb") as f:
-        f.write(evaluations_bytes)
-
-    # 2. Write ledger/dispositions.jsonl
-    DISPOSITIONS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(DISPOSITIONS_PATH, "wb") as f:
-        f.write(dispositions_bytes)
-
-    # 3. Clean up invalid unmerged Amendment 003 receipt if in initial mode
-    if config.operating_mode == "initial":
-        old_amd3 = BATCH_RECEIPTS_DIR / "batch-20260729-gate3-amendment-003.json"
-        if old_amd3.exists():
-            try:
-                old_amd3.unlink()
-            except Exception:
-                pass
-
-    # 4. Write batch receipt
-    with open(target_receipt_path, "w", encoding="utf-8") as f:
-        json.dump(batch_receipt, f, indent=2)
-
-    # 5. Rebuild views and update generated hashes in batch receipt
-    rebuild_views(total_queued_count=len(pending_items))
-
-    # Re-read final generated hashes and update receipt
-    final_eval_sha = compute_sha256(LEDGER_PATH.read_bytes())
-    final_readme_sha = compute_sha256((ROOT / "README.md").read_bytes())
-    final_scorecard_sha = compute_sha256((ROOT / "scorecard.md").read_bytes())
-    final_rec_sha = compute_sha256((ROOT / "analysis" / "model-recommendation.json").read_bytes())
-    final_disp_sha = compute_sha256(DISPOSITIONS_PATH.read_bytes())
-
-    batch_receipt["canonical_hashes"] = {
-        "evaluations_jsonl": final_eval_sha,
-        "readme_md": final_readme_sha,
-        "scorecard_md": final_scorecard_sha,
-        "model_recommendation_json": final_rec_sha,
-        "dispositions_jsonl": final_disp_sha
-    }
-    with open(target_receipt_path, "w", encoding="utf-8") as f:
-        json.dump(batch_receipt, f, indent=2)
-
-    # Run public safety audit check
-    safety_code = audit_public_safety_main()
-    if safety_code != 0:
-        raise RuntimeError("Public Safety audit failed after batch mutation!")
-
+    if config.activation_mode != "reviewed-live":
+        raise ProcessorError("processor_activation_denied")
+    replace_tracked_files(config.repository_root, candidate_files, failure_hook=failure_hook)
     return {
-        "status": "SUCCESS",
-        "operating_mode": config.operating_mode,
-        "batch_id": config.batch_id,
-        "full_queue_count": full_queue_count,
-        "preserved_base_count": len(preserved_base_records),
-        "admitted_count": len(admitted_records),
-        "total_final_records": len(final_ledger_records),
-        "disposition_count": len(disposition_records),
-        "pending_count": len(pending_items),
-        "watermark": max_comment_id,
-        "latest_update_time": max_updated_at,
-        "snapshot_hash": snap1_hash,
-        "evaluations_sha256": final_eval_sha
+        **evidence,
+        "candidate_files": candidate_files,
+        "status": "TRACKED_REPLACEMENT_COMMITTED",
+        "tracked_replacement": True,
     }
+
+
+def parse_cli(argv: Optional[List[str]] = None) -> ProcessBatchConfig:
+    parser = argparse.ArgumentParser(prog="batch_processor")
+    parser.add_argument("--mode", dest="operating_mode", choices=["initial", "incremental"], required=True)
+    parser.add_argument("--base-sha", required=True)
+    parser.add_argument("--canonical-main-sha", required=True)
+    parser.add_argument("--batch-id", required=True)
+    parser.add_argument("--controller-run-id", required=True)
+    parser.add_argument("--pr-number", type=int, required=True)
+    parser.add_argument("--expected-head-sha", required=True)
+    parser.add_argument("--activation-mode", choices=["dry-run", "reviewed-live"], required=True)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--source-issue-number", type=int, required=True)
+    parser.add_argument("--receipt-issue-number", type=int, required=True)
+    parser.add_argument("--repository-root", type=Path, required=True)
+    parser.add_argument("--operator-intent", choices=["reviewed"])
+    parser.add_argument("--reviewed-pr-state", choices=["open", "merged"])
+    parser.add_argument("--merge-state", choices=["unmerged", "merged"])
+    parser.add_argument("--checks-state", choices=["incomplete", "passed"])
+    parser.add_argument("--review-state", choices=["blocking", "clear"])
+    args = parser.parse_args(argv)
+    config = ProcessBatchConfig(
+        operating_mode=args.operating_mode,
+        base_sha=args.base_sha,
+        canonical_main_sha=args.canonical_main_sha,
+        batch_id=args.batch_id,
+        controller_run_id=args.controller_run_id,
+        pr_number=args.pr_number,
+        expected_head_sha=args.expected_head_sha,
+        activation_mode=args.activation_mode,
+        dry_run=args.dry_run,
+        source_issue_number=args.source_issue_number,
+        receipt_issue_number=args.receipt_issue_number,
+        repository_root=args.repository_root,
+        operator_intent=args.operator_intent,
+        reviewed_pr_state=args.reviewed_pr_state,
+        merge_state=args.merge_state,
+        checks_state=args.checks_state,
+        review_state=args.review_state,
+    )
+    _validate_config(config)
+    return config
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    try:
+        config = parse_cli(argv)
+        result = process_batch(config)
+        print(json.dumps({key: value for key, value in result.items() if key != "candidate_files"}, sort_keys=True))
+        return 0
+    except (ProcessorError, ValueError, OSError):
+        print("processor_failed")
+        return 1
+
 
 if __name__ == "__main__":
-    cfg = ProcessBatchConfig()
-    result = process_batch(cfg)
-    print("Batch processing complete!")
-    print(json.dumps(result, indent=2))
+    raise SystemExit(main())
