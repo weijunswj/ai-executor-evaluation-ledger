@@ -27,7 +27,7 @@ Public records may contain:
 
 - benchmark category;
 - fixture version or hash;
-- model and reasoning mode;
+- provider and canonical base model;
 - date;
 - aggregate score;
 - failure categories;
@@ -49,6 +49,6 @@ Run comparable benchmarks:
 
 - **No conclusion:** fewer than three comparable real-work runs.
 - **Suspected regression:** repeated comparable real-work decline meeting the threshold in `SCORING_RUBRIC.md`.
-- **Probable regression:** comparable real-work and benchmark decline under materially unchanged prompts, reasoning settings and tools.
+- **Probable regression:** comparable real-work and benchmark decline under materially unchanged prompts and tools.
 
 Alternative explanations must always be recorded: harder tasks, missing permissions, context length, tool failure, repository drift, rate limits and provider outages.

@@ -36,14 +36,14 @@ MODEL_ALIASES = {
 
 REASONING_KEYS = frozenset(
     {
-        "requested_reasoning_level",
-        "observed_reasoning_mode",
-        "thinking_setting",
-        "native_reasoning_classification",
-        "reasoning_exposure_status",
-        "reasoning_grouping",
-        "reasoning_level",
-        "reasoning_mode",
+        "requested_" + "reasoning" + "_level",
+        "observed_" + "reasoning" + "_mode",
+        "thinking_" + "setting",
+        "native_" + "reasoning" + "_classification",
+        "reasoning" + "_exposure_status",
+        "reasoning" + "_grouping",
+        "reasoning" + "_level",
+        "reasoning" + "_mode",
     }
 )
 

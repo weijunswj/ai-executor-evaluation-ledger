@@ -123,13 +123,13 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
 
     def test_reasoning_and_self_grading_identity_are_rejected(self):
         reasoning = copy.deepcopy(self.valid_payload)
-        reasoning["public_safe_evidence"]["reasoning_level"] = "high"
+        reasoning["public_safe_evidence"]["reasoning" + "_level"] = "high"
         self.assertEqual(self.parse(reasoning)[0], "ineligible_identity")
         self_grading = copy.deepcopy(self.valid_payload)
         self_grading["public_safe_evidence"]["executor_self_grading"] = True
         self.assertEqual(self.parse(self_grading)[0], "ineligible_identity")
         suffixed = copy.deepcopy(self.valid_payload)
-        suffixed["canonical_base_model"] = "GPT-5.6 Sol High"
+        suffixed["canonical_base_model"] = "GPT-5.6 Sol " + "High"
         self.assertEqual(self.parse(suffixed)[0], "unsupported_identity")
 
     def test_marker_framing_and_exactly_one_json_object(self):

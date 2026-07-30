@@ -75,16 +75,11 @@ When a 31st formal evaluation is added:
 - continue including the complete ledger history in aggregate scores, confidence calculations and regression analysis;
 - do not count correction records as additional formal runs.
 
-Every displayed formal run must show the exact model label and observed reasoning level when available.
+Every displayed formal run must show the exact provider and canonical base-model label.
 
 ## Model naming
 
-Use these exact controller labels for the OpenAI Sol variants:
-
-- `GPT-5.6 Sol Medium`
-- `GPT-5.6 Sol High`
-
-Do not shorten them to `Sol Medium` or `Sol High` in scorecards, policies or user-facing ledger confirmations.
+Use exact provider plus canonical base model for every ledger identity. Execution settings are not public model identity and must not split, group or rank ledger evidence.
 
 ## Editor boundary
 
@@ -105,7 +100,7 @@ Missing evidence lowers the evidence score even when the final state appears saf
 Allowed:
 
 - opaque project or subject aliases;
-- model/provider labels and reasoning modes;
+- exact provider and canonical base-model labels;
 - sanitised task descriptions;
 - scores, verified strengths, defects and controller effort;
 - non-sensitive tool and workflow versions;
@@ -149,8 +144,7 @@ Non-privacy corrections require a new record with:
 
 For new runs, preserve privately:
 
-- exact model/provider label;
-- requested and observed reasoning level;
+- exact provider and canonical base-model label;
 - prompt SHA-256 where the exact prompt text is available;
 - task class, difficulty and exact private revision binding;
 - tool availability and material constraints.

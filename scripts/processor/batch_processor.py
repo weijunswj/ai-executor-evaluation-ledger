@@ -347,7 +347,7 @@ def _validate_candidate_tree(
             resolved_evaluations(records),
             readme,
             scorecard,
-            total_queued_count=0,
+            queued_evaluations=[],
         )
     except Exception:
         raise ProcessorError("processor_integrity_failure")
@@ -492,7 +492,7 @@ def build_batch_candidate(
         resolved_evaluations(final_record_objects),
         readme_text,
         scorecard_text,
-        total_queued_count=0,
+        queued_evaluations=[],
     )
     readme_bytes = expected_readme.encode("utf-8")
     scorecard_bytes = expected_scorecard.encode("utf-8")

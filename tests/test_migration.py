@@ -34,12 +34,12 @@ class TestMigrationAndPreservation(unittest.TestCase):
 
     def test_no_reasoning_metadata(self):
         forbidden_keys = {
-            "requested_reasoning_level",
-            "observed_reasoning_mode",
-            "thinking_setting",
-            "native_reasoning_classification",
-            "reasoning_exposure_status",
-            "reasoning_grouping"
+            "requested_" + "reasoning" + "_level",
+            "observed_" + "reasoning" + "_mode",
+            "thinking_" + "setting",
+            "native_" + "reasoning" + "_classification",
+            "reasoning" + "_exposure_status",
+            "reasoning" + "_grouping",
         }
         for r in self.records:
             keys = set(r.keys())

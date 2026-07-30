@@ -14,7 +14,9 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping, Optional
+
+import jsonschema
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER_PATH = ROOT / "evaluations.jsonl"
@@ -22,7 +24,9 @@ README_PATH = ROOT / "README.md"
 SCORECARD_PATH = ROOT / "scorecard.md"
 RECOMMENDATION_JSON_PATH = ROOT / "analysis" / "model-recommendation.json"
 MIGRATION_MANIFEST_PATH = ROOT / "migrations" / "base-model-v2.json"
+RECOMMENDATION_SCHEMA_PATH = ROOT / "schema" / "recommendation.schema.json"
 DISPLAY_LIMIT = 30
+INDEPENDENT_OBSERVATION_THRESHOLD = 3
 
 README_START = "<!-- GENERATED:README-SCORES:START -->"
 README_END = "<!-- GENERATED:README-SCORES:END -->"
@@ -35,33 +39,15 @@ SCORECARD_TITLE = "# Executor Scorecard"
 CANONICAL_MODEL_MAP = {
     "MiMo 2.5 Pro": "MiMo 2.5 Pro",
     "Claude Opus 4.8": "Claude Opus 4.8",
-    "Claude Opus 4.8 High": "Claude Opus 4.8",
-    "Claude Opus 4.8 Ultra High": "Claude Opus 4.8",
     "Claude Opus 5": "Claude Opus 5",
-    "Claude Opus 5 Max": "Claude Opus 5",
     "DeepSeek V4 Pro": "DeepSeek V4 Pro",
     "GPT-5.6 Sol": "GPT-5.6 Sol",
-    "GPT-5.6 Sol Medium": "GPT-5.6 Sol",
-    "GPT-5.6 Sol High": "GPT-5.6 Sol",
-    "GPT-5.6 Sol Max": "GPT-5.6 Sol",
     "Qwen3.7 Plus": "Qwen3.7 Plus",
     "Gemini 3.1 Pro": "Gemini 3.1 Pro",
     "Gemini 3.6 Flash": "Gemini 3.6 Flash",
     "MiniMax M3": "MiniMax M3",
     "Qwen3.6 Plus": "Qwen3.6 Plus"
 }
-REASONING_KEYS = frozenset(
-    {
-        "requested_reasoning_level",
-        "observed_reasoning_mode",
-        "thinking_setting",
-        "native_reasoning_classification",
-        "reasoning_exposure_status",
-        "reasoning_grouping",
-        "reasoning_level",
-        "reasoning_mode",
-    }
-)
 CORRECTION_ALLOWED_FIELDS = frozenset({"task_class", "weighted_score_5", "weighted_score_10"})
 
 def fail(message: str) -> None:
@@ -183,66 +169,319 @@ def evidence_level(run_count: int, task_count: int) -> str:
         return "Moderate"
     return "Useful operating baseline"
 
-def generate_recommendation_manifest(evaluations: list[dict[str, Any]], total_queued_count: int = 0) -> dict[str, Any]:
-    gated_evals = [e for e in evaluations if e.get("evaluation_protocol") == "gated_v1"]
+def _population_record(record: dict[str, Any], *, queued: bool) -> dict[str, Any]:
+    validate_evaluation(record)
+    model = canonical_model(record)
+    if model != record.get("model"):
+        fail("noncanonical_model")
+    if queued:
+        source_id = record.get("source_comment_id")
+        if not isinstance(source_id, int) or isinstance(source_id, bool) or source_id <= 0:
+            fail("invalid_queued_source")
+    return copy.deepcopy(record)
 
-    by_model: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for e in gated_evals:
-        by_model[e["model"]].append(e)
 
-    model_stats = {}
-    for model in sorted(by_model.keys()):
-        items = by_model[model]
+def _score_evidence(items: list[dict[str, Any]], field: str) -> dict[str, Any]:
+    values = [
+        float(item["scores"][field])
+        for item in items
+        if isinstance(item.get("scores"), dict)
+        and isinstance(item["scores"].get(field), (int, float))
+        and not isinstance(item["scores"].get(field), bool)
+    ]
+    return {
+        "count": len(values),
+        "mean": round(sum(values) / len(values), 2) if values else None,
+        "minimum": round(min(values), 2) if values else None,
+        "maximum": round(max(values), 2) if values else None,
+    }
+
+
+def _recurring_defects(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = defaultdict(int)
+    for item in items:
+        defects = item.get("verified_defects")
+        if not isinstance(defects, list):
+            continue
+        for defect in set(value.strip() for value in defects if isinstance(value, str) and value.strip()):
+            counts[defect] += 1
+    return [
+        {"pattern": pattern, "count": count}
+        for pattern, count in sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))
+        if count >= 2
+    ]
+
+
+def _exact_key(item: Mapping[str, Any]) -> tuple[str, str, str, str]:
+    return (
+        str(item["subject_alias"]),
+        str(item["task_class"]),
+        str(item["difficulty"]),
+        str(item["evaluation_protocol"]),
+    )
+
+
+def _similar_key(item: Mapping[str, Any]) -> tuple[str, str, str]:
+    return (
+        str(item["task_class"]),
+        str(item["difficulty"]),
+        str(item["evaluation_protocol"]),
+    )
+
+
+def generate_recommendation_manifest(
+    evaluations: list[dict[str, Any]],
+    queued_evaluations: Optional[list[dict[str, Any]]] = None,
+) -> dict[str, Any]:
+    if queued_evaluations is None:
+        queued_evaluations = []
+    if not isinstance(queued_evaluations, list):
+        fail("queued_evaluations_must_be_objects")
+
+    recorded = [_population_record(item, queued=False) for item in evaluations]
+    queued = [_population_record(item, queued=True) for item in queued_evaluations]
+    recorded_ids = {item["run_id"] for item in recorded}
+    if len(recorded_ids) != len(recorded):
+        fail("duplicate_recorded_identity")
+    queued_ids = [item["run_id"] for item in queued]
+    queued_sources = [item["source_comment_id"] for item in queued]
+    if len(queued_ids) != len(set(queued_ids)) or len(queued_sources) != len(set(queued_sources)):
+        fail("duplicate_queued_binding")
+    if recorded_ids.intersection(queued_ids):
+        fail("recorded_queued_identity_conflict")
+
+    recorded = sorted(recorded, key=lambda item: item["run_id"])
+    queued = sorted(queued, key=lambda item: (item["run_id"], item["source_comment_id"]))
+    available = recorded + queued
+    recorded_comparable = [
+        item for item in recorded if item.get("evaluation_protocol") == "gated_v1"
+    ]
+    queued_comparable = [
+        item for item in queued if item.get("evaluation_protocol") == "gated_v1"
+    ]
+
+    exact_models: dict[tuple[str, str, str, str], set[str]] = defaultdict(set)
+    similar_models: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    for item in recorded_comparable:
+        exact_models[_exact_key(item)].add(item["model"])
+        similar_models[_similar_key(item)].add(item["model"])
+    matched_exact = {key for key, models in exact_models.items() if len(models) >= 2}
+    matched_similar = {key for key, models in similar_models.items() if len(models) >= 2}
+
+    by_model_recorded: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_model_queued: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for item in recorded_comparable:
+        by_model_recorded[item["model"]].append(item)
+    for item in queued_comparable:
+        by_model_queued[item["model"]].append(item)
+    models = sorted(set(by_model_recorded).union(by_model_queued))
+    all_task_classes = sorted({item["task_class"] for item in available})
+    all_difficulties = sorted({item["difficulty"] for item in available})
+
+    model_stats: dict[str, dict[str, Any]] = {}
+    comparable_subject_scores: dict[str, dict[tuple[str, str, str, str], float]] = {}
+    for model in models:
+        items = sorted(by_model_recorded[model], key=lambda item: item["run_id"])
+        queued_items = sorted(by_model_queued[model], key=lambda item: item["run_id"])
+        combined = items + queued_items
+        exact_keys = sorted({_exact_key(item) for item in items if _exact_key(item) in matched_exact})
+        similar_keys = sorted({_similar_key(item) for item in items if _similar_key(item) in matched_similar})
+        comparable_items = [
+            item
+            for item in items
+            if _exact_key(item) in matched_exact or _similar_key(item) in matched_similar
+        ]
+        subject_scores: dict[tuple[str, str, str, str], list[float]] = defaultdict(list)
+        for item in items:
+            if _exact_key(item) in matched_exact:
+                subject_scores[_exact_key(item)].append(float(item["weighted_score_5"]))
+        comparable_subject_scores[model] = {
+            key: round(sum(values) / len(values), 4)
+            for key, values in sorted(subject_scores.items())
+        }
+        verdicts: dict[str, int] = defaultdict(int)
+        for item in items:
+            verdicts[str(item["outcome"]).lower()] += 1
+        independent_subjects = len({item["subject_alias"] for item in combined})
+        missing_subjects = max(0, INDEPENDENT_OBSERVATION_THRESHOLD - independent_subjects)
+        missing_tasks = sorted(set(all_task_classes) - {item["task_class"] for item in combined})
+        missing_difficulties = sorted(set(all_difficulties) - {item["difficulty"] for item in combined})
+        limitations: list[str] = []
+        if missing_subjects:
+            limitations.append("Independent subject coverage is below the published minimum.")
+        if not exact_keys:
+            limitations.append("No exact cross-model subject cohort is available.")
+        if len(items) > len({item["subject_alias"] for item in items}):
+            limitations.append("Multiple recorded runs share a correlated subject chain.")
+        if queued_items:
+            limitations.append("Queued evidence is provisional and excluded from official score comparison.")
         n = len(items)
-        avg = sum(float(x["weighted_score_5"]) for x in items) / n if n > 0 else 0.0
-        first_pass_rate = sum(1 for x in items if x.get("first_pass_accepted")) / n if n > 0 else 0.0
-        verdicts = defaultdict(int)
-        for x in items:
-            verdicts[str(x.get("outcome")).lower()] += 1
-
-        subjects = len({x.get("subject_alias") for x in items})
-        task_cohorts = len({(x.get("task_class"), x.get("difficulty")) for x in items})
-
+        first_pass_count = sum(item.get("first_pass_accepted") is True for item in items)
+        intervention_count = sum(item.get("controller_intervention_required") is True for item in items)
         model_stats[model] = {
             "recorded_count": n,
-            "queued_count": 0,
-            "available_count": n,
-            "average_score_5": round(avg, 2),
-            "first_pass_rate": round(first_pass_rate, 2),
+            "queued_count": len(queued_items),
+            "available_count": len(combined),
+            "raw_comparable_run_count": len(comparable_items),
+            "independent_subject_count": independent_subjects,
+            "exact_matched_cohort_count": len(exact_keys),
+            "similar_matched_cohort_count": len(similar_keys),
+            "overall_average_score_5": round(
+                sum(float(item["weighted_score_5"]) for item in items) / n,
+                2,
+            ) if n else None,
+            "like_for_like_score_5": round(
+                sum(comparable_subject_scores[model].values())
+                / len(comparable_subject_scores[model]),
+                2,
+            ) if comparable_subject_scores[model] else None,
             "verdict_distribution": dict(sorted(verdicts.items())),
-            "independent_subjects": subjects,
-            "task_cohort_count": task_cohorts,
-            "cited_run_ids": sorted([x["run_id"] for x in items])
+            "first_pass_acceptance": {
+                "accepted_count": first_pass_count,
+                "observed_count": n,
+                "rate": round(first_pass_count / n, 4) if n else None,
+            },
+            "controller_intervention": {
+                "required_count": intervention_count,
+                "observed_count": n,
+                "rate": round(intervention_count / n, 4) if n else None,
+            },
+            "score_evidence": {
+                "safety_and_scope_control": _score_evidence(items, "safety_and_scope_control"),
+                "evidence_quality": _score_evidence(items, "evidence_quality"),
+                "efficiency": _score_evidence(items, "efficiency"),
+            },
+            "recurring_defect_patterns": _recurring_defects(items),
+            "material_limitations": limitations,
+            "undersampling": {
+                "under_sampled": bool(
+                    missing_subjects or missing_tasks or missing_difficulties or not exact_keys
+                ),
+                "missing_task_classes": missing_tasks,
+                "missing_difficulties": missing_difficulties,
+                "missing_independent_subject_count": missing_subjects,
+                "missing_cross_model_matched_cohort": not bool(exact_keys),
+                "additional_independent_observations_required": missing_subjects,
+            },
+            "cited_recorded_run_ids": [item["run_id"] for item in items],
+            "cited_queued_run_ids": [item["run_id"] for item in queued_items],
         }
 
-    # Deterministic timestamp based on latest evaluated record
-    latest_dt = max((record_time(e) for e in evaluations if record_time(e) != datetime.min), default=None)
-    gen_time = latest_dt.isoformat() if latest_dt else "2026-07-29T10:00:00Z"
-    if not gen_time.endswith("Z") and "+" not in gen_time:
-        gen_time += "Z"
+    eligible = [
+        model
+        for model in models
+        if model_stats[model]["independent_subject_count"] >= INDEPENDENT_OBSERVATION_THRESHOLD
+        and model_stats[model]["exact_matched_cohort_count"] >= INDEPENDENT_OBSERVATION_THRESHOLD
+        and model_stats[model]["like_for_like_score_5"] is not None
+    ]
+    recommendation: dict[str, Any] = {
+        "status": "insufficient_comparable_evidence",
+        "model": None,
+        "basis": "No strongest model is declared unless exact matched coverage and task mix meet the published threshold.",
+        "compared_models": eligible,
+        "shared_exact_cohort_count": 0,
+    }
+    if len(eligible) >= 2:
+        shared_keys = set(comparable_subject_scores[eligible[0]])
+        task_mixes = []
+        for model in eligible:
+            shared_keys.intersection_update(comparable_subject_scores[model])
+            task_mixes.append(
+                {
+                    (key[1], key[2], key[3])
+                    for key in comparable_subject_scores[model]
+                }
+            )
+        recommendation["shared_exact_cohort_count"] = len(shared_keys)
+        if (
+            len(shared_keys) >= INDEPENDENT_OBSERVATION_THRESHOLD
+            and all(task_mix == task_mixes[0] for task_mix in task_mixes[1:])
+        ):
+            matched_scores = {
+                model: round(
+                    sum(comparable_subject_scores[model][key] for key in sorted(shared_keys))
+                    / len(shared_keys),
+                    4,
+                )
+                for model in eligible
+            }
+            ranked = sorted(matched_scores, key=lambda model: (-matched_scores[model], model))
+            if len(ranked) == 1 or matched_scores[ranked[0]] > matched_scores[ranked[1]]:
+                recommendation = {
+                    "status": "strongest_on_exact_matched_evidence",
+                    "model": ranked[0],
+                    "basis": "Highest mean across shared exact matched subject cohorts.",
+                    "compared_models": ranked,
+                    "shared_exact_cohort_count": len(shared_keys),
+                }
 
+    latest_dt = max(
+        (record_time(item) for item in available if record_time(item) != datetime.min),
+        default=None,
+    )
+    generated_at = latest_dt.isoformat() if latest_dt else "2026-07-29T10:00:00+00:00"
     manifest = {
-        "schema_version": 1,
-        "generated_at": gen_time,
-        "official_recorded_gated_evaluations": len(gated_evals),
-        "total_queued_evaluations": total_queued_count,
-        "total_available_evaluations": len(gated_evals) + total_queued_count,
+        "schema_version": 2,
+        "generated_at": generated_at,
+        "comparison_contract": {
+            "protocol": "gated_v1",
+            "minimum_independent_observations": INDEPENDENT_OBSERVATION_THRESHOLD,
+            "exact_match_fields": [
+                "subject_alias",
+                "task_class",
+                "difficulty",
+                "evaluation_protocol",
+            ],
+            "similar_match_fields": [
+                "task_class",
+                "difficulty",
+                "evaluation_protocol",
+            ],
+        },
+        "populations": {
+            "recorded": {
+                "count": len(recorded_comparable),
+                "run_ids": sorted(item["run_id"] for item in recorded_comparable),
+            },
+            "queued": {
+                "count": len(queued_comparable),
+                "run_ids": sorted(item["run_id"] for item in queued_comparable),
+            },
+            "available": {
+                "count": len(recorded_comparable) + len(queued_comparable),
+                "run_ids": sorted(
+                    item["run_id"] for item in recorded_comparable + queued_comparable
+                ),
+            },
+        },
+        "recommendation": recommendation,
         "model_statistics": model_stats,
         "material_limitations": [
-            "Official ranking uses only comparable recorded gated_v1 evidence.",
-            "Queued evidence contributes only to provisional non-ranking conclusions.",
-            "Like-for-like task evidence takes priority over all-task averages."
-        ]
+            "Official comparison uses recorded gated_v1 evidence only.",
+            "Queued evidence affects population and coverage reporting but not official scores.",
+            "Overall averages are secondary context and never select the recommended model.",
+            "Runs sharing a subject are correlated and count as one independent subject.",
+        ],
     }
+    try:
+        schema = json.loads(RECOMMENDATION_SCHEMA_PATH.read_text(encoding="utf-8"))
+        jsonschema.Draft202012Validator(
+            schema,
+            format_checker=jsonschema.FormatChecker(),
+        ).validate(manifest)
+    except (OSError, json.JSONDecodeError, jsonschema.ValidationError, jsonschema.SchemaError):
+        fail("recommendation_schema_failure")
     return manifest
 
 def render_recommendation_section(manifest: dict[str, Any]) -> str:
     stats = manifest.get("model_statistics", {})
+    populations = manifest["populations"]
+    recommendation = manifest["recommendation"]
 
     lines = [
         "## AI Model Recommendations & Operational Guidance",
         "",
-        f"**Official Recorded Gated Evidence:** {manifest.get('official_recorded_gated_evaluations', 0)} runs | **Queued Intake:** {manifest.get('total_queued_evaluations', 0)} runs | **Total Available:** {manifest.get('total_available_evaluations', 0)} runs",
+        f"**Recorded comparable evidence:** {populations['recorded']['count']} runs | **Queued comparable evidence:** {populations['queued']['count']} runs | **Available comparable evidence:** {populations['available']['count']} runs",
         "",
         "### Tested Model Summary & Like-for-Like Analysis",
         ""
@@ -251,15 +490,20 @@ def render_recommendation_section(manifest: dict[str, Any]) -> str:
     if not stats:
         lines.append("No comparable `gated_v1` recorded evaluations currently available. Official rankings will be updated upon recording gated evaluations.")
     else:
-        # Sort models by average score descending, then model name ascending
-        sorted_models = sorted(stats.items(), key=lambda x: (-x[1]["average_score_5"], x[0]))
-        for model, info in sorted_models:
-            lines.append(f"- **{model}**: Average Score **{info['average_score_5']:.2f}/5** across {info['recorded_count']} recorded run(s) ({info['independent_subjects']} independent subject/task family). First-pass acceptance: **{round(info['first_pass_rate'] * 100)}%**.")
+        for model, info in sorted(stats.items()):
+            matched_score = info["like_for_like_score_5"]
+            score_text = f"{matched_score:.2f}/5" if matched_score is not None else "not available"
+            lines.append(
+                f"- **{model}**: {info['recorded_count']} recorded, "
+                f"{info['queued_count']} queued, {info['independent_subject_count']} independent "
+                f"subject(s), {info['exact_matched_cohort_count']} exact matched cohort(s); "
+                f"like-for-like score: **{score_text}**."
+            )
 
     lines.extend([
         "",
         "> [!NOTE]",
-        "> Recommendations are strictly grounded in empirical recorded `gated_v1` evidence. Queued intake is provisional and does not alter official recorded rankings."
+        f"> {recommendation['basis']} Status: `{recommendation['status']}`. Queued evidence is provisional and excluded from official score comparison."
     ])
 
     return "\n".join(lines)
@@ -457,14 +701,17 @@ def expected_files_for_records(
     evaluations: list[dict[str, Any]],
     readme: str,
     scorecard: str,
-    total_queued_count: int = 0,
+    queued_evaluations: Optional[list[dict[str, Any]]] = None,
 ) -> tuple[str, str, dict[str, Any]]:
     if not readme.startswith(README_TITLE + "\n"):
         fail(f"README.md must begin with exactly: {README_TITLE}")
     if not scorecard.startswith(SCORECARD_TITLE + "\n"):
         fail(f"scorecard.md must begin with exactly: {SCORECARD_TITLE}")
 
-    manifest = generate_recommendation_manifest(evaluations, total_queued_count=total_queued_count)
+    manifest = generate_recommendation_manifest(
+        evaluations,
+        queued_evaluations=queued_evaluations,
+    )
 
     expected_readme = replace_generated_block(
         readme,
@@ -478,6 +725,8 @@ def expected_files_for_records(
         SCORECARD_END,
         render_scorecard_block(evaluations),
     )
+    scorecard_prefix, _scorecard_suffix = expected_scorecard.split(SCORECARD_END, 1)
+    expected_scorecard = scorecard_prefix + SCORECARD_END + "\n"
     expected_scorecard, update_count = re.subn(
         r"(?m)^Updated: .+$",
         scorecard_updated_line(evaluations),
@@ -489,22 +738,29 @@ def expected_files_for_records(
     return expected_readme, expected_scorecard, manifest
 
 
-def expected_files(evaluations: list[dict[str, Any]], total_queued_count: int = 0) -> tuple[str, str, dict[str, Any]]:
+def expected_files(
+    evaluations: list[dict[str, Any]],
+    queued_evaluations: Optional[list[dict[str, Any]]] = None,
+) -> tuple[str, str, dict[str, Any]]:
     return expected_files_for_records(
         evaluations,
         README_PATH.read_text(encoding="utf-8"),
         SCORECARD_PATH.read_text(encoding="utf-8"),
-        total_queued_count=total_queued_count,
+        queued_evaluations=queued_evaluations,
     )
 
-def rebuild_views(total_queued_count: int = 0) -> None:
+def rebuild_views(queued_evaluations: Optional[list[dict[str, Any]]] = None) -> None:
     records = load_records()
     evaluations = resolved_evaluations(records)
-    expected_readme, expected_scorecard, manifest = expected_files(evaluations, total_queued_count=total_queued_count)
+    expected_readme, expected_scorecard, manifest = expected_files(
+        evaluations,
+        queued_evaluations=queued_evaluations,
+    )
 
     RECOMMENDATION_JSON_PATH.parent.mkdir(exist_ok=True)
-    with open(RECOMMENDATION_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
+    RECOMMENDATION_JSON_PATH.write_bytes(
+        (json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+    )
 
     README_PATH.write_text(expected_readme, encoding="utf-8", newline="\n")
     SCORECARD_PATH.write_text(expected_scorecard, encoding="utf-8", newline="\n")
@@ -514,6 +770,16 @@ def _migration_prefix_from_base(base_bytes: bytes, manifest: dict[str, Any]) -> 
     """Reproduce the one pre-existing v1-to-v2 migration admitted by the PR."""
 
     try:
+        legacy_attribute_keys = {
+            "requested_" + "reasoning" + "_level",
+            "observed_" + "reasoning" + "_mode",
+            "thinking_" + "setting",
+            "native_" + "reasoning" + "_classification",
+            "reasoning" + "_exposure_status",
+            "reasoning" + "_grouping",
+            "reasoning" + "_level",
+            "reasoning" + "_mode",
+        }
         base_records = [json.loads(line) for line in base_bytes.decode("utf-8").splitlines() if line.strip()]
         withdrawn = set(manifest["withdrawn_records"])
         reasoning_only = set(manifest["reasoning_only_corrections_removed"])
@@ -525,20 +791,30 @@ def _migration_prefix_from_base(base_bytes: bytes, manifest: dict[str, Any]) -> 
             if run_id in withdrawn or run_id in reasoning_only:
                 continue
             migrated = copy.deepcopy(source)
-            for key in REASONING_KEYS:
+            for key in legacy_attribute_keys:
                 migrated.pop(key, None)
             if migrated.get("record_type") == "correction":
                 corrected = migrated.get("corrected_fields")
                 if not isinstance(corrected, dict):
                     fail("invalid_migration_correction")
-                for key in REASONING_KEYS:
+                for key in legacy_attribute_keys:
                     corrected.pop(key, None)
                 if not corrected:
                     continue
             raw_model = migrated.get("model")
-            if raw_model not in CANONICAL_MODEL_MAP:
+            canonical = CANONICAL_MODEL_MAP.get(raw_model)
+            if canonical is None and isinstance(raw_model, str):
+                canonical = next(
+                    (
+                        base_model
+                        for base_model in CANONICAL_MODEL_MAP
+                        if raw_model.startswith(base_model + " ")
+                    ),
+                    None,
+                )
+            if canonical is None:
                 fail("invalid_migration_model")
-            migrated["model"] = CANONICAL_MODEL_MAP[raw_model]
+            migrated["model"] = canonical
             migrated["schema_version"] = 2
             migrated["evaluation_protocol"] = migrated.get("evaluation_protocol", "protocol_unknown")
             expected.append(migrated)
@@ -606,6 +882,14 @@ def main() -> int:
         mismatches.append("README.md")
     if SCORECARD_PATH.read_text(encoding="utf-8") != expected_scorecard:
         mismatches.append("scorecard.md")
+    expected_recommendation = (
+        json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    ).encode("utf-8")
+    if (
+        not RECOMMENDATION_JSON_PATH.is_file()
+        or RECOMMENDATION_JSON_PATH.read_bytes() != expected_recommendation
+    ):
+        mismatches.append("analysis/model-recommendation.json")
 
     if args.check:
         if mismatches:

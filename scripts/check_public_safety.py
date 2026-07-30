@@ -128,6 +128,30 @@ RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     """)),
 )
 
+FORBIDDEN_LEDGER_IDENTITY_TOKENS = frozenset(
+    {
+        "requested_" + "reasoning" + "_level",
+        "observed_" + "reasoning" + "_mode",
+        "thinking_" + "setting",
+        "native_" + "reasoning" + "_classification",
+        "reasoning" + "_exposure_status",
+        "reasoning" + "_grouping",
+        "reasoning" + "_level",
+        "reasoning" + "_mode",
+        "Claude Opus 4.8 " + "High",
+        "Claude Opus 4.8 " + "Ultra High",
+        "Claude Opus 5 " + "Max",
+        "GPT-5.6 Sol " + "Medium",
+        "GPT-5.6 Sol " + "High",
+        "GPT-5.6 Sol " + "Max",
+    }
+)
+IDENTITY_SCAN_EXCEPTIONS = {
+    "migrations/reasoning-scrub-receipt.json": frozenset(
+        token for token in FORBIDDEN_LEDGER_IDENTITY_TOKENS if "_" in token
+    )
+}
+
 
 def tracked_files() -> list[Path]:
     result = subprocess.run(
@@ -200,6 +224,23 @@ def scan_text(label: str, text: str) -> list[str]:
         for match in pattern.finditer(text):
             line = text.count("\n", 0, match.start()) + 1
             failures.append(f"{label}:{line}: {rule_name}")
+    return failures
+
+
+def scan_ledger_identity(label: str, text: str) -> list[str]:
+    """Reject current-tree model-setting identities with one exact audit exception."""
+
+    allowed = IDENTITY_SCAN_EXCEPTIONS.get(label.replace("\\", "/"), frozenset())
+    failures: list[str] = []
+    for token in sorted(FORBIDDEN_LEDGER_IDENTITY_TOKENS - allowed):
+        start = 0
+        while True:
+            index = text.find(token, start)
+            if index < 0:
+                break
+            line = text.count("\n", 0, index) + 1
+            failures.append(f"{label}:{line}: forbidden ledger identity token")
+            start = index + len(token)
     return failures
 
 
@@ -315,6 +356,7 @@ def audit_tree(root: Path) -> int:
         prepared, policy_failures = prepare_tracked_text(label, text)
         failures.extend(policy_failures)
         failures.extend(scan_text(label, prepared))
+        failures.extend(scan_ledger_identity(label, text))
 
     jsonl = root / "evaluations.jsonl"
     if jsonl.exists():
@@ -337,6 +379,7 @@ def main() -> int:
             prepared, policy_failures = prepare_tracked_text(label, text)
             failures.extend(policy_failures)
             failures.extend(scan_text(label, prepared))
+            failures.extend(scan_ledger_identity(label, text))
 
         jsonl = ROOT / "evaluations.jsonl"
         if jsonl.exists():

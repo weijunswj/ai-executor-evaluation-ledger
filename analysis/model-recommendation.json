@@ -1,41 +1,132 @@
 {
-  "schema_version": 1,
+  "comparison_contract": {
+    "exact_match_fields": [
+      "subject_alias",
+      "task_class",
+      "difficulty",
+      "evaluation_protocol"
+    ],
+    "minimum_independent_observations": 3,
+    "protocol": "gated_v1",
+    "similar_match_fields": [
+      "task_class",
+      "difficulty",
+      "evaluation_protocol"
+    ]
+  },
   "generated_at": "2026-07-29T04:29:56+00:00",
-  "official_recorded_gated_evaluations": 79,
-  "total_queued_evaluations": 0,
-  "total_available_evaluations": 79,
+  "material_limitations": [
+    "Official comparison uses recorded gated_v1 evidence only.",
+    "Queued evidence affects population and coverage reporting but not official scores.",
+    "Overall averages are secondary context and never select the recommended model.",
+    "Runs sharing a subject are correlated and count as one independent subject."
+  ],
   "model_statistics": {
     "Claude Opus 5": {
-      "recorded_count": 3,
-      "queued_count": 0,
       "available_count": 3,
-      "average_score_5": 4.63,
-      "first_pass_rate": 0.0,
-      "verdict_distribution": {
-        "amend": 1,
-        "pass": 2
-      },
-      "independent_subjects": 1,
-      "task_cohort_count": 3,
-      "cited_run_ids": [
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
         "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
         "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
         "6a3d5523-45a9-46f3-9b1f-dd0016eac160"
-      ]
+      ],
+      "controller_intervention": {
+        "observed_count": 3,
+        "rate": 1.0,
+        "required_count": 3
+      },
+      "exact_matched_cohort_count": 0,
+      "first_pass_acceptance": {
+        "accepted_count": 0,
+        "observed_count": 3,
+        "rate": 0.0
+      },
+      "independent_subject_count": 1,
+      "like_for_like_score_5": null,
+      "material_limitations": [
+        "Independent subject coverage is below the published minimum.",
+        "No exact cross-model subject cohort is available.",
+        "Multiple recorded runs share a correlated subject chain."
+      ],
+      "overall_average_score_5": 4.63,
+      "queued_count": 0,
+      "raw_comparable_run_count": 2,
+      "recorded_count": 3,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 3,
+          "maximum": 4.6,
+          "mean": 3.83,
+          "minimum": 2.9
+        },
+        "evidence_quality": {
+          "count": 3,
+          "maximum": 5.0,
+          "mean": 4.9,
+          "minimum": 4.8
+        },
+        "safety_and_scope_control": {
+          "count": 3,
+          "maximum": 5.0,
+          "mean": 4.9,
+          "minimum": 4.8
+        }
+      },
+      "similar_matched_cohort_count": 2,
+      "undersampling": {
+        "additional_independent_observations_required": 2,
+        "missing_cross_model_matched_cohort": true,
+        "missing_difficulties": [
+          "critical",
+          "low",
+          "medium"
+        ],
+        "missing_independent_subject_count": 2,
+        "missing_task_classes": [
+          "application-remediation",
+          "architecture",
+          "architecture-proposal",
+          "bounded_documentation_implementation",
+          "complex-repository-change",
+          "concurrency-recovery-remediation",
+          "database-access-control",
+          "documentation-remediation",
+          "documentation_remediation",
+          "hosted-product-uat",
+          "implementation",
+          "implementation-amendment",
+          "incident-diagnosis",
+          "migration",
+          "post-merge-remediation",
+          "product-remediation",
+          "production-admission",
+          "production-deployment",
+          "production-operations",
+          "production-recovery",
+          "provider-operation",
+          "recovery-protocol-remediation",
+          "repository-recovery",
+          "routine-repository-change",
+          "security-architecture",
+          "security-architecture-audit",
+          "security-audit",
+          "security-incident-containment",
+          "security-review",
+          "storage-and-identity-remediation",
+          "ux-remediation"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "amend": 1,
+        "pass": 2
+      }
     },
     "DeepSeek V4 Pro": {
-      "recorded_count": 19,
-      "queued_count": 0,
       "available_count": 19,
-      "average_score_5": 3.9,
-      "first_pass_rate": 0.05,
-      "verdict_distribution": {
-        "amend": 18,
-        "pass": 1
-      },
-      "independent_subjects": 7,
-      "task_cohort_count": 7,
-      "cited_run_ids": [
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
         "2026-07-27-governance-tooling-a-gate3-remediation-014",
         "2026-07-27-governance-tooling-a-gate4-amendment-006",
         "2026-07-27-governance-tooling-a-gate4-amendment-008",
@@ -55,23 +146,94 @@
         "sqag-production-admission-archive-contract-repair-20260727-10",
         "sqag-production-admission-design-regeneration-20260727-08",
         "sqag-production-admission-design-regeneration-correction-20260727-09"
-      ]
+      ],
+      "controller_intervention": {
+        "observed_count": 19,
+        "rate": 0.9474,
+        "required_count": 18
+      },
+      "exact_matched_cohort_count": 4,
+      "first_pass_acceptance": {
+        "accepted_count": 1,
+        "observed_count": 19,
+        "rate": 0.0526
+      },
+      "independent_subject_count": 7,
+      "like_for_like_score_5": 3.69,
+      "material_limitations": [
+        "Multiple recorded runs share a correlated subject chain."
+      ],
+      "overall_average_score_5": 3.9,
+      "queued_count": 0,
+      "raw_comparable_run_count": 12,
+      "recorded_count": 19,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 19,
+          "maximum": 4.8,
+          "mean": 3.45,
+          "minimum": 1.2
+        },
+        "evidence_quality": {
+          "count": 19,
+          "maximum": 4.9,
+          "mean": 3.75,
+          "minimum": 2.2
+        },
+        "safety_and_scope_control": {
+          "count": 19,
+          "maximum": 5.0,
+          "mean": 4.91,
+          "minimum": 4.8
+        }
+      },
+      "similar_matched_cohort_count": 2,
+      "undersampling": {
+        "additional_independent_observations_required": 0,
+        "missing_cross_model_matched_cohort": false,
+        "missing_difficulties": [],
+        "missing_independent_subject_count": 0,
+        "missing_task_classes": [
+          "application-remediation",
+          "architecture",
+          "architecture-proposal",
+          "bounded_documentation_implementation",
+          "concurrency-recovery-remediation",
+          "database-access-control",
+          "documentation-remediation",
+          "exact-head-review",
+          "hosted-product-uat",
+          "implementation",
+          "implementation-amendment",
+          "incident-diagnosis",
+          "product-remediation",
+          "production-admission",
+          "production-deployment",
+          "production-operations",
+          "production-recovery",
+          "provider-operation",
+          "recovery-protocol-remediation",
+          "repository-recovery",
+          "research",
+          "routine-repository-change",
+          "security-architecture",
+          "security-architecture-audit",
+          "security-audit",
+          "security-incident-containment",
+          "security-review"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "amend": 18,
+        "pass": 1
+      }
     },
     "GPT-5.6 Sol": {
-      "recorded_count": 32,
-      "queued_count": 0,
       "available_count": 32,
-      "average_score_5": 4.55,
-      "first_pass_rate": 0.19,
-      "verdict_distribution": {
-        "accepted": 7,
-        "amend": 20,
-        "hold": 4,
-        "pass": 1
-      },
-      "independent_subjects": 11,
-      "task_cohort_count": 18,
-      "cited_run_ids": [
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
         "019f9ee5-8959-7351-bf3c-6e440b810d77",
         "019f9f62-12f0-73b2-a930-d3dda2b091bd",
         "019f9f66-5e5c-7222-a907-f222fd291a16",
@@ -104,76 +266,395 @@
         "workflow-compatibility-a-gate3-amendment-20260728-03",
         "workflow-compatibility-a-gate3-amendment-20260728-04",
         "workflow-compatibility-a-gate3-amendment-20260728-05"
-      ]
+      ],
+      "controller_intervention": {
+        "observed_count": 32,
+        "rate": 0.8438,
+        "required_count": 27
+      },
+      "exact_matched_cohort_count": 3,
+      "first_pass_acceptance": {
+        "accepted_count": 6,
+        "observed_count": 32,
+        "rate": 0.1875
+      },
+      "independent_subject_count": 11,
+      "like_for_like_score_5": 4.54,
+      "material_limitations": [
+        "Multiple recorded runs share a correlated subject chain."
+      ],
+      "overall_average_score_5": 4.55,
+      "queued_count": 0,
+      "raw_comparable_run_count": 17,
+      "recorded_count": 32,
+      "recurring_defect_patterns": [
+        {
+          "count": 3,
+          "pattern": "The visible report included an executor identity receipt despite the prompt prohibiting identity reporting."
+        }
+      ],
+      "score_evidence": {
+        "efficiency": {
+          "count": 32,
+          "maximum": 5.0,
+          "mean": 4.16,
+          "minimum": 3.1
+        },
+        "evidence_quality": {
+          "count": 32,
+          "maximum": 4.9,
+          "mean": 4.71,
+          "minimum": 3.4
+        },
+        "safety_and_scope_control": {
+          "count": 32,
+          "maximum": 5.0,
+          "mean": 4.82,
+          "minimum": 3.8
+        }
+      },
+      "similar_matched_cohort_count": 3,
+      "undersampling": {
+        "additional_independent_observations_required": 0,
+        "missing_cross_model_matched_cohort": false,
+        "missing_difficulties": [
+          "low"
+        ],
+        "missing_independent_subject_count": 0,
+        "missing_task_classes": [
+          "application-remediation",
+          "bounded_documentation_implementation",
+          "documentation-remediation",
+          "documentation_remediation",
+          "exact-head-review",
+          "hosted-product-uat",
+          "implementation-amendment",
+          "incident-diagnosis",
+          "migration",
+          "post-merge-remediation",
+          "product-remediation",
+          "provider-operation",
+          "repository-recovery",
+          "routine-repository-change",
+          "security-architecture-audit",
+          "security-audit",
+          "security-incident-containment",
+          "storage-and-identity-remediation",
+          "ux-remediation"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "accepted": 7,
+        "amend": 20,
+        "hold": 4,
+        "pass": 1
+      }
     },
     "Gemini 3.1 Pro": {
-      "recorded_count": 3,
-      "queued_count": 0,
       "available_count": 3,
-      "average_score_5": 3.44,
-      "first_pass_rate": 0.0,
-      "verdict_distribution": {
-        "amend": 3
-      },
-      "independent_subjects": 1,
-      "task_cohort_count": 2,
-      "cited_run_ids": [
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
         "2026-07-28-governance-tooling-a-gate3-remediation-021",
         "2026-07-28-governance-tooling-a-gate3-remediation-022",
         "2026-07-28-governance-tooling-a-gate3-remediation-023"
-      ]
+      ],
+      "controller_intervention": {
+        "observed_count": 3,
+        "rate": 1.0,
+        "required_count": 3
+      },
+      "exact_matched_cohort_count": 2,
+      "first_pass_acceptance": {
+        "accepted_count": 0,
+        "observed_count": 3,
+        "rate": 0.0
+      },
+      "independent_subject_count": 1,
+      "like_for_like_score_5": 3.52,
+      "material_limitations": [
+        "Independent subject coverage is below the published minimum.",
+        "Multiple recorded runs share a correlated subject chain."
+      ],
+      "overall_average_score_5": 3.44,
+      "queued_count": 0,
+      "raw_comparable_run_count": 3,
+      "recorded_count": 3,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 3,
+          "maximum": 3.2,
+          "mean": 2.73,
+          "minimum": 2.0
+        },
+        "evidence_quality": {
+          "count": 3,
+          "maximum": 3.5,
+          "mean": 3.0,
+          "minimum": 2.5
+        },
+        "safety_and_scope_control": {
+          "count": 3,
+          "maximum": 4.8,
+          "mean": 4.6,
+          "minimum": 4.2
+        }
+      },
+      "similar_matched_cohort_count": 2,
+      "undersampling": {
+        "additional_independent_observations_required": 2,
+        "missing_cross_model_matched_cohort": false,
+        "missing_difficulties": [
+          "critical",
+          "low",
+          "medium"
+        ],
+        "missing_independent_subject_count": 2,
+        "missing_task_classes": [
+          "application-remediation",
+          "architecture",
+          "architecture-proposal",
+          "bounded_documentation_implementation",
+          "concurrency-recovery-remediation",
+          "database-access-control",
+          "documentation-remediation",
+          "documentation_remediation",
+          "exact-head-review",
+          "hosted-product-uat",
+          "implementation",
+          "implementation-amendment",
+          "incident-diagnosis",
+          "migration",
+          "post-merge-remediation",
+          "product-remediation",
+          "production-admission",
+          "production-deployment",
+          "production-operations",
+          "production-recovery",
+          "provider-operation",
+          "recovery-protocol-remediation",
+          "repository-recovery",
+          "research",
+          "routine-repository-change",
+          "security-architecture",
+          "security-architecture-audit",
+          "security-audit",
+          "security-incident-containment",
+          "security-review",
+          "storage-and-identity-remediation",
+          "ux-remediation"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "amend": 3
+      }
     },
     "MiMo 2.5 Pro": {
-      "recorded_count": 4,
-      "queued_count": 0,
       "available_count": 4,
-      "average_score_5": 3.02,
-      "first_pass_rate": 0.0,
-      "verdict_distribution": {
-        "amend": 3,
-        "fail": 1
-      },
-      "independent_subjects": 2,
-      "task_cohort_count": 3,
-      "cited_run_ids": [
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
         "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
         "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
         "b96bcf1b-0434-4674-926a-f1ea578b7820",
         "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713"
-      ]
+      ],
+      "controller_intervention": {
+        "observed_count": 4,
+        "rate": 1.0,
+        "required_count": 4
+      },
+      "exact_matched_cohort_count": 0,
+      "first_pass_acceptance": {
+        "accepted_count": 0,
+        "observed_count": 4,
+        "rate": 0.0
+      },
+      "independent_subject_count": 2,
+      "like_for_like_score_5": null,
+      "material_limitations": [
+        "Independent subject coverage is below the published minimum.",
+        "No exact cross-model subject cohort is available.",
+        "Multiple recorded runs share a correlated subject chain."
+      ],
+      "overall_average_score_5": 3.02,
+      "queued_count": 0,
+      "raw_comparable_run_count": 1,
+      "recorded_count": 4,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 4,
+          "maximum": 4.5,
+          "mean": 3.05,
+          "minimum": 1.5
+        },
+        "evidence_quality": {
+          "count": 4,
+          "maximum": 4.9,
+          "mean": 2.7,
+          "minimum": 0.5
+        },
+        "safety_and_scope_control": {
+          "count": 4,
+          "maximum": 5.0,
+          "mean": 3.08,
+          "minimum": 1.0
+        }
+      },
+      "similar_matched_cohort_count": 1,
+      "undersampling": {
+        "additional_independent_observations_required": 1,
+        "missing_cross_model_matched_cohort": true,
+        "missing_difficulties": [
+          "critical",
+          "low"
+        ],
+        "missing_independent_subject_count": 1,
+        "missing_task_classes": [
+          "application-remediation",
+          "architecture",
+          "architecture-proposal",
+          "bounded_documentation_implementation",
+          "concurrency-recovery-remediation",
+          "database-access-control",
+          "documentation_remediation",
+          "exact-head-review",
+          "hosted-product-uat",
+          "implementation",
+          "implementation-amendment",
+          "incident-diagnosis",
+          "migration",
+          "post-merge-remediation",
+          "product-remediation",
+          "production-admission",
+          "production-deployment",
+          "production-operations",
+          "production-recovery",
+          "provider-operation",
+          "recovery-protocol-remediation",
+          "repository-recovery",
+          "research",
+          "security-architecture",
+          "security-architecture-audit",
+          "security-audit",
+          "security-incident-containment",
+          "security-remediation",
+          "security-review",
+          "storage-and-identity-remediation",
+          "ux-remediation"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "amend": 3,
+        "fail": 1
+      }
     },
     "MiniMax M3": {
-      "recorded_count": 5,
-      "queued_count": 0,
       "available_count": 5,
-      "average_score_5": 4.18,
-      "first_pass_rate": 0.0,
-      "verdict_distribution": {
-        "amend": 5
-      },
-      "independent_subjects": 4,
-      "task_cohort_count": 4,
-      "cited_run_ids": [
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
         "2026-07-28-governance-tooling-a-gate3-remediation-016",
         "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
         "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
         "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
         "sqag-main-worktree-recovery-postgresql17-pr-20260728-13"
-      ]
+      ],
+      "controller_intervention": {
+        "observed_count": 5,
+        "rate": 1.0,
+        "required_count": 5
+      },
+      "exact_matched_cohort_count": 2,
+      "first_pass_acceptance": {
+        "accepted_count": 0,
+        "observed_count": 5,
+        "rate": 0.0
+      },
+      "independent_subject_count": 4,
+      "like_for_like_score_5": 3.78,
+      "material_limitations": [
+        "Multiple recorded runs share a correlated subject chain."
+      ],
+      "overall_average_score_5": 4.18,
+      "queued_count": 0,
+      "raw_comparable_run_count": 3,
+      "recorded_count": 5,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 5,
+          "maximum": 4.4,
+          "mean": 3.6,
+          "minimum": 1.6
+        },
+        "evidence_quality": {
+          "count": 5,
+          "maximum": 4.8,
+          "mean": 4.4,
+          "minimum": 3.2
+        },
+        "safety_and_scope_control": {
+          "count": 5,
+          "maximum": 4.9,
+          "mean": 4.8,
+          "minimum": 4.6
+        }
+      },
+      "similar_matched_cohort_count": 2,
+      "undersampling": {
+        "additional_independent_observations_required": 0,
+        "missing_cross_model_matched_cohort": false,
+        "missing_difficulties": [
+          "critical",
+          "low",
+          "medium"
+        ],
+        "missing_independent_subject_count": 0,
+        "missing_task_classes": [
+          "application-remediation",
+          "architecture",
+          "architecture-proposal",
+          "bounded_documentation_implementation",
+          "concurrency-recovery-remediation",
+          "database-access-control",
+          "documentation-remediation",
+          "documentation_remediation",
+          "exact-head-review",
+          "hosted-product-uat",
+          "implementation",
+          "implementation-amendment",
+          "incident-diagnosis",
+          "migration",
+          "post-merge-remediation",
+          "production-admission",
+          "production-deployment",
+          "production-operations",
+          "production-recovery",
+          "provider-operation",
+          "recovery-protocol-remediation",
+          "research",
+          "routine-repository-change",
+          "security-architecture",
+          "security-architecture-audit",
+          "security-audit",
+          "security-incident-containment",
+          "security-review",
+          "storage-and-identity-remediation",
+          "ux-remediation"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "amend": 5
+      }
     },
     "Qwen3.7 Plus": {
-      "recorded_count": 13,
-      "queued_count": 0,
       "available_count": 13,
-      "average_score_5": 4.31,
-      "first_pass_rate": 0.15,
-      "verdict_distribution": {
-        "accepted": 2,
-        "amend": 11
-      },
-      "independent_subjects": 4,
-      "task_cohort_count": 9,
-      "cited_run_ids": [
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
         "ee0e5d56-c322-4292-ba68-435174decb97",
         "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
         "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
@@ -187,12 +668,276 @@
         "sqag-postgresql17-fixed-error-category-20260728-15",
         "sqag-production-inspection-authority-recovery-20260728-17",
         "swooshz-host-environment-stale-credential-containment-20260728-01"
+      ],
+      "controller_intervention": {
+        "observed_count": 13,
+        "rate": 0.8462,
+        "required_count": 11
+      },
+      "exact_matched_cohort_count": 1,
+      "first_pass_acceptance": {
+        "accepted_count": 2,
+        "observed_count": 13,
+        "rate": 0.1538
+      },
+      "independent_subject_count": 4,
+      "like_for_like_score_5": 4.77,
+      "material_limitations": [
+        "Multiple recorded runs share a correlated subject chain."
+      ],
+      "overall_average_score_5": 4.31,
+      "queued_count": 0,
+      "raw_comparable_run_count": 2,
+      "recorded_count": 13,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 13,
+          "maximum": 4.8,
+          "mean": 4.17,
+          "minimum": 3.5
+        },
+        "evidence_quality": {
+          "count": 13,
+          "maximum": 4.9,
+          "mean": 4.31,
+          "minimum": 3.1
+        },
+        "safety_and_scope_control": {
+          "count": 13,
+          "maximum": 5.0,
+          "mean": 4.87,
+          "minimum": 4.7
+        }
+      },
+      "similar_matched_cohort_count": 1,
+      "undersampling": {
+        "additional_independent_observations_required": 0,
+        "missing_cross_model_matched_cohort": false,
+        "missing_difficulties": [
+          "critical",
+          "low"
+        ],
+        "missing_independent_subject_count": 0,
+        "missing_task_classes": [
+          "architecture",
+          "architecture-proposal",
+          "concurrency-recovery-remediation",
+          "database-access-control",
+          "documentation-remediation",
+          "documentation_remediation",
+          "exact-head-review",
+          "hosted-product-uat",
+          "implementation",
+          "incident-diagnosis",
+          "migration",
+          "post-merge-remediation",
+          "production-deployment",
+          "production-operations",
+          "production-recovery",
+          "provider-operation",
+          "recovery-protocol-remediation",
+          "repository-recovery",
+          "research",
+          "routine-repository-change",
+          "security-architecture",
+          "security-architecture-audit",
+          "security-audit",
+          "security-review",
+          "storage-and-identity-remediation",
+          "ux-remediation"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "accepted": 2,
+        "amend": 11
+      }
+    }
+  },
+  "populations": {
+    "available": {
+      "count": 79,
+      "run_ids": [
+        "019f9ee5-8959-7351-bf3c-6e440b810d77",
+        "019f9f62-12f0-73b2-a930-d3dda2b091bd",
+        "019f9f66-5e5c-7222-a907-f222fd291a16",
+        "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
+        "019fa0dd-e9a5-7af0-802a-48c9d51b5836",
+        "019fa15d-bd42-7301-a4e6-75a59b0627d9",
+        "019fa161-cdad-7ed0-b507-6792fe8317ed",
+        "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
+        "2026-07-27-governance-tooling-a-gate3-remediation-004",
+        "2026-07-27-governance-tooling-a-gate3-remediation-014",
+        "2026-07-27-governance-tooling-a-gate4-amendment-006",
+        "2026-07-27-governance-tooling-a-gate4-amendment-008",
+        "2026-07-27-governance-tooling-a-gate4-amendment-012",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
+        "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
+        "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
+        "2026-07-28-governance-tooling-a-gate3-remediation-016",
+        "2026-07-28-governance-tooling-a-gate3-remediation-021",
+        "2026-07-28-governance-tooling-a-gate3-remediation-022",
+        "2026-07-28-governance-tooling-a-gate3-remediation-023",
+        "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
+        "6a3d5523-45a9-46f3-9b1f-dd0016eac160",
+        "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b",
+        "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
+        "b96bcf1b-0434-4674-926a-f1ea578b7820",
+        "d0c73db8-2910-4104-9c32-932481707574",
+        "ee0e5d56-c322-4292-ba68-435174decb97",
+        "f643d85d-14a4-464d-9997-34061467a3fc",
+        "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713",
+        "platform-operator-source-recovery-20260727-04",
+        "platform-post-merge-review-remediation-20260726-01",
+        "platform-post-merge-review-remediation-amendment-20260727-02",
+        "platform-runtime-activation-20260727-05",
+        "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
+        "platform-runtime-grant-contract-correction-20260727-07",
+        "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
+        "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
+        "platform-runtime-grant-contract-network-capability-amendment-20260727-11",
+        "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
+        "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
+        "platform-runtime-grant-reconciliation-20260727-06",
+        "skr-post-merge-review-remediation-20260727-03",
+        "skr-production-dependency-remediation-20260726-01",
+        "skr-production-dependency-remediation-amendment-20260727-02",
+        "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
+        "skr-structured-quote-ux-architecture-20260727-01",
+        "skr-structured-quote-ux-g3-implementation-20260727-03",
+        "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
+        "skr-structured-quote-ux-g4-review-remediation-20260727-04",
+        "skr-structured-quote-ux-g4-review-remediation-20260727-05",
+        "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
+        "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
+        "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
+        "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
+        "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
+        "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14",
+        "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15",
+        "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
+        "sqag-internal-alpha-fast-track-20260727-08",
+        "sqag-internal-alpha-managed-state-admission-20260727-10a",
+        "sqag-main-worktree-recovery-postgresql17-pr-20260728-13",
+        "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21",
+        "sqag-postgresql17-assertion-output-safety-20260728-14",
+        "sqag-postgresql17-fixed-error-category-20260728-15",
+        "sqag-production-admission-archive-contract-repair-20260727-10",
+        "sqag-production-admission-design-regeneration-20260727-08",
+        "sqag-production-admission-design-regeneration-correction-20260727-09",
+        "sqag-production-inspection-authority-recovery-20260728-17",
+        "swooshz-host-environment-stale-credential-containment-20260728-01",
+        "workflow-compatibility-a-gate3-amendment-20260728-03",
+        "workflow-compatibility-a-gate3-amendment-20260728-04",
+        "workflow-compatibility-a-gate3-amendment-20260728-05"
+      ]
+    },
+    "queued": {
+      "count": 0,
+      "run_ids": []
+    },
+    "recorded": {
+      "count": 79,
+      "run_ids": [
+        "019f9ee5-8959-7351-bf3c-6e440b810d77",
+        "019f9f62-12f0-73b2-a930-d3dda2b091bd",
+        "019f9f66-5e5c-7222-a907-f222fd291a16",
+        "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
+        "019fa0dd-e9a5-7af0-802a-48c9d51b5836",
+        "019fa15d-bd42-7301-a4e6-75a59b0627d9",
+        "019fa161-cdad-7ed0-b507-6792fe8317ed",
+        "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
+        "2026-07-27-governance-tooling-a-gate3-remediation-004",
+        "2026-07-27-governance-tooling-a-gate3-remediation-014",
+        "2026-07-27-governance-tooling-a-gate4-amendment-006",
+        "2026-07-27-governance-tooling-a-gate4-amendment-008",
+        "2026-07-27-governance-tooling-a-gate4-amendment-012",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
+        "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
+        "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
+        "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
+        "2026-07-28-governance-tooling-a-gate3-remediation-016",
+        "2026-07-28-governance-tooling-a-gate3-remediation-021",
+        "2026-07-28-governance-tooling-a-gate3-remediation-022",
+        "2026-07-28-governance-tooling-a-gate3-remediation-023",
+        "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
+        "6a3d5523-45a9-46f3-9b1f-dd0016eac160",
+        "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b",
+        "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
+        "b96bcf1b-0434-4674-926a-f1ea578b7820",
+        "d0c73db8-2910-4104-9c32-932481707574",
+        "ee0e5d56-c322-4292-ba68-435174decb97",
+        "f643d85d-14a4-464d-9997-34061467a3fc",
+        "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713",
+        "platform-operator-source-recovery-20260727-04",
+        "platform-post-merge-review-remediation-20260726-01",
+        "platform-post-merge-review-remediation-amendment-20260727-02",
+        "platform-runtime-activation-20260727-05",
+        "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
+        "platform-runtime-grant-contract-correction-20260727-07",
+        "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
+        "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
+        "platform-runtime-grant-contract-network-capability-amendment-20260727-11",
+        "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
+        "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
+        "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
+        "platform-runtime-grant-reconciliation-20260727-06",
+        "skr-post-merge-review-remediation-20260727-03",
+        "skr-production-dependency-remediation-20260726-01",
+        "skr-production-dependency-remediation-amendment-20260727-02",
+        "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
+        "skr-structured-quote-ux-architecture-20260727-01",
+        "skr-structured-quote-ux-g3-implementation-20260727-03",
+        "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
+        "skr-structured-quote-ux-g4-review-remediation-20260727-04",
+        "skr-structured-quote-ux-g4-review-remediation-20260727-05",
+        "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
+        "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
+        "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
+        "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
+        "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
+        "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14",
+        "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15",
+        "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
+        "sqag-internal-alpha-fast-track-20260727-08",
+        "sqag-internal-alpha-managed-state-admission-20260727-10a",
+        "sqag-main-worktree-recovery-postgresql17-pr-20260728-13",
+        "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21",
+        "sqag-postgresql17-assertion-output-safety-20260728-14",
+        "sqag-postgresql17-fixed-error-category-20260728-15",
+        "sqag-production-admission-archive-contract-repair-20260727-10",
+        "sqag-production-admission-design-regeneration-20260727-08",
+        "sqag-production-admission-design-regeneration-correction-20260727-09",
+        "sqag-production-inspection-authority-recovery-20260728-17",
+        "swooshz-host-environment-stale-credential-containment-20260728-01",
+        "workflow-compatibility-a-gate3-amendment-20260728-03",
+        "workflow-compatibility-a-gate3-amendment-20260728-04",
+        "workflow-compatibility-a-gate3-amendment-20260728-05"
       ]
     }
   },
-  "material_limitations": [
-    "Official ranking uses only comparable recorded gated_v1 evidence.",
-    "Queued evidence contributes only to provisional non-ranking conclusions.",
-    "Like-for-like task evidence takes priority over all-task averages."
-  ]
+  "recommendation": {
+    "basis": "Highest mean across shared exact matched subject cohorts.",
+    "compared_models": [
+      "GPT-5.6 Sol",
+      "DeepSeek V4 Pro"
+    ],
+    "model": "GPT-5.6 Sol",
+    "shared_exact_cohort_count": 3,
+    "status": "strongest_on_exact_matched_evidence"
+  },
+  "schema_version": 2
 }

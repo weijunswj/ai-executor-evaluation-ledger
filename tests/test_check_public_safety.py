@@ -203,5 +203,44 @@ class BroadExceptionTests(unittest.TestCase):
         self.assertTrue(found)
 
 
+class LedgerIdentityPolicyTests(unittest.TestCase):
+    def test_current_tree_scan_rejects_every_forbidden_token(self) -> None:
+        tokens = {
+            "requested_" + "reasoning" + "_level",
+            "observed_" + "reasoning" + "_mode",
+            "thinking_" + "setting",
+            "native_" + "reasoning" + "_classification",
+            "reasoning" + "_exposure_status",
+            "reasoning" + "_grouping",
+            "reasoning" + "_level",
+            "reasoning" + "_mode",
+            "Claude Opus 4.8 " + "High",
+            "Claude Opus 4.8 " + "Ultra High",
+            "Claude Opus 5 " + "Max",
+            "GPT-5.6 Sol " + "Medium",
+            "GPT-5.6 Sol " + "High",
+            "GPT-5.6 Sol " + "Max",
+        }
+        self.assertEqual(tokens, set(safety.FORBIDDEN_LEDGER_IDENTITY_TOKENS))
+        for token in tokens:
+            self.assertTrue(
+                safety.scan_ledger_identity("tracked/current.txt", "prefix " + token),
+                token,
+            )
+
+    def test_scan_exception_is_exact_and_migration_only(self) -> None:
+        forbidden_attribute = "requested_" + "reasoning" + "_level"
+        self.assertEqual(
+            [],
+            safety.scan_ledger_identity(
+                "migrations/reasoning-scrub-receipt.json",
+                forbidden_attribute,
+            ),
+        )
+        self.assertTrue(
+            safety.scan_ledger_identity("tests/fixture.json", forbidden_attribute)
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

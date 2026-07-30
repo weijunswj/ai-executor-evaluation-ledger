@@ -61,8 +61,6 @@
   },
   "model_aliases": {
     "Mimo 2.5 Pro": "MiMo 2.5 Pro",
-    "Claude Opus 4.8 Ultra High": "Claude Opus 4.8",
-    "Claude Opus 5 Max": "Claude Opus 5",
     "Qwen 3.6 Plus": "Qwen3.6 Plus"
   },
   "provider_aliases": {

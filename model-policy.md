@@ -6,8 +6,6 @@ This policy translates verified evaluation evidence into current operating bound
 
 ## Xiaomi MiMo 2.5 Pro
 
-Reasoning level: **Provider default across 19 formal runs**
-
 Evidence level: **Useful mixed-task operating baseline across 19 formal runs; provisional across 3 comparable incident-diagnosis runs, 5 provider-operation runs, 5 security-remediation runs and 3 complex-repository-change runs; anecdotal across 1 high-difficulty architecture-proposal run**
 
 Observed scores:
@@ -63,13 +61,11 @@ The governance Gate 3 implementation made real progress by executing the canonic
 
 MiMo remains approved as a bounded investigator, no-mutation architecture-option generator and low-risk mechanical implementer. It is not independently authoritative for security, durability, policy/schema, authentication or production architecture. For the current governance PR, use a narrow architecture reset and a revised controller lock; a stronger owner-approved executor should perform the next implementation by default.
 
-## Claude Opus 4.8 High
-
-Reasoning level: **High**
+## Claude Opus 4.8
 
 Evidence level: **Provisional - 3 formal high-difficulty complex-repository-change runs**
 
-The first two append-only evaluation records used the incomplete label `Claude Opus 4.8`. Controller correction records identify them as **Claude Opus 4.8 High** with observed reasoning level `high`. The third run was recorded with the complete label. Correction records do not count as additional runs.
+These historical records are discussed under one canonical base-model identity. Correction records do not count as additional runs.
 
 Observed scores:
 
@@ -92,7 +88,7 @@ Observed scores:
 - Atomicity-sensitive, migration-adjacent or write-capable repository work only when the change remains draft and unmerged until exact-head acceptance.
 - Package, ledger, cleanup and durable-state changes only with explicit race, crash, no-clobber and cleanup-failure tests.
 - Green tests and continuous integration are supporting evidence, not an acceptance decision.
-- A same-domain P1/P2 surviving a High-reasoning amendment requires escalation to the next owner-approved reasoning tier before further implementation.
+- A same-domain P1/P2 surviving an amendment requires a separately owner-approved escalation before further implementation.
 
 ### Not currently approved
 
@@ -111,7 +107,7 @@ All three runs maintained exact revision evidence, green continuous integration,
 
 ### Promotion condition
 
-Before this task class can be treated as independently merge-ready, Claude Opus 4.8 High must:
+Before this task class can be treated as independently merge-ready, Claude Opus 4.8 must:
 
 - preserve atomic no-replace publication and strict no-clobber behaviour;
 - test every materially different post-publication failure boundary rather than only the immediate defect named by review;
@@ -122,11 +118,9 @@ Before this task class can be treated as independently merge-ready, Claude Opus 
 - receive an accepted exact-head controller review;
 - maintain zero unauthorised live-system actions.
 
-The required Ultra High escalation was performed and is evaluated separately below. High reasoning remains insufficient for independent acceptance of this durable-state task.
+The required escalation was performed and is evaluated as later evidence below. The prior repair remained insufficient for independent acceptance of this durable-state task.
 
-## Claude Opus 4.8 Ultra High
-
-Reasoning level: **Ultra High**
+### Later amendment evidence
 
 Evidence level: **Anecdotal - 1 formal high-difficulty complex-repository-change run**
 
@@ -159,7 +153,7 @@ Observed score:
 
 ### Current evidence
 
-The Ultra High amendment correctly replaced silent unlink suppression with an explicit three-state publication and cleanup model. It added deterministic unlink-failure tests, preserved final and competing packages, kept the change draft and unmerged, and performed no live-system action.
+The later amendment correctly replaced silent unlink suppression with an explicit three-state publication and cleanup model. It added deterministic unlink-failure tests, preserved final and competing packages, kept the change draft and unmerged, and performed no live-system action.
 
 However, the implementation still records approval consumption only after publication. If the ledger open, write, flush or fsync fails after the final package exists, no durable build event remains; a later invocation can use the same approval to mint another package at a fresh path. This is a same-domain P1 and a merge blocker. The completion report overstated durable single-use closure.
 
@@ -175,11 +169,9 @@ Before this task can be accepted, the next amendment must:
 - retain exact-head evidence, a draft unmerged state and zero unauthorised live-system actions;
 - receive an accepted controller review.
 
-Because a same-domain launch-blocking P1 survived the Ultra High repair, the next implementation used the owner-approved Max escalation and is evaluated separately below.
+Because a same-domain launch-blocking P1 survived the repair, the next implementation used a separately owner-approved escalation and is evaluated as additional evidence below.
 
 ## Claude Opus 5
-
-Reasoning evidence: **Two implementation runs (one observed Max, one provider-native mode not exposed) and one no-mutation architecture run with provider-native reasoning not exposed**
 
 Evidence level: **Provisional across 2 comparable high-difficulty complex-repository-change runs; anecdotal across 1 high-difficulty architecture-proposal run**
 
@@ -231,9 +223,7 @@ Gate 4 nevertheless found three narrower P2 boundaries. A second POSIX directory
 
 Claude Opus 5 remains suitable for exact-head no-mutation architecture work and controller-locked high-risk implementation in a draft branch. It is not independent authority for filesystem durability acceptance, merge or live operations. Because same-domain P2 findings survived the locked Gate 4 review, the next run must return to Gate 1 architecture for sticky publication-uncertainty state, truthful lost-race cleanup and trusted-parent admission before any further implementation.
 
-## Claude Opus 5 Max
-
-Reasoning level: **Max**
+### Additional amendment evidence
 
 Evidence level: **Provisional - 3 formal high-difficulty complex-repository-change runs**
 
@@ -278,9 +268,9 @@ Amendment 6 made substantial architectural progress: reviewer authority now requ
 
 ### Promotion condition
 
-The next narrowly scoped Max amendment must atomically re-resolve the latest decision and insert an append-only build-authorisation claim in one SQLite transaction; serialize decision writers and build claims; retain the filesystem reservation; create schema only for a path proven absent; validate exact table, trigger, index, foreign-key, uniqueness and CHECK semantics; reject extra application objects; require timezone-aware decision, activation and audit timestamps; prove the boundaries through paused build-versus-decision interleavings and hostile-store tests; remain draft and unmerged; and receive an accepted exact-head controller review.
+The next narrowly scoped amendment must atomically re-resolve the latest decision and insert an append-only build-authorisation claim in one SQLite transaction; serialize decision writers and build claims; retain the filesystem reservation; create schema only for a path proven absent; validate exact table, trigger, index, foreign-key, uniqueness and CHECK semantics; reject extra application objects; require timezone-aware decision, activation and audit timestamps; prove the boundaries through paused build-versus-decision interleavings and hostile-store tests; remain draft and unmerged; and receive an accepted exact-head controller review.
 
-Max is already the highest owner-approved tier. Further progress must come from tighter transactional design and adversarial review, not a higher reasoning label.
+Further progress must come from tighter transactional design and adversarial review, not a new public model identity.
 
 ## DeepSeek V4 Pro
 
@@ -333,11 +323,11 @@ The remaining issues are bounded controller-lock corrections rather than another
 
 ### Current disposition
 
-DeepSeek V4 Pro is approved for bounded no-mutation architecture investigation and consolidated design proposals. This governance packet is accepted for controller lock at **4.42/5**. Implementation remains authorised only through the exact controller lock on the existing draft pull request, followed by a completely fresh exact-head Gate 4 review. Provider-native reasoning is not part of future public model identity; earlier legacy metadata remains pending the dedicated base-model and protocol-cohort migration.
+DeepSeek V4 Pro is approved for bounded no-mutation architecture investigation and consolidated design proposals. This governance packet is accepted for controller lock at **4.42/5**. Implementation remains authorised only through the exact controller lock on the existing draft pull request, followed by a completely fresh exact-head Gate 4 review. Execution settings are not part of public model identity.
 
 ## GPT-5.6 Sol
 
-Public identity: **Canonical base model only; no reasoning-level recording or aggregation**
+Public identity: **Exact provider plus canonical base model**
 
 Evidence level: **Anecdotal across 2 high-difficulty complex-repository-change runs and 2 high-difficulty security-remediation runs**
 
@@ -362,7 +352,7 @@ Observed scores:
 - Green continuous integration and extensive adversarial tests remain supporting evidence rather than acceptance authority.
 - Same-root P1 or P2 findings after an implementation return the lane to Gate 1 architecture rather than another ordinary patch.
 - Consumer or native UAT requires separate exact-target authorisation and must use disposable data without activation or production mutation by default.
-- Model identity is recorded only as exact provider plus canonical base model; no public reasoning suffix or native reasoning mode is used.
+- Model identity is recorded only as exact provider plus canonical base model; execution settings do not create separate ledger identities.
 
 ### Not currently approved
 
@@ -385,7 +375,7 @@ GPT-5.6 Sol is suitable for complex repository implementation and high-risk reme
 
 - exact private repository and revision binding;
 - exact provider and canonical base-model label recorded without inference, renaming or normalisation;
-- no public reasoning-level identity or aggregation;
+- no execution-setting-based model identity or aggregation;
 - public records use opaque subject aliases;
 - no secret or private-identity disclosure;
 - explicit mutation authorisation;

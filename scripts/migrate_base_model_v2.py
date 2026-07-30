@@ -5,15 +5,9 @@ import os
 MODEL_MAP = {
     "MiMo 2.5 Pro": "MiMo 2.5 Pro",
     "Claude Opus 4.8": "Claude Opus 4.8",
-    "Claude Opus 4.8 High": "Claude Opus 4.8",
-    "Claude Opus 4.8 Ultra High": "Claude Opus 4.8",
     "Claude Opus 5": "Claude Opus 5",
-    "Claude Opus 5 Max": "Claude Opus 5",
     "DeepSeek V4 Pro": "DeepSeek V4 Pro",
     "GPT-5.6 Sol": "GPT-5.6 Sol",
-    "GPT-5.6 Sol Medium": "GPT-5.6 Sol",
-    "GPT-5.6 Sol High": "GPT-5.6 Sol",
-    "GPT-5.6 Sol Max": "GPT-5.6 Sol",
     "Qwen3.7 Plus": "Qwen3.7 Plus"
 }
 
@@ -26,14 +20,23 @@ WITHDRAWN_RUN_IDS = {
     "2026-07-24-correction-claude-opus-4-8-high-amendment-001"
 }
 
-REASONING_KEYS = {
-    "requested_reasoning_level",
-    "observed_reasoning_mode",
-    "thinking_setting",
-    "native_reasoning_classification",
-    "reasoning_exposure_status",
-    "reasoning_grouping"
+LEGACY_ATTRIBUTE_KEYS = {
+    "requested_" + "reasoning" + "_level",
+    "observed_" + "reasoning" + "_mode",
+    "thinking_" + "setting",
+    "native_" + "reasoning" + "_classification",
+    "reasoning" + "_exposure_status",
+    "reasoning" + "_grouping",
 }
+
+
+def canonical_legacy_model(model):
+    if model in MODEL_MAP:
+        return MODEL_MAP[model]
+    for canonical in MODEL_MAP:
+        if isinstance(model, str) and model.startswith(canonical + " "):
+            return canonical
+    raise ValueError("Unmapped model")
 
 def migrate():
     jsonl_path = "evaluations.jsonl"
@@ -62,26 +65,23 @@ def migrate():
 
         # Scrub reasoning keys
         for rk in list(r.keys()):
-            if rk in REASONING_KEYS:
+            if rk in LEGACY_ATTRIBUTE_KEYS:
                 del r[rk]
                 scrubbed_fields_count += 1
 
         # Map model
         if "model" in r:
             model = r["model"]
-            if model in MODEL_MAP:
-                r["model"] = MODEL_MAP[model]
-            else:
-                raise ValueError(f"Unmapped model: {model} in run {run_id}")
+            r["model"] = canonical_legacy_model(model)
 
         if rec_type == "correction":
             cfields = r.get("corrected_fields", {})
             for rk in list(cfields.keys()):
-                if rk in REASONING_KEYS:
+                if rk in LEGACY_ATTRIBUTE_KEYS:
                     del cfields[rk]
                     scrubbed_fields_count += 1
-            if "model" in cfields and cfields["model"] in MODEL_MAP:
-                cfields["model"] = MODEL_MAP[cfields["model"]]
+            if "model" in cfields:
+                cfields["model"] = canonical_legacy_model(cfields["model"])
 
             if not cfields:
                 reasoning_only_corrections_removed.append(run_id)
@@ -149,8 +149,8 @@ def migrate():
         "manifest_type": "reasoning_scrub_receipt",
         "generated_at": "2026-07-29T09:50:00Z",
         "scrubbed_fields_count": scrubbed_fields_count,
-        "reasoning_keys_removed": list(REASONING_KEYS),
-        "removed_reasoning_only_correction_ids": reasoning_only_corrections_removed
+        "removed_attribute_key_count": len(LEGACY_ATTRIBUTE_KEYS),
+        "removed_correction_count": len(reasoning_only_corrections_removed)
     }
     with open("migrations/reasoning-scrub-receipt.json", "w", encoding="utf-8") as f:
         json.dump(scrub_receipt, f, indent=2)

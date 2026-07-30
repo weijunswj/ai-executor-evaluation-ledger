@@ -8,20 +8,20 @@ Used in conjunction with [LLM WEB CUSTOM INSTRUCTIONS SET](https://github.com/we
 <!-- GENERATED:README-SCORES:START -->
 ## AI Model Recommendations & Operational Guidance
 
-**Official Recorded Gated Evidence:** 79 runs | **Queued Intake:** 0 runs | **Total Available:** 79 runs
+**Recorded comparable evidence:** 79 runs | **Queued comparable evidence:** 0 runs | **Available comparable evidence:** 79 runs
 
 ### Tested Model Summary & Like-for-Like Analysis
 
-- **Claude Opus 5**: Average Score **4.63/5** across 3 recorded run(s) (1 independent subject/task family). First-pass acceptance: **0%**.
-- **GPT-5.6 Sol**: Average Score **4.55/5** across 32 recorded run(s) (11 independent subject/task family). First-pass acceptance: **19%**.
-- **Qwen3.7 Plus**: Average Score **4.31/5** across 13 recorded run(s) (4 independent subject/task family). First-pass acceptance: **15%**.
-- **MiniMax M3**: Average Score **4.18/5** across 5 recorded run(s) (4 independent subject/task family). First-pass acceptance: **0%**.
-- **DeepSeek V4 Pro**: Average Score **3.90/5** across 19 recorded run(s) (7 independent subject/task family). First-pass acceptance: **5%**.
-- **Gemini 3.1 Pro**: Average Score **3.44/5** across 3 recorded run(s) (1 independent subject/task family). First-pass acceptance: **0%**.
-- **MiMo 2.5 Pro**: Average Score **3.02/5** across 4 recorded run(s) (2 independent subject/task family). First-pass acceptance: **0%**.
+- **Claude Opus 5**: 3 recorded, 0 queued, 1 independent subject(s), 0 exact matched cohort(s); like-for-like score: **not available**.
+- **DeepSeek V4 Pro**: 19 recorded, 0 queued, 7 independent subject(s), 4 exact matched cohort(s); like-for-like score: **3.69/5**.
+- **GPT-5.6 Sol**: 32 recorded, 0 queued, 11 independent subject(s), 3 exact matched cohort(s); like-for-like score: **4.54/5**.
+- **Gemini 3.1 Pro**: 3 recorded, 0 queued, 1 independent subject(s), 2 exact matched cohort(s); like-for-like score: **3.52/5**.
+- **MiMo 2.5 Pro**: 4 recorded, 0 queued, 2 independent subject(s), 0 exact matched cohort(s); like-for-like score: **not available**.
+- **MiniMax M3**: 5 recorded, 0 queued, 4 independent subject(s), 2 exact matched cohort(s); like-for-like score: **3.78/5**.
+- **Qwen3.7 Plus**: 13 recorded, 0 queued, 4 independent subject(s), 1 exact matched cohort(s); like-for-like score: **4.77/5**.
 
 > [!NOTE]
-> Recommendations are strictly grounded in empirical recorded `gated_v1` evidence. Queued intake is provisional and does not alter official recorded rankings.
+> Highest mean across shared exact matched subject cohorts. Status: `strongest_on_exact_matched_evidence`. Queued evidence is provisional and excluded from official score comparison.
 
 ## Summary model scores
 
