@@ -559,12 +559,12 @@
   "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "batch_id": "batch-20260729-gate3-amendment-004",
   "batch_mode": "initial",
-  "candidate_content_commit_sha": "09b8103ffb0083dba4d589072d34f08ffb1d4cce",
+  "candidate_content_commit_sha": "94fc08a9d064e336f12c0441b319860dd1c1fefe",
   "canonical_hashes": {
     "dispositions_jsonl": "0e9b024d927d7f129b3f1bc4bf8f59229e37ae2243483e4ae528894b850563e8",
-    "evaluations_jsonl": "962b4585bfb38414e0946616f2957bd650ba60dcc7b78adfcba9494a2f9cafea",
-    "model_recommendation_json": "5ab816fade73f72abe2abb3bd07afcd84f8ce32081965bc6f439ed446044c0f1",
-    "readme_md": "e1b93b51b57830c3960ad41996c53c03098943daeff65c9e535ffc0d9596907e",
+    "evaluations_jsonl": "cfc428521a870eb96ddcdc796a467b472506a07bf555adf9d08306a122faeb59",
+    "model_recommendation_json": "ed42e27c4aa00577006446631fe4bda30017cf227cf5618d2ca17e1e1bf93ada",
+    "readme_md": "2de0587a2a6b59be929f4a12c675c671d5494d7162d60d4b4d950d076219c963",
     "scorecard_md": "ccf64c5ac6b917220e54b3c425e11148f0fcde50729e1716f6cc02d4e2cd0191"
   },
   "canonical_main_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
@@ -593,7 +593,7 @@
     "2026-07-28-governance-tooling-a-gate3-remediation-021": "9695416ee42a58b01fca0b9dc31adafc68d301fe39c766973beed7de684db809",
     "2026-07-28-governance-tooling-a-gate3-remediation-022": "83ee09c75bcbf7c6980071df0f9a4736e298b0cac21f537581d853090f717e9d",
     "2026-07-28-governance-tooling-a-gate3-remediation-023": "1212769222b89fb7f70458d155711f509accd709268a62d667741f728fa39d45",
-    "263a994d-b3f1-4b2f-aa24-4edb68c473cc": "3bb6de0b59a52ff78f5348aa296d915488946f565fcc2505119e938ab19a4219",
+    "263a994d-b3f1-4b2f-aa24-4edb68c473cc": "06c0a24dd8a0403a0c5e437b106bfdde895c46f4fc56de2d5c500d05831298be",
     "6a3d5523-45a9-46f3-9b1f-dd0016eac160": "5748b9d30ead92526f584eaafc55c3e39f002ee68fa3c302ed621e86b5ae2e62",
     "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b": "822780646eb9b553238dca5e37367554e391388cfc10cb1c16c184e48e6a2129",
     "8d98a2e2-e06d-477c-a1b2-185b00f8b874": "12136b7c6f6949e114dcf7184251fe3182993ddb6ac47ea111fd8073a824adfc",
@@ -831,8 +831,8 @@
       "updated_at": "2026-07-27T02:48:05Z"
     },
     {
-      "body_sha256": "d2be2c1e22fb136edbba0b7c2a92df74c8a1e56028d9f9b7a355781791bc159f",
-      "canonical_record_sha256": "3bb6de0b59a52ff78f5348aa296d915488946f565fcc2505119e938ab19a4219",
+      "body_sha256": "8e423891bdf0211ab5caf9e13f12a03c89e80cff43af33f15e470909bba2b5bf",
+      "canonical_record_sha256": "06c0a24dd8a0403a0c5e437b106bfdde895c46f4fc56de2d5c500d05831298be",
       "cleanup_eligible": true,
       "comment_id": 5086781596,
       "created_at": "2026-07-27T02:49:17Z",
@@ -1666,7 +1666,7 @@
   "latest_observed_comment_id": 5115014307,
   "latest_observed_update_time": "2026-07-29T08:23:28Z",
   "pr_number": 151,
-  "queue_snapshot_sha256": "eac871f9ec34e37346bd9c83d8af2f8b1d5796ff4f72315d15966d49edf554ef",
+  "queue_snapshot_sha256": "ef85282e1bcbbd930db3264b9bda1345998e74d8bdbb89ab6ee47b3709b76300",
   "receipt_issue_number": 143,
   "receipt_type": "batch",
   "schema_version": 2,
@@ -1793,7 +1793,7 @@
     "5086705192": "b6bf6cf04f8e13ecca19833372fc042391b49764e8c89303ef049cfa1073802c",
     "5086739477": "1b2326c6818afd880f31a37b75049df397d2f0b3e4b52f0093db9af53f2e5e62",
     "5086776533": "cb9740bf0748ec81f7232cf9a83ff8f9b53508b71896baa526a3d2762aa04b0b",
-    "5086781596": "d2be2c1e22fb136edbba0b7c2a92df74c8a1e56028d9f9b7a355781791bc159f",
+    "5086781596": "8e423891bdf0211ab5caf9e13f12a03c89e80cff43af33f15e470909bba2b5bf",
     "5086782072": "417b1175d3d478fd1f239e7cb5942d76090518551050a509001bfc232bfbcd4e",
     "5087003873": "2cd345d0332207ac58ed62d1448fb6bfe2d8b604d166bf2256747315426c75f3",
     "5087015504": "763906db9ebd981b1dbe4edc4c0af8a3225c792bbcd661b217926c715efa7223",
@@ -2093,7 +2093,7 @@
       "outcome_code": "admitted"
     },
     "5086781596": {
-      "canonical_record_sha256": "3bb6de0b59a52ff78f5348aa296d915488946f565fcc2505119e938ab19a4219",
+      "canonical_record_sha256": "06c0a24dd8a0403a0c5e437b106bfdde895c46f4fc56de2d5c500d05831298be",
       "cleanup_eligible": true,
       "evaluation_run_id": "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
       "outcome_code": "admitted"
