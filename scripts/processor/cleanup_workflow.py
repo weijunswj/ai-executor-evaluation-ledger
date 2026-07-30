@@ -7,6 +7,7 @@ future publication is an explicit injected operator action.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import subprocess
 from dataclasses import dataclass
@@ -22,6 +23,10 @@ from scripts.processor.common import (
     validate_batch_receipt_closure,
     valid_git_sha,
     valid_identifier,
+)
+from scripts.validate_receipts import (
+    ReceiptValidationError,
+    validate_batch_receipt_object,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -281,6 +286,15 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         "repos/weijunswj/ai-executor-evaluation-ledger/git/ref/heads/main",
         config.repository_root,
     )
+    raw_commit = _gh_get_json(
+        f"repos/weijunswj/ai-executor-evaluation-ledger/commits/{head_sha}",
+        config.repository_root,
+    )
+    receipt_path = f"ledger/receipts/batches/{config.batch_id}.json"
+    raw_receipt = _gh_get_json(
+        f"repos/weijunswj/ai-executor-evaluation-ledger/contents/{receipt_path}?ref={head_sha}",
+        config.repository_root,
+    )
     check_runs = _gh_get_paginated(
         f"repos/weijunswj/ai-executor-evaluation-ledger/commits/{head_sha}/check-runs?per_page=100",
         config.repository_root,
@@ -314,6 +328,24 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
     main_sha = main_ref.get("object", {}).get("sha") if isinstance(main_ref.get("object"), dict) else None
     if state not in {"open", "closed"} or not valid_git_sha(main_sha):
         raise _safe_failure("processor_cleanup_authority_unverified")
+    parents = raw_commit.get("parents")
+    files = raw_commit.get("files")
+    encoded_receipt = raw_receipt.get("content")
+    if (
+        not isinstance(parents, list)
+        or not isinstance(files, list)
+        or raw_receipt.get("type") != "file"
+        or raw_receipt.get("encoding") != "base64"
+        or not isinstance(encoded_receipt, str)
+    ):
+        raise _safe_failure("processor_cleanup_authority_unverified")
+    try:
+        raw_receipt_bytes = base64.b64decode(
+            "".join(encoded_receipt.split()),
+            validate=True,
+        )
+    except ValueError:
+        raise _safe_failure("processor_cleanup_authority_unverified")
     return {
         "pr_state": state,
         "merge_state": "merged" if merged and merge_sha == main_sha else "unmerged",
@@ -323,6 +355,13 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         "canonical_merge_sha": merge_sha if isinstance(merge_sha, str) else "",
         "canonical_main_sha": main_sha,
         "recorded_receipt_status": _recorded_receipt_status(config, receipt_comments),
+        "raw_head_parent_shas": [
+            item.get("sha") for item in parents if isinstance(item, dict)
+        ],
+        "raw_head_changed_paths": [
+            item.get("filename") for item in files if isinstance(item, dict)
+        ],
+        "raw_head_receipt_sha256": sha256_bytes(raw_receipt_bytes),
     }
 
 
@@ -372,6 +411,55 @@ def _load_batch(root: Path, commit_sha: str, batch_id: str) -> tuple[Dict[str, A
     if batch.get("schema_version") == 2 and not validate_batch_receipt_closure(batch):
         raise _safe_failure("processor_cleanup_batch_unavailable")
     return batch, raw, sha256_bytes(raw)
+
+
+def _verify_raw_head_receipt_seal(
+    root: Path,
+    raw_head_sha: str,
+    batch: Mapping[str, Any],
+    batch_bytes: bytes,
+    authority: Mapping[str, Any],
+) -> None:
+    receipt_path = f"ledger/receipts/batches/{batch['batch_id']}.json"
+    if {
+        "raw_head_parent_shas",
+        "raw_head_changed_paths",
+        "raw_head_receipt_sha256",
+    }.issubset(authority):
+        if (
+            authority["raw_head_parent_shas"]
+            != [batch.get("candidate_content_commit_sha")]
+            or authority["raw_head_changed_paths"] != [receipt_path]
+            or authority["raw_head_receipt_sha256"] != sha256_bytes(batch_bytes)
+        ):
+            raise _safe_failure("processor_cleanup_authority_unverified")
+        return
+    _git_output(root, "cat-file", "-e", f"{raw_head_sha}^{{commit}}")
+    parent_line = (
+        _git_output(root, "rev-list", "--parents", "-n", "1", raw_head_sha)
+        .decode("ascii")
+        .strip()
+        .split()
+    )
+    if len(parent_line) != 2 or parent_line[1] != batch.get("candidate_content_commit_sha"):
+        raise _safe_failure("processor_cleanup_authority_unverified")
+    changed = (
+        _git_output(
+            root,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            parent_line[1],
+            raw_head_sha,
+        )
+        .decode("utf-8")
+        .splitlines()
+    )
+    if changed != [receipt_path]:
+        raise _safe_failure("processor_cleanup_authority_unverified")
+    if _git_object_bytes(root, raw_head_sha, receipt_path) != batch_bytes:
+        raise _safe_failure("processor_cleanup_authority_unverified")
 
 
 def _current_hashes(root: Path, commit_sha: str) -> Dict[str, str]:
@@ -489,7 +577,21 @@ def prepare_cleanup_receipt(
         config.canonical_main_sha,
         config.batch_id,
     )
-    legacy_batch = batch.get("schema_version") != 2
+    try:
+        validate_batch_receipt_object(
+            config.repository_root,
+            batch,
+            authority_sha=config.canonical_main_sha,
+        )
+    except ReceiptValidationError:
+        raise _safe_failure("processor_cleanup_batch_unavailable")
+    _verify_raw_head_receipt_seal(
+        config.repository_root,
+        config.expected_head_sha,
+        batch,
+        batch_bytes,
+        authority,
+    )
     evaluations_bytes = _git_object_bytes(
         config.repository_root,
         config.canonical_main_sha,
@@ -505,21 +607,10 @@ def prepare_cleanup_receipt(
     )
 
     batch_record_hashes = dict(batch.get("canonical_record_hashes", {}))
-    if legacy_batch:
-        batch_record_hashes = {
-            binding["evaluation_run_id"]: binding["canonical_record_sha256"]
-            for binding in batch.get("comment_bindings", [])
-            if isinstance(binding, dict)
-            and binding.get("classification") == "admitted"
-            and isinstance(binding.get("evaluation_run_id"), str)
-            and isinstance(binding.get("canonical_record_sha256"), str)
-        }
     canonical_verified = (
-        not legacy_batch
-        and config.pr_state == "closed"
+        config.pr_state == "closed"
         and config.merge_state == "merged"
         and config.canonical_merge_sha == config.canonical_main_sha
-        and config.expected_head_sha == batch.get("expected_head_sha")
         and current_hashes == batch.get("canonical_hashes")
         and record_hashes == batch_record_hashes
         and record_proofs == batch.get("accepted_record_proofs", {})

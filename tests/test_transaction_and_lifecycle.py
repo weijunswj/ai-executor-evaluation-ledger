@@ -153,15 +153,13 @@ class TestTransactionAndLifecycle(unittest.TestCase):
         ):
             target = root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(ROOT / relative, target)
+            target.write_bytes((ROOT / relative).read_bytes().replace(b"\r\n", b"\n"))
         body = "retained source fixture"
         digest = sha256_bytes(body.encode("utf-8"))
-        author_digest = sha256_bytes(b"fixture-author")
         queue_snapshot_digest = sha256_bytes(
             canonical_json_bytes(
                 [{
                     "id": 1,
-                    "author_sha256": author_digest,
                     "created_at": "2026-07-29T10:00:00Z",
                     "updated_at": "2026-07-29T10:00:00Z",
                     "body_sha256": digest,
@@ -175,6 +173,19 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "scorecard_md": sha256_bytes((root / "scorecard.md").read_bytes()),
             "model_recommendation_json": sha256_bytes((root / "analysis/model-recommendation.json").read_bytes()),
         }
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "fixture" + "@" + "example.invalid"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "fixture"], cwd=root, check=True)
+        subprocess.run(["git", "add", "."], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "content"], cwd=root, check=True)
+        content_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
         batch = {
             "schema_version": 2,
             "receipt_type": "batch",
@@ -183,10 +194,11 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "controller_run_id": "controller-cleanup-a005",
             "base_sha": "a" * 40,
             "canonical_main_sha": "a" * 40,
+            "candidate_content_commit_sha": content_sha,
             "pr_number": 151,
-            "expected_head_sha": "c" * 40,
             "source_issue_number": 142,
             "receipt_issue_number": 143,
+            "source_comment_watermark": 1,
             "full_queue_count": 1,
             "latest_observed_comment_id": 1,
             "latest_observed_update_time": "2026-07-29T10:00:00Z",
@@ -211,7 +223,6 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "comment_bindings": [
                 {
                     "comment_id": 1,
-                    "author_sha256": author_digest,
                     "created_at": "2026-07-29T10:00:00Z",
                     "updated_at": "2026-07-29T10:00:00Z",
                     "body_sha256": digest,
@@ -225,12 +236,8 @@ class TestTransactionAndLifecycle(unittest.TestCase):
         receipt_path = root / "ledger" / "receipts" / "batches" / f"{batch_id}.json"
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
         receipt_path.write_text(json.dumps(batch, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
-        subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
-        subprocess.run(["git", "config", "user.email", "fixture" + "@" + "example.invalid"], cwd=root, check=True)
-        subprocess.run(["git", "config", "user.name", "fixture"], cwd=root, check=True)
-        subprocess.run(["git", "add", "."], cwd=root, check=True)
-        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+        subprocess.run(["git", "add", str(receipt_path)], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "receipt"], cwd=root, check=True)
         return body, batch
 
     def cleanup_config(self, root: Path, batch_id: str, *, receipt_status="unverified", merge_state="merged"):
@@ -245,7 +252,7 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             batch_id=batch_id,
             canonical_merge_sha=canonical_sha,
             canonical_main_sha=canonical_sha,
-            expected_head_sha="c" * 40,
+            expected_head_sha=canonical_sha,
             pr_number=151,
             source_issue_number=142,
             receipt_issue_number=143,
@@ -401,13 +408,25 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "head": {"sha": raw_head},
         }
         main = {"object": {"sha": "a" * 40}}
+        raw_commit = {
+            "parents": [{"sha": "b" * 40}],
+            "files": [{"filename": "ledger/receipts/batches/batch-check-head-a005.json"}],
+        }
+        raw_receipt = {
+            "type": "file",
+            "encoding": "base64",
+            "content": "e30=",
+        }
         check_names = ("CodeQL", "Scan public ledger", "validate")
         wrong_head_runs = [
             {"name": name, "head_sha": "d" * 40, "status": "completed", "conclusion": "success"}
             for name in check_names
         ]
         with (
-            mock.patch("scripts.processor.cleanup_workflow._gh_get_json", side_effect=[pr, main]),
+            mock.patch(
+                "scripts.processor.cleanup_workflow._gh_get_json",
+                side_effect=[pr, main, raw_commit, raw_receipt],
+            ),
             mock.patch(
                 "scripts.processor.cleanup_workflow._gh_get_paginated",
                 side_effect=[wrong_head_runs, [], []],

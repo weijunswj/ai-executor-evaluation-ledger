@@ -76,6 +76,7 @@ class ProcessBatchConfig:
     merge_state: Optional[str] = None
     checks_state: Optional[str] = None
     review_state: Optional[str] = None
+    candidate_content_commit_sha: Optional[str] = None
 
 
 def compute_sha256(content: bytes) -> str:
@@ -252,6 +253,11 @@ def _validate_config(config: ProcessBatchConfig) -> None:
         raise ProcessorError("processor_invalid_contract")
     if not valid_git_sha(config.expected_head_sha):
         raise ProcessorError("processor_invalid_contract")
+    if (
+        config.candidate_content_commit_sha is not None
+        and not valid_git_sha(config.candidate_content_commit_sha)
+    ):
+        raise ProcessorError("processor_invalid_contract")
     if not valid_identifier(config.batch_id) or not valid_identifier(config.controller_run_id):
         raise ProcessorError("processor_invalid_contract")
     if not isinstance(config.pr_number, int) or config.pr_number <= 0:
@@ -276,6 +282,11 @@ def _validate_config(config: ProcessBatchConfig) -> None:
     _run_git(config.repository_root, ["cat-file", "-e", f"{config.base_sha}^{{commit}}"])
     _run_git(config.repository_root, ["cat-file", "-e", f"{config.canonical_main_sha}^{{commit}}"])
     _run_git(config.repository_root, ["cat-file", "-e", f"{config.expected_head_sha}^{{commit}}"])
+    if config.candidate_content_commit_sha is not None:
+        _run_git(
+            config.repository_root,
+            ["cat-file", "-e", f"{config.candidate_content_commit_sha}^{{commit}}"],
+        )
     head_result = _run_git(config.repository_root, ["rev-parse", "HEAD"], text=True)
     if head_result.stdout.strip() != config.expected_head_sha:
         raise ProcessorError("processor_authority_mismatch")
@@ -316,7 +327,7 @@ def _validate_candidate_tree(
     candidate_files: Mapping[str, bytes],
     records: List[Dict[str, Any]],
     dispositions: List[Dict[str, Any]],
-    batch_receipt: Dict[str, Any],
+    batch_receipt: Optional[Dict[str, Any]],
     rejected_sentinels: Iterable[bytes] = (),
 ) -> None:
     for error in EVALUATION_VALIDATOR.iter_errors(records[0]) if records else ():
@@ -327,12 +338,11 @@ def _validate_candidate_tree(
     for disposition in dispositions:
         if any(DISPOSITION_VALIDATOR.iter_errors(disposition)):
             raise ProcessorError("processor_schema_failure")
-    if any(RECEIPT_VALIDATOR.iter_errors(batch_receipt)):
-        raise ProcessorError("processor_schema_failure")
-    if not validate_batch_receipt_closure(batch_receipt):
-        raise ProcessorError("processor_schema_failure")
-    if not validate_batch_receipt_closure(batch_receipt):
-        raise ProcessorError("processor_schema_failure")
+    if batch_receipt is not None:
+        if any(RECEIPT_VALIDATOR.iter_errors(batch_receipt)):
+            raise ProcessorError("processor_schema_failure")
+        if not validate_batch_receipt_closure(batch_receipt):
+            raise ProcessorError("processor_schema_failure")
     for relative_path, expected in candidate_files.items():
         actual = (candidate_path / relative_path).read_bytes()
         if actual != expected:
@@ -456,7 +466,6 @@ def build_batch_candidate(
         bindings.append(
             {
                 "comment_id": comment_id,
-                "author_sha256": fingerprint["author_sha256"],
                 "created_at": fingerprint["created_at"],
                 "updated_at": fingerprint["updated_at"],
                 "body_sha256": fingerprint["body_sha256"],
@@ -517,41 +526,57 @@ def build_batch_candidate(
         (item["updated_at"] for item in first_fingerprints if item["updated_at"]),
         default=None,
     )
-    batch_receipt = {
-        "schema_version": 2,
-        "receipt_type": "batch",
-        "batch_id": config.batch_id,
-        "batch_mode": config.operating_mode,
-        "controller_run_id": config.controller_run_id,
-        "base_sha": config.base_sha,
-        "canonical_main_sha": config.canonical_main_sha,
-        "pr_number": config.pr_number,
-        "expected_head_sha": config.expected_head_sha,
-        "source_issue_number": config.source_issue_number,
-        "receipt_issue_number": config.receipt_issue_number,
-        "full_queue_count": len(first_fingerprints),
-        "latest_observed_comment_id": latest_id,
-        "latest_observed_update_time": latest_update,
-        "queue_snapshot_sha256": first_queue_hash,
-        "source_comment_ids": [item["id"] for item in first_fingerprints],
-        "source_body_sha256": {str(item["id"]): item["body_sha256"] for item in first_fingerprints},
-        "selected_comment_ids": [item["id"] for item in first_fingerprints],
-        "selected_comment_count": len(first_fingerprints),
-        "terminal_outcome_count": len(terminal_outcomes),
-        "terminal_outcomes": terminal_outcomes,
-        "admitted_run_ids": admitted_run_ids,
-        "accepted_record_proofs": admitted_record_proofs,
-        "canonical_record_hashes": new_record_hashes,
-        "canonical_hashes": hashes,
-        "comment_bindings": bindings,
-    }
-    if any(RECEIPT_VALIDATOR.iter_errors(batch_receipt)):
-        raise ProcessorError("processor_schema_failure")
-
-    receipt_bytes = (json.dumps(batch_receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+    batch_receipt: Optional[Dict[str, Any]] = None
+    receipt_bytes: Optional[bytes] = None
     candidate_files = dict(authority_files)
     candidate_files.update(canonical_files)
-    candidate_files[existing_receipt_path] = receipt_bytes
+    if config.candidate_content_commit_sha is not None:
+        for relative_path, expected in canonical_files.items():
+            if read_git_object(
+                config.repository_root,
+                config.candidate_content_commit_sha,
+                relative_path,
+            ) != expected:
+                raise ProcessorError("processor_integrity_failure")
+        batch_receipt = {
+            "schema_version": 2,
+            "receipt_type": "batch",
+            "batch_id": config.batch_id,
+            "batch_mode": config.operating_mode,
+            "controller_run_id": config.controller_run_id,
+            "base_sha": config.base_sha,
+            "canonical_main_sha": config.canonical_main_sha,
+            "candidate_content_commit_sha": config.candidate_content_commit_sha,
+            "pr_number": config.pr_number,
+            "source_issue_number": config.source_issue_number,
+            "receipt_issue_number": config.receipt_issue_number,
+            "source_comment_watermark": latest_id or 0,
+            "full_queue_count": len(first_fingerprints),
+            "latest_observed_comment_id": latest_id,
+            "latest_observed_update_time": latest_update,
+            "queue_snapshot_sha256": first_queue_hash,
+            "source_comment_ids": [item["id"] for item in first_fingerprints],
+            "source_body_sha256": {
+                str(item["id"]): item["body_sha256"] for item in first_fingerprints
+            },
+            "selected_comment_ids": [item["id"] for item in first_fingerprints],
+            "selected_comment_count": len(first_fingerprints),
+            "terminal_outcome_count": len(terminal_outcomes),
+            "terminal_outcomes": terminal_outcomes,
+            "admitted_run_ids": admitted_run_ids,
+            "accepted_record_proofs": admitted_record_proofs,
+            "canonical_record_hashes": new_record_hashes,
+            "canonical_hashes": hashes,
+            "comment_bindings": bindings,
+        }
+        if any(RECEIPT_VALIDATOR.iter_errors(batch_receipt)):
+            raise ProcessorError("processor_schema_failure")
+        if not validate_batch_receipt_closure(batch_receipt):
+            raise ProcessorError("processor_schema_failure")
+        receipt_bytes = (
+            json.dumps(batch_receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        ).encode("utf-8")
+        candidate_files[existing_receipt_path] = receipt_bytes
 
     with build_complete_candidate_tree(config.repository_root, candidate_files) as candidate_tree:
         _validate_candidate_tree(
@@ -574,7 +599,8 @@ def build_batch_candidate(
         "snapshot_hash": first_queue_hash,
         "evaluations_sha256": hashes["evaluations_jsonl"],
         "record_hashes": new_record_hashes,
-        "receipt_sha256": sha256_bytes(receipt_bytes),
+        "receipt_sha256": sha256_bytes(receipt_bytes) if receipt_bytes is not None else None,
+        "receipt_sealed": receipt_bytes is not None,
         "candidate_files": tuple(sorted(candidate_files)),
     }
 
@@ -626,6 +652,7 @@ def parse_cli(argv: Optional[List[str]] = None) -> ProcessBatchConfig:
     parser.add_argument("--controller-run-id", required=True)
     parser.add_argument("--pr-number", type=int, required=True)
     parser.add_argument("--expected-head-sha", required=True)
+    parser.add_argument("--candidate-content-commit-sha")
     parser.add_argument("--activation-mode", choices=["dry-run", "reviewed-live"], required=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--source-issue-number", type=int, required=True)
@@ -655,6 +682,7 @@ def parse_cli(argv: Optional[List[str]] = None) -> ProcessBatchConfig:
         merge_state=args.merge_state,
         checks_state=args.checks_state,
         review_state=args.review_state,
+        candidate_content_commit_sha=args.candidate_content_commit_sha,
     )
     _validate_config(config)
     return config

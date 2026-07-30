@@ -33,17 +33,7 @@ class TestSchemasAndValidation(unittest.TestCase):
     def valid_batch(self):
         digest = "a" * 64
         record_id = "run-schema-a005"
-        queue_snapshot_digest = sha256_bytes(
-            canonical_json_bytes(
-                [{
-                    "id": 1,
-                    "author_sha256": digest,
-                    "created_at": "2026-07-29T09:59:00Z",
-                    "updated_at": "2026-07-29T10:00:00Z",
-                    "body_sha256": digest,
-                }]
-            )
-        )
+        queue_snapshot_digest = digest
         return {
             "schema_version": 2,
             "receipt_type": "batch",
@@ -52,10 +42,11 @@ class TestSchemasAndValidation(unittest.TestCase):
             "controller_run_id": "controller-schema-a005",
             "base_sha": "a" * 40,
             "canonical_main_sha": "b" * 40,
+            "candidate_content_commit_sha": "c" * 40,
             "pr_number": 151,
-            "expected_head_sha": "c" * 40,
             "source_issue_number": 142,
             "receipt_issue_number": 143,
+            "source_comment_watermark": 1,
             "full_queue_count": 1,
             "latest_observed_comment_id": 1,
             "latest_observed_update_time": "2026-07-29T10:00:00Z",
@@ -93,7 +84,6 @@ class TestSchemasAndValidation(unittest.TestCase):
             "comment_bindings": [
                 {
                     "comment_id": 1,
-                    "author_sha256": digest,
                     "created_at": "2026-07-29T09:59:00Z",
                     "updated_at": "2026-07-29T10:00:00Z",
                     "body_sha256": digest,

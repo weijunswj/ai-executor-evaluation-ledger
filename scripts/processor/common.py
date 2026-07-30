@@ -238,6 +238,8 @@ def validate_batch_receipt_closure(value: Any) -> bool:
     admitted = value.get("admitted_run_ids")
     proofs = value.get("accepted_record_proofs")
     record_hashes = value.get("canonical_record_hashes")
+    if not valid_git_sha(value.get("candidate_content_commit_sha")):
+        return False
     if not all(isinstance(item, list) for item in (source_ids, selected_ids, bindings, admitted)):
         return False
     if not isinstance(source_hashes, dict) or not isinstance(terminal, dict) or not isinstance(proofs, dict) or not isinstance(record_hashes, dict):
@@ -254,7 +256,7 @@ def validate_batch_receipt_closure(value: Any) -> bool:
     selected_set = set(selected_ids)
     if source_ids != sorted(source_ids) or selected_ids != sorted(selected_ids):
         return False
-    if not selected_set.issubset(source_set):
+    if selected_set != source_set or selected_ids != source_ids:
         return False
     if value.get("full_queue_count") != len(source_ids):
         return False
@@ -266,7 +268,10 @@ def validate_batch_receipt_closure(value: Any) -> bool:
         return False
     if set(terminal) != {str(item) for item in selected_ids}:
         return False
-    if value.get("latest_observed_comment_id") != (max(source_ids) if source_ids else None):
+    latest_id = max(source_ids) if source_ids else None
+    if value.get("latest_observed_comment_id") != latest_id:
+        return False
+    if value.get("source_comment_watermark") != (latest_id or 0):
         return False
     binding_by_id: dict[int, dict[str, Any]] = {}
     for binding in bindings:
@@ -280,29 +285,23 @@ def validate_batch_receipt_closure(value: Any) -> bool:
         return False
     if [binding.get("comment_id") for binding in bindings] != source_ids:
         return False
-    fingerprints = [
-        {
-            "id": comment_id,
-            "author_sha256": binding_by_id[comment_id].get("author_sha256"),
-            "created_at": binding_by_id[comment_id].get("created_at"),
-            "updated_at": binding_by_id[comment_id].get("updated_at"),
-            "body_sha256": binding_by_id[comment_id].get("body_sha256"),
-        }
-        for comment_id in sorted(source_set)
-    ]
-    if value.get("queue_snapshot_sha256") != sha256_bytes(canonical_json_bytes(fingerprints)):
+    if any(
+        binding_by_id[comment_id].get("body_sha256") != source_hashes.get(str(comment_id))
+        for comment_id in source_ids
+    ):
         return False
     expected_latest_update = max(
-        (item["updated_at"] for item in fingerprints if isinstance(item["updated_at"], str)),
+        (
+            binding["updated_at"]
+            for binding in bindings
+            if isinstance(binding.get("updated_at"), str)
+        ),
         default=None,
     )
     if value.get("latest_observed_update_time") != expected_latest_update:
         return False
-    if set(record_hashes) != set(admitted):
-        return False
-    if set(proofs) != set(admitted):
-        return False
     admitted_set = set(admitted)
+    recorded_ids: set[str] = set()
     for comment_id in selected_ids:
         outcome = terminal.get(str(comment_id))
         binding = binding_by_id.get(comment_id)
@@ -311,10 +310,25 @@ def validate_batch_receipt_closure(value: Any) -> bool:
         for field in ("outcome_code", "evaluation_run_id", "canonical_record_sha256", "cleanup_eligible"):
             if outcome.get(field) != binding.get(field):
                 return False
-        if outcome.get("outcome_code") == "admitted":
+        if outcome.get("outcome_code") in {"admitted", "already_recorded"}:
             run_id = outcome.get("evaluation_run_id")
-            if run_id not in admitted_set or outcome.get("canonical_record_sha256") != record_hashes.get(run_id):
+            if not isinstance(run_id, str) or run_id in recorded_ids:
+                return False
+            recorded_ids.add(run_id)
+            if outcome.get("canonical_record_sha256") != record_hashes.get(run_id):
+                return False
+            if outcome.get("outcome_code") == "admitted" and run_id not in admitted_set:
+                return False
+            if outcome.get("outcome_code") == "already_recorded" and run_id in admitted_set:
                 return False
         elif outcome.get("evaluation_run_id") is not None or outcome.get("canonical_record_sha256") is not None:
             return False
+    if set(record_hashes) != recorded_ids or set(proofs) != recorded_ids:
+        return False
+    if admitted_set != {
+        outcome["evaluation_run_id"]
+        for outcome in terminal.values()
+        if outcome.get("outcome_code") == "admitted"
+    }:
+        return False
     return True

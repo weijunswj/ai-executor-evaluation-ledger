@@ -152,11 +152,33 @@ class TestBatchProcessing(unittest.TestCase):
         line = next(line for line in result["candidate_files"]["evaluations.jsonl"].splitlines(keepends=True) if b"run-batch-a005" in line)
         self.assertEqual(result["record_hashes"]["run-batch-a005"], sha256_bytes(line))
         receipt_path = "ledger/receipts/batches/batch-test-a005.json"
-        receipt = json.loads(result["candidate_files"][receipt_path].decode("utf-8"))
-        self.assertEqual(receipt["canonical_record_hashes"]["run-batch-a005"], sha256_bytes(line))
-        self.assertEqual(receipt["terminal_outcome_count"], 2)
-        self.assertEqual(len(receipt["comment_bindings"]), 2)
-        self.assertNotIn(b"ordinary retained comment", result["candidate_files"][receipt_path])
+        self.assertNotIn(receipt_path, result["candidate_files"])
+        self.assertFalse(result["receipt_sealed"])
+        self.assertIsNone(result["receipt_sha256"])
+
+    def test_receipt_is_sealed_only_against_committed_content_bytes(self):
+        config = ProcessBatchConfig(
+            **{
+                **self.config("batch-sealed-a009").__dict__,
+                "operating_mode": "incremental",
+                "base_sha": CURRENT_HEAD_SHA,
+                "canonical_main_sha": CURRENT_HEAD_SHA,
+                "candidate_content_commit_sha": CURRENT_HEAD_SHA,
+            }
+        )
+        candidate_files, evidence = build_batch_candidate(
+            config,
+            comments=[],
+            queue_fetcher=self.queue([]),
+        )
+        receipt_path = "ledger/receipts/batches/batch-sealed-a009.json"
+        receipt_bytes = candidate_files[receipt_path]
+        receipt = json.loads(receipt_bytes.decode("utf-8"))
+        self.assertTrue(evidence["receipt_sealed"])
+        self.assertEqual(receipt["candidate_content_commit_sha"], CURRENT_HEAD_SHA)
+        self.assertNotIn("expected_head_sha", receipt)
+        self.assertNotIn("author", json.dumps(receipt))
+        self.assertEqual(evidence["receipt_sha256"], sha256_bytes(receipt_bytes))
 
     def test_incremental_uses_supplied_git_object_not_worktree_bytes(self):
         evaluations_path = ROOT / "evaluations.jsonl"
