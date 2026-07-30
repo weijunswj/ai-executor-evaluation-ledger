@@ -14,8 +14,10 @@ from scripts.validate_manifests import (
     validate_all,
     validate_manifest_documents,
 )
+from scripts.rebuild_views import verify_append_only
 
 ROOT = Path(__file__).resolve().parents[1]
+CANONICAL_MAIN = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 
 
 class TestClosedManifestValidation(unittest.TestCase):
@@ -36,6 +38,9 @@ class TestClosedManifestValidation(unittest.TestCase):
         evidence = validate_all(ROOT)
         self.assertEqual(evidence["manifest_count"], len(MANIFEST_PATHS))
         self.assertEqual(evidence["final_total_count"], 138)
+
+    def test_append_only_verifier_accepts_closed_manifest_contract(self):
+        verify_append_only(CANONICAL_MAIN)
 
     def test_unknown_field_fails_closed_schema(self):
         expected = expected_manifests(ROOT)

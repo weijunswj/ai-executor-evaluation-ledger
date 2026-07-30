@@ -19,6 +19,8 @@ from typing import Any, Iterable, Mapping, Optional
 import jsonschema
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 LEDGER_PATH = ROOT / "evaluations.jsonl"
 README_PATH = ROOT / "README.md"
 SCORECARD_PATH = ROOT / "scorecard.md"
@@ -837,10 +839,27 @@ def rebuild_views(queued_evaluations: Optional[list[dict[str, Any]]] = None) -> 
     SCORECARD_PATH.write_text(expected_scorecard, encoding="utf-8", newline="\n")
 
 
-def _migration_prefix_from_base(base_bytes: bytes, manifest: dict[str, Any]) -> bytes:
-    """Reproduce the one pre-existing v1-to-v2 migration admitted by the PR."""
+def _closed_id_hash(values: Iterable[str]) -> str:
+    payload = (
+        json.dumps(sorted(values), ensure_ascii=True, separators=(",", ":"))
+        + "\n"
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _migration_prefix_from_base(
+    base_bytes: bytes,
+    current_bytes: bytes,
+    manifest: dict[str, Any],
+) -> bytes:
+    """Reconstruct and verify the exact preserved v1-to-v2 base prefix."""
 
     try:
+        from scripts.scrub_identity_variants import (
+            _scrub_value,
+            legacy_identity_renames,
+        )
+
         legacy_attribute_keys = {
             "requested_" + "reasoning" + "_level",
             "observed_" + "reasoning" + "_mode",
@@ -852,16 +871,46 @@ def _migration_prefix_from_base(base_bytes: bytes, manifest: dict[str, Any]) -> 
             "reasoning" + "_mode",
         }
         base_records = [json.loads(line) for line in base_bytes.decode("utf-8").splitlines() if line.strip()]
-        withdrawn = set(manifest["withdrawn_records"])
-        reasoning_only = set(manifest["reasoning_only_corrections_removed"])
+        current_records = [
+            json.loads(line)
+            for line in current_bytes.decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        preserved_count = manifest["preserved_records_count"]
+        if (
+            not isinstance(preserved_count, int)
+            or preserved_count < 0
+            or preserved_count > len(current_records)
+        ):
+            fail("invalid_migration_manifest")
+        current_prefix = current_records[:preserved_count]
+        prefix_by_id = {
+            record.get("run_id"): record
+            for record in current_prefix
+            if isinstance(record, dict) and isinstance(record.get("run_id"), str)
+        }
+        if len(prefix_by_id) != preserved_count:
+            fail("invalid_migration_prefix")
+
+        renames = legacy_identity_renames()
         expected: list[dict[str, Any]] = []
+        withdrawn: list[str] = []
+        folded: list[str] = []
         for source in base_records:
             if not isinstance(source, dict):
                 fail("invalid_migration_source")
             run_id = source.get("run_id")
-            if run_id in withdrawn or run_id in reasoning_only:
-                continue
-            migrated = copy.deepcopy(source)
+            if not isinstance(run_id, str):
+                fail("invalid_migration_source")
+            manifest_run_id = renames.get(run_id, run_id)
+            migrated = _scrub_value(
+                copy.deepcopy(source),
+                renames=renames,
+                replacements=[0],
+            )
+            migrated_run_id = migrated.get("run_id")
+            if not isinstance(migrated_run_id, str):
+                fail("invalid_migration_source")
             for key in legacy_attribute_keys:
                 migrated.pop(key, None)
             if migrated.get("record_type") == "correction":
@@ -871,6 +920,7 @@ def _migration_prefix_from_base(base_bytes: bytes, manifest: dict[str, Any]) -> 
                 for key in legacy_attribute_keys:
                     corrected.pop(key, None)
                 if not corrected:
+                    folded.append(manifest_run_id)
                     continue
             raw_model = migrated.get("model")
             canonical = CANONICAL_MODEL_MAP.get(raw_model)
@@ -888,11 +938,53 @@ def _migration_prefix_from_base(base_bytes: bytes, manifest: dict[str, Any]) -> 
             migrated["model"] = canonical
             migrated["schema_version"] = 2
             migrated["evaluation_protocol"] = migrated.get("evaluation_protocol", "protocol_unknown")
-            expected.append(migrated)
-        return b"".join(
+            if migrated_run_id in prefix_by_id:
+                if prefix_by_id[migrated_run_id] != migrated:
+                    fail("migration_record_mismatch")
+                expected.append(migrated)
+            else:
+                withdrawn.append(manifest_run_id)
+
+        if [record["run_id"] for record in expected] != [
+            record["run_id"] for record in current_prefix
+        ]:
+            fail("migration_order_mismatch")
+        final_evaluations = sum(
+            record.get("record_type") == "evaluation"
+            for record in current_records
+        )
+        final_corrections = sum(
+            record.get("record_type") == "correction"
+            for record in current_records
+        )
+        expected_manifest_values = {
+            "starting_record_count": len(base_records),
+            "withdrawn_records_count": len(withdrawn),
+            "withdrawn_records_sha256": _closed_id_hash(withdrawn),
+            "removed_or_folded_corrections_count": len(folded),
+            "removed_or_folded_corrections_sha256": _closed_id_hash(folded),
+            "preserved_records_count": len(expected),
+            "newly_admitted_records_count": len(current_records) - len(expected),
+            "final_evaluation_count": final_evaluations,
+            "final_correction_count": final_corrections,
+            "final_total_count": len(current_records),
+            "before_sha256": hashlib.sha256(base_bytes).hexdigest(),
+            "after_sha256": hashlib.sha256(current_bytes).hexdigest(),
+        }
+        if any(
+            manifest.get(key) != value
+            for key, value in expected_manifest_values.items()
+        ):
+            fail("migration_manifest_reconciliation_mismatch")
+        expected_bytes = b"".join(
             (json.dumps(record, ensure_ascii=False) + "\n").encode("utf-8")
             for record in expected
         )
+        if manifest.get("preserved_base_sha256") != hashlib.sha256(
+            expected_bytes
+        ).hexdigest():
+            fail("migration_preserved_hash_mismatch")
+        return expected_bytes
     except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
         fail("invalid_migration_source")
     return b""
@@ -926,9 +1018,11 @@ def verify_append_only(base_ref: str) -> None:
         fail("migration_manifest_invalid")
     if manifest.get("source_base_sha") != base_ref:
         fail("migration_source_mismatch")
-    expected_prefix = _migration_prefix_from_base(base_bytes, manifest)
-    if hashlib.sha256(expected_prefix).hexdigest() != manifest.get("after_sha256"):
-        fail("migration_manifest_output_mismatch")
+    expected_prefix = _migration_prefix_from_base(
+        base_bytes,
+        normalized_current,
+        manifest,
+    )
     if not normalized_current.startswith(expected_prefix):
         fail("append_only_base_unverified")
 
