@@ -1,6 +1,7 @@
 import copy
 import json
 import hashlib
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -14,19 +15,41 @@ from scripts.processor.common import ProcessorError, sha256_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_MAIN = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
-START_HEAD = "4eb94faed77336dea785b8f3009134b0515ef2d0"
+BASE_AUTHORITY_SHA = "4eb94faed77336dea785b8f3009134b0515ef2d0"
+
+
+def _git_sha(ref):
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{ref}^{{commit}}"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    value = result.stdout.strip()
+    if result.returncode != 0 or len(value) != 40 or any(char not in "0123456789abcdef" for char in value):
+        raise RuntimeError("test_git_authority_unavailable")
+    return value
+
+
+CURRENT_HEAD_SHA = _git_sha("HEAD")
+WRONG_EXPECTED_HEAD_SHA = (
+    BASE_AUTHORITY_SHA
+    if BASE_AUTHORITY_SHA != CURRENT_HEAD_SHA
+    else _git_sha("HEAD^")
+)
 
 
 class TestBatchProcessing(unittest.TestCase):
     def config(self, batch_id="batch-test-a005"):
         return ProcessBatchConfig(
             operating_mode="initial",
-            base_sha=START_HEAD,
+            base_sha=BASE_AUTHORITY_SHA,
             canonical_main_sha=CANONICAL_MAIN,
             batch_id=batch_id,
             controller_run_id="controller-a005-test",
             pr_number=151,
-            expected_head_sha=START_HEAD,
+            expected_head_sha=CURRENT_HEAD_SHA,
             activation_mode="dry-run",
             dry_run=True,
             source_issue_number=142,
@@ -140,8 +163,8 @@ class TestBatchProcessing(unittest.TestCase):
         config = ProcessBatchConfig(**{
             **config.__dict__,
             "operating_mode": "incremental",
-            "base_sha": START_HEAD,
-            "canonical_main_sha": START_HEAD,
+            "base_sha": BASE_AUTHORITY_SHA,
+            "canonical_main_sha": BASE_AUTHORITY_SHA,
         })
         records = json.loads((ROOT / "evaluations.jsonl").read_text(encoding="utf-8").splitlines()[0])
         self.assertEqual(records["record_type"], "evaluation")
@@ -194,6 +217,15 @@ class TestBatchProcessing(unittest.TestCase):
         with self.assertRaises(ProcessorError) as ctx:
             build_batch_candidate(self.config("batch-20260729-gate3-amendment-004"), comments=[])
         self.assertEqual(ctx.exception.code, "receipt_conflict")
+
+    def test_wrong_expected_head_is_rejected(self):
+        config = ProcessBatchConfig(**{
+            **self.config("batch-wrong-head-a006").__dict__,
+            "expected_head_sha": WRONG_EXPECTED_HEAD_SHA,
+        })
+        with self.assertRaises(ProcessorError) as ctx:
+            build_batch_candidate(config, comments=[])
+        self.assertEqual(ctx.exception.code, "processor_authority_mismatch")
 
     def test_cli_requires_closed_explicit_contract(self):
         with self.assertRaises(SystemExit):
