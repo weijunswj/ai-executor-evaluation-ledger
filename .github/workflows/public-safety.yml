@@ -41,6 +41,9 @@ jobs:
       - name: Scan tracked content and added history
         run: python scripts/check_public_safety.py
 
+      - name: Validate closed migration manifests
+        run: python scripts/validate_manifests.py
+
       - name: Validate immutable batch receipt seals
         shell: bash
         env:

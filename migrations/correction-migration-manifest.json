@@ -1,17 +1,16 @@
 {
-  "schema_version": 1,
+  "after_corrections_sha256": "e7ea03b441ff5823d8e1ba26fb450c73227080817072bddeba7b3c6bb649d5ef",
+  "before_corrections_sha256": "f6a1f024abf930622b754e87eea25c1f9107775e84cdba9aab967c816cb6f332",
+  "final_correction_count": 1,
+  "generated_at": "2026-07-29T04:29:56Z",
   "manifest_type": "correction_migration_manifest",
-  "generated_at": "2026-07-29T09:50:00Z",
-  "starting_corrections": 4,
-  "withdrawn_corrections": [
-    "2026-07-24-correction-claude-opus-4-8-high-implementation-001",
-    "2026-07-24-correction-claude-opus-4-8-high-amendment-001"
-  ],
-  "reasoning_only_corrections_removed": [
-    "2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003"
-  ],
-  "substantive_corrections_preserved": [
-    "2026-07-26-correction-gpt-5-6-sol-workflow-compatibility-gate1-reset-001"
-  ],
-  "final_correction_count": 1
+  "preserved_correction_count": 1,
+  "preserved_corrections_sha256": "1959d73f094c9c2b0196dc03cb8436c5f4a8922b81098daa840a2e1da50f0b15",
+  "removed_or_folded_correction_count": 1,
+  "removed_or_folded_corrections_sha256": "95e9851b9ad097dd1400db0317852685c194a99022b978c288fec8f3b7e74ab9",
+  "schema_version": 1,
+  "source_base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "starting_correction_count": 4,
+  "withdrawn_correction_count": 2,
+  "withdrawn_corrections_sha256": "b734a4674d26dc879c762d0cb0da256486d086ae49cd6df89f888d6d333104f3"
 }

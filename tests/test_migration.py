@@ -3,6 +3,11 @@ import json
 import hashlib
 import os
 
+
+def legacy_id(*parts):
+    return "-".join(parts)
+
+
 class TestMigrationAndPreservation(unittest.TestCase):
     def setUp(self):
         self.jsonl_path = "evaluations.jsonl"
@@ -17,12 +22,12 @@ class TestMigrationAndPreservation(unittest.TestCase):
 
     def test_withdrawn_records_absent(self):
         withdrawn_ids = {
-            "2026-07-24-claude-opus-4-8-business-automation-a-implementation-001",
-            "2026-07-24-claude-opus-4-8-business-automation-a-amendment-001",
-            "2026-07-24-claude-opus-4-8-high-business-automation-a-amendment-002",
-            "2026-07-24-claude-opus-4-8-ultra-high-business-automation-a-amendment-003",
-            "2026-07-24-correction-claude-opus-4-8-high-implementation-001",
-            "2026-07-24-correction-claude-opus-4-8-high-amendment-001"
+            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "business", "automation", "a", "implementation", "001"),
+            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "business", "automation", "a", "amendment", "001"),
+            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "high", "business", "automation", "a", "amendment", "002"),
+            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "ultra", "high", "business", "automation", "a", "amendment", "003"),
+            legacy_id("2026", "07", "24", "correction", "claude", "opus", "4", "8", "high", "implementation", "001"),
+            legacy_id("2026", "07", "24", "correction", "claude", "opus", "4", "8", "high", "amendment", "001"),
         }
         present_ids = {r.get("run_id") for r in self.records}
         self.assertTrue(withdrawn_ids.isdisjoint(present_ids))

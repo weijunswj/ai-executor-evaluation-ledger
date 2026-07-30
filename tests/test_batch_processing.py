@@ -4,6 +4,7 @@ import hashlib
 import subprocess
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts.processor.batch_processor import (
     ProcessBatchConfig,
@@ -16,6 +17,7 @@ from scripts.processor.common import ProcessorError, sha256_bytes
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_MAIN = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 BASE_AUTHORITY_SHA = "4eb94faed77336dea785b8f3009134b0515ef2d0"
+STARTING_HEAD_SHA = "90c75c00192fbb759a5c756b697cb3d7cfc7dab1"
 
 
 def _git_sha(ref):
@@ -41,11 +43,21 @@ WRONG_EXPECTED_HEAD_SHA = (
 
 
 class TestBatchProcessing(unittest.TestCase):
+    def setUp(self):
+        self.live_main_patch = mock.patch(
+            "scripts.processor.batch_processor.fetch_live_canonical_main_sha",
+            return_value=BASE_AUTHORITY_SHA,
+        )
+        self.live_main_patch.start()
+
+    def tearDown(self):
+        self.live_main_patch.stop()
+
     def config(self, batch_id="batch-test-a005"):
         return ProcessBatchConfig(
             operating_mode="initial",
             base_sha=BASE_AUTHORITY_SHA,
-            canonical_main_sha=CANONICAL_MAIN,
+            canonical_main_sha=BASE_AUTHORITY_SHA,
             batch_id=batch_id,
             controller_run_id="controller-a005-test",
             pr_number=151,
@@ -156,29 +168,24 @@ class TestBatchProcessing(unittest.TestCase):
         self.assertFalse(result["receipt_sealed"])
         self.assertIsNone(result["receipt_sha256"])
 
-    def test_receipt_is_sealed_only_against_committed_content_bytes(self):
+    def test_receipt_sealing_rejects_uncommitted_candidate_bytes(self):
         config = ProcessBatchConfig(
             **{
                 **self.config("batch-sealed-a009").__dict__,
                 "operating_mode": "incremental",
                 "base_sha": CURRENT_HEAD_SHA,
                 "canonical_main_sha": CURRENT_HEAD_SHA,
-                "candidate_content_commit_sha": CURRENT_HEAD_SHA,
+                "candidate_content_commit_sha": STARTING_HEAD_SHA,
             }
         )
-        candidate_files, evidence = build_batch_candidate(
-            config,
-            comments=[],
-            queue_fetcher=self.queue([]),
-        )
-        receipt_path = "ledger/receipts/batches/batch-sealed-a009.json"
-        receipt_bytes = candidate_files[receipt_path]
-        receipt = json.loads(receipt_bytes.decode("utf-8"))
-        self.assertTrue(evidence["receipt_sealed"])
-        self.assertEqual(receipt["candidate_content_commit_sha"], CURRENT_HEAD_SHA)
-        self.assertNotIn("expected_head_sha", receipt)
-        self.assertNotIn("author", json.dumps(receipt))
-        self.assertEqual(evidence["receipt_sha256"], sha256_bytes(receipt_bytes))
+        with self.assertRaises(ProcessorError) as raised:
+            build_batch_candidate(
+                config,
+                comments=[],
+                queue_fetcher=self.queue([]),
+                canonical_main_fetcher=lambda _root: CURRENT_HEAD_SHA,
+            )
+        self.assertEqual(raised.exception.code, "processor_integrity_failure")
 
     def test_incremental_uses_supplied_git_object_not_worktree_bytes(self):
         evaluations_path = ROOT / "evaluations.jsonl"
@@ -218,6 +225,7 @@ class TestBatchProcessing(unittest.TestCase):
                 config,
                 comments=[],
                 queue_fetcher=self.queue([]),
+                canonical_main_fetcher=lambda _root: BASE_AUTHORITY_SHA,
             )
             candidate_bytes = result[0]["evaluations.jsonl"]
             self.assertEqual(candidate_bytes, immutable_authority_bytes)
@@ -280,6 +288,53 @@ class TestBatchProcessing(unittest.TestCase):
         with self.assertRaises(ProcessorError) as ctx:
             build_batch_candidate(config, comments=[])
         self.assertEqual(ctx.exception.code, "processor_authority_mismatch")
+
+    def test_initial_and_incremental_require_equal_base_and_canonical_main(self):
+        for mode in ("initial", "incremental"):
+            config = ProcessBatchConfig(**{
+                **self.config(f"batch-{mode}-base-mismatch-a010").__dict__,
+                "operating_mode": mode,
+                "canonical_main_sha": CANONICAL_MAIN,
+            })
+            with self.assertRaises(ProcessorError) as raised:
+                build_batch_candidate(config, comments=[])
+            self.assertEqual(raised.exception.code, "processor_invalid_contract")
+
+    def test_live_main_moved_or_unavailable_fails_before_candidate(self):
+        config = self.config("batch-live-main-a010")
+        with self.assertRaises(ProcessorError) as moved:
+            build_batch_candidate(
+                config,
+                comments=[],
+                canonical_main_fetcher=lambda _root: "f" * 40,
+            )
+        self.assertEqual(moved.exception.code, "processor_authority_mismatch")
+
+        def unavailable(_root):
+            raise ProcessorError("processor_source_unavailable")
+
+        with self.assertRaises(ProcessorError) as missing:
+            build_batch_candidate(
+                config,
+                comments=[],
+                canonical_main_fetcher=unavailable,
+            )
+        self.assertEqual(missing.exception.code, "processor_source_unavailable")
+
+    def test_wrong_local_canonical_object_fails_closed(self):
+        missing_sha = "f" * 40
+        config = ProcessBatchConfig(**{
+            **self.config("batch-missing-object-a010").__dict__,
+            "base_sha": missing_sha,
+            "canonical_main_sha": missing_sha,
+        })
+        with self.assertRaises(ProcessorError) as raised:
+            build_batch_candidate(
+                config,
+                comments=[],
+                canonical_main_fetcher=lambda _root: missing_sha,
+            )
+        self.assertEqual(raised.exception.code, "authority_missing")
 
     def test_cli_requires_closed_explicit_contract(self):
         with self.assertRaises(SystemExit):

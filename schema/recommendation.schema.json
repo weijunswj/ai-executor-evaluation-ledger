@@ -9,6 +9,7 @@
     "generated_at",
     "comparison_contract",
     "populations",
+    "cohort_identities",
     "recommendation",
     "model_statistics",
     "material_limitations"
@@ -18,6 +19,11 @@
     "generated_at": {"type": "string", "format": "date-time"},
     "comparison_contract": {"$ref": "#/$defs/comparisonContract"},
     "populations": {"$ref": "#/$defs/populations"},
+    "cohort_identities": {
+      "type": "object",
+      "propertyNames": {"type": "string", "minLength": 1},
+      "additionalProperties": {"$ref": "#/$defs/cohortIdentity"}
+    },
     "recommendation": {"$ref": "#/$defs/recommendation"},
     "model_statistics": {
       "type": "object",
@@ -71,9 +77,13 @@
           "type": "array",
           "prefixItems": [
             {"const": "subject_alias"},
+            {"const": "source_revision"},
             {"const": "task_class"},
             {"const": "difficulty"},
-            {"const": "evaluation_protocol"}
+            {"const": "evaluation_protocol"},
+            {"const": "task_stage"},
+            {"const": "tool_environment_class"},
+            {"const": "operation_gate_type"}
           ],
           "items": false
         },
@@ -86,6 +96,30 @@
           ],
           "items": false
         }
+      }
+    },
+    "cohortIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_alias",
+        "source_revision",
+        "task_class",
+        "difficulty",
+        "evaluation_protocol",
+        "task_stage",
+        "tool_environment_class",
+        "operation_gate_type"
+      ],
+      "properties": {
+        "subject_alias": {"type": "string", "minLength": 1},
+        "source_revision": {"type": "string", "minLength": 1},
+        "task_class": {"type": "string", "minLength": 1},
+        "difficulty": {"type": "string", "minLength": 1},
+        "evaluation_protocol": {"type": "string", "minLength": 1},
+        "task_stage": {"type": "string", "minLength": 1},
+        "tool_environment_class": {"type": "string", "minLength": 1},
+        "operation_gate_type": {"type": "string", "minLength": 1}
       }
     },
     "recommendation": {
@@ -175,6 +209,9 @@
         "independent_subject_count",
         "exact_matched_cohort_count",
         "similar_matched_cohort_count",
+        "exact_cohort_eligible_recorded_count",
+        "exact_cohort_unknown_recorded_count",
+        "exact_cohort_unknown_dimensions",
         "overall_average_score_5",
         "like_for_like_score_5",
         "verdict_distribution",
@@ -195,6 +232,25 @@
         "independent_subject_count": {"type": "integer", "minimum": 0},
         "exact_matched_cohort_count": {"type": "integer", "minimum": 0},
         "similar_matched_cohort_count": {"type": "integer", "minimum": 0},
+        "exact_cohort_eligible_recorded_count": {"type": "integer", "minimum": 0},
+        "exact_cohort_unknown_recorded_count": {"type": "integer", "minimum": 0},
+        "exact_cohort_unknown_dimensions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "subject_alias",
+              "source_revision",
+              "task_class",
+              "difficulty",
+              "evaluation_protocol",
+              "task_stage",
+              "tool_environment_class",
+              "operation_gate_type"
+            ]
+          },
+          "uniqueItems": true
+        },
         "overall_average_score_5": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
         "like_for_like_score_5": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
         "verdict_distribution": {

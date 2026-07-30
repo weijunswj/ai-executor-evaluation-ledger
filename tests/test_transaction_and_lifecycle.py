@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -16,9 +17,11 @@ from scripts.processor.cleanup_workflow import (
 )
 from scripts.processor.common import ProcessorError, canonical_json_bytes, canonical_json_line_bytes, sha256_bytes
 from scripts.processor.transaction import (
+    RepositoryPathGuard,
     recover_incomplete_transaction,
     recovery_journal_path,
     replace_tracked_files,
+    snapshot_tracked_files,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -417,25 +420,20 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "encoding": "base64",
             "content": "e30=",
         }
-        check_names = ("CodeQL", "Scan public ledger", "validate")
-        wrong_head_runs = [
-            {"name": name, "head_sha": "d" * 40, "status": "completed", "conclusion": "success"}
-            for name in check_names
-        ]
         with (
             mock.patch(
                 "scripts.processor.cleanup_workflow._gh_get_json",
-                side_effect=[pr, main, raw_commit, raw_receipt],
-            ),
+                side_effect=[pr, main, raw_commit, raw_receipt, {"workflow_runs": []}],
+            ) as json_calls,
             mock.patch(
                 "scripts.processor.cleanup_workflow._gh_get_paginated",
-                side_effect=[wrong_head_runs, [], []],
-            ) as paginated,
+                side_effect=[[], []],
+            ),
             mock.patch("scripts.processor.cleanup_workflow._gh_get_threads", return_value=[]),
         ):
             authority = _readback_live_authority(config)
         self.assertEqual(authority["checks_state"], "incomplete")
-        self.assertIn(raw_head, paginated.call_args_list[0].args[0])
+        self.assertIn(raw_head, json_calls.call_args_list[4].args[0])
 
     def test_publication_never_trusts_adapter_without_exact_unique_readback(self):
         receipt = {
@@ -480,6 +478,132 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                 authority_verifier=verifier,
             )
             self.assertEqual(result["status"], "PENDING_OPERATOR_PUBLICATION")
+
+
+class TestRepositoryPathContainment(unittest.TestCase):
+    def make_repo(self, root: Path) -> None:
+        (root / "nested" / "deep").mkdir(parents=True)
+        (root / "nested" / "deep" / "tracked.txt").write_bytes(b"inside\n")
+        (root / "target.txt").write_bytes(b"inside-target\n")
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        subprocess.run(
+            ["git", "config", "user.email", "fixture" + "@" + "example.invalid"],
+            cwd=root,
+            check=True,
+        )
+        subprocess.run(["git", "config", "user.name", "fixture"], cwd=root, check=True)
+        subprocess.run(["git", "add", "."], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+
+    def symlink_or_skip(self, target: Path, link: Path, *, directory: bool) -> None:
+        try:
+            os.symlink(target, link, target_is_directory=directory)
+        except (NotImplementedError, OSError) as error:
+            self.skipTest(f"symbolic links unavailable: {type(error).__name__}")
+
+    def test_ambiguous_or_redirecting_lexical_paths_are_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-path-lexical-") as raw:
+            root = Path(raw)
+            self.make_repo(root)
+            guard = RepositoryPathGuard(root)
+            for unsafe in (
+                "../outside",
+                "nested\\deep\\tracked.txt",
+                "/absolute",
+                "C:/absolute",
+                "nested//deep/tracked.txt",
+                "nested/./deep/tracked.txt",
+            ):
+                with self.assertRaises(ProcessorError, msg=unsafe):
+                    guard.path(unsafe)
+
+    @unittest.skipIf(os.name == "nt", "POSIX-specific symlink escape")
+    def test_posix_symlink_parent_escape_and_nested_redirect_are_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-path-posix-") as raw:
+            root = Path(raw) / "repo"
+            outside = Path(raw) / "outside"
+            root.mkdir()
+            outside.mkdir()
+            self.make_repo(root)
+            (root / "nested" / "deep" / "tracked.txt").unlink()
+            (root / "nested" / "deep").rmdir()
+            self.symlink_or_skip(outside, root / "nested" / "deep", directory=True)
+            guard = RepositoryPathGuard(root)
+            with self.assertRaises(ProcessorError):
+                guard.path("nested/deep/tracked.txt")
+            with self.assertRaises(ProcessorError):
+                replace_tracked_files(
+                    root,
+                    {"nested/deep/tracked.txt": b"candidate\n"},
+                )
+
+    def test_symlink_target_file_is_rejected_where_supported(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-path-target-") as raw:
+            root = Path(raw) / "repo"
+            outside = Path(raw) / "outside.txt"
+            root.mkdir()
+            outside.write_bytes(b"outside\n")
+            self.make_repo(root)
+            (root / "target.txt").unlink()
+            self.symlink_or_skip(outside, root / "target.txt", directory=False)
+            with self.assertRaises(ProcessorError):
+                snapshot_tracked_files(root, ("target.txt",))
+            self.assertEqual(outside.read_bytes(), b"outside\n")
+
+    @unittest.skipUnless(os.name == "nt", "Windows reparse-point behavior")
+    def test_windows_reparse_point_is_rejected_where_supported(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-path-reparse-") as raw:
+            root = Path(raw) / "repo"
+            outside = Path(raw) / "outside"
+            root.mkdir()
+            outside.mkdir()
+            self.make_repo(root)
+            redirect = root / "redirect"
+            self.symlink_or_skip(outside, redirect, directory=True)
+            metadata = os.lstat(redirect)
+            self.assertTrue(
+                getattr(metadata, "st_file_attributes", 0) & 0x400
+            )
+            with self.assertRaises(ProcessorError):
+                RepositoryPathGuard(root).path("redirect/file.txt")
+
+    def test_capability_unavailable_fails_closed(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-path-capability-") as raw:
+            root = Path(raw)
+            self.make_repo(root)
+
+            def unavailable(_path):
+                raise ProcessorError("processor_path_unsafe")
+
+            with self.assertRaises(ProcessorError):
+                RepositoryPathGuard(root, redirect_checker=unavailable)
+
+    def test_startup_recovery_refuses_redirected_target_where_supported(self):
+        class SimulatedProcessExit(BaseException):
+            pass
+
+        with tempfile.TemporaryDirectory(prefix="ledger-path-recovery-") as raw:
+            root = Path(raw) / "repo"
+            outside = Path(raw) / "outside.txt"
+            root.mkdir()
+            outside.write_bytes(b"outside\n")
+            self.make_repo(root)
+
+            def interrupt(stage, relative):
+                if stage == "after_candidate_replace" and relative == "target.txt":
+                    raise SimulatedProcessExit()
+
+            with self.assertRaises(SimulatedProcessExit):
+                replace_tracked_files(
+                    root,
+                    {"target.txt": b"candidate\n"},
+                    failure_hook=interrupt,
+                )
+            (root / "target.txt").unlink()
+            self.symlink_or_skip(outside, root / "target.txt", directory=False)
+            with self.assertRaises(ProcessorError):
+                recover_incomplete_transaction(root)
+            self.assertEqual(outside.read_bytes(), b"outside\n")
 
 
 if __name__ == "__main__":

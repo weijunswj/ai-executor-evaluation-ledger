@@ -1,23 +1,221 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ai-executor-evaluation-ledger:manifest:v2",
-  "title": "AI Executor Evaluation Manifest Schema",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schema_version", "manifest_type", "generated_at"],
-  "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "manifest_type": {"type": "string", "enum": ["base-model-v2", "evaluation-protocol-v1", "preservation", "reasoning-scrub"]},
-    "generated_at": {"type": "string", "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
-    "source_base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "starting_record_count": {"type": "integer", "minimum": 0},
-    "withdrawn_records": {"type": "array", "items": {"type": "string"}},
-    "reasoning_only_corrections_removed": {"type": "array", "items": {"type": "string"}},
-    "substantive_corrections_preserved": {"type": "array", "items": {"type": "string"}},
-    "final_evaluation_count": {"type": "integer", "minimum": 0},
-    "final_correction_count": {"type": "integer", "minimum": 0},
-    "final_total_count": {"type": "integer", "minimum": 0},
-    "before_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "after_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  "title": "AI Executor Evaluation Closed Manifest Schema",
+  "oneOf": [
+    {"$ref": "#/$defs/baseMigration"},
+    {"$ref": "#/$defs/correctionMigration"},
+    {"$ref": "#/$defs/evaluationProtocol"},
+    {"$ref": "#/$defs/historicalAdapter"},
+    {"$ref": "#/$defs/preservation"},
+    {"$ref": "#/$defs/reasoningScrub"}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "baseCounts": {
+      "type": "object",
+      "properties": {
+        "source_base_sha": {"$ref": "#/$defs/gitSha"},
+        "starting_record_count": {"type": "integer", "minimum": 0},
+        "withdrawn_records_count": {"type": "integer", "minimum": 0},
+        "withdrawn_records_sha256": {"$ref": "#/$defs/sha256"},
+        "removed_or_folded_corrections_count": {"type": "integer", "minimum": 0},
+        "removed_or_folded_corrections_sha256": {"$ref": "#/$defs/sha256"},
+        "preserved_records_count": {"type": "integer", "minimum": 0},
+        "newly_admitted_records_count": {"type": "integer", "minimum": 0},
+        "final_evaluation_count": {"type": "integer", "minimum": 0},
+        "final_correction_count": {"type": "integer", "minimum": 0},
+        "final_total_count": {"type": "integer", "minimum": 0},
+        "before_sha256": {"$ref": "#/$defs/sha256"},
+        "after_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "baseMigration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "manifest_type", "generated_at", "source_base_sha",
+        "starting_record_count", "withdrawn_records_count", "withdrawn_records_sha256",
+        "removed_or_folded_corrections_count", "removed_or_folded_corrections_sha256",
+        "preserved_records_count", "newly_admitted_records_count",
+        "final_evaluation_count", "final_correction_count", "final_total_count",
+        "before_sha256", "after_sha256", "preserved_base_sha256"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "manifest_type": {"const": "base_model_v2_migration"},
+        "generated_at": {"$ref": "#/$defs/timestamp"},
+        "source_base_sha": {"$ref": "#/$defs/gitSha"},
+        "starting_record_count": {"type": "integer", "minimum": 0},
+        "withdrawn_records_count": {"type": "integer", "minimum": 0},
+        "withdrawn_records_sha256": {"$ref": "#/$defs/sha256"},
+        "removed_or_folded_corrections_count": {"type": "integer", "minimum": 0},
+        "removed_or_folded_corrections_sha256": {"$ref": "#/$defs/sha256"},
+        "preserved_records_count": {"type": "integer", "minimum": 0},
+        "newly_admitted_records_count": {"type": "integer", "minimum": 0},
+        "final_evaluation_count": {"type": "integer", "minimum": 0},
+        "final_correction_count": {"type": "integer", "minimum": 0},
+        "final_total_count": {"type": "integer", "minimum": 0},
+        "before_sha256": {"$ref": "#/$defs/sha256"},
+        "after_sha256": {"$ref": "#/$defs/sha256"},
+        "preserved_base_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "preservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "manifest_type", "generated_at", "source_base_sha",
+        "starting_record_count", "withdrawn_records_count", "withdrawn_records_sha256",
+        "removed_or_folded_corrections_count", "removed_or_folded_corrections_sha256",
+        "preserved_records_count", "newly_admitted_records_count",
+        "final_evaluation_count", "final_correction_count", "final_total_count",
+        "before_sha256", "after_sha256"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "manifest_type": {"const": "canonical_base_preservation_manifest"},
+        "generated_at": {"$ref": "#/$defs/timestamp"},
+        "source_base_sha": {"$ref": "#/$defs/gitSha"},
+        "starting_record_count": {"type": "integer", "minimum": 0},
+        "withdrawn_records_count": {"type": "integer", "minimum": 0},
+        "withdrawn_records_sha256": {"$ref": "#/$defs/sha256"},
+        "removed_or_folded_corrections_count": {"type": "integer", "minimum": 0},
+        "removed_or_folded_corrections_sha256": {"$ref": "#/$defs/sha256"},
+        "preserved_records_count": {"type": "integer", "minimum": 0},
+        "newly_admitted_records_count": {"type": "integer", "minimum": 0},
+        "final_evaluation_count": {"type": "integer", "minimum": 0},
+        "final_correction_count": {"type": "integer", "minimum": 0},
+        "final_total_count": {"type": "integer", "minimum": 0},
+        "before_sha256": {"$ref": "#/$defs/sha256"},
+        "after_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "correctionMigration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "manifest_type", "generated_at", "source_base_sha",
+        "starting_correction_count", "withdrawn_correction_count",
+        "withdrawn_corrections_sha256", "removed_or_folded_correction_count",
+        "removed_or_folded_corrections_sha256", "preserved_correction_count",
+        "preserved_corrections_sha256", "final_correction_count",
+        "before_corrections_sha256", "after_corrections_sha256"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "manifest_type": {"const": "correction_migration_manifest"},
+        "generated_at": {"$ref": "#/$defs/timestamp"},
+        "source_base_sha": {"$ref": "#/$defs/gitSha"},
+        "starting_correction_count": {"type": "integer", "minimum": 0},
+        "withdrawn_correction_count": {"type": "integer", "minimum": 0},
+        "withdrawn_corrections_sha256": {"$ref": "#/$defs/sha256"},
+        "removed_or_folded_correction_count": {"type": "integer", "minimum": 0},
+        "removed_or_folded_corrections_sha256": {"$ref": "#/$defs/sha256"},
+        "preserved_correction_count": {"type": "integer", "minimum": 0},
+        "preserved_corrections_sha256": {"$ref": "#/$defs/sha256"},
+        "final_correction_count": {"type": "integer", "minimum": 0},
+        "before_corrections_sha256": {"$ref": "#/$defs/sha256"},
+        "after_corrections_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "evaluationProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "manifest_type", "generated_at", "evaluations_sha256",
+        "total_evaluations", "protocol_counts", "records"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "manifest_type": {"const": "evaluation_protocol_v1"},
+        "generated_at": {"$ref": "#/$defs/timestamp"},
+        "evaluations_sha256": {"$ref": "#/$defs/sha256"},
+        "total_evaluations": {"type": "integer", "minimum": 0},
+        "protocol_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "gated_v1": {"type": "integer", "minimum": 0},
+            "legacy_pre_gate": {"type": "integer", "minimum": 0},
+            "protocol_unknown": {"type": "integer", "minimum": 0}
+          }
+        },
+        "records": {
+          "type": "object",
+          "propertyNames": {"type": "string", "minLength": 1},
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["gated_v1", "legacy_pre_gate", "protocol_unknown"]
+          }
+        }
+      }
+    },
+    "historicalAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "manifest_type", "generated_at", "source_base_sha",
+        "evaluations_sha256", "final_total_count", "field_aliases",
+        "model_aliases", "accepted_verdict_values"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "manifest_type": {"const": "historical_intake_adapter_manifest"},
+        "generated_at": {"$ref": "#/$defs/timestamp"},
+        "source_base_sha": {"$ref": "#/$defs/gitSha"},
+        "evaluations_sha256": {"$ref": "#/$defs/sha256"},
+        "final_total_count": {"type": "integer", "minimum": 0},
+        "field_aliases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["destination_field", "source_field"],
+            "properties": {
+              "destination_field": {"type": "string", "minLength": 1},
+              "source_field": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "model_aliases": {
+          "type": "object",
+          "propertyNames": {"type": "string", "minLength": 1},
+          "additionalProperties": {"type": "string", "minLength": 1}
+        },
+        "accepted_verdict_values": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "reasoningScrub": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "manifest_type", "generated_at", "source_base_sha",
+        "evaluations_sha256", "scrubbed_fields_count",
+        "removed_attribute_key_count", "removed_correction_count",
+        "removed_corrections_sha256"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "manifest_type": {"const": "reasoning_scrub_receipt"},
+        "generated_at": {"$ref": "#/$defs/timestamp"},
+        "source_base_sha": {"$ref": "#/$defs/gitSha"},
+        "evaluations_sha256": {"$ref": "#/$defs/sha256"},
+        "scrubbed_fields_count": {"type": "integer", "minimum": 0},
+        "removed_attribute_key_count": {"type": "integer", "minimum": 0},
+        "removed_correction_count": {"type": "integer", "minimum": 0},
+        "removed_corrections_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
   }
 }

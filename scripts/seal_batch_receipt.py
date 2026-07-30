@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Migrate the one frozen draft receipt to a private-safe v2 content seal."""
+"""Seal the frozen batch against exact live UTF-8 and candidate bytes."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Mapping, Optional
 
 import jsonschema
 
@@ -16,6 +16,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.processor.common import validate_batch_receipt_closure
+from scripts.processor.frozen_source import (
+    FROZEN_BATCH_ID,
+    FROZEN_COUNT,
+    FROZEN_WATERMARK,
+    refetch_frozen_source,
+)
 from scripts.validate_receipts import (
     CANONICAL_PATHS,
     ReceiptValidationError,
@@ -25,30 +31,24 @@ from scripts.validate_receipts import (
     sha256_bytes,
 )
 
-FROZEN_BATCH_ID = "batch-20260729-gate3-amendment-004"
-FROZEN_WATERMARK = 5115014307
-FROZEN_COUNT = 101
-FROZEN_LATEST_UPDATE = "2026-07-29T08:23:28Z"
-FROZEN_SNAPSHOT = "eac871f9ec34e37346bd9c83d8af2f8b1d5796ff4f72315d15966d49edf554ef"
 
-
-def _legacy_receipt(root: Path, content_sha: str, batch_id: str) -> dict[str, Any]:
+def _source_receipt(root: Path, content_sha: str, batch_id: str) -> dict[str, Any]:
     raw = git_object_bytes(
         root,
         content_sha,
         f"ledger/receipts/batches/{batch_id}.json",
     )
     try:
-        value = json.loads(raw.decode("utf-8"))
+        value = json.loads(raw.decode("utf-8", errors="strict"))
     except (UnicodeDecodeError, ValueError):
-        raise ReceiptValidationError("seal_legacy_receipt_invalid")
+        raise ReceiptValidationError("seal_source_receipt_invalid")
     if (
         not isinstance(value, dict)
-        or value.get("schema_version") != 1
+        or value.get("schema_version") != 2
         or value.get("receipt_type") != "batch"
         or value.get("batch_id") != batch_id
     ):
-        raise ReceiptValidationError("seal_legacy_receipt_invalid")
+        raise ReceiptValidationError("seal_source_receipt_invalid")
     return value
 
 
@@ -57,57 +57,56 @@ def build_sealed_receipt(
     *,
     candidate_content_commit_sha: str,
     batch_id: str = FROZEN_BATCH_ID,
+    source_reader: Callable[
+        [Path, Mapping[str, Any]], Mapping[str, Any]
+    ] = refetch_frozen_source,
 ) -> dict[str, Any]:
     content_sha = resolve_commit(root, candidate_content_commit_sha)
-    legacy = _legacy_receipt(root, content_sha, batch_id)
-    if batch_id != FROZEN_BATCH_ID:
-        raise ReceiptValidationError("seal_unauthorised_batch")
+    source = _source_receipt(root, content_sha, batch_id)
     if (
-        legacy.get("source_comment_watermark") != FROZEN_WATERMARK
-        or legacy.get("full_queue_count") != FROZEN_COUNT
-        or legacy.get("latest_observed_update_time") != FROZEN_LATEST_UPDATE
-        or legacy.get("queue_snapshot_sha256") != FROZEN_SNAPSHOT
+        batch_id != FROZEN_BATCH_ID
+        or source.get("source_comment_watermark") != FROZEN_WATERMARK
+        or source.get("full_queue_count") != FROZEN_COUNT
     ):
         raise ReceiptValidationError("seal_frozen_authority_mismatch")
-
-    source_ids = legacy.get("source_comment_ids")
-    source_hashes = legacy.get("source_body_sha256")
-    legacy_bindings = legacy.get("comment_bindings")
+    live = source_reader(root, source)
+    fingerprints = live.get("fingerprints")
+    source_hashes = live.get("source_body_sha256")
+    snapshot_hash = live.get("queue_snapshot_sha256")
     if (
-        not isinstance(source_ids, list)
-        or source_ids != sorted(source_ids)
-        or len(source_ids) != FROZEN_COUNT
-        or len(set(source_ids)) != FROZEN_COUNT
+        not isinstance(fingerprints, list)
+        or len(fingerprints) != FROZEN_COUNT
         or not isinstance(source_hashes, dict)
-        or set(source_hashes) != {str(comment_id) for comment_id in source_ids}
-        or not isinstance(legacy_bindings, list)
+        or not isinstance(snapshot_hash, str)
     ):
-        raise ReceiptValidationError("seal_frozen_membership_mismatch")
-    by_comment = {
-        binding.get("comment_id"): binding
-        for binding in legacy_bindings
-        if isinstance(binding, dict)
-    }
-    if set(by_comment) != set(source_ids) or len(by_comment) != len(legacy_bindings):
-        raise ReceiptValidationError("seal_frozen_binding_mismatch")
+        raise ReceiptValidationError("seal_frozen_source_invalid")
 
     records = _record_lines(
         git_object_bytes(root, content_sha, CANONICAL_PATHS["evaluations_jsonl"])
     )
+    terminal_source = source.get("terminal_outcomes")
+    source_ids = source.get("source_comment_ids")
+    if not isinstance(terminal_source, dict) or not isinstance(source_ids, list):
+        raise ReceiptValidationError("seal_frozen_membership_mismatch")
+    fingerprints_by_id = {item.get("id"): item for item in fingerprints}
+    if set(fingerprints_by_id) != set(source_ids):
+        raise ReceiptValidationError("seal_frozen_membership_mismatch")
+
     terminal_outcomes: dict[str, dict[str, Any]] = {}
     bindings: list[dict[str, Any]] = []
     admitted_run_ids: list[str] = []
     record_hashes: dict[str, str] = {}
     record_proofs: dict[str, dict[str, Any]] = {}
     for comment_id in source_ids:
-        source = by_comment[comment_id]
-        classification = source.get("classification")
-        run_id = source.get("evaluation_run_id")
-        if classification == "admitted":
+        prior = terminal_source.get(str(comment_id))
+        fingerprint = fingerprints_by_id.get(comment_id)
+        if not isinstance(prior, dict) or not isinstance(fingerprint, dict):
+            raise ReceiptValidationError("seal_frozen_binding_mismatch")
+        run_id = prior.get("evaluation_run_id")
+        if run_id is not None:
             if not isinstance(run_id, str) or run_id not in records:
                 raise ReceiptValidationError("seal_admitted_record_missing")
             line, record = records[run_id]
-            outcome_code = "admitted"
             record_hash = sha256_bytes(line)
             admitted_run_ids.append(run_id)
             record_hashes[run_id] = record_hash
@@ -117,33 +116,21 @@ def build_sealed_receipt(
                 "outcome": record.get("outcome"),
                 "weighted_score_5": record.get("weighted_score_5"),
             }
-        elif classification == "terminal" and source.get("terminal_disposition") == "no_marker":
-            outcome_code = "no_marker"
-            run_id = None
-            record_hash = None
-        elif classification == "terminal" and source.get("terminal_disposition") == "owner_withdrawn":
-            outcome_code = "withdrawn_identity"
-            run_id = None
-            record_hash = None
-        elif classification == "pending" and source.get("pending_reason_code") == "PENDING_CONTROLLER_ACTION":
-            outcome_code = "authority_missing"
-            run_id = None
-            record_hash = None
         else:
-            raise ReceiptValidationError("seal_unknown_legacy_outcome")
+            record_hash = None
         outcome = {
-            "outcome_code": outcome_code,
+            "outcome_code": prior.get("outcome_code"),
             "evaluation_run_id": run_id,
             "canonical_record_sha256": record_hash,
-            "cleanup_eligible": source.get("cleanup_eligible") is True,
+            "cleanup_eligible": prior.get("cleanup_eligible") is True,
         }
         terminal_outcomes[str(comment_id)] = outcome
         bindings.append(
             {
                 "comment_id": comment_id,
-                "created_at": source.get("created_at"),
-                "updated_at": source.get("updated_at"),
-                "body_sha256": source_hashes[str(comment_id)],
+                "created_at": fingerprint.get("created_at"),
+                "updated_at": fingerprint.get("updated_at"),
+                "body_sha256": fingerprint.get("body_sha256"),
                 **outcome,
             }
         )
@@ -151,26 +138,30 @@ def build_sealed_receipt(
         raise ReceiptValidationError("seal_duplicate_admitted_record")
 
     canonical_hashes = {
-        hash_name: sha256_bytes(git_object_bytes(root, content_sha, relative_path))
+        hash_name: sha256_bytes(
+            git_object_bytes(root, content_sha, relative_path)
+        )
         for hash_name, relative_path in CANONICAL_PATHS.items()
     }
     receipt = {
         "schema_version": 2,
         "receipt_type": "batch",
         "batch_id": batch_id,
-        "batch_mode": legacy.get("batch_mode", "initial"),
-        "controller_run_id": legacy.get("controller_run_id"),
-        "base_sha": legacy.get("base_sha"),
-        "canonical_main_sha": legacy.get("base_sha"),
+        "batch_mode": source.get("batch_mode"),
+        "controller_run_id": source.get("controller_run_id"),
+        "base_sha": source.get("base_sha"),
+        "canonical_main_sha": source.get("canonical_main_sha"),
         "candidate_content_commit_sha": content_sha,
-        "pr_number": legacy.get("pr_number"),
-        "source_issue_number": 142,
-        "receipt_issue_number": 143,
+        "pr_number": source.get("pr_number"),
+        "source_issue_number": source.get("source_issue_number"),
+        "receipt_issue_number": source.get("receipt_issue_number"),
         "source_comment_watermark": FROZEN_WATERMARK,
         "full_queue_count": FROZEN_COUNT,
-        "latest_observed_comment_id": max(source_ids),
-        "latest_observed_update_time": FROZEN_LATEST_UPDATE,
-        "queue_snapshot_sha256": FROZEN_SNAPSHOT,
+        "latest_observed_comment_id": FROZEN_WATERMARK,
+        "latest_observed_update_time": max(
+            item["updated_at"] for item in fingerprints if item.get("updated_at")
+        ),
+        "queue_snapshot_sha256": snapshot_hash,
         "source_comment_ids": source_ids,
         "source_body_sha256": source_hashes,
         "selected_comment_ids": source_ids,
@@ -191,8 +182,8 @@ def build_sealed_receipt(
             schema,
             format_checker=jsonschema.FormatChecker(),
         ).validate(receipt)
-    except jsonschema.ValidationError:
-        raise ReceiptValidationError("seal_schema_failure")
+    except jsonschema.ValidationError as error:
+        raise ReceiptValidationError("seal_schema_failure") from error
     if not validate_batch_receipt_closure(receipt):
         raise ReceiptValidationError("seal_closure_failure")
     return receipt

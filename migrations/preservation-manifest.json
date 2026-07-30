@@ -1,22 +1,18 @@
 {
-  "schema_version": 1,
+  "after_sha256": "cfc428521a870eb96ddcdc796a467b472506a07bf555adf9d08306a122faeb59",
+  "before_sha256": "fba13a5535c7cd68f89e0997b99e0f6b2eebd94925af44b45436167121b8a618",
+  "final_correction_count": 1,
+  "final_evaluation_count": 137,
+  "final_total_count": 138,
+  "generated_at": "2026-07-29T04:29:56Z",
   "manifest_type": "canonical_base_preservation_manifest",
-  "generated_at": "2026-07-29T11:45:00Z",
+  "newly_admitted_records_count": 79,
+  "preserved_records_count": 59,
+  "removed_or_folded_corrections_count": 1,
+  "removed_or_folded_corrections_sha256": "95e9851b9ad097dd1400db0317852685c194a99022b978c288fec8f3b7e74ab9",
+  "schema_version": 1,
   "source_base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
-  "starting_canonical_records": 66,
+  "starting_record_count": 66,
   "withdrawn_records_count": 6,
-  "withdrawn_record_ids": [
-    "2026-07-24-claude-opus-4-8-business-automation-a-implementation-001",
-    "2026-07-24-claude-opus-4-8-business-automation-a-amendment-001",
-    "2026-07-24-correction-claude-opus-4-8-high-implementation-001",
-    "2026-07-24-correction-claude-opus-4-8-high-amendment-001",
-    "2026-07-24-claude-opus-4-8-high-business-automation-a-amendment-002",
-    "2026-07-24-claude-opus-4-8-ultra-high-business-automation-a-amendment-003"
-  ],
-  "reasoning_only_corrections_removed": [
-    "2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003"
-  ],
-  "preserved_canonical_records_count": 59,
-  "newly_admitted_queue_evaluations_count": 77,
-  "resulting_total_recorded_evaluations": 136
+  "withdrawn_records_sha256": "c91ffd2e163e8ce36877b13e9d9774d63a8c9ba47ae2cd8bc402d7b45e6cb83d"
 }

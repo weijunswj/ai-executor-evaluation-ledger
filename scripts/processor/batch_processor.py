@@ -29,6 +29,7 @@ from scripts.processor.intake_parser import (
     canonical_record_from_payload,
     parse_intake_comment,
 )
+from scripts.processor.github_cli import gh_json
 from scripts.processor.transaction import (
     build_complete_candidate_tree,
     recover_incomplete_transaction,
@@ -150,16 +151,12 @@ def _ensure_newline(content: bytes) -> bytes:
 
 
 def _safe_gh_json(repository_root: Path, args: List[str], *, paginate: bool = False) -> Any:
-    command = ["gh", "api", *args]
-    if paginate:
-        command.extend(["--paginate", "--slurp"])
-    result = subprocess.run(command, cwd=repository_root, capture_output=True, text=True, check=False)
-    if result.returncode != 0:
-        raise ProcessorError("processor_source_unavailable")
-    try:
-        return json.loads(result.stdout)
-    except (TypeError, ValueError):
-        raise ProcessorError("processor_source_unavailable")
+    return gh_json(
+        repository_root,
+        args,
+        failure_code="processor_source_unavailable",
+        paginate=paginate,
+    )
 
 
 def fetch_live_142_comments(repository_root: Path = ROOT) -> List[Dict[str, Any]]:
@@ -196,6 +193,17 @@ def fetch_issue_metadata(repository_root: Path = ROOT) -> Dict[str, Any]:
     if not isinstance(value, dict):
         raise ProcessorError("processor_source_unavailable")
     return value
+
+
+def fetch_live_canonical_main_sha(repository_root: Path = ROOT) -> str:
+    value = _safe_gh_json(
+        repository_root,
+        ["repos/weijunswj/ai-executor-evaluation-ledger/git/ref/heads/main"],
+    )
+    sha = value.get("object", {}).get("sha") if isinstance(value, dict) else None
+    if not valid_git_sha(sha):
+        raise ProcessorError("processor_authority_mismatch")
+    return sha
 
 
 def _comment_fingerprint(comment: Mapping[str, Any]) -> Dict[str, Any]:
@@ -270,7 +278,7 @@ def _validate_config(config: ProcessBatchConfig) -> None:
         raise ProcessorError("processor_invalid_contract")
     if not config.repository_root.exists():
         raise ProcessorError("processor_invalid_contract")
-    if config.operating_mode == "incremental" and config.base_sha != config.canonical_main_sha:
+    if config.base_sha != config.canonical_main_sha:
         raise ProcessorError("processor_invalid_contract")
     if config.activation_mode == "reviewed-live":
         if config.operator_intent != "reviewed":
@@ -374,8 +382,12 @@ def build_batch_candidate(
     failure_hook: Optional[Callable[[str, str], None]] = None,
     queue_fetcher: Optional[Callable[[Path], List[Dict[str, Any]]]] = None,
     comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
+    canonical_main_fetcher: Optional[Callable[[Path], str]] = None,
 ) -> Tuple[Dict[str, bytes], Dict[str, Any]]:
     _validate_config(config)
+    canonical_main_fetcher = canonical_main_fetcher or fetch_live_canonical_main_sha
+    if canonical_main_fetcher(config.repository_root) != config.canonical_main_sha:
+        raise ProcessorError("processor_authority_mismatch")
     recover_incomplete_transaction(config.repository_root, failure_hook=failure_hook)
     authority_files, preserved_records = _authority_files(config)
     queue_fetcher = queue_fetcher or fetch_live_142_comments
@@ -612,6 +624,7 @@ def process_batch(
     comments: Optional[List[Dict[str, Any]]] = None,
     queue_fetcher: Optional[Callable[[Path], List[Dict[str, Any]]]] = None,
     comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
+    canonical_main_fetcher: Optional[Callable[[Path], str]] = None,
 ) -> Dict[str, Any]:
     candidate_files, evidence = build_batch_candidate(
         config,
@@ -619,6 +632,7 @@ def process_batch(
         failure_hook=failure_hook,
         queue_fetcher=queue_fetcher,
         comment_fetcher=comment_fetcher,
+        canonical_main_fetcher=canonical_main_fetcher,
     )
     queue_fetcher = queue_fetcher or fetch_live_142_comments
     final_queue = queue_fetcher(config.repository_root)

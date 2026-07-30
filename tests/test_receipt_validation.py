@@ -28,18 +28,30 @@ class TestReceiptValidation(unittest.TestCase):
                 / "ledger/receipts/batches/batch-20260729-gate3-amendment-004.json"
             ).read_text(encoding="utf-8")
         )
-        candidate_sha = tracked.get("candidate_content_commit_sha")
-        if candidate_sha is None:
-            candidate_sha = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout.strip()
+        candidate_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        fingerprints = [
+            {
+                "id": binding["comment_id"],
+                "created_at": binding["created_at"],
+                "updated_at": binding["updated_at"],
+                "body_sha256": binding["body_sha256"],
+            }
+            for binding in tracked["comment_bindings"]
+        ]
         receipt = build_sealed_receipt(
             ROOT,
             candidate_content_commit_sha=candidate_sha,
+            source_reader=lambda _root, _source: {
+                "fingerprints": fingerprints,
+                "source_body_sha256": tracked["source_body_sha256"],
+                "queue_snapshot_sha256": tracked["queue_snapshot_sha256"],
+            },
         )
         self.assertEqual(receipt["schema_version"], 2)
         self.assertEqual(receipt["full_queue_count"], 101)

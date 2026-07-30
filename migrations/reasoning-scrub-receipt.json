@@ -1,8 +1,11 @@
 {
-  "schema_version": 1,
+  "evaluations_sha256": "cfc428521a870eb96ddcdc796a467b472506a07bf555adf9d08306a122faeb59",
+  "generated_at": "2026-07-29T04:29:56Z",
   "manifest_type": "reasoning_scrub_receipt",
-  "generated_at": "2026-07-29T09:50:00Z",
-  "scrubbed_fields_count": 59,
-  "removed_attribute_key_count": 6,
-  "removed_correction_count": 1
+  "removed_attribute_key_count": 8,
+  "removed_correction_count": 1,
+  "removed_corrections_sha256": "95e9851b9ad097dd1400db0317852685c194a99022b978c288fec8f3b7e74ab9",
+  "schema_version": 1,
+  "scrubbed_fields_count": 73,
+  "source_base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 }

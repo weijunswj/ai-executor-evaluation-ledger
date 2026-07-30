@@ -212,13 +212,43 @@ def _recurring_defects(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
-def _exact_key(item: Mapping[str, Any]) -> tuple[str, str, str, str]:
-    return (
-        str(item["subject_alias"]),
-        str(item["task_class"]),
-        str(item["difficulty"]),
-        str(item["evaluation_protocol"]),
-    )
+UNKNOWN_COHORT_DIMENSION = "unknown"
+EXACT_COHORT_FIELDS = (
+    "subject_alias",
+    "source_revision",
+    "task_class",
+    "difficulty",
+    "evaluation_protocol",
+    "task_stage",
+    "tool_environment_class",
+    "operation_gate_type",
+)
+
+
+def _cohort_identity(item: Mapping[str, Any]) -> dict[str, str]:
+    explicit = {
+        "subject_alias": item.get("subject_alias"),
+        "source_revision": item.get("source_revision", item.get("revision_binding")),
+        "task_class": item.get("task_class"),
+        "difficulty": item.get("difficulty"),
+        "evaluation_protocol": item.get("evaluation_protocol"),
+        "task_stage": item.get("task_stage"),
+        "tool_environment_class": item.get("tool_environment_class"),
+        "operation_gate_type": item.get("operation_gate_type"),
+    }
+    return {
+        field: value.strip()
+        if isinstance(value, str) and value.strip()
+        else UNKNOWN_COHORT_DIMENSION
+        for field, value in explicit.items()
+    }
+
+
+def _exact_key(item: Mapping[str, Any]) -> Optional[tuple[str, ...]]:
+    identity = _cohort_identity(item)
+    if UNKNOWN_COHORT_DIMENSION in identity.values():
+        return None
+    return tuple(identity[field] for field in EXACT_COHORT_FIELDS)
 
 
 def _similar_key(item: Mapping[str, Any]) -> tuple[str, str, str]:
@@ -260,10 +290,12 @@ def generate_recommendation_manifest(
         item for item in queued if item.get("evaluation_protocol") == "gated_v1"
     ]
 
-    exact_models: dict[tuple[str, str, str, str], set[str]] = defaultdict(set)
+    exact_models: dict[tuple[str, ...], set[str]] = defaultdict(set)
     similar_models: dict[tuple[str, str, str], set[str]] = defaultdict(set)
     for item in recorded_comparable:
-        exact_models[_exact_key(item)].add(item["model"])
+        exact_key = _exact_key(item)
+        if exact_key is not None:
+            exact_models[exact_key].add(item["model"])
         similar_models[_similar_key(item)].add(item["model"])
     matched_exact = {key for key, models in exact_models.items() if len(models) >= 2}
     matched_similar = {key for key, models in similar_models.items() if len(models) >= 2}
@@ -275,26 +307,34 @@ def generate_recommendation_manifest(
     for item in queued_comparable:
         by_model_queued[item["model"]].append(item)
     models = sorted(set(by_model_recorded).union(by_model_queued))
-    all_task_classes = sorted({item["task_class"] for item in available})
-    all_difficulties = sorted({item["difficulty"] for item in available})
+    all_task_classes = sorted({item["task_class"] for item in recorded_comparable})
+    all_difficulties = sorted({item["difficulty"] for item in recorded_comparable})
 
     model_stats: dict[str, dict[str, Any]] = {}
-    comparable_subject_scores: dict[str, dict[tuple[str, str, str, str], float]] = {}
+    comparable_subject_scores: dict[str, dict[tuple[str, ...], float]] = {}
     for model in models:
         items = sorted(by_model_recorded[model], key=lambda item: item["run_id"])
         queued_items = sorted(by_model_queued[model], key=lambda item: item["run_id"])
         combined = items + queued_items
-        exact_keys = sorted({_exact_key(item) for item in items if _exact_key(item) in matched_exact})
+        exact_keys = sorted({
+            key
+            for item in items
+            if (key := _exact_key(item)) is not None and key in matched_exact
+        })
         similar_keys = sorted({_similar_key(item) for item in items if _similar_key(item) in matched_similar})
         comparable_items = [
             item
             for item in items
-            if _exact_key(item) in matched_exact or _similar_key(item) in matched_similar
+            if (
+                (_exact_key(item) is not None and _exact_key(item) in matched_exact)
+                or _similar_key(item) in matched_similar
+            )
         ]
-        subject_scores: dict[tuple[str, str, str, str], list[float]] = defaultdict(list)
+        subject_scores: dict[tuple[str, ...], list[float]] = defaultdict(list)
         for item in items:
-            if _exact_key(item) in matched_exact:
-                subject_scores[_exact_key(item)].append(float(item["weighted_score_5"]))
+            exact_key = _exact_key(item)
+            if exact_key is not None and exact_key in matched_exact:
+                subject_scores[exact_key].append(float(item["weighted_score_5"]))
         comparable_subject_scores[model] = {
             key: round(sum(values) / len(values), 4)
             for key, values in sorted(subject_scores.items())
@@ -302,10 +342,24 @@ def generate_recommendation_manifest(
         verdicts: dict[str, int] = defaultdict(int)
         for item in items:
             verdicts[str(item["outcome"]).lower()] += 1
-        independent_subjects = len({item["subject_alias"] for item in combined})
+        independent_subjects = len({
+            (
+                _cohort_identity(item)["subject_alias"],
+                _cohort_identity(item)["source_revision"],
+                _cohort_identity(item)["task_class"],
+            )
+            for item in items
+        })
         missing_subjects = max(0, INDEPENDENT_OBSERVATION_THRESHOLD - independent_subjects)
-        missing_tasks = sorted(set(all_task_classes) - {item["task_class"] for item in combined})
-        missing_difficulties = sorted(set(all_difficulties) - {item["difficulty"] for item in combined})
+        missing_tasks = sorted(set(all_task_classes) - {item["task_class"] for item in items})
+        missing_difficulties = sorted(set(all_difficulties) - {item["difficulty"] for item in items})
+        exact_eligible_items = [item for item in items if _exact_key(item) is not None]
+        unknown_dimensions = sorted({
+            field
+            for item in items
+            for field, value in _cohort_identity(item).items()
+            if value == UNKNOWN_COHORT_DIMENSION
+        })
         limitations: list[str] = []
         if missing_subjects:
             limitations.append("Independent subject coverage is below the published minimum.")
@@ -315,6 +369,10 @@ def generate_recommendation_manifest(
             limitations.append("Multiple recorded runs share a correlated subject chain.")
         if queued_items:
             limitations.append("Queued evidence is provisional and excluded from official score comparison.")
+        if unknown_dimensions:
+            limitations.append(
+                "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
+            )
         n = len(items)
         first_pass_count = sum(item.get("first_pass_accepted") is True for item in items)
         intervention_count = sum(item.get("controller_intervention_required") is True for item in items)
@@ -326,6 +384,9 @@ def generate_recommendation_manifest(
             "independent_subject_count": independent_subjects,
             "exact_matched_cohort_count": len(exact_keys),
             "similar_matched_cohort_count": len(similar_keys),
+            "exact_cohort_eligible_recorded_count": len(exact_eligible_items),
+            "exact_cohort_unknown_recorded_count": len(items) - len(exact_eligible_items),
+            "exact_cohort_unknown_dimensions": unknown_dimensions,
             "overall_average_score_5": round(
                 sum(float(item["weighted_score_5"]) for item in items) / n,
                 2,
@@ -388,7 +449,7 @@ def generate_recommendation_manifest(
             shared_keys.intersection_update(comparable_subject_scores[model])
             task_mixes.append(
                 {
-                    (key[1], key[2], key[3])
+                    key[1:]
                     for key in comparable_subject_scores[model]
                 }
             )
@@ -428,9 +489,13 @@ def generate_recommendation_manifest(
             "minimum_independent_observations": INDEPENDENT_OBSERVATION_THRESHOLD,
             "exact_match_fields": [
                 "subject_alias",
+                "source_revision",
                 "task_class",
                 "difficulty",
                 "evaluation_protocol",
+                "task_stage",
+                "tool_environment_class",
+                "operation_gate_type",
             ],
             "similar_match_fields": [
                 "task_class",
@@ -454,13 +519,18 @@ def generate_recommendation_manifest(
                 ),
             },
         },
+        "cohort_identities": {
+            item["run_id"]: _cohort_identity(item)
+            for item in sorted(available, key=lambda value: value["run_id"])
+        },
         "recommendation": recommendation,
         "model_statistics": model_stats,
         "material_limitations": [
             "Official comparison uses recorded gated_v1 evidence only.",
-            "Queued evidence affects population and coverage reporting but not official scores.",
+            "Queued evidence is reported separately and cannot affect official eligibility, independent-subject thresholds, scores, or winner selection.",
             "Overall averages are secondary context and never select the recommended model.",
-            "Runs sharing a subject are correlated and count as one independent subject.",
+            "Amendment-chain runs sharing subject, source revision, and task lineage count as one independent subject.",
+            "Unknown exact-cohort dimensions are explicit and excluded from exact matching.",
         ],
     }
     try:
@@ -497,7 +567,8 @@ def render_recommendation_section(manifest: dict[str, Any]) -> str:
                 f"- **{model}**: {info['recorded_count']} recorded, "
                 f"{info['queued_count']} queued, {info['independent_subject_count']} independent "
                 f"subject(s), {info['exact_matched_cohort_count']} exact matched cohort(s); "
-                f"like-for-like score: **{score_text}**."
+                f"{info['exact_cohort_unknown_recorded_count']} recorded run(s) excluded for "
+                f"unknown exact dimensions; like-for-like score: **{score_text}**."
             )
 
     lines.extend([

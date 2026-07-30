@@ -24,6 +24,7 @@ from scripts.processor.common import (
     valid_git_sha,
     valid_identifier,
 )
+from scripts.processor.github_cli import gh_json
 from scripts.validate_receipts import (
     ReceiptValidationError,
     validate_batch_receipt_object,
@@ -43,7 +44,32 @@ RECEIPT_VALIDATOR = jsonschema.Draft202012Validator(
     format_checker=jsonschema.FormatChecker(),
 )
 RECORDED_MARKER = "<!-- ledger-recorded:v1 -->"
-REQUIRED_CHECK_NAMES = frozenset({"CodeQL", "Scan public ledger", "validate"})
+REQUIRED_CHECK_PRODUCERS = (
+    {
+        "producer": "ci_push",
+        "workflow_path": ".github/workflows/ci.yml",
+        "event": "push",
+        "job_names": ("validate",),
+    },
+    {
+        "producer": "ci_pull_request",
+        "workflow_path": ".github/workflows/ci.yml",
+        "event": "pull_request",
+        "job_names": ("validate",),
+    },
+    {
+        "producer": "public_safety",
+        "workflow_path": ".github/workflows/public-safety.yml",
+        "event": "pull_request",
+        "job_names": ("Scan public ledger",),
+    },
+    {
+        "producer": "codeql",
+        "workflow_path": "dynamic/github-code-scanning/codeql",
+        "event": "dynamic",
+        "job_names": ("Analyze (python)", "Analyze (actions)"),
+    },
+)
 CANONICAL_PATHS = {
     "evaluations_jsonl": "evaluations.jsonl",
     "dispositions_jsonl": "ledger/dispositions.jsonl",
@@ -137,36 +163,20 @@ def _git_object_bytes(repository_root: Path, commit_sha: str, relative_path: str
 
 
 def _gh_get_json(path: str, repository_root: Path) -> Any:
-    result = subprocess.run(
-        ["gh", "api", path],
-        cwd=repository_root,
-        capture_output=True,
-        text=True,
-        check=False,
+    return gh_json(
+        repository_root,
+        [path],
+        failure_code="cleanup_source_unavailable",
     )
-    if result.returncode != 0:
-        raise _safe_failure("cleanup_source_unavailable")
-    try:
-        value = json.loads(result.stdout)
-    except (TypeError, ValueError):
-        raise _safe_failure("cleanup_source_unavailable")
-    return value
 
 
 def _gh_get_paginated(path: str, repository_root: Path) -> list[dict[str, Any]]:
-    result = subprocess.run(
-        ["gh", "api", path, "--paginate", "--slurp"],
-        cwd=repository_root,
-        capture_output=True,
-        text=True,
-        check=False,
+    pages = gh_json(
+        repository_root,
+        [path],
+        failure_code="cleanup_source_unavailable",
+        paginate=True,
     )
-    if result.returncode != 0:
-        raise _safe_failure("cleanup_source_unavailable")
-    try:
-        pages = json.loads(result.stdout)
-    except (TypeError, ValueError):
-        raise _safe_failure("cleanup_source_unavailable")
     if not isinstance(pages, list):
         raise _safe_failure("cleanup_source_unavailable")
     flattened: list[dict[str, Any]] = []
@@ -187,24 +197,19 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
     cursor: Optional[str] = None
     while True:
         cursor_arg = "null" if cursor is None else cursor
-        result = subprocess.run(
+        value = gh_json(
+            config.repository_root,
             [
-                "gh", "api", "graphql",
+                "graphql",
                 "-f", f"query={query}",
                 "-F", "owner=weijunswj",
                 "-F", "repo=ai-executor-evaluation-ledger",
                 "-F", f"number={config.pr_number}",
                 "-F", f"cursor={cursor_arg}",
             ],
-            cwd=config.repository_root,
-            capture_output=True,
-            text=True,
-            check=False,
+            failure_code="cleanup_source_unavailable",
         )
-        if result.returncode != 0:
-            raise _safe_failure("cleanup_source_unavailable")
         try:
-            value = json.loads(result.stdout)
             connection = value["data"]["repository"]["pullRequest"]["reviewThreads"]
             page_nodes = connection["nodes"]
             page_info = connection["pageInfo"]
@@ -217,6 +222,99 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
         if not isinstance(next_cursor, str) or not next_cursor:
             raise _safe_failure("cleanup_source_unavailable")
         cursor = next_cursor
+
+
+def _required_check_attempts(
+    head_sha: str,
+    workflow_runs: list[dict[str, Any]],
+    jobs_by_attempt: Mapping[tuple[int, int], list[dict[str, Any]]],
+) -> tuple[str, dict[str, dict[str, Any]]]:
+    """Select one latest exact run attempt for every required producer."""
+
+    evidence: dict[str, dict[str, Any]] = {}
+    for required in REQUIRED_CHECK_PRODUCERS:
+        candidates: list[dict[str, Any]] = []
+        for run in workflow_runs:
+            if (
+                run.get("path") != required["workflow_path"]
+                or run.get("event") != required["event"]
+            ):
+                continue
+            required_fields = (
+                run.get("id"),
+                run.get("workflow_id"),
+                run.get("run_number"),
+                run.get("run_attempt"),
+                run.get("check_suite_id"),
+            )
+            if (
+                run.get("head_sha") != head_sha
+                or not all(isinstance(value, int) and not isinstance(value, bool) and value > 0 for value in required_fields)
+                or not isinstance(run.get("status"), str)
+                or not isinstance(run.get("conclusion"), (str, type(None)))
+            ):
+                return "incomplete", {}
+            candidates.append(run)
+        if not candidates:
+            return "incomplete", {}
+        latest_order = max((run["run_number"], run["run_attempt"]) for run in candidates)
+        latest = [
+            run
+            for run in candidates
+            if (run["run_number"], run["run_attempt"]) == latest_order
+        ]
+        if len(latest) != 1:
+            return "incomplete", {}
+        run = latest[0]
+        jobs = jobs_by_attempt.get((run["id"], run["run_attempt"]))
+        if not isinstance(jobs, list):
+            return "incomplete", {}
+        selected_jobs: dict[str, dict[str, Any]] = {}
+        for job_name in required["job_names"]:
+            matching = [job for job in jobs if job.get("name") == job_name]
+            if len(matching) != 1:
+                return "incomplete", {}
+            job = matching[0]
+            if (
+                not isinstance(job.get("id"), int)
+                or isinstance(job.get("id"), bool)
+                or job["id"] <= 0
+                or job.get("run_id") != run["id"]
+                or job.get("head_sha") != head_sha
+                or not isinstance(job.get("status"), str)
+                or not isinstance(job.get("conclusion"), (str, type(None)))
+            ):
+                return "incomplete", {}
+            selected_jobs[job_name] = job
+        evidence[required["producer"]] = {
+            "workflow_id": run["workflow_id"],
+            "workflow_path": run["path"],
+            "event": run["event"],
+            "run_id": run["id"],
+            "run_number": run["run_number"],
+            "run_attempt": run["run_attempt"],
+            "check_suite_id": run["check_suite_id"],
+            "status": run["status"],
+            "conclusion": run["conclusion"],
+            "jobs": {
+                name: {
+                    "job_id": job["id"],
+                    "status": job["status"],
+                    "conclusion": job["conclusion"],
+                }
+                for name, job in sorted(selected_jobs.items())
+            },
+        }
+        if (
+            run["status"] != "completed"
+            or run["conclusion"] != "success"
+            or any(
+                job["status"] != "completed" or job["conclusion"] != "success"
+                for job in selected_jobs.values()
+            )
+        ):
+            return "incomplete", evidence
+    return "passed", evidence
 
 
 def _parse_recorded_receipt_body(body: Any) -> Optional[dict[str, Any]]:
@@ -295,10 +393,44 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         f"repos/weijunswj/ai-executor-evaluation-ledger/contents/{receipt_path}?ref={head_sha}",
         config.repository_root,
     )
-    check_runs = _gh_get_paginated(
-        f"repos/weijunswj/ai-executor-evaluation-ledger/commits/{head_sha}/check-runs?per_page=100",
+    workflow_runs_value = _gh_get_json(
+        f"repos/weijunswj/ai-executor-evaluation-ledger/actions/runs?head_sha={head_sha}&per_page=100",
         config.repository_root,
     )
+    workflow_runs = (
+        workflow_runs_value.get("workflow_runs")
+        if isinstance(workflow_runs_value, dict)
+        else None
+    )
+    if not isinstance(workflow_runs, list):
+        raise _safe_failure("processor_cleanup_authority_unverified")
+    jobs_by_attempt: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    for run in workflow_runs:
+        if not isinstance(run, dict):
+            raise _safe_failure("processor_cleanup_authority_unverified")
+        if not any(
+            run.get("path") == required["workflow_path"]
+            and run.get("event") == required["event"]
+            for required in REQUIRED_CHECK_PRODUCERS
+        ):
+            continue
+        run_id = run.get("id")
+        attempt = run.get("run_attempt")
+        if (
+            not isinstance(run_id, int)
+            or isinstance(run_id, bool)
+            or not isinstance(attempt, int)
+            or isinstance(attempt, bool)
+        ):
+            raise _safe_failure("processor_cleanup_authority_unverified")
+        jobs_value = _gh_get_json(
+            f"repos/weijunswj/ai-executor-evaluation-ledger/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100",
+            config.repository_root,
+        )
+        jobs = jobs_value.get("jobs") if isinstance(jobs_value, dict) else None
+        if not isinstance(jobs, list):
+            raise _safe_failure("processor_cleanup_authority_unverified")
+        jobs_by_attempt[(run_id, attempt)] = jobs
     reviews = _gh_get_paginated(
         f"repos/weijunswj/ai-executor-evaluation-ledger/pulls/{config.pr_number}/reviews?per_page=100",
         config.repository_root,
@@ -308,14 +440,11 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         "repos/weijunswj/ai-executor-evaluation-ledger/issues/143/comments?per_page=100",
         config.repository_root,
     )
-    successful_check_names = {
-        item.get("name")
-        for item in check_runs
-        if item.get("head_sha") == head_sha
-        and item.get("status") == "completed"
-        and item.get("conclusion") == "success"
-    }
-    check_state = "passed" if REQUIRED_CHECK_NAMES.issubset(successful_check_names) else "incomplete"
+    check_state, required_check_attempts = _required_check_attempts(
+        head_sha,
+        workflow_runs,
+        jobs_by_attempt,
+    )
     review_state = "blocking" if any(
         str(item.get("state", "")).upper() in {"CHANGES_REQUESTED", "PENDING"}
         for item in reviews
@@ -362,6 +491,7 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
             item.get("filename") for item in files if isinstance(item, dict)
         ],
         "raw_head_receipt_sha256": sha256_bytes(raw_receipt_bytes),
+        "required_check_attempts": required_check_attempts,
     }
 
 

@@ -12,16 +12,16 @@ Used in conjunction with [LLM WEB CUSTOM INSTRUCTIONS SET](https://github.com/we
 
 ### Tested Model Summary & Like-for-Like Analysis
 
-- **Claude Opus 5**: 3 recorded, 0 queued, 1 independent subject(s), 0 exact matched cohort(s); like-for-like score: **not available**.
-- **DeepSeek V4 Pro**: 19 recorded, 0 queued, 7 independent subject(s), 4 exact matched cohort(s); like-for-like score: **3.69/5**.
-- **GPT-5.6 Sol**: 32 recorded, 0 queued, 11 independent subject(s), 3 exact matched cohort(s); like-for-like score: **4.54/5**.
-- **Gemini 3.1 Pro**: 3 recorded, 0 queued, 1 independent subject(s), 2 exact matched cohort(s); like-for-like score: **3.52/5**.
-- **MiMo 2.5 Pro**: 4 recorded, 0 queued, 2 independent subject(s), 0 exact matched cohort(s); like-for-like score: **not available**.
-- **MiniMax M3**: 5 recorded, 0 queued, 4 independent subject(s), 2 exact matched cohort(s); like-for-like score: **3.78/5**.
-- **Qwen3.7 Plus**: 13 recorded, 0 queued, 4 independent subject(s), 1 exact matched cohort(s); like-for-like score: **4.77/5**.
+- **Claude Opus 5**: 3 recorded, 0 queued, 3 independent subject(s), 0 exact matched cohort(s); 3 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **DeepSeek V4 Pro**: 19 recorded, 0 queued, 19 independent subject(s), 0 exact matched cohort(s); 19 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **GPT-5.6 Sol**: 32 recorded, 0 queued, 29 independent subject(s), 0 exact matched cohort(s); 32 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **Gemini 3.1 Pro**: 3 recorded, 0 queued, 3 independent subject(s), 0 exact matched cohort(s); 3 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **MiMo 2.5 Pro**: 4 recorded, 0 queued, 4 independent subject(s), 0 exact matched cohort(s); 4 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **MiniMax M3**: 5 recorded, 0 queued, 5 independent subject(s), 0 exact matched cohort(s); 5 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **Qwen3.7 Plus**: 13 recorded, 0 queued, 12 independent subject(s), 0 exact matched cohort(s); 13 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
 
 > [!NOTE]
-> Highest mean across shared exact matched subject cohorts. Status: `strongest_on_exact_matched_evidence`. Queued evidence is provisional and excluded from official score comparison.
+> No strongest model is declared unless exact matched coverage and task mix meet the published threshold. Status: `insufficient_comparable_evidence`. Queued evidence is provisional and excluded from official score comparison.
 
 ## Summary model scores
 

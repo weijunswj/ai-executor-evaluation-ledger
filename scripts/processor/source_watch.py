@@ -85,10 +85,9 @@ def validate_metadata(metadata: Dict[str, Any]) -> None:
         "activation_mode",
         "source_issue_number",
         "receipt_issue_number",
-        "review_freeze_state",
         "dry_run",
     }
-    allowed = required | {"review_freeze_state", "dry_run"}
+    allowed = required | {"review_freeze_state"}
     if set(metadata) - allowed or not required.issubset(metadata):
         raise ValueError("invalid_source_watch_metadata")
     if metadata["schema_version"] != 1 or metadata["record_type"] != METADATA_RECORD_TYPE:
@@ -113,8 +112,39 @@ def validate_metadata(metadata: Dict[str, Any]) -> None:
         raise ValueError("invalid_source_watch_metadata")
     if metadata["activation_mode"] == "reviewed-live" and metadata["dry_run"] is not False:
         raise ValueError("invalid_source_watch_metadata")
-    if metadata["review_freeze_state"] not in {"not_started", "frozen"}:
+    if (
+        "review_freeze_state" in metadata
+        and metadata["review_freeze_state"] not in {"not_started", "frozen"}
+    ):
         raise ValueError("invalid_source_watch_metadata")
+
+
+def _connection_nodes(value: Any) -> Optional[list[Any]]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict) and isinstance(value.get("nodes"), list):
+        return value["nodes"]
+    return None
+
+
+def _native_review_activity(pr_meta: Dict[str, Any]) -> Optional[bool]:
+    """Return explicit review activity, or ``None`` for ambiguous evidence."""
+
+    activity = False
+    for field in ("reviews", "latestReviews", "reviewThreads"):
+        nodes = _connection_nodes(pr_meta.get(field))
+        if nodes is None:
+            return None
+        if nodes:
+            activity = True
+    controller_started = pr_meta.get("controller_review_started")
+    if controller_started is not None:
+        if not isinstance(controller_started, bool):
+            return None
+        activity = activity or controller_started
+    return activity
 
 
 class SourceWatchPlanner:
@@ -142,9 +172,19 @@ class SourceWatchPlanner:
             return {"action": "REFUSE_AMBIGUOUS_OWNERSHIP", "reason": "pr_number_mismatch"}
         if not pr_meta.get("is_draft", False):
             return {"action": "REFUSE_NOT_DRAFT", "reason": "pr_not_draft"}
-        if pr_meta.get("is_frozen", False) or parsed_meta.get("review_freeze_state") == "frozen":
+        native_review_activity = _native_review_activity(pr_meta)
+        if native_review_activity is None:
+            return {"action": "REFUSE_AMBIGUOUS_OWNERSHIP", "reason": "ambiguous_review_state"}
+        freeze_state = parsed_meta.get("review_freeze_state")
+        if native_review_activity and freeze_state is None:
+            return {"action": "REFUSE_FROZEN", "reason": "review_freeze_missing"}
+        if native_review_activity and freeze_state != "frozen":
+            return {"action": "REFUSE_FROZEN", "reason": "review_freeze_conflict"}
+        expected_head = parsed_meta.get("expected_head_sha")
+        if freeze_state == "frozen" and expected_head != current_head_sha:
+            return {"action": "REFUSE_FROZEN", "reason": "frozen_head_mismatch"}
+        if freeze_state == "frozen" or native_review_activity:
             return {"action": "REFUSE_FROZEN", "reason": "review_freeze"}
-        expected_head = parsed_meta.get("expected_head_sha") or parsed_meta.get("final_expected_head")
         if expected_head and expected_head != current_head_sha:
             return {"action": "REFUSE_UNEXPECTED_HEAD", "reason": "expected_head_mismatch"}
         return {

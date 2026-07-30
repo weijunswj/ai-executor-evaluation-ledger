@@ -228,18 +228,67 @@ class LedgerIdentityPolicyTests(unittest.TestCase):
                 token,
             )
 
-    def test_scan_exception_is_exact_and_migration_only(self) -> None:
+    def test_migration_audit_is_count_only_not_a_token_exception(self) -> None:
         forbidden_attribute = "requested_" + "reasoning" + "_level"
+        self.assertTrue(
+            safety.scan_ledger_identity(
+                "migrations/reasoning-scrub-receipt.json",
+                forbidden_attribute,
+            )
+        )
+        count_only = '{"removed_attribute_key_count":6}'
         self.assertEqual(
             [],
             safety.scan_ledger_identity(
                 "migrations/reasoning-scrub-receipt.json",
-                forbidden_attribute,
+                count_only,
             ),
         )
         self.assertTrue(
             safety.scan_ledger_identity("tests/fixture.json", forbidden_attribute)
         )
+
+    def test_normalized_variants_are_rejected_without_blocking_canonical_model(self) -> None:
+        words = ("GPT", "5", "6", "Sol", "High")
+        separators = (
+            (" ", " ", " ", " "),
+            ("-", "-", "-", "-"),
+            ("_", "_", "_", "_"),
+            ("", ".", "", ""),
+            ("---", "___", "..", "  "),
+        )
+        for values in separators:
+            variant = "".join(
+                word + (values[index] if index < len(values) else "")
+                for index, word in enumerate(words)
+            )
+            self.assertTrue(
+                safety.scan_ledger_identity("tracked/current.txt", variant),
+                variant,
+            )
+            self.assertTrue(
+                safety.scan_ledger_identity(
+                    "tracked/current.txt",
+                    variant.swapcase(),
+                ),
+                variant,
+            )
+        canonical = "-".join(("GPT", "5")) + "." + "6" + " " + "Sol"
+        self.assertEqual(
+            [],
+            safety.scan_ledger_identity("tracked/current.txt", canonical),
+        )
+
+    def test_normalized_attribute_variants_are_rejected_in_all_directories(self) -> None:
+        words = ("native", "reasoning", "classification")
+        for separator in ("-", "_", " ", "...", ""):
+            variant = separator.join(words)
+            for label in (
+                "tests/fixture.json",
+                "migrations/fixture.json",
+                "scripts/fixture.py",
+            ):
+                self.assertTrue(safety.scan_ledger_identity(label, variant))
 
 
 if __name__ == "__main__":

@@ -229,6 +229,79 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         pr["number"] = 152
         self.assertEqual(planner.plan_pr_action(pr, True, "c" * 40)["action"], "REFUSE_AMBIGUOUS_OWNERSHIP")
 
+    def test_source_watch_uses_durable_live_shaped_review_evidence(self):
+        planner = SourceWatchPlanner()
+        metadata = {
+            "schema_version": 1,
+            "record_type": "source_watch_pr_metadata",
+            "mode": "initial",
+            "base_sha": "a" * 40,
+            "canonical_main_sha": "a" * 40,
+            "batch_id": "batch-a010-001",
+            "controller_run_id": "controller-a010-001",
+            "pr_number": 151,
+            "expected_head_sha": "c" * 40,
+            "activation_mode": "dry-run",
+            "source_issue_number": 142,
+            "receipt_issue_number": 143,
+            "review_freeze_state": "not_started",
+            "dry_run": True,
+        }
+
+        def live_pr(meta):
+            return {
+                "number": 151,
+                "body": "<!-- ledger-source-watch:v1 -->\n```json\n"
+                + json.dumps(meta)
+                + "\n```",
+                "is_draft": True,
+                "reviews": {"nodes": []},
+                "latestReviews": {"nodes": []},
+                "reviewThreads": {"nodes": []},
+                "controller_review_started": False,
+            }
+
+        mutable = live_pr(metadata)
+        self.assertEqual(
+            planner.plan_pr_action(mutable, True, "c" * 40)["action"],
+            "UPDATE_EXISTING_PR",
+        )
+
+        frozen_meta = dict(metadata)
+        frozen_meta["review_freeze_state"] = "frozen"
+        frozen = live_pr(frozen_meta)
+        self.assertEqual(
+            planner.plan_pr_action(frozen, True, "c" * 40)["action"],
+            "REFUSE_FROZEN",
+        )
+        self.assertEqual(
+            planner.plan_pr_action(frozen, True, "d" * 40)["reason"],
+            "frozen_head_mismatch",
+        )
+
+        missing = dict(metadata)
+        missing.pop("review_freeze_state")
+        reviewed = live_pr(missing)
+        reviewed["reviews"]["nodes"] = [{"state": "COMMENTED"}]
+        self.assertEqual(
+            planner.plan_pr_action(reviewed, True, "c" * 40)["reason"],
+            "review_freeze_missing",
+        )
+
+        conflicting = live_pr(metadata)
+        conflicting["reviewThreads"]["nodes"] = [{"isResolved": False}]
+        self.assertEqual(
+            planner.plan_pr_action(conflicting, True, "c" * 40)["reason"],
+            "review_freeze_conflict",
+        )
+
+        ambiguous = live_pr(metadata)
+        ambiguous["reviews"] = {"unexpected": []}
+        self.assertEqual(
+            planner.plan_pr_action(ambiguous, True, "c" * 40)["action"],
+            "REFUSE_AMBIGUOUS_OWNERSHIP",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

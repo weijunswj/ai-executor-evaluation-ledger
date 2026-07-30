@@ -27,6 +27,10 @@ def evaluation(
     intervention=False,
     queued_source=None,
     defect="shared defect",
+    revision="a" * 40,
+    stage="implementation",
+    environment="repository-cli",
+    operation="gate3",
 ):
     providers = {
         "Gemini 3.1 Pro": "Google",
@@ -43,6 +47,10 @@ def evaluation(
         "task_class": task,
         "difficulty": difficulty,
         "subject_alias": subject,
+        "revision_binding": revision,
+        "task_stage": stage,
+        "tool_environment_class": environment,
+        "operation_gate_type": operation,
         "outcome": "accepted" if first_pass else "amend",
         "weighted_score_5": score,
         "first_pass_accepted": first_pass,
@@ -211,10 +219,135 @@ class TestRecommendationAndViews(unittest.TestCase):
         self.assertTrue(sol_gap["under_sampled"])
         self.assertEqual(
             sol_gap["additional_independent_observations_required"],
-            INDEPENDENT_OBSERVATION_THRESHOLD - 1,
+            INDEPENDENT_OBSERVATION_THRESHOLD,
         )
         self.assertTrue(sol_gap["missing_cross_model_matched_cohort"])
         self.assertEqual(sol_gap["missing_difficulties"], ["medium"])
+
+    def test_exact_cohorts_require_revision_stage_environment_and_operation(self):
+        variants = [
+            evaluation(
+                "same-subject-different-revision",
+                "GPT-5.6 Sol",
+                "subject-a",
+                revision="b" * 40,
+            ),
+            evaluation(
+                "same-revision-different-stage",
+                "GPT-5.6 Sol",
+                "subject-a",
+                stage="amendment",
+            ),
+            evaluation(
+                "different-environment",
+                "GPT-5.6 Sol",
+                "subject-a",
+                environment="hosted-review",
+            ),
+            evaluation(
+                "different-operation",
+                "GPT-5.6 Sol",
+                "subject-a",
+                operation="gate4",
+            ),
+        ]
+        manifest = generate_recommendation_manifest(self.sample_evals + variants, [])
+        sol = manifest["model_statistics"]["GPT-5.6 Sol"]
+        self.assertEqual(sol["exact_matched_cohort_count"], 0)
+        self.assertEqual(sol["exact_cohort_eligible_recorded_count"], 4)
+
+    def test_implementation_amendment_and_gate4_are_not_exact(self):
+        lineage = [
+            evaluation(
+                "implementation",
+                "Gemini 3.1 Pro",
+                "lineage",
+                stage="implementation",
+                operation="gate3",
+            ),
+            evaluation(
+                "amendment",
+                "DeepSeek V4 Pro",
+                "lineage",
+                stage="amendment",
+                operation="gate3",
+            ),
+            evaluation(
+                "gate4-review",
+                "GPT-5.6 Sol",
+                "lineage",
+                stage="review",
+                operation="gate4",
+            ),
+        ]
+        manifest = generate_recommendation_manifest(lineage, [])
+        for stats in manifest["model_statistics"].values():
+            self.assertEqual(stats["exact_matched_cohort_count"], 0)
+
+    def test_queued_only_coverage_never_grants_official_eligibility(self):
+        queued = [
+            evaluation(
+                f"queued-sol-{index}",
+                "GPT-5.6 Sol",
+                f"queued-subject-{index}",
+                queued_source=900 + index,
+            )
+            for index in range(1, INDEPENDENT_OBSERVATION_THRESHOLD + 1)
+        ]
+        manifest = generate_recommendation_manifest(self.sample_evals, queued)
+        sol = manifest["model_statistics"]["GPT-5.6 Sol"]
+        self.assertEqual(sol["independent_subject_count"], 0)
+        self.assertNotIn("GPT-5.6 Sol", manifest["recommendation"]["compared_models"])
+
+    def test_unknown_dimensions_are_explicit_and_excluded_from_exact_cohorts(self):
+        unknown = evaluation("unknown-stage", "GPT-5.6 Sol", "subject-a")
+        del unknown["task_stage"]
+        manifest = generate_recommendation_manifest(self.sample_evals + [unknown], [])
+        identity = manifest["cohort_identities"]["unknown-stage"]
+        self.assertEqual(identity["task_stage"], "unknown")
+        sol = manifest["model_statistics"]["GPT-5.6 Sol"]
+        self.assertEqual(sol["exact_cohort_eligible_recorded_count"], 0)
+        self.assertEqual(sol["exact_cohort_unknown_recorded_count"], 1)
+        self.assertEqual(sol["exact_matched_cohort_count"], 0)
+
+    def test_correlated_chain_uses_subject_revision_and_task_lineage(self):
+        correlated = [
+            evaluation("chain-a", "Gemini 3.1 Pro", "subject-chain", score=4.1),
+            evaluation(
+                "chain-b",
+                "Gemini 3.1 Pro",
+                "subject-chain",
+                stage="amendment",
+                score=4.2,
+            ),
+        ]
+        different_revision = evaluation(
+            "chain-c",
+            "Gemini 3.1 Pro",
+            "subject-chain",
+            revision="c" * 40,
+            score=4.3,
+        )
+        manifest = generate_recommendation_manifest(
+            correlated + [different_revision],
+            [],
+        )
+        self.assertEqual(
+            manifest["model_statistics"]["Gemini 3.1 Pro"]["independent_subject_count"],
+            2,
+        )
+
+    def test_rebuild_workflow_tracks_and_commits_recommendation(self):
+        workflow = (
+            ROOT / ".github" / "workflows" / "rebuild-ledger-views.yml"
+        ).read_text(encoding="utf-8")
+        artifact = "analysis/model-recommendation.json"
+        self.assertGreaterEqual(workflow.count(artifact), 3)
+        self.assertIn(
+            f"git diff --quiet -- README.md scorecard.md {artifact}",
+            workflow,
+        )
+        self.assertIn(f"git add README.md scorecard.md {artifact}", workflow)
 
     def test_manifest_is_closed_schema_and_shuffle_stable(self):
         queued = [

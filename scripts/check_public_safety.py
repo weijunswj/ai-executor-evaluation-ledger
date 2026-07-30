@@ -146,11 +146,34 @@ FORBIDDEN_LEDGER_IDENTITY_TOKENS = frozenset(
         "GPT-5.6 Sol " + "Max",
     }
 )
-IDENTITY_SCAN_EXCEPTIONS = {
-    "migrations/reasoning-scrub-receipt.json": frozenset(
-        token for token in FORBIDDEN_LEDGER_IDENTITY_TOKENS if "_" in token
+IDENTITY_SEPARATOR = r"[\s_.:/\\-]*"
+
+
+def _identity_pattern(*words: str) -> re.Pattern[str]:
+    return re.compile(
+        r"(?<![A-Za-z0-9])"
+        + IDENTITY_SEPARATOR.join(re.escape(word) for word in words)
+        + r"(?![A-Za-z0-9])",
+        re.IGNORECASE,
     )
-}
+
+
+FORBIDDEN_LEDGER_IDENTITY_PATTERNS = (
+    _identity_pattern("requested", "reasoning", "level"),
+    _identity_pattern("observed", "reasoning", "mode"),
+    _identity_pattern("thinking", "setting"),
+    _identity_pattern("native", "reasoning", "classification"),
+    _identity_pattern("reasoning", "exposure", "status"),
+    _identity_pattern("reasoning", "grouping"),
+    _identity_pattern("reasoning", "level"),
+    _identity_pattern("reasoning", "mode"),
+    _identity_pattern("Claude", "Opus", "4", "8", "High"),
+    _identity_pattern("Claude", "Opus", "4", "8", "Ultra", "High"),
+    _identity_pattern("Claude", "Opus", "5", "Max"),
+    _identity_pattern("GPT", "5", "6", "Sol", "Medium"),
+    _identity_pattern("GPT", "5", "6", "Sol", "High"),
+    _identity_pattern("GPT", "5", "6", "Sol", "Max"),
+)
 
 
 def tracked_files() -> list[Path]:
@@ -228,19 +251,13 @@ def scan_text(label: str, text: str) -> list[str]:
 
 
 def scan_ledger_identity(label: str, text: str) -> list[str]:
-    """Reject current-tree model-setting identities with one exact audit exception."""
+    """Reject normalized model-setting identities in every tracked directory."""
 
-    allowed = IDENTITY_SCAN_EXCEPTIONS.get(label.replace("\\", "/"), frozenset())
     failures: list[str] = []
-    for token in sorted(FORBIDDEN_LEDGER_IDENTITY_TOKENS - allowed):
-        start = 0
-        while True:
-            index = text.find(token, start)
-            if index < 0:
-                break
-            line = text.count("\n", 0, index) + 1
+    for pattern in FORBIDDEN_LEDGER_IDENTITY_PATTERNS:
+        for match in pattern.finditer(text):
+            line = text.count("\n", 0, match.start()) + 1
             failures.append(f"{label}:{line}: forbidden ledger identity token")
-            start = index + len(token)
     return failures
 
 

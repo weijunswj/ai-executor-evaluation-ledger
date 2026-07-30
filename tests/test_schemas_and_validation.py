@@ -19,6 +19,8 @@ class TestSchemasAndValidation(unittest.TestCase):
                 "intake.schema.json",
                 "receipt.schema.json",
                 "disposition.schema.json",
+                "manifest.schema.json",
+                "recommendation.schema.json",
             )
         }
         self.checker = jsonschema.FormatChecker()

@@ -1,69 +1,80 @@
 {
-  "schema_version": 1,
-  "manifest_type": "historical_intake_adapter_manifest",
+  "accepted_verdict_values": [
+    "accepted",
+    "amend",
+    "blocked",
+    "error",
+    "fail",
+    "hold",
+    "owner_withdrawn",
+    "pass",
+    "rejected",
+    "rescheduled",
+    "reset",
+    "withdrawn"
+  ],
+  "evaluations_sha256": "cfc428521a870eb96ddcdc796a467b472506a07bf555adf9d08306a122faeb59",
   "field_aliases": [
     {
       "destination_field": "evaluation_run_id",
-      "source_field": "run_id",
-      "accepted_source_type": "string",
-      "rationale": "Exact field rename when run_id is present in legacy intake shape and evaluation_run_id is absent",
-      "applies_to": "legacy intake comments v1"
+      "source_field": "run_id"
     },
     {
       "destination_field": "canonical_base_model",
-      "source_field": "model",
-      "accepted_source_type": "string",
-      "rationale": "Exact field rename when model is present in legacy intake shape, subject to approved model mapping",
-      "applies_to": "legacy intake comments v1"
+      "source_field": "model"
     },
     {
       "destination_field": "canonical_base_model",
-      "source_field": "base_model",
-      "accepted_source_type": "string",
-      "rationale": "Exact field rename when base_model is present in legacy intake shape, subject to approved model mapping",
-      "applies_to": "legacy intake comments v1"
+      "source_field": "base_model"
+    },
+    {
+      "destination_field": "evaluation_protocol",
+      "source_field": "protocol"
+    },
+    {
+      "destination_field": "repository_alias",
+      "source_field": "subject_alias"
     },
     {
       "destination_field": "source_revision",
-      "source_field": "revision_binding",
-      "accepted_source_type": "string",
-      "rationale": "Exact field rename when revision_binding is present in legacy intake shape",
-      "applies_to": "legacy intake comments v1"
+      "source_field": "source_binding"
     },
     {
       "destination_field": "source_revision",
-      "source_field": "source_binding",
-      "accepted_source_type": "string",
-      "rationale": "Exact field rename when source_binding is present in legacy intake shape",
-      "applies_to": "legacy intake comments v1"
+      "source_field": "revision_binding"
+    },
+    {
+      "destination_field": "verdict",
+      "source_field": "outcome"
+    },
+    {
+      "destination_field": "verdict",
+      "source_field": "gate_disposition"
     },
     {
       "destination_field": "score_dimensions",
-      "source_field": "score",
-      "accepted_source_type": "object",
-      "rationale": "Exact field rename when score dictionary is present in legacy intake shape",
-      "applies_to": "legacy intake comments v1"
+      "source_field": "score"
     },
     {
-      "destination_field": "follow_up_count",
-      "source_field": "follow_up_runs_required",
-      "accepted_source_type": "integer",
-      "rationale": "Exact field rename in public_safe_evidence when follow_up_runs_required is an integer",
-      "applies_to": "legacy intake comments v1"
+      "destination_field": "public_safe_evidence",
+      "source_field": "evidence"
+    },
+    {
+      "destination_field": "secret_exposure_status",
+      "source_field": "secret_exposure"
+    },
+    {
+      "destination_field": "secret_exposure_status",
+      "source_field": "secret_exposure_audit"
     }
   ],
-  "verdict_case_normalization": {
-    "AMEND": "amend",
-    "PASS": "pass",
-    "FAIL": "fail",
-    "HOLD": "hold",
-    "ACCEPTED": "accepted"
-  },
+  "final_total_count": 138,
+  "generated_at": "2026-07-29T04:29:56Z",
+  "manifest_type": "historical_intake_adapter_manifest",
   "model_aliases": {
     "Mimo 2.5 Pro": "MiMo 2.5 Pro",
     "Qwen 3.6 Plus": "Qwen3.6 Plus"
   },
-  "provider_aliases": {
-    "Alibaba Cloud": "Qwen"
-  }
+  "schema_version": 1,
+  "source_base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 }
