@@ -29,7 +29,11 @@ from scripts.processor.intake_parser import (
     canonical_record_from_payload,
     parse_intake_comment,
 )
-from scripts.processor.transaction import build_complete_candidate_tree, replace_tracked_files
+from scripts.processor.transaction import (
+    build_complete_candidate_tree,
+    recover_incomplete_transaction,
+    replace_tracked_files,
+)
 from scripts.rebuild_views import expected_files_for_records, resolved_evaluations
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -362,6 +366,7 @@ def build_batch_candidate(
     comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
 ) -> Tuple[Dict[str, bytes], Dict[str, Any]]:
     _validate_config(config)
+    recover_incomplete_transaction(config.repository_root, failure_hook=failure_hook)
     authority_files, preserved_records = _authority_files(config)
     queue_fetcher = queue_fetcher or fetch_live_142_comments
     comment_fetcher = comment_fetcher or fetch_single_comment

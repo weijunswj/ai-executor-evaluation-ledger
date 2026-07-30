@@ -14,38 +14,52 @@ from scripts.processor.cleanup_workflow import (
     publish_cleanup_receipt,
     run_cleanup,
 )
-from scripts.processor.common import canonical_json_bytes, canonical_json_line_bytes, sha256_bytes
-from scripts.processor.transaction import replace_tracked_files
+from scripts.processor.common import ProcessorError, canonical_json_bytes, canonical_json_line_bytes, sha256_bytes
+from scripts.processor.transaction import (
+    recover_incomplete_transaction,
+    recovery_journal_path,
+    replace_tracked_files,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestTransactionAndLifecycle(unittest.TestCase):
+    def transaction_fixture(self, root: Path):
+        paths = {
+            "evaluations.jsonl": b"old-evaluations\n",
+            "README.md": b"old-readme\n",
+            "scorecard.md": b"old-scorecard\n",
+            "ledger/receipts/batches/one.json": b"old-receipt\n",
+        }
+        for relative, content in paths.items():
+            target = root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "fixture" + "@" + "example.invalid"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "fixture"], cwd=root, check=True)
+        subprocess.run(["git", "add", "."], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+        candidate = {relative: content.replace(b"old", b"new") for relative, content in paths.items()}
+        return paths, candidate
+
     def test_every_replacement_boundary_rolls_back_exact_bytes(self):
         with tempfile.TemporaryDirectory(prefix="ledger-tx-test-") as raw:
             root = Path(raw)
-            paths = {
-                "evaluations.jsonl": b"old-evaluations\n",
-                "README.md": b"old-readme\n",
-                "scorecard.md": b"old-scorecard\n",
-                "ledger/receipts/batches/one.json": b"old-receipt\n",
-            }
-            for relative, content in paths.items():
-                target = root / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(content)
-            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
-            subprocess.run(["git", "config", "user.email", "fixture" + "@" + "example.invalid"], cwd=root, check=True)
-            subprocess.run(["git", "config", "user.name", "fixture"], cwd=root, check=True)
-            subprocess.run(["git", "add", "."], cwd=root, check=True)
-            subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
-            candidate = {relative: content.replace(b"old", b"new") for relative, content in paths.items()}
-            events = ["candidate_file_write", "before_replace", "after_replace", "between_replacements", "final_integrity_verification"]
-            for event in events:
+            paths, candidate = self.transaction_fixture(root)
+            boundaries = [
+                (stage, relative)
+                for relative in paths
+                for stage in ("candidate_file_write", "before_candidate_replace", "after_candidate_replace")
+            ]
+            boundaries.extend(("between_candidate_replacements", relative) for relative in tuple(paths)[:-1])
+            boundaries.append(("candidate_verification", ""))
+            for event, event_path in boundaries:
                 before = {relative: (root / relative).read_bytes() for relative in paths}
 
-                def hook(stage, relative, wanted=event):
-                    if stage == wanted:
+                def hook(stage, relative, wanted=event, wanted_path=event_path):
+                    if stage == wanted and relative == wanted_path:
                         raise RuntimeError("injected_failure")
 
                 with self.assertRaises(RuntimeError):
@@ -53,8 +67,74 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                 self.assertEqual(
                     {relative: (root / relative).read_bytes() for relative in paths},
                     before,
-                    event,
+                    f"{event}:{event_path}",
                 )
+                self.assertFalse(recovery_journal_path(root).exists(), f"{event}:{event_path}")
+
+    def test_restoration_failures_preserve_recoverable_journal(self):
+        restoration_points = (
+            ("before_restore", "evaluations.jsonl"),
+            ("after_restore", "evaluations.jsonl"),
+            ("between_restorations", "evaluations.jsonl"),
+            ("before_restore", "README.md"),
+            ("after_restore", "README.md"),
+            ("between_restorations", "README.md"),
+            ("before_restore", "scorecard.md"),
+            ("after_restore", "scorecard.md"),
+            ("between_restorations", "scorecard.md"),
+            ("before_restore", "ledger/receipts/batches/one.json"),
+            ("after_restore", "ledger/receipts/batches/one.json"),
+            ("restoration_verification", ""),
+        )
+        for stage_to_fail, path_to_fail in restoration_points:
+            with tempfile.TemporaryDirectory(prefix="ledger-restore-test-") as raw:
+                root = Path(raw)
+                paths, candidate = self.transaction_fixture(root)
+                original = {relative: (root / relative).read_bytes() for relative in paths}
+
+                def hook(stage, relative):
+                    if stage == "after_candidate_replace" and relative == "evaluations.jsonl":
+                        raise RuntimeError("begin_restoration")
+                    if stage == stage_to_fail and relative == path_to_fail:
+                        raise RuntimeError("injected_restoration_failure")
+
+                with self.assertRaises(ProcessorError) as raised:
+                    replace_tracked_files(root, candidate, failure_hook=hook)
+                self.assertEqual(raised.exception.code, "processor_recovery_required")
+                self.assertTrue(recovery_journal_path(root).is_dir())
+                self.assertTrue(recover_incomplete_transaction(root))
+                self.assertEqual(
+                    {relative: (root / relative).read_bytes() for relative in paths},
+                    original,
+                )
+                self.assertFalse(recovery_journal_path(root).exists())
+
+    def test_interrupted_process_is_recovered_before_next_candidate(self):
+        class SimulatedProcessExit(BaseException):
+            pass
+
+        with tempfile.TemporaryDirectory(prefix="ledger-interrupted-test-") as raw:
+            root = Path(raw)
+            paths, candidate = self.transaction_fixture(root)
+            original = {relative: (root / relative).read_bytes() for relative in paths}
+
+            def interrupt(stage, relative):
+                if stage == "after_candidate_replace" and relative == "README.md":
+                    raise SimulatedProcessExit()
+
+            with self.assertRaises(SimulatedProcessExit):
+                replace_tracked_files(root, candidate, failure_hook=interrupt)
+            self.assertTrue(recovery_journal_path(root).is_dir())
+            self.assertNotEqual(
+                {relative: (root / relative).read_bytes() for relative in paths},
+                original,
+            )
+            self.assertTrue(recover_incomplete_transaction(root))
+            self.assertEqual(
+                {relative: (root / relative).read_bytes() for relative in paths},
+                original,
+            )
+            self.assertFalse(recovery_journal_path(root).exists())
 
     def test_exact_jsonl_line_bytes_are_the_record_hash_input(self):
         record = {"run_id": "fixture", "text": "é", "number": 1}
