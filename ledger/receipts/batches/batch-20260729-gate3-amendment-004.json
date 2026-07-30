@@ -1,17 +1,1677 @@
 {
-  "schema_version": 1,
-  "receipt_type": "batch",
+  "accepted_record_proofs": {
+    "019f9ee5-8959-7351-bf3c-6e440b810d77": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.53
+    },
+    "019f9f62-12f0-73b2-a930-d3dda2b091bd": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "accepted",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.85
+    },
+    "019f9f66-5e5c-7222-a907-f222fd291a16": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.35
+    },
+    "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.46
+    },
+    "019fa0dd-e9a5-7af0-802a-48c9d51b5836": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.6
+    },
+    "019fa15d-bd42-7301-a4e6-75a59b0627d9": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.62
+    },
+    "019fa161-cdad-7ed0-b507-6792fe8317ed": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.72
+    },
+    "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.68
+    },
+    "2026-07-27-governance-tooling-a-gate3-remediation-004": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.11
+    },
+    "2026-07-27-governance-tooling-a-gate3-remediation-014": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 2.7
+    },
+    "2026-07-27-governance-tooling-a-gate4-amendment-006": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 3.64
+    },
+    "2026-07-27-governance-tooling-a-gate4-amendment-008": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 3.36
+    },
+    "2026-07-27-governance-tooling-a-gate4-amendment-012": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 3.04
+    },
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 3.71
+    },
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.23
+    },
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.36
+    },
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.43
+    },
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "accepted",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.82
+    },
+    "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001": {
+      "model": "Claude Opus 5",
+      "outcome": "amend",
+      "provider": "Anthropic",
+      "weighted_score_5": 4.47
+    },
+    "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009": {
+      "model": "Claude Opus 5",
+      "outcome": "pass",
+      "provider": "Anthropic",
+      "weighted_score_5": 4.55
+    },
+    "2026-07-28-governance-tooling-a-gate3-remediation-016": {
+      "model": "MiniMax M3",
+      "outcome": "amend",
+      "provider": "MiniMax",
+      "weighted_score_5": 3.02
+    },
+    "2026-07-28-governance-tooling-a-gate3-remediation-021": {
+      "model": "Gemini 3.1 Pro",
+      "outcome": "amend",
+      "provider": "Google",
+      "weighted_score_5": 3.66
+    },
+    "2026-07-28-governance-tooling-a-gate3-remediation-022": {
+      "model": "Gemini 3.1 Pro",
+      "outcome": "amend",
+      "provider": "Google",
+      "weighted_score_5": 3.76
+    },
+    "2026-07-28-governance-tooling-a-gate3-remediation-023": {
+      "model": "Gemini 3.1 Pro",
+      "outcome": "amend",
+      "provider": "Google",
+      "weighted_score_5": 2.89
+    },
+    "263a994d-b3f1-4b2f-aa24-4edb68c473cc": {
+      "model": "MiMo 2.5 Pro",
+      "outcome": "amend",
+      "provider": "Xiaomi",
+      "weighted_score_5": 3.56
+    },
+    "6a3d5523-45a9-46f3-9b1f-dd0016eac160": {
+      "model": "Claude Opus 5",
+      "outcome": "pass",
+      "provider": "Anthropic",
+      "weighted_score_5": 4.88
+    },
+    "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.08
+    },
+    "8d98a2e2-e06d-477c-a1b2-185b00f8b874": {
+      "model": "MiMo 2.5 Pro",
+      "outcome": "fail",
+      "provider": "Xiaomi",
+      "weighted_score_5": 1.6
+    },
+    "b96bcf1b-0434-4674-926a-f1ea578b7820": {
+      "model": "MiMo 2.5 Pro",
+      "outcome": "amend",
+      "provider": "Xiaomi",
+      "weighted_score_5": 2.1
+    },
+    "d0c73db8-2910-4104-9c32-932481707574": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "accepted",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.88
+    },
+    "ee0e5d56-c322-4292-ba68-435174decb97": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.18
+    },
+    "f643d85d-14a4-464d-9997-34061467a3fc": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.53
+    },
+    "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713": {
+      "model": "MiMo 2.5 Pro",
+      "outcome": "amend",
+      "provider": "Xiaomi",
+      "weighted_score_5": 4.81
+    },
+    "platform-operator-source-recovery-20260727-04": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "accepted",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.88
+    },
+    "platform-post-merge-review-remediation-20260726-01": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 3.96
+    },
+    "platform-post-merge-review-remediation-amendment-20260727-02": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "hold",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.71
+    },
+    "platform-runtime-activation-20260727-05": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "hold",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.78
+    },
+    "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17": {
+      "model": "MiniMax M3",
+      "outcome": "amend",
+      "provider": "MiniMax",
+      "weighted_score_5": 4.62
+    },
+    "platform-runtime-grant-contract-correction-20260727-07": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.53
+    },
+    "platform-runtime-grant-contract-final-network-reference-closure-20260727-16": {
+      "model": "MiniMax M3",
+      "outcome": "amend",
+      "provider": "MiniMax",
+      "weighted_score_5": 4.45
+    },
+    "platform-runtime-grant-contract-nested-callable-scope-20260728-18": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.63
+    },
+    "platform-runtime-grant-contract-network-capability-amendment-20260727-11": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "hold",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.5
+    },
+    "platform-runtime-grant-contract-network-capability-amendment-20260727-12": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.48
+    },
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.17
+    },
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.21
+    },
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.28
+    },
+    "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "accepted",
+      "provider": "Qwen",
+      "weighted_score_5": 4.91
+    },
+    "platform-runtime-grant-reconciliation-20260727-06": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "accepted",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.86
+    },
+    "skr-post-merge-review-remediation-20260727-03": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "accepted",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.91
+    },
+    "skr-production-dependency-remediation-20260726-01": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.13
+    },
+    "skr-production-dependency-remediation-amendment-20260727-02": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "accepted",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.78
+    },
+    "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.36
+    },
+    "skr-structured-quote-ux-architecture-20260727-01": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.49
+    },
+    "skr-structured-quote-ux-g3-implementation-20260727-03": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.12
+    },
+    "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06": {
+      "model": "MiniMax M3",
+      "outcome": "amend",
+      "provider": "MiniMax",
+      "weighted_score_5": 4.35
+    },
+    "skr-structured-quote-ux-g4-review-remediation-20260727-04": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.19
+    },
+    "skr-structured-quote-ux-g4-review-remediation-20260727-05": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.04
+    },
+    "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.38
+    },
+    "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.47
+    },
+    "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 3.48
+    },
+    "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.63
+    },
+    "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.34
+    },
+    "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.55
+    },
+    "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.42
+    },
+    "sqag-direct-operator-membership-and-config-reconciliation-20260728-18": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.08
+    },
+    "sqag-internal-alpha-fast-track-20260727-08": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "hold",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.81
+    },
+    "sqag-internal-alpha-managed-state-admission-20260727-10a": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "pass",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.85
+    },
+    "sqag-main-worktree-recovery-postgresql17-pr-20260728-13": {
+      "model": "MiniMax M3",
+      "outcome": "amend",
+      "provider": "MiniMax",
+      "weighted_score_5": 4.48
+    },
+    "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "pass",
+      "provider": "DeepSeek",
+      "weighted_score_5": 4.88
+    },
+    "sqag-postgresql17-assertion-output-safety-20260728-14": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 4.61
+    },
+    "sqag-postgresql17-fixed-error-category-20260728-15": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "accepted",
+      "provider": "Qwen",
+      "weighted_score_5": 4.9
+    },
+    "sqag-production-admission-archive-contract-repair-20260727-10": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 3.08
+    },
+    "sqag-production-admission-design-regeneration-20260727-08": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 3.75
+    },
+    "sqag-production-admission-design-regeneration-correction-20260727-09": {
+      "model": "DeepSeek V4 Pro",
+      "outcome": "amend",
+      "provider": "DeepSeek",
+      "weighted_score_5": 3.3
+    },
+    "sqag-production-inspection-authority-recovery-20260728-17": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 3.96
+    },
+    "swooshz-host-environment-stale-credential-containment-20260728-01": {
+      "model": "Qwen3.7 Plus",
+      "outcome": "amend",
+      "provider": "Qwen",
+      "weighted_score_5": 3.43
+    },
+    "workflow-compatibility-a-gate3-amendment-20260728-03": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.33
+    },
+    "workflow-compatibility-a-gate3-amendment-20260728-04": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.43
+    },
+    "workflow-compatibility-a-gate3-amendment-20260728-05": {
+      "model": "GPT-5.6 Sol",
+      "outcome": "amend",
+      "provider": "OpenAI",
+      "weighted_score_5": 4.12
+    }
+  },
+  "admitted_run_ids": [
+    "019f9ee5-8959-7351-bf3c-6e440b810d77",
+    "platform-post-merge-review-remediation-20260726-01",
+    "skr-production-dependency-remediation-20260726-01",
+    "platform-post-merge-review-remediation-amendment-20260727-02",
+    "019f9f66-5e5c-7222-a907-f222fd291a16",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
+    "019f9f62-12f0-73b2-a930-d3dda2b091bd",
+    "skr-production-dependency-remediation-amendment-20260727-02",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
+    "019fa0dd-e9a5-7af0-802a-48c9d51b5836",
+    "b96bcf1b-0434-4674-926a-f1ea578b7820",
+    "f643d85d-14a4-464d-9997-34061467a3fc",
+    "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
+    "platform-operator-source-recovery-20260727-04",
+    "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
+    "019fa15d-bd42-7301-a4e6-75a59b0627d9",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
+    "skr-post-merge-review-remediation-20260727-03",
+    "platform-runtime-activation-20260727-05",
+    "platform-runtime-grant-reconciliation-20260727-06",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
+    "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713",
+    "platform-runtime-grant-contract-correction-20260727-07",
+    "ee0e5d56-c322-4292-ba68-435174decb97",
+    "019fa161-cdad-7ed0-b507-6792fe8317ed",
+    "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
+    "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
+    "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b",
+    "sqag-internal-alpha-fast-track-20260727-08",
+    "skr-structured-quote-ux-architecture-20260727-01",
+    "sqag-internal-alpha-managed-state-admission-20260727-10a",
+    "platform-runtime-grant-contract-network-capability-amendment-20260727-11",
+    "2026-07-27-governance-tooling-a-gate3-remediation-004",
+    "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
+    "2026-07-27-governance-tooling-a-gate4-amendment-006",
+    "skr-structured-quote-ux-g3-implementation-20260727-03",
+    "2026-07-27-governance-tooling-a-gate4-amendment-008",
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
+    "sqag-production-admission-design-regeneration-20260727-08",
+    "skr-structured-quote-ux-g4-review-remediation-20260727-04",
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
+    "sqag-production-admission-design-regeneration-correction-20260727-09",
+    "2026-07-27-governance-tooling-a-gate4-amendment-012",
+    "sqag-production-admission-archive-contract-repair-20260727-10",
+    "skr-structured-quote-ux-g4-review-remediation-20260727-05",
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
+    "2026-07-27-governance-tooling-a-gate3-remediation-014",
+    "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
+    "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
+    "d0c73db8-2910-4104-9c32-932481707574",
+    "2026-07-28-governance-tooling-a-gate3-remediation-016",
+    "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
+    "sqag-main-worktree-recovery-postgresql17-pr-20260728-13",
+    "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
+    "workflow-compatibility-a-gate3-amendment-20260728-03",
+    "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
+    "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
+    "sqag-postgresql17-assertion-output-safety-20260728-14",
+    "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
+    "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
+    "workflow-compatibility-a-gate3-amendment-20260728-04",
+    "sqag-postgresql17-fixed-error-category-20260728-15",
+    "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
+    "2026-07-28-governance-tooling-a-gate3-remediation-021",
+    "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
+    "2026-07-28-governance-tooling-a-gate3-remediation-022",
+    "2026-07-28-governance-tooling-a-gate3-remediation-023",
+    "workflow-compatibility-a-gate3-amendment-20260728-05",
+    "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
+    "sqag-production-inspection-authority-recovery-20260728-17",
+    "swooshz-host-environment-stale-credential-containment-20260728-01",
+    "6a3d5523-45a9-46f3-9b1f-dd0016eac160",
+    "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
+    "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
+    "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
+    "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14",
+    "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21",
+    "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15"
+  ],
+  "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "batch_id": "batch-20260729-gate3-amendment-004",
   "batch_mode": "initial",
+  "candidate_content_commit_sha": "09b8103ffb0083dba4d589072d34f08ffb1d4cce",
+  "canonical_hashes": {
+    "dispositions_jsonl": "0e9b024d927d7f129b3f1bc4bf8f59229e37ae2243483e4ae528894b850563e8",
+    "evaluations_jsonl": "962b4585bfb38414e0946616f2957bd650ba60dcc7b78adfcba9494a2f9cafea",
+    "model_recommendation_json": "5ab816fade73f72abe2abb3bd07afcd84f8ce32081965bc6f439ed446044c0f1",
+    "readme_md": "e1b93b51b57830c3960ad41996c53c03098943daeff65c9e535ffc0d9596907e",
+    "scorecard_md": "ccf64c5ac6b917220e54b3c425e11148f0fcde50729e1716f6cc02d4e2cd0191"
+  },
+  "canonical_main_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "canonical_record_hashes": {
+    "019f9ee5-8959-7351-bf3c-6e440b810d77": "25b0cca47ccbfb571254ee743a190a313e723d33a89924fc23bdcefe7dd1f46c",
+    "019f9f62-12f0-73b2-a930-d3dda2b091bd": "811e8462e8700ad8d76040176f34abfc0d2cd75eba3e08565677cdb2d9d21932",
+    "019f9f66-5e5c-7222-a907-f222fd291a16": "15e166cc3dc0f24d96fa7803afb9cd43d24ccbcf8ca0dee3a9f238b8a47cb7a5",
+    "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64": "8713b9d85cf0778def85ba2645903cafce46cfe353ff429f8ff59ca42e852840",
+    "019fa0dd-e9a5-7af0-802a-48c9d51b5836": "54c67c3d4e301417f5d10fee834550e62d8f059bddc4e1e1f186fdeeb657791e",
+    "019fa15d-bd42-7301-a4e6-75a59b0627d9": "519521ce4b0d14ea8e1baee25bd65ccabe3952270a564d67290137ebe2f0e9c0",
+    "019fa161-cdad-7ed0-b507-6792fe8317ed": "8a9a6240d75a878464beb6d88ed82b56ea255f24bdddf40f7470d22cb626e843",
+    "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff": "ba345df1ff0d469bd748251093499a48c16755a18b0814b5e5eaf77cab4575cb",
+    "2026-07-27-governance-tooling-a-gate3-remediation-004": "1ce591bf37c1d4ce3b1a1d9d84ffd2b3b9c21d0884832e36f6317f043fce713b",
+    "2026-07-27-governance-tooling-a-gate3-remediation-014": "ab7c4b03b8baa9521ca8cf9ae50c0b02f52c8684db18a5891c9e82c09d2d5476",
+    "2026-07-27-governance-tooling-a-gate4-amendment-006": "733171408ef869df0798001e1eb8fad8b175396595170679fd4ac095b0e8bd27",
+    "2026-07-27-governance-tooling-a-gate4-amendment-008": "6ed9b38c0d96228cb5cc2eee1c6fae204aa473ff4801f65946bfa120f91547bf",
+    "2026-07-27-governance-tooling-a-gate4-amendment-012": "a8363f16f3cc98d1a5247bf18e928f2010ce3dac2f959a4d860f5f6550579613",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008": "785c60a058e1fe692cfd752717dc185e26e05505b0a33a51da1599639893cc8d",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009": "26acc1cc2c91531b0c08895e5f67d3d0a63be9c920f9deb78a6e30278075faed",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010": "84e4238d5da969072cfcc6a5d040ccc53318605fbee9d5bf50b26988be1b32c5",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011": "d33ebc1e6d2e26a2cf8df5178cbec8d721ce299b2727fa3dcfa1ed3b9d713814",
+    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012": "c364e6b7f2d5c77a3f58bca0480d86e0c7dde9f24cf384723a4fb28a77580f12",
+    "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001": "9caf716d477a287e966b30b7dc9ed9de8de77bc0945421efe663dcc37a2cc537",
+    "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009": "7c0d567046f9ae1585203557b6b7da94130c33ef18fbf1a5296a271d80ed58bd",
+    "2026-07-28-governance-tooling-a-gate3-remediation-016": "efb4c7f3c09371006de959155e60acacdaf6454c38160e233c5cf06b757b9cbe",
+    "2026-07-28-governance-tooling-a-gate3-remediation-021": "9695416ee42a58b01fca0b9dc31adafc68d301fe39c766973beed7de684db809",
+    "2026-07-28-governance-tooling-a-gate3-remediation-022": "83ee09c75bcbf7c6980071df0f9a4736e298b0cac21f537581d853090f717e9d",
+    "2026-07-28-governance-tooling-a-gate3-remediation-023": "1212769222b89fb7f70458d155711f509accd709268a62d667741f728fa39d45",
+    "263a994d-b3f1-4b2f-aa24-4edb68c473cc": "3bb6de0b59a52ff78f5348aa296d915488946f565fcc2505119e938ab19a4219",
+    "6a3d5523-45a9-46f3-9b1f-dd0016eac160": "5748b9d30ead92526f584eaafc55c3e39f002ee68fa3c302ed621e86b5ae2e62",
+    "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b": "822780646eb9b553238dca5e37367554e391388cfc10cb1c16c184e48e6a2129",
+    "8d98a2e2-e06d-477c-a1b2-185b00f8b874": "12136b7c6f6949e114dcf7184251fe3182993ddb6ac47ea111fd8073a824adfc",
+    "b96bcf1b-0434-4674-926a-f1ea578b7820": "e566400b7d08094aa5ce4b5a133fd24e4d2dfbc48dd6ad6958f9493e0f35e74a",
+    "d0c73db8-2910-4104-9c32-932481707574": "48b2ba5fcbece23014842a57503ef6045f1cb533da67d6d751054c9cbabc1159",
+    "ee0e5d56-c322-4292-ba68-435174decb97": "a6a6407a7af22581da1d7f46b436c62ad2ce3d10fe008700968385f4945d7f26",
+    "f643d85d-14a4-464d-9997-34061467a3fc": "7e6c874f558935c4f9c8105fcef91dc0206f7639726e0ae8af65937681e81e49",
+    "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713": "75a8ce2a7b959441ed3245a0a4e3ca36fe05c2c0df715056fbab4e1a3c20ca7d",
+    "platform-operator-source-recovery-20260727-04": "6c05d1c1092c21685b573262ed87bfff89e532f4b1fd5601788b6441112483b8",
+    "platform-post-merge-review-remediation-20260726-01": "b9f375100f0f71eac9aafc36e2af0d2cdaf9fc0eccf87360351d7b9d1d6c84b8",
+    "platform-post-merge-review-remediation-amendment-20260727-02": "3b934422bd3b4d00cf33c0f89ebd289d7a261144f40407e546798e0c66a76e54",
+    "platform-runtime-activation-20260727-05": "9ae667c97c5d24af0875068905ca2b0c9945e4c1e72eea9a82b794fd38eba3d4",
+    "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17": "08423245793320c62eb9115849e8f2c0f59ebb471475ec673b17b6c417889b40",
+    "platform-runtime-grant-contract-correction-20260727-07": "2a76fd68af20d040f1532e91c7ffff35e0717c562ff363faa09b4a8fecd8be16",
+    "platform-runtime-grant-contract-final-network-reference-closure-20260727-16": "8f5e712aac204ac1d3b91a5c0d763da8de4d6597eba0c222b314fa018a07f460",
+    "platform-runtime-grant-contract-nested-callable-scope-20260728-18": "ded432071ec78026440cd9c5b7285f638562f04e58d566b67962415e702e3fa8",
+    "platform-runtime-grant-contract-network-capability-amendment-20260727-11": "f0f9fc2679d66a3fa5f0d084f13ceb6b95a3f3719f103f72abbb159d9500a830",
+    "platform-runtime-grant-contract-network-capability-amendment-20260727-12": "7ac3c3f31547ec29dce1dc9b995d4ea80066ffdffbe45354ac52e952cfd7e07e",
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13": "018f5473b9013ab1c6e9aa4293ceaf97b9200ef23f3c5ffe04cf11188fae7033",
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14": "2bd3e058635a841c2963fe2892bb830a0877cd312f8ade5b02af02897168d72c",
+    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15": "e9cd3d553de69e3e424b1782416cef38ce909d9c894601cd0a8eea8771d09458",
+    "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19": "81c9b4df186d7bfa1692f1364583ce807872f0e40b3745943fed972fc2386ad7",
+    "platform-runtime-grant-reconciliation-20260727-06": "3e59cbd3a4b659a6e2881723424477cf587b44ba13b539a96daca0b8efcd40a7",
+    "skr-post-merge-review-remediation-20260727-03": "7441c53043f3f4c03fa9e735498f46eca824e9924fcb8743bb9c38d298bb9c5d",
+    "skr-production-dependency-remediation-20260726-01": "747a194e4aa9abfc355da013c37b43fa88900109c9e407dfebb11d4a2e8d1b9d",
+    "skr-production-dependency-remediation-amendment-20260727-02": "2b9c1192abf19dd0cffaffd662af06cf68676e89c6ffd062afdb933e81fd5753",
+    "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08": "148e77040387b7bd17e9163bf68b27ab817d691df382d4186b45468a2d0d756f",
+    "skr-structured-quote-ux-architecture-20260727-01": "8122c8930d3a1e56c610db3acb77868cfec5108d16c025dd3da9d95b7a7e3a8f",
+    "skr-structured-quote-ux-g3-implementation-20260727-03": "88dbb18fbc876e7f3b53fc97510f2e2e78612a0e7434c44f0572836dec69b632",
+    "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06": "7e1870ce96ab2816756cfd7616d844b8631086c2fc32fccf8b9538bd0475ad3b",
+    "skr-structured-quote-ux-g4-review-remediation-20260727-04": "f7cda2b74f231494d99eb6937ee8fed0a84a1489050cf1dca1354018b6a4b107",
+    "skr-structured-quote-ux-g4-review-remediation-20260727-05": "027a3a5d7541dea9add2d502d5223c8db90e975724d11db93acb8fb0d374ed1e",
+    "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10": "d0e80753a97eaea39bd7972b0956ca5abed844a97fab25ee64ed476970c3ca5a",
+    "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09": "2e8e2bc80caf93e26ea556fbcfbccfc6dafdfb73ca5751c361e33ec02bc182e9",
+    "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11": "b16abbcec50d5914c2a04d908be7ab2ce788103e01e694b6c384cac2c88c9a74",
+    "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12": "6fb41272226ae0bf689d8f52382fd56d7a3052ad57a519b81c8d518b0c43f75f",
+    "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13": "60da29c974a4d045263f23ca18b44cf9aeb21bfb05f508aa7cb90466e7818dee",
+    "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14": "97e6ce558cf278bb10e3361c8bac505c03e11b3d32d67fbecf8ab7858cf54be0",
+    "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15": "3f80ad463de953ac4232ff8ab8ecc768c9cac7aae1c5729ba2f8c5ecdbf2398e",
+    "sqag-direct-operator-membership-and-config-reconciliation-20260728-18": "07c654f170db4c680d95093d1b842bb5c9ced367565438ef7c098255fb78bd88",
+    "sqag-internal-alpha-fast-track-20260727-08": "fc97f036bdec6666f3c3ebf12b6aa72e394cae5c669649bf94fb2a49e04be801",
+    "sqag-internal-alpha-managed-state-admission-20260727-10a": "a243d79c9cc948744c384ca77de818fb0a6ea7b5af1c306175d1130f73caf5d9",
+    "sqag-main-worktree-recovery-postgresql17-pr-20260728-13": "1c5402b37aefd0395f2c024a0be44ecabcd90b94fec5c07e6208ce1e40924ca5",
+    "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21": "ef7869b7bbd526cbcf32674e47f1d1a146cce86e67f851b1ea7a9abf5fc041a9",
+    "sqag-postgresql17-assertion-output-safety-20260728-14": "3b762549768baa1757727dafa015045df4016ac339be280d64d1e493825c217d",
+    "sqag-postgresql17-fixed-error-category-20260728-15": "78ef93697b168f698dd7da5b06b18942e0bedb5a192b05246e2c6920ddc1fda2",
+    "sqag-production-admission-archive-contract-repair-20260727-10": "0fe282522f7f1162df458425ed3a092a90ab9cecaf2243f52a6d3cf940707aee",
+    "sqag-production-admission-design-regeneration-20260727-08": "3cbc7ccc12560c5e678af60140df1eef94d23f04b9e9aa6c8b6c54c49bfbdbe8",
+    "sqag-production-admission-design-regeneration-correction-20260727-09": "8d81c1d7a59c81123c06fff5f61ae318d3d01ff0cf9acaf05b623f9d788cda86",
+    "sqag-production-inspection-authority-recovery-20260728-17": "97ecb8e88ff3144beadd64f9c5643892c2087894e639f357805c8c1ee82042e3",
+    "swooshz-host-environment-stale-credential-containment-20260728-01": "5fbdf337b23c083cae41c55b75e54673d44c0a613a80720d63b3d58509c88564",
+    "workflow-compatibility-a-gate3-amendment-20260728-03": "acade384b4a4aefefadb46f0ae3cdc6e8b8a94df1f32103a89cffa39b33257da",
+    "workflow-compatibility-a-gate3-amendment-20260728-04": "749df55530531e7f510d7329d242cdd49b862ad825b3af806d75a6fdc4e1ebfa",
+    "workflow-compatibility-a-gate3-amendment-20260728-05": "7b50aae9b8665d1d04a232169397af1eae0610760ae64f05942e8de2d3e1dafc"
+  },
+  "comment_bindings": [
+    {
+      "body_sha256": "680a84585519be6c645738d6446ad29fd524c12754abaa04e5ec47b54b18a9fd",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084152024,
+      "created_at": "2026-07-26T15:33:39Z",
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker",
+      "updated_at": "2026-07-26T15:33:39Z"
+    },
+    {
+      "body_sha256": "934dc08077fab2cc74c26af92ae87db176e79d243f5195b727cb5f2f2a2a37e6",
+      "canonical_record_sha256": "25b0cca47ccbfb571254ee743a190a313e723d33a89924fc23bdcefe7dd1f46c",
+      "cleanup_eligible": true,
+      "comment_id": 5084273959,
+      "created_at": "2026-07-26T16:06:05Z",
+      "evaluation_run_id": "019f9ee5-8959-7351-bf3c-6e440b810d77",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T16:06:05Z"
+    },
+    {
+      "body_sha256": "0a73d7f02a7cb897517ccc84e0e42ddbb34fd4c58a153a363dd1d8c07163a22f",
+      "canonical_record_sha256": "b9f375100f0f71eac9aafc36e2af0d2cdaf9fc0eccf87360351d7b9d1d6c84b8",
+      "cleanup_eligible": true,
+      "comment_id": 5084371265,
+      "created_at": "2026-07-26T16:31:34Z",
+      "evaluation_run_id": "platform-post-merge-review-remediation-20260726-01",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T16:31:34Z"
+    },
+    {
+      "body_sha256": "85cef2c42f1b89f6669c3c9f8f70f55f2bb37494cf1937c9ff62bd38067a627b",
+      "canonical_record_sha256": "747a194e4aa9abfc355da013c37b43fa88900109c9e407dfebb11d4a2e8d1b9d",
+      "cleanup_eligible": true,
+      "comment_id": 5084371842,
+      "created_at": "2026-07-26T16:31:43Z",
+      "evaluation_run_id": "skr-production-dependency-remediation-20260726-01",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T16:31:43Z"
+    },
+    {
+      "body_sha256": "b3cad7d8cfde9e0540eaf5827e352d069ba3c80b4c81faba52a035d8129e61d2",
+      "canonical_record_sha256": "3b934422bd3b4d00cf33c0f89ebd289d7a261144f40407e546798e0c66a76e54",
+      "cleanup_eligible": true,
+      "comment_id": 5084513198,
+      "created_at": "2026-07-26T17:06:56Z",
+      "evaluation_run_id": "platform-post-merge-review-remediation-amendment-20260727-02",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T17:06:56Z"
+    },
+    {
+      "body_sha256": "ae8d854f1a4ed22776557cfa646c38056dff66ae160ae6a81dd24cd5755f3069",
+      "canonical_record_sha256": "15e166cc3dc0f24d96fa7803afb9cd43d24ccbcf8ca0dee3a9f238b8a47cb7a5",
+      "cleanup_eligible": true,
+      "comment_id": 5084615360,
+      "created_at": "2026-07-26T17:34:25Z",
+      "evaluation_run_id": "019f9f66-5e5c-7222-a907-f222fd291a16",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T17:34:25Z"
+    },
+    {
+      "body_sha256": "43977de4d74e42b249555bd47d2bfc4029bbe3cfb6ea46f754ededb438a9c0cd",
+      "canonical_record_sha256": "785c60a058e1fe692cfd752717dc185e26e05505b0a33a51da1599639893cc8d",
+      "cleanup_eligible": true,
+      "comment_id": 5084618903,
+      "created_at": "2026-07-26T17:35:25Z",
+      "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T17:35:25Z"
+    },
+    {
+      "body_sha256": "3c170d8add02bd181f3d592ded601ed4983d027da20637fc0bee899d3408ff4c",
+      "canonical_record_sha256": "811e8462e8700ad8d76040176f34abfc0d2cd75eba3e08565677cdb2d9d21932",
+      "cleanup_eligible": true,
+      "comment_id": 5084631726,
+      "created_at": "2026-07-26T17:39:00Z",
+      "evaluation_run_id": "019f9f62-12f0-73b2-a930-d3dda2b091bd",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T17:39:00Z"
+    },
+    {
+      "body_sha256": "744f658a4be2b64cc5020e64b3df7b48374782dfc0eb35ebf7113aa82e6f7e94",
+      "canonical_record_sha256": "2b9c1192abf19dd0cffaffd662af06cf68676e89c6ffd062afdb933e81fd5753",
+      "cleanup_eligible": true,
+      "comment_id": 5086001616,
+      "created_at": "2026-07-26T23:55:11Z",
+      "evaluation_run_id": "skr-production-dependency-remediation-amendment-20260727-02",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-26T23:55:11Z"
+    },
+    {
+      "body_sha256": "bd58381dac471818efd7cff35286050fd01d50623bccc45645a8f6aada5f6983",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086578921,
+      "created_at": "2026-07-27T02:06:32Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:06:32Z"
+    },
+    {
+      "body_sha256": "1c963a48a4f76c1c8015b6d4a3bd6aafb47449eccdd38a4f4385199588f687d2",
+      "canonical_record_sha256": "26acc1cc2c91531b0c08895e5f67d3d0a63be9c920f9deb78a6e30278075faed",
+      "cleanup_eligible": true,
+      "comment_id": 5086581050,
+      "created_at": "2026-07-27T02:06:59Z",
+      "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T02:06:59Z"
+    },
+    {
+      "body_sha256": "9a1835c8ee93eafd7bed34145e0e924d91f1520e7586bac4ce4c191257b36f42",
+      "canonical_record_sha256": "54c67c3d4e301417f5d10fee834550e62d8f059bddc4e1e1f186fdeeb657791e",
+      "cleanup_eligible": true,
+      "comment_id": 5086585134,
+      "created_at": "2026-07-27T02:07:50Z",
+      "evaluation_run_id": "019fa0dd-e9a5-7af0-802a-48c9d51b5836",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T02:07:50Z"
+    },
+    {
+      "body_sha256": "14598e3c1e38044ffcb4277b23141698cc9d3c14b206f577be2437e050603fe6",
+      "canonical_record_sha256": "e566400b7d08094aa5ce4b5a133fd24e4d2dfbc48dd6ad6958f9493e0f35e74a",
+      "cleanup_eligible": true,
+      "comment_id": 5086589429,
+      "created_at": "2026-07-27T02:08:42Z",
+      "evaluation_run_id": "b96bcf1b-0434-4674-926a-f1ea578b7820",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T03:06:33Z"
+    },
+    {
+      "body_sha256": "2205142bd0862ed0a9b281e615bc4d3d86f839c03cef1ca84a91fc26a8ceeae2",
+      "canonical_record_sha256": "7e6c874f558935c4f9c8105fcef91dc0206f7639726e0ae8af65937681e81e49",
+      "cleanup_eligible": true,
+      "comment_id": 5086624137,
+      "created_at": "2026-07-27T02:15:43Z",
+      "evaluation_run_id": "f643d85d-14a4-464d-9997-34061467a3fc",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T02:15:43Z"
+    },
+    {
+      "body_sha256": "aee7818177cdb4d117705b24e72bbbe7edbd711fe55059d1b066ac9be724c37c",
+      "canonical_record_sha256": "12136b7c6f6949e114dcf7184251fe3182993ddb6ac47ea111fd8073a824adfc",
+      "cleanup_eligible": true,
+      "comment_id": 5086673654,
+      "created_at": "2026-07-27T02:25:11Z",
+      "evaluation_run_id": "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T02:45:23Z"
+    },
+    {
+      "body_sha256": "b6bf6cf04f8e13ecca19833372fc042391b49764e8c89303ef049cfa1073802c",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086705192,
+      "created_at": "2026-07-27T02:32:08Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:32:08Z"
+    },
+    {
+      "body_sha256": "1b2326c6818afd880f31a37b75049df397d2f0b3e4b52f0093db9af53f2e5e62",
+      "canonical_record_sha256": "84e4238d5da969072cfcc6a5d040ccc53318605fbee9d5bf50b26988be1b32c5",
+      "cleanup_eligible": true,
+      "comment_id": 5086739477,
+      "created_at": "2026-07-27T02:39:51Z",
+      "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T02:39:51Z"
+    },
+    {
+      "body_sha256": "cb9740bf0748ec81f7232cf9a83ff8f9b53508b71896baa526a3d2762aa04b0b",
+      "canonical_record_sha256": "6c05d1c1092c21685b573262ed87bfff89e532f4b1fd5601788b6441112483b8",
+      "cleanup_eligible": true,
+      "comment_id": 5086776533,
+      "created_at": "2026-07-27T02:48:05Z",
+      "evaluation_run_id": "platform-operator-source-recovery-20260727-04",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T02:48:05Z"
+    },
+    {
+      "body_sha256": "d2be2c1e22fb136edbba0b7c2a92df74c8a1e56028d9f9b7a355781791bc159f",
+      "canonical_record_sha256": "3bb6de0b59a52ff78f5348aa296d915488946f565fcc2505119e938ab19a4219",
+      "cleanup_eligible": true,
+      "comment_id": 5086781596,
+      "created_at": "2026-07-27T02:49:17Z",
+      "evaluation_run_id": "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T02:49:17Z"
+    },
+    {
+      "body_sha256": "417b1175d3d478fd1f239e7cb5942d76090518551050a509001bfc232bfbcd4e",
+      "canonical_record_sha256": "519521ce4b0d14ea8e1baee25bd65ccabe3952270a564d67290137ebe2f0e9c0",
+      "cleanup_eligible": true,
+      "comment_id": 5086782072,
+      "created_at": "2026-07-27T02:49:24Z",
+      "evaluation_run_id": "019fa15d-bd42-7301-a4e6-75a59b0627d9",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T04:14:41Z"
+    },
+    {
+      "body_sha256": "2cd345d0332207ac58ed62d1448fb6bfe2d8b604d166bf2256747315426c75f3",
+      "canonical_record_sha256": "d33ebc1e6d2e26a2cf8df5178cbec8d721ce299b2727fa3dcfa1ed3b9d713814",
+      "cleanup_eligible": true,
+      "comment_id": 5087003873,
+      "created_at": "2026-07-27T03:35:51Z",
+      "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T03:35:51Z"
+    },
+    {
+      "body_sha256": "763906db9ebd981b1dbe4edc4c0af8a3225c792bbcd661b217926c715efa7223",
+      "canonical_record_sha256": "7441c53043f3f4c03fa9e735498f46eca824e9924fcb8743bb9c38d298bb9c5d",
+      "cleanup_eligible": true,
+      "comment_id": 5087015504,
+      "created_at": "2026-07-27T03:38:09Z",
+      "evaluation_run_id": "skr-post-merge-review-remediation-20260727-03",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T03:38:09Z"
+    },
+    {
+      "body_sha256": "baf889fe162e1ee1865dd5625cc4881ff9903dc56bc55b014aacce09b4a2f5bb",
+      "canonical_record_sha256": "9ae667c97c5d24af0875068905ca2b0c9945e4c1e72eea9a82b794fd38eba3d4",
+      "cleanup_eligible": true,
+      "comment_id": 5087016408,
+      "created_at": "2026-07-27T03:38:20Z",
+      "evaluation_run_id": "platform-runtime-activation-20260727-05",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T03:38:20Z"
+    },
+    {
+      "body_sha256": "56e169a502ed2db7e2b114896a3488536aa652f4ccca56592fffc02ca9eb3647",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087030694,
+      "created_at": "2026-07-27T03:41:36Z",
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker",
+      "updated_at": "2026-07-27T04:14:28Z"
+    },
+    {
+      "body_sha256": "1faa09dec7132de1ac20cd0d11b7a258e965e05593d775673f98e2bd75111e49",
+      "canonical_record_sha256": "3e59cbd3a4b659a6e2881723424477cf587b44ba13b539a96daca0b8efcd40a7",
+      "cleanup_eligible": true,
+      "comment_id": 5087203227,
+      "created_at": "2026-07-27T04:18:02Z",
+      "evaluation_run_id": "platform-runtime-grant-reconciliation-20260727-06",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T04:18:02Z"
+    },
+    {
+      "body_sha256": "8317f078d28c65f82640734def386ef2ba3844d1dc73eaae66290fda8dea5d40",
+      "canonical_record_sha256": "c364e6b7f2d5c77a3f58bca0480d86e0c7dde9f24cf384723a4fb28a77580f12",
+      "cleanup_eligible": true,
+      "comment_id": 5087215771,
+      "created_at": "2026-07-27T04:20:01Z",
+      "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T04:20:01Z"
+    },
+    {
+      "body_sha256": "0722d4ee875d02997aa521a3d86cca4709d95b9ba9f8acab44e450fbe83e157c",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087404562,
+      "created_at": "2026-07-27T04:53:34Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T04:53:34Z"
+    },
+    {
+      "body_sha256": "4b562b94daf2d8ab7e549decd6360b4a4bc773bf7247d6f4a9d8bf5bf222f8b0",
+      "canonical_record_sha256": "75a8ce2a7b959441ed3245a0a4e3ca36fe05c2c0df715056fbab4e1a3c20ca7d",
+      "cleanup_eligible": true,
+      "comment_id": 5087456754,
+      "created_at": "2026-07-27T05:03:47Z",
+      "evaluation_run_id": "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T05:03:47Z"
+    },
+    {
+      "body_sha256": "ce0a5f4147d60a09ff036c6ff026b68fd62f6833d63a19aef5a2b05e18781eb7",
+      "canonical_record_sha256": "2a76fd68af20d040f1532e91c7ffff35e0717c562ff363faa09b4a8fecd8be16",
+      "cleanup_eligible": true,
+      "comment_id": 5087518655,
+      "created_at": "2026-07-27T05:14:28Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-correction-20260727-07",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T05:14:28Z"
+    },
+    {
+      "body_sha256": "72ae9287cc1c5f07c9ac9bc0747d65b7da84138e36b89b262860dc86fd253825",
+      "canonical_record_sha256": "a6a6407a7af22581da1d7f46b436c62ad2ce3d10fe008700968385f4945d7f26",
+      "cleanup_eligible": true,
+      "comment_id": 5087613135,
+      "created_at": "2026-07-27T05:30:59Z",
+      "evaluation_run_id": "ee0e5d56-c322-4292-ba68-435174decb97",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T05:30:59Z"
+    },
+    {
+      "body_sha256": "9711d8b29577fa4fc78f096cd794869fffb7a4e5523d8b914f68e411316a7220",
+      "canonical_record_sha256": "8a9a6240d75a878464beb6d88ed82b56ea255f24bdddf40f7470d22cb626e843",
+      "cleanup_eligible": true,
+      "comment_id": 5087810146,
+      "created_at": "2026-07-27T06:01:54Z",
+      "evaluation_run_id": "019fa161-cdad-7ed0-b507-6792fe8317ed",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T06:01:54Z"
+    },
+    {
+      "body_sha256": "b5d427ef2fa2dfc7ff9fcf84f1f9b9d920c753112d2b7af94b791eb1f3dbcd2d",
+      "canonical_record_sha256": "ba345df1ff0d469bd748251093499a48c16755a18b0814b5e5eaf77cab4575cb",
+      "cleanup_eligible": true,
+      "comment_id": 5087811634,
+      "created_at": "2026-07-27T06:02:09Z",
+      "evaluation_run_id": "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T06:02:09Z"
+    },
+    {
+      "body_sha256": "035c6f3b2a38dfd7a0252bad9edee6b4bb5ebea7aa9bfc455dc2221b9bb8afe7",
+      "canonical_record_sha256": "8713b9d85cf0778def85ba2645903cafce46cfe353ff429f8ff59ca42e852840",
+      "cleanup_eligible": true,
+      "comment_id": 5087813069,
+      "created_at": "2026-07-27T06:02:23Z",
+      "evaluation_run_id": "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T06:02:23Z"
+    },
+    {
+      "body_sha256": "2ba11e9b04463c1274475e673fc92f2b82542378db25402146884ac972ed95ff",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087820732,
+      "created_at": "2026-07-27T06:03:31Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:03:31Z"
+    },
+    {
+      "body_sha256": "4b30e7b4c54ed0ad1170f1171d5ee85e8cae3b07abfb29a20a49c2f8772b9fbb",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087822478,
+      "created_at": "2026-07-27T06:03:45Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:03:45Z"
+    },
+    {
+      "body_sha256": "e647e0e25112743c33b14d6204924058eafbf45c323e7daabbabe9a8c52bc3eb",
+      "canonical_record_sha256": "822780646eb9b553238dca5e37367554e391388cfc10cb1c16c184e48e6a2129",
+      "cleanup_eligible": true,
+      "comment_id": 5087826613,
+      "created_at": "2026-07-27T06:04:13Z",
+      "evaluation_run_id": "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T06:04:13Z"
+    },
+    {
+      "body_sha256": "b7b0e884518daf431bf7dca7af6ff0d34d3d93cd7f36cd56df760b62cdb16d92",
+      "canonical_record_sha256": "fc97f036bdec6666f3c3ebf12b6aa72e394cae5c669649bf94fb2a49e04be801",
+      "cleanup_eligible": true,
+      "comment_id": 5088140090,
+      "created_at": "2026-07-27T06:45:07Z",
+      "evaluation_run_id": "sqag-internal-alpha-fast-track-20260727-08",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T06:45:07Z"
+    },
+    {
+      "body_sha256": "b60d1cfe572c80c05e6dd5f0d333b8dbda1d73c62f2205e21c1c08f52191fffd",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": true,
+      "comment_id": 5088187239,
+      "created_at": "2026-07-27T06:51:52Z",
+      "evaluation_run_id": null,
+      "outcome_code": "withdrawn_identity",
+      "updated_at": "2026-07-27T06:51:52Z"
+    },
+    {
+      "body_sha256": "4e4e9cae77d3849968b03788269db94bc83f70d2139373a3220248707b545bcc",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088271091,
+      "created_at": "2026-07-27T07:02:54Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T07:02:54Z"
+    },
+    {
+      "body_sha256": "a4eec64854200618fcf6838f0cf019a40abf8ff22536820cfe0134979c8e2cc2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088331426,
+      "created_at": "2026-07-27T07:09:31Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T07:09:31Z"
+    },
+    {
+      "body_sha256": "cd9516b7ebab8d4ddfa31676a4308fb75978f237ae04b989138396fb9a235b18",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088919064,
+      "created_at": "2026-07-27T08:14:51Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T08:14:51Z"
+    },
+    {
+      "body_sha256": "ad645b8911b37674a0a675815cd389acdddfe8c19c9bb91e2704b278501b766d",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5089028662,
+      "created_at": "2026-07-27T08:26:31Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T08:26:31Z"
+    },
+    {
+      "body_sha256": "a857c135de6f0594706ff53cc74b1d49ee5e8cc75ebc01559540c172e4042003",
+      "canonical_record_sha256": "8122c8930d3a1e56c610db3acb77868cfec5108d16c025dd3da9d95b7a7e3a8f",
+      "cleanup_eligible": true,
+      "comment_id": 5090571993,
+      "created_at": "2026-07-27T11:09:33Z",
+      "evaluation_run_id": "skr-structured-quote-ux-architecture-20260727-01",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T11:09:33Z"
+    },
+    {
+      "body_sha256": "95caf93730fc75fe77b3b4e0229fc20f98cdf6b042bc3b4d1870b1f78e63089b",
+      "canonical_record_sha256": "a243d79c9cc948744c384ca77de818fb0a6ea7b5af1c306175d1130f73caf5d9",
+      "cleanup_eligible": true,
+      "comment_id": 5090573860,
+      "created_at": "2026-07-27T11:09:45Z",
+      "evaluation_run_id": "sqag-internal-alpha-managed-state-admission-20260727-10a",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T11:09:45Z"
+    },
+    {
+      "body_sha256": "e296576501a535b06e266bba8067ec4b3a0b965653c9068f33026b6173042e61",
+      "canonical_record_sha256": "f0f9fc2679d66a3fa5f0d084f13ceb6b95a3f3719f103f72abbb159d9500a830",
+      "cleanup_eligible": true,
+      "comment_id": 5090577133,
+      "created_at": "2026-07-27T11:10:05Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-network-capability-amendment-20260727-11",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T11:10:05Z"
+    },
+    {
+      "body_sha256": "cb2222c7e435a9cb5c092c886036afc78a809b4f7ebdffd39417feed61f69799",
+      "canonical_record_sha256": "1ce591bf37c1d4ce3b1a1d9d84ffd2b3b9c21d0884832e36f6317f043fce713b",
+      "cleanup_eligible": true,
+      "comment_id": 5090585819,
+      "created_at": "2026-07-27T11:11:01Z",
+      "evaluation_run_id": "2026-07-27-governance-tooling-a-gate3-remediation-004",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T11:11:01Z"
+    },
+    {
+      "body_sha256": "bb96fec210f82c5805928300a99809d026e3eb0791a6165741bdcc1a0bc72ad7",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5090737316,
+      "created_at": "2026-07-27T11:28:44Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T11:28:44Z"
+    },
+    {
+      "body_sha256": "d91e96b4c19d5e23e16a16a0ded66ff3f11df337eba4cf433df9cf7c9c521572",
+      "canonical_record_sha256": "7ac3c3f31547ec29dce1dc9b995d4ea80066ffdffbe45354ac52e952cfd7e07e",
+      "cleanup_eligible": true,
+      "comment_id": 5091296179,
+      "created_at": "2026-07-27T12:29:13Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T12:29:13Z"
+    },
+    {
+      "body_sha256": "8feb78e65a7fc9f3a1622b70cab268880098c775cba73e17397e619c1c0c1c0a",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5091298564,
+      "created_at": "2026-07-27T12:29:28Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T12:29:28Z"
+    },
+    {
+      "body_sha256": "93635e37e23a1d4e6063f38665222aa7778754058da5fd1858e7388b8ea147a1",
+      "canonical_record_sha256": "733171408ef869df0798001e1eb8fad8b175396595170679fd4ac095b0e8bd27",
+      "cleanup_eligible": true,
+      "comment_id": 5091616990,
+      "created_at": "2026-07-27T13:01:27Z",
+      "evaluation_run_id": "2026-07-27-governance-tooling-a-gate4-amendment-006",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T13:01:27Z"
+    },
+    {
+      "body_sha256": "509a5a529bb7bcea4d6c95ba9e3857941e0c7c75f63c9526182797988cc5322d",
+      "canonical_record_sha256": "88dbb18fbc876e7f3b53fc97510f2e2e78612a0e7434c44f0572836dec69b632",
+      "cleanup_eligible": true,
+      "comment_id": 5091741767,
+      "created_at": "2026-07-27T13:12:39Z",
+      "evaluation_run_id": "skr-structured-quote-ux-g3-implementation-20260727-03",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T13:12:39Z"
+    },
+    {
+      "body_sha256": "0def7a7f627b59736da2af6417ce525445630dd97040603052c6fd0221a61910",
+      "canonical_record_sha256": "6ed9b38c0d96228cb5cc2eee1c6fae204aa473ff4801f65946bfa120f91547bf",
+      "cleanup_eligible": true,
+      "comment_id": 5092077646,
+      "created_at": "2026-07-27T13:40:47Z",
+      "evaluation_run_id": "2026-07-27-governance-tooling-a-gate4-amendment-008",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T13:40:47Z"
+    },
+    {
+      "body_sha256": "a50c566cb54cee2207d99a4088b6954137bdda7bddefe63a98e034a8a1bdb938",
+      "canonical_record_sha256": "018f5473b9013ab1c6e9aa4293ceaf97b9200ef23f3c5ffe04cf11188fae7033",
+      "cleanup_eligible": true,
+      "comment_id": 5092124832,
+      "created_at": "2026-07-27T13:44:59Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T13:44:59Z"
+    },
+    {
+      "body_sha256": "0bd6682c026524d75d33a2cde564c10d6f1de81a72bfa951bb746b98d9583301",
+      "canonical_record_sha256": "3cbc7ccc12560c5e678af60140df1eef94d23f04b9e9aa6c8b6c54c49bfbdbe8",
+      "cleanup_eligible": true,
+      "comment_id": 5092283173,
+      "created_at": "2026-07-27T13:59:30Z",
+      "evaluation_run_id": "sqag-production-admission-design-regeneration-20260727-08",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T13:59:30Z"
+    },
+    {
+      "body_sha256": "cfaf0cc993b9faca329fc5c14e070b612b8624fe339633350df5bda804c66396",
+      "canonical_record_sha256": "f7cda2b74f231494d99eb6937ee8fed0a84a1489050cf1dca1354018b6a4b107",
+      "cleanup_eligible": true,
+      "comment_id": 5092416182,
+      "created_at": "2026-07-27T14:11:25Z",
+      "evaluation_run_id": "skr-structured-quote-ux-g4-review-remediation-20260727-04",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T14:11:25Z"
+    },
+    {
+      "body_sha256": "a19d3b4fdd94d57f85ec4a77a55e4df6ad94546e693ee5b7730bc1534217ae1a",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092513574,
+      "created_at": "2026-07-27T14:20:11Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T14:20:11Z"
+    },
+    {
+      "body_sha256": "0e260c10d061b935f17530d3b41ad22535275ddb9c276f021a6ce7a104a98f9f",
+      "canonical_record_sha256": "2bd3e058635a841c2963fe2892bb830a0877cd312f8ade5b02af02897168d72c",
+      "cleanup_eligible": true,
+      "comment_id": 5092534822,
+      "created_at": "2026-07-27T14:22:07Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T14:22:07Z"
+    },
+    {
+      "body_sha256": "28e4b0eb1d0418f1aac5ebff5a606b33e9b15e20d34ce03bb0173b1e38f4902b",
+      "canonical_record_sha256": "8d81c1d7a59c81123c06fff5f61ae318d3d01ff0cf9acaf05b623f9d788cda86",
+      "cleanup_eligible": true,
+      "comment_id": 5092939596,
+      "created_at": "2026-07-27T14:58:15Z",
+      "evaluation_run_id": "sqag-production-admission-design-regeneration-correction-20260727-09",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T15:04:36Z"
+    },
+    {
+      "body_sha256": "8e8ffdf82fcf4e0e9e0107a48575f5d02cca9116bfdb7d246f35e6e90076f975",
+      "canonical_record_sha256": "a8363f16f3cc98d1a5247bf18e928f2010ce3dac2f959a4d860f5f6550579613",
+      "cleanup_eligible": true,
+      "comment_id": 5093354729,
+      "created_at": "2026-07-27T15:32:53Z",
+      "evaluation_run_id": "2026-07-27-governance-tooling-a-gate4-amendment-012",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T15:32:53Z"
+    },
+    {
+      "body_sha256": "fc6ee9726aced61ed3d0af65202e80c7a22309786ef5b25d2bece5d87533be1a",
+      "canonical_record_sha256": "0fe282522f7f1162df458425ed3a092a90ab9cecaf2243f52a6d3cf940707aee",
+      "cleanup_eligible": true,
+      "comment_id": 5093443275,
+      "created_at": "2026-07-27T15:40:57Z",
+      "evaluation_run_id": "sqag-production-admission-archive-contract-repair-20260727-10",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T15:40:57Z"
+    },
+    {
+      "body_sha256": "afa31e15bbd5de4399f1d24bc45953e2e080fe3578ae3130e8a5b0c3c078b6ba",
+      "canonical_record_sha256": "027a3a5d7541dea9add2d502d5223c8db90e975724d11db93acb8fb0d374ed1e",
+      "cleanup_eligible": true,
+      "comment_id": 5093570562,
+      "created_at": "2026-07-27T15:52:02Z",
+      "evaluation_run_id": "skr-structured-quote-ux-g4-review-remediation-20260727-05",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T15:52:02Z"
+    },
+    {
+      "body_sha256": "81470490b30bade2f848d99c0417c07c94820678829b0a1ee3b24511c746df5e",
+      "canonical_record_sha256": "e9cd3d553de69e3e424b1782416cef38ce909d9c894601cd0a8eea8771d09458",
+      "cleanup_eligible": true,
+      "comment_id": 5093573986,
+      "created_at": "2026-07-27T15:52:19Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T15:52:19Z"
+    },
+    {
+      "body_sha256": "29c711cac268d01e9a45222a1a61d66ba4dfc630fa5128445deaad4bed4948cb",
+      "canonical_record_sha256": "ab7c4b03b8baa9521ca8cf9ae50c0b02f52c8684db18a5891c9e82c09d2d5476",
+      "cleanup_eligible": true,
+      "comment_id": 5093721405,
+      "created_at": "2026-07-27T16:06:35Z",
+      "evaluation_run_id": "2026-07-27-governance-tooling-a-gate3-remediation-014",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T16:06:35Z"
+    },
+    {
+      "body_sha256": "1fd95f71d526af691f825ce4fee697e9a3be2add8e0531f07177793dfdf416e6",
+      "canonical_record_sha256": "8f5e712aac204ac1d3b91a5c0d763da8de4d6597eba0c222b314fa018a07f460",
+      "cleanup_eligible": true,
+      "comment_id": 5094470896,
+      "created_at": "2026-07-27T17:17:37Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-27T17:21:21Z"
+    },
+    {
+      "body_sha256": "5d746be97dbb6c61316216b53e0b0524f069cb6c7e5232834a7adecb39db9977",
+      "canonical_record_sha256": "7e1870ce96ab2816756cfd7616d844b8631086c2fc32fccf8b9538bd0475ad3b",
+      "cleanup_eligible": true,
+      "comment_id": 5094473607,
+      "created_at": "2026-07-27T17:17:54Z",
+      "evaluation_run_id": "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T02:22:30Z"
+    },
+    {
+      "body_sha256": "c9027cd51f8e3949dbc066824a05e8f0beb071240d98ba751c35378a5c3286ee",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5094475350,
+      "created_at": "2026-07-27T17:18:06Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T17:21:47Z"
+    },
+    {
+      "body_sha256": "dcaa63fac36b624e0e9f3d6f9aa8428fbcd7b80d11d2728f2010ead03ccd01b9",
+      "canonical_record_sha256": "48b2ba5fcbece23014842a57503ef6045f1cb533da67d6d751054c9cbabc1159",
+      "cleanup_eligible": true,
+      "comment_id": 5098280170,
+      "created_at": "2026-07-28T00:11:27Z",
+      "evaluation_run_id": "d0c73db8-2910-4104-9c32-932481707574",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T00:11:27Z"
+    },
+    {
+      "body_sha256": "fb0c443807fc3093b298822d7259506b0963eae5c7e951add914366a3eb28999",
+      "canonical_record_sha256": "efb4c7f3c09371006de959155e60acacdaf6454c38160e233c5cf06b757b9cbe",
+      "cleanup_eligible": true,
+      "comment_id": 5098924212,
+      "created_at": "2026-07-28T01:42:57Z",
+      "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-016",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T01:42:57Z"
+    },
+    {
+      "body_sha256": "e4d8d7ab27ee0394fdb4149f2d9e9984cde128fc4cfa7515484c373ae56788d1",
+      "canonical_record_sha256": "08423245793320c62eb9115849e8f2c0f59ebb471475ec673b17b6c417889b40",
+      "cleanup_eligible": true,
+      "comment_id": 5099204973,
+      "created_at": "2026-07-28T02:22:04Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T02:22:04Z"
+    },
+    {
+      "body_sha256": "a075406ed35e7af2a28bc8efdf67a2ad8c21f08ee209cb5643d987376c8b9c96",
+      "canonical_record_sha256": "1c5402b37aefd0395f2c024a0be44ecabcd90b94fec5c07e6208ce1e40924ca5",
+      "cleanup_eligible": true,
+      "comment_id": 5099206215,
+      "created_at": "2026-07-28T02:22:17Z",
+      "evaluation_run_id": "sqag-main-worktree-recovery-postgresql17-pr-20260728-13",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T02:22:17Z"
+    },
+    {
+      "body_sha256": "51a70aa29576b37ede4985c220bdc3d31680c6582f9ae031457939193b2aa10a",
+      "canonical_record_sha256": "7c0d567046f9ae1585203557b6b7da94130c33ef18fbf1a5296a271d80ed58bd",
+      "cleanup_eligible": true,
+      "comment_id": 5099222599,
+      "created_at": "2026-07-28T02:25:07Z",
+      "evaluation_run_id": "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T02:25:07Z"
+    },
+    {
+      "body_sha256": "21579e62034c953db0e1670e691e0e009e5d57c27b8e781ddb6af8fa5c419f68",
+      "canonical_record_sha256": "acade384b4a4aefefadb46f0ae3cdc6e8b8a94df1f32103a89cffa39b33257da",
+      "cleanup_eligible": true,
+      "comment_id": 5101322347,
+      "created_at": "2026-07-28T07:39:43Z",
+      "evaluation_run_id": "workflow-compatibility-a-gate3-amendment-20260728-03",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T07:39:43Z"
+    },
+    {
+      "body_sha256": "ad85cce05447d3b9029644cf1638d5f98939c14c05e11657675358691d461f97",
+      "canonical_record_sha256": "ded432071ec78026440cd9c5b7285f638562f04e58d566b67962415e702e3fa8",
+      "cleanup_eligible": true,
+      "comment_id": 5102209956,
+      "created_at": "2026-07-28T09:14:00Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T09:14:00Z"
+    },
+    {
+      "body_sha256": "7a7f039d5c7c3ef7858d151f01f5e3170c17e4a8fd04cc21e9bae6ce1c3a3fa0",
+      "canonical_record_sha256": "148e77040387b7bd17e9163bf68b27ab817d691df382d4186b45468a2d0d756f",
+      "cleanup_eligible": true,
+      "comment_id": 5102212360,
+      "created_at": "2026-07-28T09:14:15Z",
+      "evaluation_run_id": "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T09:14:15Z"
+    },
+    {
+      "body_sha256": "515b81bfe6626d75106f9da7e806226cafcd263f4bd2bfa34cb0459acef5a607",
+      "canonical_record_sha256": "3b762549768baa1757727dafa015045df4016ac339be280d64d1e493825c217d",
+      "cleanup_eligible": true,
+      "comment_id": 5102214604,
+      "created_at": "2026-07-28T09:14:29Z",
+      "evaluation_run_id": "sqag-postgresql17-assertion-output-safety-20260728-14",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T09:14:29Z"
+    },
+    {
+      "body_sha256": "e2206bbc7e4b81d3d79d2a040072d9a50c3b07310f46cb7327737fb23cc593e2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5102373384,
+      "created_at": "2026-07-28T09:30:05Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T09:30:05Z"
+    },
+    {
+      "body_sha256": "18ba99b6511436c2802cb4706dd180f66110ba68732b9454a2857abf91a478de",
+      "canonical_record_sha256": "81c9b4df186d7bfa1692f1364583ce807872f0e40b3745943fed972fc2386ad7",
+      "cleanup_eligible": true,
+      "comment_id": 5103241826,
+      "created_at": "2026-07-28T10:58:25Z",
+      "evaluation_run_id": "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T10:58:25Z"
+    },
+    {
+      "body_sha256": "50f6eef3687657c99eaf175535ad940a34c2578c2f5e2c733fbf79f4f956a1cc",
+      "canonical_record_sha256": "2e8e2bc80caf93e26ea556fbcfbccfc6dafdfb73ca5751c361e33ec02bc182e9",
+      "cleanup_eligible": true,
+      "comment_id": 5103243521,
+      "created_at": "2026-07-28T10:58:37Z",
+      "evaluation_run_id": "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T10:58:37Z"
+    },
+    {
+      "body_sha256": "69a2b00a4093f0ff76550d7a03c89cacf10829acaa47ddbae345cc92cb21c5cf",
+      "canonical_record_sha256": "749df55530531e7f510d7329d242cdd49b862ad825b3af806d75a6fdc4e1ebfa",
+      "cleanup_eligible": true,
+      "comment_id": 5103264920,
+      "created_at": "2026-07-28T11:00:55Z",
+      "evaluation_run_id": "workflow-compatibility-a-gate3-amendment-20260728-04",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T11:00:55Z"
+    },
+    {
+      "body_sha256": "25f0b285b8ecf454b2dc43b6eda9fa02f9ab16d406e28386995b36aad6c1bb04",
+      "canonical_record_sha256": "78ef93697b168f698dd7da5b06b18942e0bedb5a192b05246e2c6920ddc1fda2",
+      "cleanup_eligible": true,
+      "comment_id": 5103766640,
+      "created_at": "2026-07-28T11:51:05Z",
+      "evaluation_run_id": "sqag-postgresql17-fixed-error-category-20260728-15",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T11:51:05Z"
+    },
+    {
+      "body_sha256": "d89c7d001e5890e1f2b741f8735dde4db18a5d0c94b7e59dba18879af32bd69d",
+      "canonical_record_sha256": "9caf716d477a287e966b30b7dc9ed9de8de77bc0945421efe663dcc37a2cc537",
+      "cleanup_eligible": true,
+      "comment_id": 5103841186,
+      "created_at": "2026-07-28T11:58:35Z",
+      "evaluation_run_id": "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T11:58:35Z"
+    },
+    {
+      "body_sha256": "57174e3e08770371bbb484f355e6844a72c683458fdb5e14f6975a24005602ea",
+      "canonical_record_sha256": "9695416ee42a58b01fca0b9dc31adafc68d301fe39c766973beed7de684db809",
+      "cleanup_eligible": true,
+      "comment_id": 5104294737,
+      "created_at": "2026-07-28T12:43:59Z",
+      "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-021",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T12:45:34Z"
+    },
+    {
+      "body_sha256": "6d89a1c0283bb9a7becb172d62bb0348eca39b1507a25578c59279ef8139a947",
+      "canonical_record_sha256": "d0e80753a97eaea39bd7972b0956ca5abed844a97fab25ee64ed476970c3ca5a",
+      "cleanup_eligible": true,
+      "comment_id": 5104654751,
+      "created_at": "2026-07-28T13:18:37Z",
+      "evaluation_run_id": "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T13:18:37Z"
+    },
+    {
+      "body_sha256": "b04d211affd43d750675424b3915f0ca0c07eb2599e7be57a9810aaf767a2bfa",
+      "canonical_record_sha256": "83ee09c75bcbf7c6980071df0f9a4736e298b0cac21f537581d853090f717e9d",
+      "cleanup_eligible": true,
+      "comment_id": 5104670197,
+      "created_at": "2026-07-28T13:20:02Z",
+      "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-022",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T13:20:02Z"
+    },
+    {
+      "body_sha256": "25761cbb9d34ce5bbb21fed4beb49401e6cbad4d37c10030745fa9010fb7912d",
+      "canonical_record_sha256": "1212769222b89fb7f70458d155711f509accd709268a62d667741f728fa39d45",
+      "cleanup_eligible": true,
+      "comment_id": 5105554288,
+      "created_at": "2026-07-28T14:36:29Z",
+      "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-023",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T14:36:29Z"
+    },
+    {
+      "body_sha256": "a997b0fa3b587629be159930f25ac38924186efb38c129a45aa48234c0088169",
+      "canonical_record_sha256": "7b50aae9b8665d1d04a232169397af1eae0610760ae64f05942e8de2d3e1dafc",
+      "cleanup_eligible": true,
+      "comment_id": 5105579627,
+      "created_at": "2026-07-28T14:38:41Z",
+      "evaluation_run_id": "workflow-compatibility-a-gate3-amendment-20260728-05",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T14:38:41Z"
+    },
+    {
+      "body_sha256": "2973873b70676ac23b19e478094d5ac2c7e405b2f5aed7a03147e16d37fc520d",
+      "canonical_record_sha256": "b16abbcec50d5914c2a04d908be7ab2ce788103e01e694b6c384cac2c88c9a74",
+      "cleanup_eligible": true,
+      "comment_id": 5106087155,
+      "created_at": "2026-07-28T15:21:58Z",
+      "evaluation_run_id": "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T15:21:58Z"
+    },
+    {
+      "body_sha256": "8c61fa1e5e4f2e47f1864e2944c6d75e6b67369dd499b0b38ba694b03197d89c",
+      "canonical_record_sha256": "97ecb8e88ff3144beadd64f9c5643892c2087894e639f357805c8c1ee82042e3",
+      "cleanup_eligible": true,
+      "comment_id": 5106089599,
+      "created_at": "2026-07-28T15:22:11Z",
+      "evaluation_run_id": "sqag-production-inspection-authority-recovery-20260728-17",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T15:22:11Z"
+    },
+    {
+      "body_sha256": "8ed3379c2bd47a3f8a6f483d20e4082fa554510eb15171fe377d5bbd1a510364",
+      "canonical_record_sha256": "5fbdf337b23c083cae41c55b75e54673d44c0a613a80720d63b3d58509c88564",
+      "cleanup_eligible": true,
+      "comment_id": 5106093400,
+      "created_at": "2026-07-28T15:22:28Z",
+      "evaluation_run_id": "swooshz-host-environment-stale-credential-containment-20260728-01",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T15:22:28Z"
+    },
+    {
+      "body_sha256": "88aff922f91803e50f656b60b19f62da3f4062b710c16b14e37e74ef86260966",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106096425,
+      "created_at": "2026-07-28T15:22:42Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T15:22:42Z"
+    },
+    {
+      "body_sha256": "e7050aeaf1158fb246f101ab957a41e0114c9fd0f33d1221a62b633b3e2ed9d4",
+      "canonical_record_sha256": "5748b9d30ead92526f584eaafc55c3e39f002ee68fa3c302ed621e86b5ae2e62",
+      "cleanup_eligible": true,
+      "comment_id": 5106388964,
+      "created_at": "2026-07-28T15:47:25Z",
+      "evaluation_run_id": "6a3d5523-45a9-46f3-9b1f-dd0016eac160",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T15:47:25Z"
+    },
+    {
+      "body_sha256": "2bdbd0f6ca4806a35d1cd849dd5d86a9b229736c2cf0d704e0634991e7f4eac0",
+      "canonical_record_sha256": "07c654f170db4c680d95093d1b842bb5c9ced367565438ef7c098255fb78bd88",
+      "cleanup_eligible": true,
+      "comment_id": 5106397902,
+      "created_at": "2026-07-28T15:48:14Z",
+      "evaluation_run_id": "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T15:48:14Z"
+    },
+    {
+      "body_sha256": "1e5c7a0810bace03ec4db9545af6ac12d9d6378627a8e842967318436c2dd6f7",
+      "canonical_record_sha256": "6fb41272226ae0bf689d8f52382fd56d7a3052ad57a519b81c8d518b0c43f75f",
+      "cleanup_eligible": true,
+      "comment_id": 5106846261,
+      "created_at": "2026-07-28T16:23:25Z",
+      "evaluation_run_id": "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T16:23:25Z"
+    },
+    {
+      "body_sha256": "951ca3e4f7324900b81e5d3547ce065b2690399b0f8f7829d315ddfa81d6465f",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106848617,
+      "created_at": "2026-07-28T16:23:38Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T16:23:38Z"
+    },
+    {
+      "body_sha256": "9a9613703adadf3d2dcbb38a1387f256fccac5f3d55a25f2d1de4c764e2d4212",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106850616,
+      "created_at": "2026-07-28T16:23:49Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T16:23:49Z"
+    },
+    {
+      "body_sha256": "cc4774d545977542cb0c88d34dd53b99c3940526fb3d65999628f9650467bad3",
+      "canonical_record_sha256": "60da29c974a4d045263f23ca18b44cf9aeb21bfb05f508aa7cb90466e7818dee",
+      "cleanup_eligible": true,
+      "comment_id": 5107261113,
+      "created_at": "2026-07-28T17:03:44Z",
+      "evaluation_run_id": "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-28T17:03:44Z"
+    },
+    {
+      "body_sha256": "3109f54b409e905ffc65cf8dfef476d361c6229fc089430bbabd2d6c4784d1df",
+      "canonical_record_sha256": "97e6ce558cf278bb10e3361c8bac505c03e11b3d32d67fbecf8ab7858cf54be0",
+      "cleanup_eligible": true,
+      "comment_id": 5111845296,
+      "created_at": "2026-07-29T01:51:20Z",
+      "evaluation_run_id": "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-29T01:51:20Z"
+    },
+    {
+      "body_sha256": "eb6cb75f32dd5ed6bc3a68ee14dec760820eeeb8973aa892e904471a1bc41469",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5111917457,
+      "created_at": "2026-07-29T01:59:55Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-29T01:59:55Z"
+    },
+    {
+      "body_sha256": "548350ae191389b8936962cd3c3b28c28266e686cb17f4a983d770760445d740",
+      "canonical_record_sha256": "ef7869b7bbd526cbcf32674e47f1d1a146cce86e67f851b1ea7a9abf5fc041a9",
+      "cleanup_eligible": true,
+      "comment_id": 5113149091,
+      "created_at": "2026-07-29T04:29:44Z",
+      "evaluation_run_id": "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-29T04:29:44Z"
+    },
+    {
+      "body_sha256": "82980d269d920e4ac2950a4012948c158fe2df5c9d63001dba2573e329f049e2",
+      "canonical_record_sha256": "3f80ad463de953ac4232ff8ab8ecc768c9cac7aae1c5729ba2f8c5ecdbf2398e",
+      "cleanup_eligible": true,
+      "comment_id": 5113152127,
+      "created_at": "2026-07-29T04:29:56Z",
+      "evaluation_run_id": "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15",
+      "outcome_code": "admitted",
+      "updated_at": "2026-07-29T04:29:56Z"
+    },
+    {
+      "body_sha256": "1cbeaca388183384e64ea2b6c964d793ae800b337881770743060e41855ef229",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5115014307,
+      "created_at": "2026-07-29T08:23:28Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-29T08:23:28Z"
+    }
+  ],
   "controller_run_id": "2026-07-29-ledger-integrated-processor-gate3-amendment-004",
-  "controller_authority": "2026-07-29-ledger-integrated-processor-gate3-amendment-004",
-  "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
-  "pr_number": 151,
-  "source_comment_watermark": 5115014307,
   "full_queue_count": 101,
+  "latest_observed_comment_id": 5115014307,
   "latest_observed_update_time": "2026-07-29T08:23:28Z",
+  "pr_number": 151,
   "queue_snapshot_sha256": "eac871f9ec34e37346bd9c83d8af2f8b1d5796ff4f72315d15966d49edf554ef",
-  "source_comment_ids": [
+  "receipt_issue_number": 143,
+  "receipt_type": "batch",
+  "schema_version": 2,
+  "selected_comment_count": 101,
+  "selected_comment_ids": [
     5084152024,
     5084273959,
     5084371265,
@@ -217,240 +1877,8 @@
     "5113152127": "82980d269d920e4ac2950a4012948c158fe2df5c9d63001dba2573e329f049e2",
     "5115014307": "1cbeaca388183384e64ea2b6c964d793ae800b337881770743060e41855ef229"
   },
-  "admitted_run_ids": [
-    "019f9ee5-8959-7351-bf3c-6e440b810d77",
-    "platform-post-merge-review-remediation-20260726-01",
-    "skr-production-dependency-remediation-20260726-01",
-    "platform-post-merge-review-remediation-amendment-20260727-02",
-    "019f9f66-5e5c-7222-a907-f222fd291a16",
-    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
-    "019f9f62-12f0-73b2-a930-d3dda2b091bd",
-    "skr-production-dependency-remediation-amendment-20260727-02",
-    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
-    "019fa0dd-e9a5-7af0-802a-48c9d51b5836",
-    "b96bcf1b-0434-4674-926a-f1ea578b7820",
-    "f643d85d-14a4-464d-9997-34061467a3fc",
-    "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
-    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
-    "platform-operator-source-recovery-20260727-04",
-    "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
-    "019fa15d-bd42-7301-a4e6-75a59b0627d9",
-    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
-    "skr-post-merge-review-remediation-20260727-03",
-    "platform-runtime-activation-20260727-05",
-    "platform-runtime-grant-reconciliation-20260727-06",
-    "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
-    "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713",
-    "platform-runtime-grant-contract-correction-20260727-07",
-    "ee0e5d56-c322-4292-ba68-435174decb97",
-    "019fa161-cdad-7ed0-b507-6792fe8317ed",
-    "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
-    "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
-    "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b",
-    "sqag-internal-alpha-fast-track-20260727-08",
-    "skr-structured-quote-ux-architecture-20260727-01",
-    "sqag-internal-alpha-managed-state-admission-20260727-10a",
-    "platform-runtime-grant-contract-network-capability-amendment-20260727-11",
-    "2026-07-27-governance-tooling-a-gate3-remediation-004",
-    "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
-    "2026-07-27-governance-tooling-a-gate4-amendment-006",
-    "skr-structured-quote-ux-g3-implementation-20260727-03",
-    "2026-07-27-governance-tooling-a-gate4-amendment-008",
-    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
-    "sqag-production-admission-design-regeneration-20260727-08",
-    "skr-structured-quote-ux-g4-review-remediation-20260727-04",
-    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
-    "sqag-production-admission-design-regeneration-correction-20260727-09",
-    "2026-07-27-governance-tooling-a-gate4-amendment-012",
-    "sqag-production-admission-archive-contract-repair-20260727-10",
-    "skr-structured-quote-ux-g4-review-remediation-20260727-05",
-    "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
-    "2026-07-27-governance-tooling-a-gate3-remediation-014",
-    "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
-    "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
-    "d0c73db8-2910-4104-9c32-932481707574",
-    "2026-07-28-governance-tooling-a-gate3-remediation-016",
-    "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
-    "sqag-main-worktree-recovery-postgresql17-pr-20260728-13",
-    "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
-    "workflow-compatibility-a-gate3-amendment-20260728-03",
-    "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
-    "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
-    "sqag-postgresql17-assertion-output-safety-20260728-14",
-    "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
-    "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
-    "workflow-compatibility-a-gate3-amendment-20260728-04",
-    "sqag-postgresql17-fixed-error-category-20260728-15",
-    "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
-    "2026-07-28-governance-tooling-a-gate3-remediation-021",
-    "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
-    "2026-07-28-governance-tooling-a-gate3-remediation-022",
-    "2026-07-28-governance-tooling-a-gate3-remediation-023",
-    "workflow-compatibility-a-gate3-amendment-20260728-05",
-    "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
-    "sqag-production-inspection-authority-recovery-20260728-17",
-    "swooshz-host-environment-stale-credential-containment-20260728-01",
-    "6a3d5523-45a9-46f3-9b1f-dd0016eac160",
-    "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
-    "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
-    "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
-    "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14",
-    "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21",
-    "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15"
-  ],
-  "dispositions": {
-    "5084152024": {
-      "disposition": "no_marker",
-      "reason": "Missing or invalid byte-zero intake marker",
-      "comment_body_sha256": "680a84585519be6c645738d6446ad29fd524c12754abaa04e5ec47b54b18a9fd"
-    },
-    "5087030694": {
-      "disposition": "no_marker",
-      "reason": "Missing or invalid byte-zero intake marker",
-      "comment_body_sha256": "56e169a502ed2db7e2b114896a3488536aa652f4ccca56592fffc02ca9eb3647"
-    },
-    "5088187239": {
-      "disposition": "owner_withdrawn",
-      "reason": "Owner withdrawn under issue #150 (Qwen3.6 Plus intake)",
-      "comment_body_sha256": "b60d1cfe572c80c05e6dd5f0d333b8dbda1d73c62f2205e21c1c08f52191fffd"
-    }
-  },
-  "pending_items": [
-    {
-      "comment_id": 5086578921,
-      "reason": "Intake schema validation failed: 'source_revision' is a required property",
-      "body_sha256": "bd58381dac471818efd7cff35286050fd01d50623bccc45645a8f6aada5f6983",
-      "created_at": "2026-07-27T02:06:32Z",
-      "updated_at": "2026-07-27T02:06:32Z"
-    },
-    {
-      "comment_id": 5086705192,
-      "reason": "Secret exposure status is not none",
-      "body_sha256": "b6bf6cf04f8e13ecca19833372fc042391b49764e8c89303ef049cfa1073802c",
-      "created_at": "2026-07-27T02:32:08Z",
-      "updated_at": "2026-07-27T02:32:08Z"
-    },
-    {
-      "comment_id": 5087404562,
-      "reason": "Intake schema validation failed: {'binding_type': 'controller_verified_private_source', 'subject_alias': 'runtime-role-acl-gate1', 'revision_assertion': 'exact canonical private source verified', 'evidence_assertion': 'sealed controller-uploaded archive independently verified'} is not of type 'string'",
-      "body_sha256": "0722d4ee875d02997aa521a3d86cca4709d95b9ba9f8acab44e450fbe83e157c",
-      "created_at": "2026-07-27T04:53:34Z",
-      "updated_at": "2026-07-27T04:53:34Z"
-    },
-    {
-      "comment_id": 5087820732,
-      "reason": "Intake schema validation failed: 'source_revision' is a required property",
-      "body_sha256": "2ba11e9b04463c1274475e673fc92f2b82542378db25402146884ac972ed95ff",
-      "created_at": "2026-07-27T06:03:31Z",
-      "updated_at": "2026-07-27T06:03:31Z"
-    },
-    {
-      "comment_id": 5087822478,
-      "reason": "Intake schema validation failed: 'source_revision' is a required property",
-      "body_sha256": "4b30e7b4c54ed0ad1170f1171d5ee85e8cae3b07abfb29a20a49c2f8772b9fbb",
-      "created_at": "2026-07-27T06:03:45Z",
-      "updated_at": "2026-07-27T06:03:45Z"
-    },
-    {
-      "comment_id": 5088271091,
-      "reason": "Intake schema validation failed: 'source_revision' is a required property",
-      "body_sha256": "4e4e9cae77d3849968b03788269db94bc83f70d2139373a3220248707b545bcc",
-      "created_at": "2026-07-27T07:02:54Z",
-      "updated_at": "2026-07-27T07:02:54Z"
-    },
-    {
-      "comment_id": 5088331426,
-      "reason": "Intake schema validation failed: 'source_revision' is a required property",
-      "body_sha256": "a4eec64854200618fcf6838f0cf019a40abf8ff22536820cfe0134979c8e2cc2",
-      "created_at": "2026-07-27T07:09:31Z",
-      "updated_at": "2026-07-27T07:09:31Z"
-    },
-    {
-      "comment_id": 5088919064,
-      "reason": "Intake schema validation failed: 'source_revision' is a required property",
-      "body_sha256": "cd9516b7ebab8d4ddfa31676a4308fb75978f237ae04b989138396fb9a235b18",
-      "created_at": "2026-07-27T08:14:51Z",
-      "updated_at": "2026-07-27T08:14:51Z"
-    },
-    {
-      "comment_id": 5089028662,
-      "reason": "Intake schema validation failed: 'source_revision' is a required property",
-      "body_sha256": "ad645b8911b37674a0a675815cd389acdddfe8c19c9bb91e2704b278501b766d",
-      "created_at": "2026-07-27T08:26:31Z",
-      "updated_at": "2026-07-27T08:26:31Z"
-    },
-    {
-      "comment_id": 5090737316,
-      "reason": "Verdict is blocked",
-      "body_sha256": "bb96fec210f82c5805928300a99809d026e3eb0791a6165741bdcc1a0bc72ad7",
-      "created_at": "2026-07-27T11:28:44Z",
-      "updated_at": "2026-07-27T11:28:44Z"
-    },
-    {
-      "comment_id": 5091298564,
-      "reason": "Verdict is blocked",
-      "body_sha256": "8feb78e65a7fc9f3a1622b70cab268880098c775cba73e17397e619c1c0c1c0a",
-      "created_at": "2026-07-27T12:29:28Z",
-      "updated_at": "2026-07-27T12:29:28Z"
-    },
-    {
-      "comment_id": 5092513574,
-      "reason": "Intake schema validation failed: 'repository_alias' is a required property",
-      "body_sha256": "a19d3b4fdd94d57f85ec4a77a55e4df6ad94546e693ee5b7730bc1534217ae1a",
-      "created_at": "2026-07-27T14:20:11Z",
-      "updated_at": "2026-07-27T14:20:11Z"
-    },
-    {
-      "comment_id": 5094475350,
-      "reason": "Verdict is blocked",
-      "body_sha256": "c9027cd51f8e3949dbc066824a05e8f0beb071240d98ba751c35378a5c3286ee",
-      "created_at": "2026-07-27T17:18:06Z",
-      "updated_at": "2026-07-27T17:21:47Z"
-    },
-    {
-      "comment_id": 5102373384,
-      "reason": "Intake schema validation failed: 'score_dimensions' is a required property",
-      "body_sha256": "e2206bbc7e4b81d3d79d2a040072d9a50c3b07310f46cb7327737fb23cc593e2",
-      "created_at": "2026-07-28T09:30:05Z",
-      "updated_at": "2026-07-28T09:30:05Z"
-    },
-    {
-      "comment_id": 5106096425,
-      "reason": "Verdict is blocked",
-      "body_sha256": "88aff922f91803e50f656b60b19f62da3f4062b710c16b14e37e74ef86260966",
-      "created_at": "2026-07-28T15:22:42Z",
-      "updated_at": "2026-07-28T15:22:42Z"
-    },
-    {
-      "comment_id": 5106848617,
-      "reason": "Verdict is blocked",
-      "body_sha256": "951ca3e4f7324900b81e5d3547ce065b2690399b0f8f7829d315ddfa81d6465f",
-      "created_at": "2026-07-28T16:23:38Z",
-      "updated_at": "2026-07-28T16:23:38Z"
-    },
-    {
-      "comment_id": 5106850616,
-      "reason": "Verdict is blocked",
-      "body_sha256": "9a9613703adadf3d2dcbb38a1387f256fccac5f3d55a25f2d1de4c764e2d4212",
-      "created_at": "2026-07-28T16:23:49Z",
-      "updated_at": "2026-07-28T16:23:49Z"
-    },
-    {
-      "comment_id": 5111917457,
-      "reason": "Secret exposure status is not none",
-      "body_sha256": "eb6cb75f32dd5ed6bc3a68ee14dec760820eeeb8973aa892e904471a1bc41469",
-      "created_at": "2026-07-29T01:59:55Z",
-      "updated_at": "2026-07-29T01:59:55Z"
-    },
-    {
-      "comment_id": 5115014307,
-      "reason": "Unknown exact provider/model pair: (OpenAI, GPT-5.6 Terra)",
-      "body_sha256": "1cbeaca388183384e64ea2b6c964d793ae800b337881770743060e41855ef229",
-      "created_at": "2026-07-29T08:23:28Z",
-      "updated_at": "2026-07-29T08:23:28Z"
-    }
-  ],
-  "cleanup_candidates": [
+  "source_comment_ids": [
+    5084152024,
     5084273959,
     5084371265,
     5084371842,
@@ -459,11 +1887,13 @@
     5084618903,
     5084631726,
     5086001616,
+    5086578921,
     5086581050,
     5086585134,
     5086589429,
     5086624137,
     5086673654,
+    5086705192,
     5086739477,
     5086776533,
     5086781596,
@@ -471,28 +1901,39 @@
     5087003873,
     5087015504,
     5087016408,
+    5087030694,
     5087203227,
     5087215771,
+    5087404562,
     5087456754,
     5087518655,
     5087613135,
     5087810146,
     5087811634,
     5087813069,
+    5087820732,
+    5087822478,
     5087826613,
     5088140090,
     5088187239,
+    5088271091,
+    5088331426,
+    5088919064,
+    5089028662,
     5090571993,
     5090573860,
     5090577133,
     5090585819,
+    5090737316,
     5091296179,
+    5091298564,
     5091616990,
     5091741767,
     5092077646,
     5092124832,
     5092283173,
     5092416182,
+    5092513574,
     5092534822,
     5092939596,
     5093354729,
@@ -502,6 +1943,7 @@
     5093721405,
     5094470896,
     5094473607,
+    5094475350,
     5098280170,
     5098924212,
     5099204973,
@@ -511,6 +1953,7 @@
     5102209956,
     5102212360,
     5102214604,
+    5102373384,
     5103241826,
     5103243521,
     5103264920,
@@ -524,1334 +1967,628 @@
     5106087155,
     5106089599,
     5106093400,
+    5106096425,
     5106388964,
     5106397902,
     5106846261,
+    5106848617,
+    5106850616,
     5107261113,
     5111845296,
+    5111917457,
     5113149091,
-    5113152127
+    5113152127,
+    5115014307
   ],
-  "comment_bindings": [
-    {
-      "comment_id": 5084152024,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T15:33:39Z",
-      "updated_at": "2026-07-26T15:33:39Z",
-      "body_sha256": "680a84585519be6c645738d6446ad29fd524c12754abaa04e5ec47b54b18a9fd",
-      "classification": "terminal",
-      "evaluation_run_id": null,
+  "source_comment_watermark": 5115014307,
+  "source_issue_number": 142,
+  "terminal_outcome_count": 101,
+  "terminal_outcomes": {
+    "5084152024": {
       "canonical_record_sha256": null,
-      "terminal_disposition": "no_marker",
-      "pending_reason_code": null,
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker"
     },
-    {
-      "comment_id": 5084273959,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T16:06:05Z",
-      "updated_at": "2026-07-26T16:06:05Z",
-      "body_sha256": "934dc08077fab2cc74c26af92ae87db176e79d243f5195b727cb5f2f2a2a37e6",
-      "classification": "admitted",
+    "5084273959": {
+      "canonical_record_sha256": "25b0cca47ccbfb571254ee743a190a313e723d33a89924fc23bdcefe7dd1f46c",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019f9ee5-8959-7351-bf3c-6e440b810d77",
-      "canonical_record_sha256": "40bc7e6545f061d7c52cbda046f1745fdd4585ec3b3176801559299f1d76f108",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5084371265,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T16:31:34Z",
-      "updated_at": "2026-07-26T16:31:34Z",
-      "body_sha256": "0a73d7f02a7cb897517ccc84e0e42ddbb34fd4c58a153a363dd1d8c07163a22f",
-      "classification": "admitted",
+    "5084371265": {
+      "canonical_record_sha256": "b9f375100f0f71eac9aafc36e2af0d2cdaf9fc0eccf87360351d7b9d1d6c84b8",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-post-merge-review-remediation-20260726-01",
-      "canonical_record_sha256": "7f3d5b8491882a0c856718f306d1183eb2414f834c865b91f2a83ef6f99f598a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5084371842,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T16:31:43Z",
-      "updated_at": "2026-07-26T16:31:43Z",
-      "body_sha256": "85cef2c42f1b89f6669c3c9f8f70f55f2bb37494cf1937c9ff62bd38067a627b",
-      "classification": "admitted",
+    "5084371842": {
+      "canonical_record_sha256": "747a194e4aa9abfc355da013c37b43fa88900109c9e407dfebb11d4a2e8d1b9d",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-production-dependency-remediation-20260726-01",
-      "canonical_record_sha256": "9510c37a271a766b6b340c307681a844e91bbe7f0d11a8798e352e11f67ac1aa",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5084513198,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T17:06:56Z",
-      "updated_at": "2026-07-26T17:06:56Z",
-      "body_sha256": "b3cad7d8cfde9e0540eaf5827e352d069ba3c80b4c81faba52a035d8129e61d2",
-      "classification": "admitted",
+    "5084513198": {
+      "canonical_record_sha256": "3b934422bd3b4d00cf33c0f89ebd289d7a261144f40407e546798e0c66a76e54",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-post-merge-review-remediation-amendment-20260727-02",
-      "canonical_record_sha256": "64bd0b80f89a06ef4d6fab729a3f55c35fb60282a672c65ce2810fd77c373dd4",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5084615360,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T17:34:25Z",
-      "updated_at": "2026-07-26T17:34:25Z",
-      "body_sha256": "ae8d854f1a4ed22776557cfa646c38056dff66ae160ae6a81dd24cd5755f3069",
-      "classification": "admitted",
+    "5084615360": {
+      "canonical_record_sha256": "15e166cc3dc0f24d96fa7803afb9cd43d24ccbcf8ca0dee3a9f238b8a47cb7a5",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019f9f66-5e5c-7222-a907-f222fd291a16",
-      "canonical_record_sha256": "3ea0e6ba36646ea7d830f7d38d0ed0d4bceb0fd1d13964bfdf45bb452eb389a4",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5084618903,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T17:35:25Z",
-      "updated_at": "2026-07-26T17:35:25Z",
-      "body_sha256": "43977de4d74e42b249555bd47d2bfc4029bbe3cfb6ea46f754ededb438a9c0cd",
-      "classification": "admitted",
+    "5084618903": {
+      "canonical_record_sha256": "785c60a058e1fe692cfd752717dc185e26e05505b0a33a51da1599639893cc8d",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-008",
-      "canonical_record_sha256": "e6c33d08da9e0d378c6460f7a34e916731b80f215da7fdb4b8cc0a7bdb070f95",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5084631726,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T17:39:00Z",
-      "updated_at": "2026-07-26T17:39:00Z",
-      "body_sha256": "3c170d8add02bd181f3d592ded601ed4983d027da20637fc0bee899d3408ff4c",
-      "classification": "admitted",
+    "5084631726": {
+      "canonical_record_sha256": "811e8462e8700ad8d76040176f34abfc0d2cd75eba3e08565677cdb2d9d21932",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019f9f62-12f0-73b2-a930-d3dda2b091bd",
-      "canonical_record_sha256": "dc603dc992dd19288d9baa194d3e544567dcca5fb3c2d0f1947c458ad8c3a9ba",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086001616,
-      "author": "weijunswj",
-      "created_at": "2026-07-26T23:55:11Z",
-      "updated_at": "2026-07-26T23:55:11Z",
-      "body_sha256": "744f658a4be2b64cc5020e64b3df7b48374782dfc0eb35ebf7113aa82e6f7e94",
-      "classification": "admitted",
+    "5086001616": {
+      "canonical_record_sha256": "2b9c1192abf19dd0cffaffd662af06cf68676e89c6ffd062afdb933e81fd5753",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-production-dependency-remediation-amendment-20260727-02",
-      "canonical_record_sha256": "69a2f5a33d5d41542899306860d12fbd835dc3b0fc3ccdddc9fcd871ff20319b",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086578921,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:06:32Z",
-      "updated_at": "2026-07-27T02:06:32Z",
-      "body_sha256": "bd58381dac471818efd7cff35286050fd01d50623bccc45645a8f6aada5f6983",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5086578921": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5086581050,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:06:59Z",
-      "updated_at": "2026-07-27T02:06:59Z",
-      "body_sha256": "1c963a48a4f76c1c8015b6d4a3bd6aafb47449eccdd38a4f4385199588f687d2",
-      "classification": "admitted",
+    "5086581050": {
+      "canonical_record_sha256": "26acc1cc2c91531b0c08895e5f67d3d0a63be9c920f9deb78a6e30278075faed",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-009",
-      "canonical_record_sha256": "4b1c27ba776a0175bb530863d1b4eb0b070273a666f0ce7a6c40aa95ddf4c51a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086585134,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:07:50Z",
-      "updated_at": "2026-07-27T02:07:50Z",
-      "body_sha256": "9a1835c8ee93eafd7bed34145e0e924d91f1520e7586bac4ce4c191257b36f42",
-      "classification": "admitted",
+    "5086585134": {
+      "canonical_record_sha256": "54c67c3d4e301417f5d10fee834550e62d8f059bddc4e1e1f186fdeeb657791e",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019fa0dd-e9a5-7af0-802a-48c9d51b5836",
-      "canonical_record_sha256": "85ba8660b2620a1b3825e9541d6cdd7018b5b8e80d93f6d7623a1d1e28e6914e",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086589429,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:08:42Z",
-      "updated_at": "2026-07-27T03:06:33Z",
-      "body_sha256": "14598e3c1e38044ffcb4277b23141698cc9d3c14b206f577be2437e050603fe6",
-      "classification": "admitted",
+    "5086589429": {
+      "canonical_record_sha256": "e566400b7d08094aa5ce4b5a133fd24e4d2dfbc48dd6ad6958f9493e0f35e74a",
+      "cleanup_eligible": true,
       "evaluation_run_id": "b96bcf1b-0434-4674-926a-f1ea578b7820",
-      "canonical_record_sha256": "7644e531ff8ca3b081afc008d4cf71c738801af51edaf5eb8a391c192c86452e",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086624137,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:15:43Z",
-      "updated_at": "2026-07-27T02:15:43Z",
-      "body_sha256": "2205142bd0862ed0a9b281e615bc4d3d86f839c03cef1ca84a91fc26a8ceeae2",
-      "classification": "admitted",
+    "5086624137": {
+      "canonical_record_sha256": "7e6c874f558935c4f9c8105fcef91dc0206f7639726e0ae8af65937681e81e49",
+      "cleanup_eligible": true,
       "evaluation_run_id": "f643d85d-14a4-464d-9997-34061467a3fc",
-      "canonical_record_sha256": "8f51b74d150b1301025eeb9863c84ea383e8fdf3a140a1a4cb12e93883abc5c4",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086673654,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:25:11Z",
-      "updated_at": "2026-07-27T02:45:23Z",
-      "body_sha256": "aee7818177cdb4d117705b24e72bbbe7edbd711fe55059d1b066ac9be724c37c",
-      "classification": "admitted",
+    "5086673654": {
+      "canonical_record_sha256": "12136b7c6f6949e114dcf7184251fe3182993ddb6ac47ea111fd8073a824adfc",
+      "cleanup_eligible": true,
       "evaluation_run_id": "8d98a2e2-e06d-477c-a1b2-185b00f8b874",
-      "canonical_record_sha256": "de86465db84a6f1450cbd23773519714854fb51a42b01e7b40df96f3e84a9189",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086705192,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:32:08Z",
-      "updated_at": "2026-07-27T02:32:08Z",
-      "body_sha256": "b6bf6cf04f8e13ecca19833372fc042391b49764e8c89303ef049cfa1073802c",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5086705192": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5086739477,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:39:51Z",
-      "updated_at": "2026-07-27T02:39:51Z",
-      "body_sha256": "1b2326c6818afd880f31a37b75049df397d2f0b3e4b52f0093db9af53f2e5e62",
-      "classification": "admitted",
+    "5086739477": {
+      "canonical_record_sha256": "84e4238d5da969072cfcc6a5d040ccc53318605fbee9d5bf50b26988be1b32c5",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-010",
-      "canonical_record_sha256": "2f6bcd89dc2ffb91c6ce4dbf158e52d5fba77e631a04ab5f844749d07a2383d1",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086776533,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:48:05Z",
-      "updated_at": "2026-07-27T02:48:05Z",
-      "body_sha256": "cb9740bf0748ec81f7232cf9a83ff8f9b53508b71896baa526a3d2762aa04b0b",
-      "classification": "admitted",
+    "5086776533": {
+      "canonical_record_sha256": "6c05d1c1092c21685b573262ed87bfff89e532f4b1fd5601788b6441112483b8",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-operator-source-recovery-20260727-04",
-      "canonical_record_sha256": "f8d2a69389442a820cd1eb556c3ff17e14a4439a641764cf4a1c8978b66f0b84",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086781596,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:49:17Z",
-      "updated_at": "2026-07-27T02:49:17Z",
-      "body_sha256": "d2be2c1e22fb136edbba0b7c2a92df74c8a1e56028d9f9b7a355781791bc159f",
-      "classification": "admitted",
+    "5086781596": {
+      "canonical_record_sha256": "3bb6de0b59a52ff78f5348aa296d915488946f565fcc2505119e938ab19a4219",
+      "cleanup_eligible": true,
       "evaluation_run_id": "263a994d-b3f1-4b2f-aa24-4edb68c473cc",
-      "canonical_record_sha256": "c62283011853a5c61f196dadd963626b81748f29b54b3c89fd0264322d82c89b",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5086782072,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T02:49:24Z",
-      "updated_at": "2026-07-27T04:14:41Z",
-      "body_sha256": "417b1175d3d478fd1f239e7cb5942d76090518551050a509001bfc232bfbcd4e",
-      "classification": "admitted",
+    "5086782072": {
+      "canonical_record_sha256": "519521ce4b0d14ea8e1baee25bd65ccabe3952270a564d67290137ebe2f0e9c0",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019fa15d-bd42-7301-a4e6-75a59b0627d9",
-      "canonical_record_sha256": "47b9e2aff3c3f08f97dc1b425fd0444135e5c01ffe5051327794ec6b25a1c191",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087003873,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T03:35:51Z",
-      "updated_at": "2026-07-27T03:35:51Z",
-      "body_sha256": "2cd345d0332207ac58ed62d1448fb6bfe2d8b604d166bf2256747315426c75f3",
-      "classification": "admitted",
+    "5087003873": {
+      "canonical_record_sha256": "d33ebc1e6d2e26a2cf8df5178cbec8d721ce299b2727fa3dcfa1ed3b9d713814",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-011",
-      "canonical_record_sha256": "327ad4fe45c8d7d2e494df32ff0beeb380c10731d931683bd86caf814df133eb",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087015504,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T03:38:09Z",
-      "updated_at": "2026-07-27T03:38:09Z",
-      "body_sha256": "763906db9ebd981b1dbe4edc4c0af8a3225c792bbcd661b217926c715efa7223",
-      "classification": "admitted",
+    "5087015504": {
+      "canonical_record_sha256": "7441c53043f3f4c03fa9e735498f46eca824e9924fcb8743bb9c38d298bb9c5d",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-post-merge-review-remediation-20260727-03",
-      "canonical_record_sha256": "11d289dbfc6b829c5714566d69ca0abe9b6d99e0d4edb13fdb07f10124f7bfd5",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087016408,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T03:38:20Z",
-      "updated_at": "2026-07-27T03:38:20Z",
-      "body_sha256": "baf889fe162e1ee1865dd5625cc4881ff9903dc56bc55b014aacce09b4a2f5bb",
-      "classification": "admitted",
+    "5087016408": {
+      "canonical_record_sha256": "9ae667c97c5d24af0875068905ca2b0c9945e4c1e72eea9a82b794fd38eba3d4",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-activation-20260727-05",
-      "canonical_record_sha256": "6ae551b13557e587914c79ec2eb865c13184145aa6d0546b099f4dbd8e530de3",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087030694,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T03:41:36Z",
-      "updated_at": "2026-07-27T04:14:28Z",
-      "body_sha256": "56e169a502ed2db7e2b114896a3488536aa652f4ccca56592fffc02ca9eb3647",
-      "classification": "terminal",
-      "evaluation_run_id": null,
+    "5087030694": {
       "canonical_record_sha256": null,
-      "terminal_disposition": "no_marker",
-      "pending_reason_code": null,
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker"
     },
-    {
-      "comment_id": 5087203227,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T04:18:02Z",
-      "updated_at": "2026-07-27T04:18:02Z",
-      "body_sha256": "1faa09dec7132de1ac20cd0d11b7a258e965e05593d775673f98e2bd75111e49",
-      "classification": "admitted",
+    "5087203227": {
+      "canonical_record_sha256": "3e59cbd3a4b659a6e2881723424477cf587b44ba13b539a96daca0b8efcd40a7",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-reconciliation-20260727-06",
-      "canonical_record_sha256": "c94e6acb1430284ceb6029eddb657469dab38d5e768ccb73f9132c7f4a970526",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087215771,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T04:20:01Z",
-      "updated_at": "2026-07-27T04:20:01Z",
-      "body_sha256": "8317f078d28c65f82640734def386ef2ba3844d1dc73eaae66290fda8dea5d40",
-      "classification": "admitted",
+    "5087215771": {
+      "canonical_record_sha256": "c364e6b7f2d5c77a3f58bca0480d86e0c7dde9f24cf384723a4fb28a77580f12",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-gpt-5-6-sol-governance-tooling-a-architecture-reset-012",
-      "canonical_record_sha256": "2e8a02f3d5c324edc5a200af3582a68ec89b1414969b0b833e1a4ae5e01c622c",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087404562,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T04:53:34Z",
-      "updated_at": "2026-07-27T04:53:34Z",
-      "body_sha256": "0722d4ee875d02997aa521a3d86cca4709d95b9ba9f8acab44e450fbe83e157c",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5087404562": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5087456754,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T05:03:47Z",
-      "updated_at": "2026-07-27T05:03:47Z",
-      "body_sha256": "4b562b94daf2d8ab7e549decd6360b4a4bc773bf7247d6f4a9d8bf5bf222f8b0",
-      "classification": "admitted",
+    "5087456754": {
+      "canonical_record_sha256": "75a8ce2a7b959441ed3245a0a4e3ca36fe05c2c0df715056fbab4e1a3c20ca7d",
+      "cleanup_eligible": true,
       "evaluation_run_id": "f98c41e8-7df2-4d0a-a7ab-8d4d52b61713",
-      "canonical_record_sha256": "6a7578d18697bc91a3c63b8a6a7558464d485b02cb4b7fbd3579bf07e3f88cb2",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087518655,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T05:14:28Z",
-      "updated_at": "2026-07-27T05:14:28Z",
-      "body_sha256": "ce0a5f4147d60a09ff036c6ff026b68fd62f6833d63a19aef5a2b05e18781eb7",
-      "classification": "admitted",
+    "5087518655": {
+      "canonical_record_sha256": "2a76fd68af20d040f1532e91c7ffff35e0717c562ff363faa09b4a8fecd8be16",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-correction-20260727-07",
-      "canonical_record_sha256": "8a9d70a2f892af8c96323d9a365088fac59741a7d06cfd0ebbb9277d704e02a7",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087613135,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T05:30:59Z",
-      "updated_at": "2026-07-27T05:30:59Z",
-      "body_sha256": "72ae9287cc1c5f07c9ac9bc0747d65b7da84138e36b89b262860dc86fd253825",
-      "classification": "admitted",
+    "5087613135": {
+      "canonical_record_sha256": "a6a6407a7af22581da1d7f46b436c62ad2ce3d10fe008700968385f4945d7f26",
+      "cleanup_eligible": true,
       "evaluation_run_id": "ee0e5d56-c322-4292-ba68-435174decb97",
-      "canonical_record_sha256": "59cdc3b4c780254454bcdaaefc6a42430b88e3db31326e1a6e394794054478c4",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087810146,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:01:54Z",
-      "updated_at": "2026-07-27T06:01:54Z",
-      "body_sha256": "9711d8b29577fa4fc78f096cd794869fffb7a4e5523d8b914f68e411316a7220",
-      "classification": "admitted",
+    "5087810146": {
+      "canonical_record_sha256": "8a9a6240d75a878464beb6d88ed82b56ea255f24bdddf40f7470d22cb626e843",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019fa161-cdad-7ed0-b507-6792fe8317ed",
-      "canonical_record_sha256": "853fce186ac5218e6f1c3bea1e5b5d4e3657321c989e1379cd96d1ccd4f79b99",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087811634,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:02:09Z",
-      "updated_at": "2026-07-27T06:02:09Z",
-      "body_sha256": "b5d427ef2fa2dfc7ff9fcf84f1f9b9d920c753112d2b7af94b791eb1f3dbcd2d",
-      "classification": "admitted",
+    "5087811634": {
+      "canonical_record_sha256": "ba345df1ff0d469bd748251093499a48c16755a18b0814b5e5eaf77cab4575cb",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019fa1d7-99b2-76f2-8e8a-34343f8ca3ff",
-      "canonical_record_sha256": "da3edfda490147865041b7d30c78d6111a526924eef49ae567a342ec13a01208",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087813069,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:02:23Z",
-      "updated_at": "2026-07-27T06:02:23Z",
-      "body_sha256": "035c6f3b2a38dfd7a0252bad9edee6b4bb5ebea7aa9bfc455dc2221b9bb8afe7",
-      "classification": "admitted",
+    "5087813069": {
+      "canonical_record_sha256": "8713b9d85cf0778def85ba2645903cafce46cfe353ff429f8ff59ca42e852840",
+      "cleanup_eligible": true,
       "evaluation_run_id": "019fa0dd-9c81-7a92-b66a-0bb05cfb7a64",
-      "canonical_record_sha256": "f3318e8b71295a47967a6d2ee4dc236455488e38d93df26d42f65b5bce77a69a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5087820732,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:03:31Z",
-      "updated_at": "2026-07-27T06:03:31Z",
-      "body_sha256": "2ba11e9b04463c1274475e673fc92f2b82542378db25402146884ac972ed95ff",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5087820732": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
-    },
-    {
-      "comment_id": 5087822478,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:03:45Z",
-      "updated_at": "2026-07-27T06:03:45Z",
-      "body_sha256": "4b30e7b4c54ed0ad1170f1171d5ee85e8cae3b07abfb29a20a49c2f8772b9fbb",
-      "classification": "pending",
+      "cleanup_eligible": false,
       "evaluation_run_id": null,
-      "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5087826613,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:04:13Z",
-      "updated_at": "2026-07-27T06:04:13Z",
-      "body_sha256": "e647e0e25112743c33b14d6204924058eafbf45c323e7daabbabe9a8c52bc3eb",
-      "classification": "admitted",
+    "5087822478": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087826613": {
+      "canonical_record_sha256": "822780646eb9b553238dca5e37367554e391388cfc10cb1c16c184e48e6a2129",
+      "cleanup_eligible": true,
       "evaluation_run_id": "6d45a6bc-b72c-4ef0-83ed-5913fb9cae1b",
-      "canonical_record_sha256": "a54eb8a40d73c5ea5317bec181ed69a9f53915fa53b1e3797dfa69c0b1740854",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5088140090,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:45:07Z",
-      "updated_at": "2026-07-27T06:45:07Z",
-      "body_sha256": "b7b0e884518daf431bf7dca7af6ff0d34d3d93cd7f36cd56df760b62cdb16d92",
-      "classification": "admitted",
+    "5088140090": {
+      "canonical_record_sha256": "fc97f036bdec6666f3c3ebf12b6aa72e394cae5c669649bf94fb2a49e04be801",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-internal-alpha-fast-track-20260727-08",
-      "canonical_record_sha256": "ac6d30aca482b11cc545c45bcec8d7ee2eff97fc45037c23ebdc3aef03a3aa88",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5088187239,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T06:51:52Z",
-      "updated_at": "2026-07-27T06:51:52Z",
-      "body_sha256": "b60d1cfe572c80c05e6dd5f0d333b8dbda1d73c62f2205e21c1c08f52191fffd",
-      "classification": "terminal",
-      "evaluation_run_id": null,
+    "5088187239": {
       "canonical_record_sha256": null,
-      "terminal_disposition": "owner_withdrawn",
-      "pending_reason_code": null,
-      "cleanup_eligible": true
-    },
-    {
-      "comment_id": 5088271091,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T07:02:54Z",
-      "updated_at": "2026-07-27T07:02:54Z",
-      "body_sha256": "4e4e9cae77d3849968b03788269db94bc83f70d2139373a3220248707b545bcc",
-      "classification": "pending",
+      "cleanup_eligible": true,
       "evaluation_run_id": null,
-      "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "outcome_code": "withdrawn_identity"
     },
-    {
-      "comment_id": 5088331426,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T07:09:31Z",
-      "updated_at": "2026-07-27T07:09:31Z",
-      "body_sha256": "a4eec64854200618fcf6838f0cf019a40abf8ff22536820cfe0134979c8e2cc2",
-      "classification": "pending",
+    "5088271091": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
       "evaluation_run_id": null,
-      "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5088919064,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T08:14:51Z",
-      "updated_at": "2026-07-27T08:14:51Z",
-      "body_sha256": "cd9516b7ebab8d4ddfa31676a4308fb75978f237ae04b989138396fb9a235b18",
-      "classification": "pending",
+    "5088331426": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
       "evaluation_run_id": null,
-      "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5089028662,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T08:26:31Z",
-      "updated_at": "2026-07-27T08:26:31Z",
-      "body_sha256": "ad645b8911b37674a0a675815cd389acdddfe8c19c9bb91e2704b278501b766d",
-      "classification": "pending",
+    "5088919064": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
       "evaluation_run_id": null,
-      "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5090571993,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T11:09:33Z",
-      "updated_at": "2026-07-27T11:09:33Z",
-      "body_sha256": "a857c135de6f0594706ff53cc74b1d49ee5e8cc75ebc01559540c172e4042003",
-      "classification": "admitted",
+    "5089028662": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5090571993": {
+      "canonical_record_sha256": "8122c8930d3a1e56c610db3acb77868cfec5108d16c025dd3da9d95b7a7e3a8f",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-architecture-20260727-01",
-      "canonical_record_sha256": "454cd4b507e71df5b91ce568495ac1df7b4c7f9d9fa552881ad19a3b4874ba9c",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5090573860,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T11:09:45Z",
-      "updated_at": "2026-07-27T11:09:45Z",
-      "body_sha256": "95caf93730fc75fe77b3b4e0229fc20f98cdf6b042bc3b4d1870b1f78e63089b",
-      "classification": "admitted",
+    "5090573860": {
+      "canonical_record_sha256": "a243d79c9cc948744c384ca77de818fb0a6ea7b5af1c306175d1130f73caf5d9",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-internal-alpha-managed-state-admission-20260727-10a",
-      "canonical_record_sha256": "43b1357e4022ad7d9096558276f12adb8fa7f7eef2a8676fc48de3ae55c83a01",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5090577133,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T11:10:05Z",
-      "updated_at": "2026-07-27T11:10:05Z",
-      "body_sha256": "e296576501a535b06e266bba8067ec4b3a0b965653c9068f33026b6173042e61",
-      "classification": "admitted",
+    "5090577133": {
+      "canonical_record_sha256": "f0f9fc2679d66a3fa5f0d084f13ceb6b95a3f3719f103f72abbb159d9500a830",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-network-capability-amendment-20260727-11",
-      "canonical_record_sha256": "f8daaf7567ba3205b0a2897f7730d9b6673da89cfef5fae80214701e70a9639a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5090585819,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T11:11:01Z",
-      "updated_at": "2026-07-27T11:11:01Z",
-      "body_sha256": "cb2222c7e435a9cb5c092c886036afc78a809b4f7ebdffd39417feed61f69799",
-      "classification": "admitted",
+    "5090585819": {
+      "canonical_record_sha256": "1ce591bf37c1d4ce3b1a1d9d84ffd2b3b9c21d0884832e36f6317f043fce713b",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-governance-tooling-a-gate3-remediation-004",
-      "canonical_record_sha256": "b8ab66e6ae4283648a8ce38918945af1b8cd264aab6db8d9a4f780b265a1537a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5090737316,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T11:28:44Z",
-      "updated_at": "2026-07-27T11:28:44Z",
-      "body_sha256": "bb96fec210f82c5805928300a99809d026e3eb0791a6165741bdcc1a0bc72ad7",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5090737316": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5091296179,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T12:29:13Z",
-      "updated_at": "2026-07-27T12:29:13Z",
-      "body_sha256": "d91e96b4c19d5e23e16a16a0ded66ff3f11df337eba4cf433df9cf7c9c521572",
-      "classification": "admitted",
+    "5091296179": {
+      "canonical_record_sha256": "7ac3c3f31547ec29dce1dc9b995d4ea80066ffdffbe45354ac52e952cfd7e07e",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-network-capability-amendment-20260727-12",
-      "canonical_record_sha256": "4f4f32ca73dc8c67e79fc9df547d1985718ff505188d49863f22e12569aded98",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5091298564,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T12:29:28Z",
-      "updated_at": "2026-07-27T12:29:28Z",
-      "body_sha256": "8feb78e65a7fc9f3a1622b70cab268880098c775cba73e17397e619c1c0c1c0a",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5091298564": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5091616990,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T13:01:27Z",
-      "updated_at": "2026-07-27T13:01:27Z",
-      "body_sha256": "93635e37e23a1d4e6063f38665222aa7778754058da5fd1858e7388b8ea147a1",
-      "classification": "admitted",
+    "5091616990": {
+      "canonical_record_sha256": "733171408ef869df0798001e1eb8fad8b175396595170679fd4ac095b0e8bd27",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-governance-tooling-a-gate4-amendment-006",
-      "canonical_record_sha256": "02cf2346cdb5e652ec51251e66de4da94ff1e018277f253dbdb87d11481227fd",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5091741767,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T13:12:39Z",
-      "updated_at": "2026-07-27T13:12:39Z",
-      "body_sha256": "509a5a529bb7bcea4d6c95ba9e3857941e0c7c75f63c9526182797988cc5322d",
-      "classification": "admitted",
+    "5091741767": {
+      "canonical_record_sha256": "88dbb18fbc876e7f3b53fc97510f2e2e78612a0e7434c44f0572836dec69b632",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-g3-implementation-20260727-03",
-      "canonical_record_sha256": "14d0eddb46cf30b456d965d0a709f73accd9f5eec4928b3dd45d39d0279280bc",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5092077646,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T13:40:47Z",
-      "updated_at": "2026-07-27T13:40:47Z",
-      "body_sha256": "0def7a7f627b59736da2af6417ce525445630dd97040603052c6fd0221a61910",
-      "classification": "admitted",
+    "5092077646": {
+      "canonical_record_sha256": "6ed9b38c0d96228cb5cc2eee1c6fae204aa473ff4801f65946bfa120f91547bf",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-governance-tooling-a-gate4-amendment-008",
-      "canonical_record_sha256": "f97375878a4173eff0a553038de17252c10be2726d0124ced5ab124a931e1d11",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5092124832,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T13:44:59Z",
-      "updated_at": "2026-07-27T13:44:59Z",
-      "body_sha256": "a50c566cb54cee2207d99a4088b6954137bdda7bddefe63a98e034a8a1bdb938",
-      "classification": "admitted",
+    "5092124832": {
+      "canonical_record_sha256": "018f5473b9013ab1c6e9aa4293ceaf97b9200ef23f3c5ffe04cf11188fae7033",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-13",
-      "canonical_record_sha256": "47351e619c5bedb6f0418def617e6d726016c1d7034a0252d1298580b5048360",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5092283173,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T13:59:30Z",
-      "updated_at": "2026-07-27T13:59:30Z",
-      "body_sha256": "0bd6682c026524d75d33a2cde564c10d6f1de81a72bfa951bb746b98d9583301",
-      "classification": "admitted",
+    "5092283173": {
+      "canonical_record_sha256": "3cbc7ccc12560c5e678af60140df1eef94d23f04b9e9aa6c8b6c54c49bfbdbe8",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-production-admission-design-regeneration-20260727-08",
-      "canonical_record_sha256": "3c747e254b1f5380c9e1598b650c75bc535304eb80c208660ae1601f58d2227b",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5092416182,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T14:11:25Z",
-      "updated_at": "2026-07-27T14:11:25Z",
-      "body_sha256": "cfaf0cc993b9faca329fc5c14e070b612b8624fe339633350df5bda804c66396",
-      "classification": "admitted",
+    "5092416182": {
+      "canonical_record_sha256": "f7cda2b74f231494d99eb6937ee8fed0a84a1489050cf1dca1354018b6a4b107",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-g4-review-remediation-20260727-04",
-      "canonical_record_sha256": "19aaf1ce06193c645226c38baa9018daa2b99002f8689318240679a2ebb07e8b",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5092513574,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T14:20:11Z",
-      "updated_at": "2026-07-27T14:20:11Z",
-      "body_sha256": "a19d3b4fdd94d57f85ec4a77a55e4df6ad94546e693ee5b7730bc1534217ae1a",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5092513574": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5092534822,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T14:22:07Z",
-      "updated_at": "2026-07-27T14:22:07Z",
-      "body_sha256": "0e260c10d061b935f17530d3b41ad22535275ddb9c276f021a6ce7a104a98f9f",
-      "classification": "admitted",
+    "5092534822": {
+      "canonical_record_sha256": "2bd3e058635a841c2963fe2892bb830a0877cd312f8ade5b02af02897168d72c",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-14",
-      "canonical_record_sha256": "ce56660e94811facbcf8ea5bde3d43e47ed3fdd7b3db94f087d0a6a8efb57979",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5092939596,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T14:58:15Z",
-      "updated_at": "2026-07-27T15:04:36Z",
-      "body_sha256": "28e4b0eb1d0418f1aac5ebff5a606b33e9b15e20d34ce03bb0173b1e38f4902b",
-      "classification": "admitted",
+    "5092939596": {
+      "canonical_record_sha256": "8d81c1d7a59c81123c06fff5f61ae318d3d01ff0cf9acaf05b623f9d788cda86",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-production-admission-design-regeneration-correction-20260727-09",
-      "canonical_record_sha256": "4a2a322d06ecda4b9eab2b257c9800eec8e1d16a6270e539051c5531b6c95fcd",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5093354729,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T15:32:53Z",
-      "updated_at": "2026-07-27T15:32:53Z",
-      "body_sha256": "8e8ffdf82fcf4e0e9e0107a48575f5d02cca9116bfdb7d246f35e6e90076f975",
-      "classification": "admitted",
+    "5093354729": {
+      "canonical_record_sha256": "a8363f16f3cc98d1a5247bf18e928f2010ce3dac2f959a4d860f5f6550579613",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-governance-tooling-a-gate4-amendment-012",
-      "canonical_record_sha256": "9bc35eb3548fdf59c23a37face2976d279b68224ccb73597ceaa38e016d91ce0",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5093443275,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T15:40:57Z",
-      "updated_at": "2026-07-27T15:40:57Z",
-      "body_sha256": "fc6ee9726aced61ed3d0af65202e80c7a22309786ef5b25d2bece5d87533be1a",
-      "classification": "admitted",
+    "5093443275": {
+      "canonical_record_sha256": "0fe282522f7f1162df458425ed3a092a90ab9cecaf2243f52a6d3cf940707aee",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-production-admission-archive-contract-repair-20260727-10",
-      "canonical_record_sha256": "296780ee2414ad038c922c5e25d7c74a9bd374a698478332e1fb58dca9d9287d",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5093570562,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T15:52:02Z",
-      "updated_at": "2026-07-27T15:52:02Z",
-      "body_sha256": "afa31e15bbd5de4399f1d24bc45953e2e080fe3578ae3130e8a5b0c3c078b6ba",
-      "classification": "admitted",
+    "5093570562": {
+      "canonical_record_sha256": "027a3a5d7541dea9add2d502d5223c8db90e975724d11db93acb8fb0d374ed1e",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-g4-review-remediation-20260727-05",
-      "canonical_record_sha256": "38161410106a3aabf8a8d64cac4c89926080bd57c3f198246f7ac3aa899ad704",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5093573986,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T15:52:19Z",
-      "updated_at": "2026-07-27T15:52:19Z",
-      "body_sha256": "81470490b30bade2f848d99c0417c07c94820678829b0a1ee3b24511c746df5e",
-      "classification": "admitted",
+    "5093573986": {
+      "canonical_record_sha256": "e9cd3d553de69e3e424b1782416cef38ce909d9c894601cd0a8eea8771d09458",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-no-import-network-capability-amendment-20260727-15",
-      "canonical_record_sha256": "eb7c0e5e92a1d53cd1cefac168475b6b013bd3ef4caf82d55ded9bea9bd81b03",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5093721405,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T16:06:35Z",
-      "updated_at": "2026-07-27T16:06:35Z",
-      "body_sha256": "29c711cac268d01e9a45222a1a61d66ba4dfc630fa5128445deaad4bed4948cb",
-      "classification": "admitted",
+    "5093721405": {
+      "canonical_record_sha256": "ab7c4b03b8baa9521ca8cf9ae50c0b02f52c8684db18a5891c9e82c09d2d5476",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-27-governance-tooling-a-gate3-remediation-014",
-      "canonical_record_sha256": "a0cfc7522156de2629751453e8996480ba8d72005ae8dcc8be9d22a303c4361b",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5094470896,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T17:17:37Z",
-      "updated_at": "2026-07-27T17:21:21Z",
-      "body_sha256": "1fd95f71d526af691f825ce4fee697e9a3be2add8e0531f07177793dfdf416e6",
-      "classification": "admitted",
+    "5094470896": {
+      "canonical_record_sha256": "8f5e712aac204ac1d3b91a5c0d763da8de4d6597eba0c222b314fa018a07f460",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-final-network-reference-closure-20260727-16",
-      "canonical_record_sha256": "0115c76502fada90b1a8bbbd54a3bac4569dc8860a687118d674eefb586a95ec",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5094473607,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T17:17:54Z",
-      "updated_at": "2026-07-28T02:22:30Z",
-      "body_sha256": "5d746be97dbb6c61316216b53e0b0524f069cb6c7e5232834a7adecb39db9977",
-      "classification": "admitted",
+    "5094473607": {
+      "canonical_record_sha256": "7e1870ce96ab2816756cfd7616d844b8631086c2fc32fccf8b9538bd0475ad3b",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-g4-final-transaction-and-recipe-remediation-20260727-06",
-      "canonical_record_sha256": "6e9f16e512b88239e17483e56c09c5b5982c8a0f6da6faaecac836011f2d2d72",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5094475350,
-      "author": "weijunswj",
-      "created_at": "2026-07-27T17:18:06Z",
-      "updated_at": "2026-07-27T17:21:47Z",
-      "body_sha256": "c9027cd51f8e3949dbc066824a05e8f0beb071240d98ba751c35378a5c3286ee",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5094475350": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5098280170,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T00:11:27Z",
-      "updated_at": "2026-07-28T00:11:27Z",
-      "body_sha256": "dcaa63fac36b624e0e9f3d6f9aa8428fbcd7b80d11d2728f2010ead03ccd01b9",
-      "classification": "admitted",
+    "5098280170": {
+      "canonical_record_sha256": "48b2ba5fcbece23014842a57503ef6045f1cb533da67d6d751054c9cbabc1159",
+      "cleanup_eligible": true,
       "evaluation_run_id": "d0c73db8-2910-4104-9c32-932481707574",
-      "canonical_record_sha256": "fdfdadd054355bc5f776dfe055ea1863c93866f2322103d62f6597eb6f0ee12b",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5098924212,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T01:42:57Z",
-      "updated_at": "2026-07-28T01:42:57Z",
-      "body_sha256": "fb0c443807fc3093b298822d7259506b0963eae5c7e951add914366a3eb28999",
-      "classification": "admitted",
+    "5098924212": {
+      "canonical_record_sha256": "efb4c7f3c09371006de959155e60acacdaf6454c38160e233c5cf06b757b9cbe",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-016",
-      "canonical_record_sha256": "1b89aaa3460430a50251e110edbe6ac90461a7ec8b589edb9de3e98826b07a92",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5099204973,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T02:22:04Z",
-      "updated_at": "2026-07-28T02:22:04Z",
-      "body_sha256": "e4d8d7ab27ee0394fdb4149f2d9e9984cde128fc4cfa7515484c373ae56788d1",
-      "classification": "admitted",
+    "5099204973": {
+      "canonical_record_sha256": "08423245793320c62eb9115849e8f2c0f59ebb471475ec673b17b6c417889b40",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-callable-wrapper-closure-20260728-17",
-      "canonical_record_sha256": "abafe9678c6c003c8f4747207f1ac04333f212ac42f6dd30b9658b0ca8488578",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5099206215,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T02:22:17Z",
-      "updated_at": "2026-07-28T02:22:17Z",
-      "body_sha256": "a075406ed35e7af2a28bc8efdf67a2ad8c21f08ee209cb5643d987376c8b9c96",
-      "classification": "admitted",
+    "5099206215": {
+      "canonical_record_sha256": "1c5402b37aefd0395f2c024a0be44ecabcd90b94fec5c07e6208ce1e40924ca5",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-main-worktree-recovery-postgresql17-pr-20260728-13",
-      "canonical_record_sha256": "054171dc2000fa077d453706d5a9202d8da55b87d57eeb19b754e183277d2c73",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5099222599,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T02:25:07Z",
-      "updated_at": "2026-07-28T02:25:07Z",
-      "body_sha256": "51a70aa29576b37ede4985c220bdc3d31680c6582f9ae031457939193b2aa10a",
-      "classification": "admitted",
+    "5099222599": {
+      "canonical_record_sha256": "7c0d567046f9ae1585203557b6b7da94130c33ef18fbf1a5296a271d80ed58bd",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-28-claude-opus-5-business-automation-a-architecture-reset-009",
-      "canonical_record_sha256": "8b5c3a1e9470882aab352d8fe655b2787b9be5bf9e6e79ebece14915d42fc5cc",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5101322347,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T07:39:43Z",
-      "updated_at": "2026-07-28T07:39:43Z",
-      "body_sha256": "21579e62034c953db0e1670e691e0e009e5d57c27b8e781ddb6af8fa5c419f68",
-      "classification": "admitted",
+    "5101322347": {
+      "canonical_record_sha256": "acade384b4a4aefefadb46f0ae3cdc6e8b8a94df1f32103a89cffa39b33257da",
+      "cleanup_eligible": true,
       "evaluation_run_id": "workflow-compatibility-a-gate3-amendment-20260728-03",
-      "canonical_record_sha256": "8c8376735d1856953aae4d8c475ed6ce2e780f0e009b08143543694dd7c8f5fc",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5102209956,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T09:14:00Z",
-      "updated_at": "2026-07-28T09:14:00Z",
-      "body_sha256": "ad85cce05447d3b9029644cf1638d5f98939c14c05e11657675358691d461f97",
-      "classification": "admitted",
+    "5102209956": {
+      "canonical_record_sha256": "ded432071ec78026440cd9c5b7285f638562f04e58d566b67962415e702e3fa8",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-nested-callable-scope-20260728-18",
-      "canonical_record_sha256": "4212ca93a8ebd81f6a0e861352361209340843191afc9551c4f7b15f3e8185f3",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5102212360,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T09:14:15Z",
-      "updated_at": "2026-07-28T09:14:15Z",
-      "body_sha256": "7a7f039d5c7c3ef7858d151f01f5e3170c17e4a8fd04cc21e9bae6ce1c3a3fa0",
-      "classification": "admitted",
+    "5102212360": {
+      "canonical_record_sha256": "148e77040387b7bd17e9163bf68b27ab817d691df382d4186b45468a2d0d756f",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-absence-restoration-and-recipe-deferral-20260728-08",
-      "canonical_record_sha256": "ee1c9234ae3be461eb5b46c06cacbd5c247fc8966158b219bf47e09d6b24e71f",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5102214604,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T09:14:29Z",
-      "updated_at": "2026-07-28T09:14:29Z",
-      "body_sha256": "515b81bfe6626d75106f9da7e806226cafcd263f4bd2bfa34cb0459acef5a607",
-      "classification": "admitted",
+    "5102214604": {
+      "canonical_record_sha256": "3b762549768baa1757727dafa015045df4016ac339be280d64d1e493825c217d",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-postgresql17-assertion-output-safety-20260728-14",
-      "canonical_record_sha256": "2869fb256a157343d0ddcb4eabbc4ebc3b010dc3af80ffbc8d278bb26e5019e6",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5102373384,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T09:30:05Z",
-      "updated_at": "2026-07-28T09:30:05Z",
-      "body_sha256": "e2206bbc7e4b81d3d79d2a040072d9a50c3b07310f46cb7327737fb23cc593e2",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5102373384": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5103241826,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T10:58:25Z",
-      "updated_at": "2026-07-28T10:58:25Z",
-      "body_sha256": "18ba99b6511436c2802cb4706dd180f66110ba68732b9454a2857abf91a478de",
-      "classification": "admitted",
+    "5103241826": {
+      "canonical_record_sha256": "81c9b4df186d7bfa1692f1364583ce807872f0e40b3745943fed972fc2386ad7",
+      "cleanup_eligible": true,
       "evaluation_run_id": "platform-runtime-grant-contract-nonblock-loop-scope-20260728-19",
-      "canonical_record_sha256": "4657f98fe8e5c3f1599f4ef6badf56a6f7a8eb9dd7ee0cf80d69aa05e067f5c4",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5103243521,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T10:58:37Z",
-      "updated_at": "2026-07-28T10:58:37Z",
-      "body_sha256": "50f6eef3687657c99eaf175535ad940a34c2578c2f5e2c733fbf79f4f956a1cc",
-      "classification": "admitted",
+    "5103243521": {
+      "canonical_record_sha256": "2e8e2bc80caf93e26ea556fbcfbccfc6dafdfb73ca5751c361e33ec02bc182e9",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-production-adapter-and-deferral-closure-20260728-09",
-      "canonical_record_sha256": "6367b822de0fc5828ca69fc6b771e15129e4006ac013022ee654b3ba3b3ace7f",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5103264920,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T11:00:55Z",
-      "updated_at": "2026-07-28T11:00:55Z",
-      "body_sha256": "69a2b00a4093f0ff76550d7a03c89cacf10829acaa47ddbae345cc92cb21c5cf",
-      "classification": "admitted",
+    "5103264920": {
+      "canonical_record_sha256": "749df55530531e7f510d7329d242cdd49b862ad825b3af806d75a6fdc4e1ebfa",
+      "cleanup_eligible": true,
       "evaluation_run_id": "workflow-compatibility-a-gate3-amendment-20260728-04",
-      "canonical_record_sha256": "2989587c948d0d5b8522826e4ecc4f1950bd924a25897c11e0ce40bca05a89f8",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5103766640,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T11:51:05Z",
-      "updated_at": "2026-07-28T11:51:05Z",
-      "body_sha256": "25f0b285b8ecf454b2dc43b6eda9fa02f9ab16d406e28386995b36aad6c1bb04",
-      "classification": "admitted",
+    "5103766640": {
+      "canonical_record_sha256": "78ef93697b168f698dd7da5b06b18942e0bedb5a192b05246e2c6920ddc1fda2",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-postgresql17-fixed-error-category-20260728-15",
-      "canonical_record_sha256": "21ff55dc1b7969032906ae063d51b8e64320b8d03dbbf66a71865d95130d37bb",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5103841186,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T11:58:35Z",
-      "updated_at": "2026-07-28T11:58:35Z",
-      "body_sha256": "d89c7d001e5890e1f2b741f8735dde4db18a5d0c94b7e59dba18879af32bd69d",
-      "classification": "admitted",
+    "5103841186": {
+      "canonical_record_sha256": "9caf716d477a287e966b30b7dc9ed9de8de77bc0945421efe663dcc37a2cc537",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-28-claude-opus-5-business-automation-a-amendment-009-gate3-001",
-      "canonical_record_sha256": "e41000d1eca6b392b22bc86b1af61ee8ea8c358dc5a3f987bd5666bdbdf5023a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5104294737,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T12:43:59Z",
-      "updated_at": "2026-07-28T12:45:34Z",
-      "body_sha256": "57174e3e08770371bbb484f355e6844a72c683458fdb5e14f6975a24005602ea",
-      "classification": "admitted",
+    "5104294737": {
+      "canonical_record_sha256": "9695416ee42a58b01fca0b9dc31adafc68d301fe39c766973beed7de684db809",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-021",
-      "canonical_record_sha256": "e7f0646ece80c0963adb98a736e315572f81f115df15822ae6d3ee051ff5d308",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5104654751,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T13:18:37Z",
-      "updated_at": "2026-07-28T13:18:37Z",
-      "body_sha256": "6d89a1c0283bb9a7becb172d62bb0348eca39b1507a25578c59279ef8139a947",
-      "classification": "admitted",
+    "5104654751": {
+      "canonical_record_sha256": "d0e80753a97eaea39bd7972b0956ca5abed844a97fab25ee64ed476970c3ca5a",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-manual-remove-failure-closure-20260728-10",
-      "canonical_record_sha256": "fdfa0c80a1e70da44c693ebfe9790d738c9d896b62460bf7be4b92fa3f683244",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5104670197,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T13:20:02Z",
-      "updated_at": "2026-07-28T13:20:02Z",
-      "body_sha256": "b04d211affd43d750675424b3915f0ca0c07eb2599e7be57a9810aaf767a2bfa",
-      "classification": "admitted",
+    "5104670197": {
+      "canonical_record_sha256": "83ee09c75bcbf7c6980071df0f9a4736e298b0cac21f537581d853090f717e9d",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-022",
-      "canonical_record_sha256": "39a3a563ccfc1f5646a1881ac12d45ab74a3c444bf65dca9bba3fbdc4351c54f",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5105554288,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T14:36:29Z",
-      "updated_at": "2026-07-28T14:36:29Z",
-      "body_sha256": "25761cbb9d34ce5bbb21fed4beb49401e6cbad4d37c10030745fa9010fb7912d",
-      "classification": "admitted",
+    "5105554288": {
+      "canonical_record_sha256": "1212769222b89fb7f70458d155711f509accd709268a62d667741f728fa39d45",
+      "cleanup_eligible": true,
       "evaluation_run_id": "2026-07-28-governance-tooling-a-gate3-remediation-023",
-      "canonical_record_sha256": "7b7454a52a250133d6825f5387fde085c256a2ef1d02bc9e4ad1d4df0802ec9a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5105579627,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T14:38:41Z",
-      "updated_at": "2026-07-28T14:38:41Z",
-      "body_sha256": "a997b0fa3b587629be159930f25ac38924186efb38c129a45aa48234c0088169",
-      "classification": "admitted",
+    "5105579627": {
+      "canonical_record_sha256": "7b50aae9b8665d1d04a232169397af1eae0610760ae64f05942e8de2d3e1dafc",
+      "cleanup_eligible": true,
       "evaluation_run_id": "workflow-compatibility-a-gate3-amendment-20260728-05",
-      "canonical_record_sha256": "45e58ba9387d0d405cbe007bae90317ebccddee0632623ef586a8e4128444b33",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5106087155,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T15:21:58Z",
-      "updated_at": "2026-07-28T15:21:58Z",
-      "body_sha256": "2973873b70676ac23b19e478094d5ac2c7e405b2f5aed7a03147e16d37fc520d",
-      "classification": "admitted",
+    "5106087155": {
+      "canonical_record_sha256": "b16abbcec50d5914c2a04d908be7ab2ce788103e01e694b6c384cac2c88c9a74",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-setup-identity-and-url-fallback-closure-20260728-11",
-      "canonical_record_sha256": "fadd00b40a2677d1fb10142aa0b5aa607cc43e4266ded5c69e7307cd1b48836a",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5106089599,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T15:22:11Z",
-      "updated_at": "2026-07-28T15:22:11Z",
-      "body_sha256": "8c61fa1e5e4f2e47f1864e2944c6d75e6b67369dd499b0b38ba694b03197d89c",
-      "classification": "admitted",
+    "5106089599": {
+      "canonical_record_sha256": "97ecb8e88ff3144beadd64f9c5643892c2087894e639f357805c8c1ee82042e3",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-production-inspection-authority-recovery-20260728-17",
-      "canonical_record_sha256": "2b7d3d92cc786d8d3ff9a322c7e3f7b091cf411a34eea730bb5a7c828fbac5dc",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5106093400,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T15:22:28Z",
-      "updated_at": "2026-07-28T15:22:28Z",
-      "body_sha256": "8ed3379c2bd47a3f8a6f483d20e4082fa554510eb15171fe377d5bbd1a510364",
-      "classification": "admitted",
+    "5106093400": {
+      "canonical_record_sha256": "5fbdf337b23c083cae41c55b75e54673d44c0a613a80720d63b3d58509c88564",
+      "cleanup_eligible": true,
       "evaluation_run_id": "swooshz-host-environment-stale-credential-containment-20260728-01",
-      "canonical_record_sha256": "789b84247538087543cca7c1585acc75fbcce4bc85f327833a37f81ccb384c0b",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5106096425,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T15:22:42Z",
-      "updated_at": "2026-07-28T15:22:42Z",
-      "body_sha256": "88aff922f91803e50f656b60b19f62da3f4062b710c16b14e37e74ef86260966",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5106096425": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5106388964,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T15:47:25Z",
-      "updated_at": "2026-07-28T15:47:25Z",
-      "body_sha256": "e7050aeaf1158fb246f101ab957a41e0114c9fd0f33d1221a62b633b3e2ed9d4",
-      "classification": "admitted",
+    "5106388964": {
+      "canonical_record_sha256": "5748b9d30ead92526f584eaafc55c3e39f002ee68fa3c302ed621e86b5ae2e62",
+      "cleanup_eligible": true,
       "evaluation_run_id": "6a3d5523-45a9-46f3-9b1f-dd0016eac160",
-      "canonical_record_sha256": "18859eb4d4fa89099a91d057c8bb7ace86c070d8e21dbd16d0cdb422a9513e7c",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5106397902,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T15:48:14Z",
-      "updated_at": "2026-07-28T15:48:14Z",
-      "body_sha256": "2bdbd0f6ca4806a35d1cd849dd5d86a9b229736c2cf0d704e0634991e7f4eac0",
-      "classification": "admitted",
+    "5106397902": {
+      "canonical_record_sha256": "07c654f170db4c680d95093d1b842bb5c9ced367565438ef7c098255fb78bd88",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-direct-operator-membership-and-config-reconciliation-20260728-18",
-      "canonical_record_sha256": "924fa148614f4080935641bc8c1647c11e75f774ef9382aa700f41ea165d7e2c",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5106846261,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T16:23:25Z",
-      "updated_at": "2026-07-28T16:23:25Z",
-      "body_sha256": "1e5c7a0810bace03ec4db9545af6ac12d9d6378627a8e842967318436c2dd6f7",
-      "classification": "admitted",
+    "5106846261": {
+      "canonical_record_sha256": "6fb41272226ae0bf689d8f52382fd56d7a3052ad57a519b81c8d518b0c43f75f",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-storage-and-fallback-state-closure-20260728-12",
-      "canonical_record_sha256": "60474c5179e437c94224f95e989eaad25a1eb0485d47cca86d593d4623182114",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5106848617,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T16:23:38Z",
-      "updated_at": "2026-07-28T16:23:38Z",
-      "body_sha256": "951ca3e4f7324900b81e5d3547ce065b2690399b0f8f7829d315ddfa81d6465f",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5106848617": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
-    },
-    {
-      "comment_id": 5106850616,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T16:23:49Z",
-      "updated_at": "2026-07-28T16:23:49Z",
-      "body_sha256": "9a9613703adadf3d2dcbb38a1387f256fccac5f3d55a25f2d1de4c764e2d4212",
-      "classification": "pending",
+      "cleanup_eligible": false,
       "evaluation_run_id": null,
-      "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5107261113,
-      "author": "weijunswj",
-      "created_at": "2026-07-28T17:03:44Z",
-      "updated_at": "2026-07-28T17:03:44Z",
-      "body_sha256": "cc4774d545977542cb0c88d34dd53b99c3940526fb3d65999628f9650467bad3",
-      "classification": "admitted",
+    "5106850616": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5107261113": {
+      "canonical_record_sha256": "60da29c974a4d045263f23ca18b44cf9aeb21bfb05f508aa7cb90466e7818dee",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-summary-removal-failure-closure-20260728-13",
-      "canonical_record_sha256": "0317389e30cc2d5e49ef52de88e160d7c52d4dffa0304de750bfd5d480a052f0",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5111845296,
-      "author": "weijunswj",
-      "created_at": "2026-07-29T01:51:20Z",
-      "updated_at": "2026-07-29T01:51:20Z",
-      "body_sha256": "3109f54b409e905ffc65cf8dfef476d361c6229fc089430bbabd2d6c4784d1df",
-      "classification": "admitted",
+    "5111845296": {
+      "canonical_record_sha256": "97e6ce558cf278bb10e3361c8bac505c03e11b3d32d67fbecf8ab7858cf54be0",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-summary-removal-resync-and-reload-dismissal-closure-20260729-14",
-      "canonical_record_sha256": "39f8cdd8ded277fc1fb1947c945888d27e0972b72d22707dc9ed9adccbacb933",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5111917457,
-      "author": "weijunswj",
-      "created_at": "2026-07-29T01:59:55Z",
-      "updated_at": "2026-07-29T01:59:55Z",
-      "body_sha256": "eb6cb75f32dd5ed6bc3a68ee14dec760820eeeb8973aa892e904471a1bc41469",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5111917457": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     },
-    {
-      "comment_id": 5113149091,
-      "author": "weijunswj",
-      "created_at": "2026-07-29T04:29:44Z",
-      "updated_at": "2026-07-29T04:29:44Z",
-      "body_sha256": "548350ae191389b8936962cd3c3b28c28266e686cb17f4a983d770760445d740",
-      "classification": "admitted",
+    "5113149091": {
+      "canonical_record_sha256": "ef7869b7bbd526cbcf32674e47f1d1a146cce86e67f851b1ea7a9abf5fc041a9",
+      "cleanup_eligible": true,
       "evaluation_run_id": "sqag-post-merge-instruction-and-ci-doc-closure-20260729-21",
-      "canonical_record_sha256": "efcaa6e086e90c51d3d70bc7c051b0a12bee2facefcb605a8b70945a77323c67",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5113152127,
-      "author": "weijunswj",
-      "created_at": "2026-07-29T04:29:56Z",
-      "updated_at": "2026-07-29T04:29:56Z",
-      "body_sha256": "82980d269d920e4ac2950a4012948c158fe2df5c9d63001dba2573e329f049e2",
-      "classification": "admitted",
+    "5113152127": {
+      "canonical_record_sha256": "3f80ad463de953ac4232ff8ab8ecc768c9cac7aae1c5729ba2f8c5ecdbf2398e",
+      "cleanup_eligible": true,
       "evaluation_run_id": "skr-structured-quote-ux-url-fallback-canonical-identity-closure-20260729-15",
-      "canonical_record_sha256": "620526364353664f2d25f672007057917db22b9d8540e522d8cb731510e87e4c",
-      "terminal_disposition": null,
-      "pending_reason_code": null,
-      "cleanup_eligible": true
+      "outcome_code": "admitted"
     },
-    {
-      "comment_id": 5115014307,
-      "author": "weijunswj",
-      "created_at": "2026-07-29T08:23:28Z",
-      "updated_at": "2026-07-29T08:23:28Z",
-      "body_sha256": "1cbeaca388183384e64ea2b6c964d793ae800b337881770743060e41855ef229",
-      "classification": "pending",
-      "evaluation_run_id": null,
+    "5115014307": {
       "canonical_record_sha256": null,
-      "terminal_disposition": null,
-      "pending_reason_code": "PENDING_CONTROLLER_ACTION",
-      "cleanup_eligible": false
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
     }
-  ],
-  "canonical_hashes": {
-    "evaluations_jsonl": "962b4585bfb38414e0946616f2957bd650ba60dcc7b78adfcba9494a2f9cafea",
-    "readme_md": "add611456cd134436579d5c4869f187b90ca387f3aeb142a657713f9018bcfda",
-    "scorecard_md": "684076276f397df5438d1689c8df24c04638de162084c07a25ac0f3f2efdaa20",
-    "model_recommendation_json": "1f713cef9dceb2359044336ae99e1e2cadf45d1d91b2b8096c9e100251dbed95",
-    "dispositions_jsonl": "0e9b024d927d7f129b3f1bc4bf8f59229e37ae2243483e4ae528894b850563e8"
   }
 }
