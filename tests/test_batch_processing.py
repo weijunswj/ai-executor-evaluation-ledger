@@ -159,25 +159,57 @@ class TestBatchProcessing(unittest.TestCase):
         self.assertNotIn(b"ordinary retained comment", result["candidate_files"][receipt_path])
 
     def test_incremental_uses_supplied_git_object_not_worktree_bytes(self):
+        evaluations_path = ROOT / "evaluations.jsonl"
+        original_worktree_bytes = evaluations_path.read_bytes()
+        original_status = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        immutable_authority_bytes = subprocess.run(
+            ["git", "show", f"{BASE_AUTHORITY_SHA}:evaluations.jsonl"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        temporary_worktree_bytes = b'{"fixture":"local-test-only-worktree-divergence"}\n'
+        self.assertLessEqual(len(temporary_worktree_bytes), 64)
+        self.assertEqual(
+            json.loads(temporary_worktree_bytes),
+            {"fixture": "local-test-only-worktree-divergence"},
+        )
+        self.assertNotEqual(temporary_worktree_bytes, immutable_authority_bytes)
+
         config = self.config("batch-incremental-a005")
         config = ProcessBatchConfig(**{
             **config.__dict__,
             "operating_mode": "incremental",
             "base_sha": BASE_AUTHORITY_SHA,
             "canonical_main_sha": BASE_AUTHORITY_SHA,
+            "expected_head_sha": _git_sha("HEAD"),
         })
-        records = json.loads((ROOT / "evaluations.jsonl").read_text(encoding="utf-8").splitlines()[0])
-        self.assertEqual(records["record_type"], "evaluation")
-        result = build_batch_candidate(
-            config,
-            comments=self.comments(),
-            queue_fetcher=self.queue(self.comments()),
-            comment_fetcher=self.fetcher(self.comments()),
-        )
-        authority_line = next(line for line in result[0]["evaluations.jsonl"].splitlines(keepends=True) if b"2026-07-24-mimo-2-5-pro-project-a-stage-a-001" in line)
-        worktree_line = (ROOT / "evaluations.jsonl").read_bytes().splitlines(keepends=True)[0]
-        self.assertTrue(authority_line.endswith(b"\n"))
-        self.assertNotEqual(authority_line, worktree_line)
+        try:
+            evaluations_path.write_bytes(temporary_worktree_bytes)
+            self.assertEqual(evaluations_path.read_bytes(), temporary_worktree_bytes)
+            result = build_batch_candidate(
+                config,
+                comments=[],
+                queue_fetcher=self.queue([]),
+            )
+            candidate_bytes = result[0]["evaluations.jsonl"]
+            self.assertEqual(candidate_bytes, immutable_authority_bytes)
+            self.assertNotEqual(candidate_bytes, temporary_worktree_bytes)
+        finally:
+            evaluations_path.write_bytes(original_worktree_bytes)
+            self.assertEqual(evaluations_path.read_bytes(), original_worktree_bytes)
+            restored_status = subprocess.run(
+                ["git", "status", "--porcelain", "--untracked-files=all"],
+                cwd=ROOT,
+                capture_output=True,
+                check=True,
+            ).stdout
+            self.assertEqual(restored_status, original_status)
 
     def test_queue_movement_invalidates_candidate(self):
         comments = self.comments()
