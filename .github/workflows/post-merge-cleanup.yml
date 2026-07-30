@@ -89,7 +89,9 @@ jobs:
       - name: Checkout exact canonical repository state
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.canonical_main_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -101,6 +103,7 @@ jobs:
 
       - name: Verify canonical state and prepare operator receipt
         env:
+          GH_TOKEN: ${{ github.token }}
           BATCH_ID: ${{ inputs.batch_id }}
           CANONICAL_MERGE_SHA: ${{ inputs.canonical_merge_sha }}
           CANONICAL_MAIN_SHA: ${{ inputs.canonical_main_sha }}

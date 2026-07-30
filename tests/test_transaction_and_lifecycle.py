@@ -5,9 +5,11 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts.processor.cleanup_workflow import (
     CleanupConfig,
+    _readback_live_authority,
     prepare_cleanup_receipt,
     publish_cleanup_receipt,
     run_cleanup,
@@ -143,13 +145,26 @@ class TestTransactionAndLifecycle(unittest.TestCase):
         receipt_path = root / "ledger" / "receipts" / "batches" / f"{batch_id}.json"
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
         receipt_path.write_text(json.dumps(batch, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "fixture" + "@" + "example.invalid"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "fixture"], cwd=root, check=True)
+        subprocess.run(["git", "add", "."], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
         return body, batch
 
     def cleanup_config(self, root: Path, batch_id: str, *, receipt_status="unverified", merge_state="merged"):
+        canonical_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
         return CleanupConfig(
             batch_id=batch_id,
-            canonical_merge_sha="a" * 40,
-            canonical_main_sha="a" * 40,
+            canonical_merge_sha=canonical_sha,
+            canonical_main_sha=canonical_sha,
             expected_head_sha="c" * 40,
             pr_number=151,
             source_issue_number=142,
@@ -222,13 +237,28 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             )
             self.assertEqual(receipt["cleanup_status"], "verified")
             calls = []
+
+            def publisher(body):
+                calls.append(body)
+                return 991
+
+            def readback(locator):
+                return {
+                    "id": locator,
+                    "body": calls[0],
+                    "issue_url": "https://api.github.test/repos/example/ledger/issues/143",
+                }
+
             published = publish_cleanup_receipt(
                 receipt,
                 activation_mode="reviewed-live",
                 operator_intent="reviewed",
-                publisher=lambda value: calls.append(value) or {"status": "SIMULATED_OPERATOR_PUBLICATION"},
+                publisher=publisher,
+                readback=readback,
+                comments_reader=lambda: [readback(991)],
+                authority_verifier=lambda value: value == receipt,
             )
-            self.assertEqual(published["status"], "SIMULATED_OPERATOR_PUBLICATION")
+            self.assertEqual(published["status"], "published")
             self.assertEqual(len(calls), 1)
             with self.assertRaises(Exception):
                 publish_cleanup_receipt(
@@ -236,6 +266,121 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                     activation_mode="dry-run",
                     operator_intent="unreviewed",
                 )
+
+    def test_cleanup_reads_immutable_objects_when_worktree_is_hostile(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-cleanup-object-test-") as raw:
+            root = Path(raw)
+            body, _ = self.fixture_cleanup_tree(root, batch_id="batch-cleanup-object-a005")
+            config = self.cleanup_config(root, "batch-cleanup-object-a005", receipt_status="absent")
+            original = (root / "evaluations.jsonl").read_bytes()
+            altered = b'{"test_only":"hostile_worktree"}\n'
+            self.assertNotEqual(original, altered)
+            (root / "evaluations.jsonl").write_bytes(altered)
+
+            def fetcher(comment_id, _root):
+                return {
+                    "id": comment_id,
+                    "body": body,
+                    "created_at": "2026-07-29T10:00:00Z",
+                    "updated_at": "2026-07-29T10:00:00Z",
+                }
+
+            receipt = prepare_cleanup_receipt(
+                config,
+                fetcher=fetcher,
+                authority_reader=self.authority_reader,
+            )
+            self.assertEqual(receipt["cleanup_status"], "verified")
+            self.assertEqual(receipt["canonical_hashes"]["evaluations_jsonl"], sha256_bytes(original))
+            self.assertNotEqual(receipt["canonical_hashes"]["evaluations_jsonl"], sha256_bytes(altered))
+
+    def test_check_runs_are_bound_to_raw_pr_head(self):
+        root = Path(tempfile.gettempdir())
+        raw_head = "c" * 40
+        config = CleanupConfig(
+            batch_id="batch-check-head-a005",
+            canonical_merge_sha="a" * 40,
+            canonical_main_sha="a" * 40,
+            expected_head_sha=raw_head,
+            pr_number=151,
+            source_issue_number=142,
+            receipt_issue_number=143,
+            activation_mode="dry-run",
+            operator_intent="unreviewed",
+            pr_state="closed",
+            merge_state="merged",
+            checks_state="passed",
+            review_state="clear",
+            recorded_receipt_status="absent",
+            repository_root=root,
+        )
+        pr = {
+            "state": "closed",
+            "merged_at": "2026-07-30T00:00:00Z",
+            "merge_commit_sha": "a" * 40,
+            "head": {"sha": raw_head},
+        }
+        main = {"object": {"sha": "a" * 40}}
+        check_names = ("CodeQL", "Scan public ledger", "validate")
+        wrong_head_runs = [
+            {"name": name, "head_sha": "d" * 40, "status": "completed", "conclusion": "success"}
+            for name in check_names
+        ]
+        with (
+            mock.patch("scripts.processor.cleanup_workflow._gh_get_json", side_effect=[pr, main]),
+            mock.patch(
+                "scripts.processor.cleanup_workflow._gh_get_paginated",
+                side_effect=[wrong_head_runs, [], []],
+            ) as paginated,
+            mock.patch("scripts.processor.cleanup_workflow._gh_get_threads", return_value=[]),
+        ):
+            authority = _readback_live_authority(config)
+        self.assertEqual(authority["checks_state"], "incomplete")
+        self.assertIn(raw_head, paginated.call_args_list[0].args[0])
+
+    def test_publication_never_trusts_adapter_without_exact_unique_readback(self):
+        receipt = {
+            "cleanup_status": "verified",
+            "recorded_receipt_status": "absent",
+        }
+        captured = []
+
+        def publisher(body):
+            captured.append(body)
+            return 81
+
+        cases = (
+            (
+                lambda _locator: {"id": 81, "body": "mismatch", "issue_url": "https://api.github.test/issues/143"},
+                lambda: [],
+                lambda _value: True,
+            ),
+            (
+                lambda _locator: {"id": 81, "body": captured[0], "issue_url": "https://api.github.test/issues/143"},
+                lambda: [
+                    {"id": 81, "body": captured[0]},
+                    {"id": 82, "body": captured[0]},
+                ],
+                lambda _value: True,
+            ),
+            (
+                lambda _locator: {"id": 81, "body": captured[0], "issue_url": "https://api.github.test/issues/143"},
+                lambda: [{"id": 81, "body": captured[0]}],
+                lambda _value: False,
+            ),
+        )
+        for readback, comments_reader, verifier in cases:
+            captured.clear()
+            result = publish_cleanup_receipt(
+                receipt,
+                activation_mode="reviewed-live",
+                operator_intent="reviewed",
+                publisher=publisher,
+                readback=readback,
+                comments_reader=comments_reader,
+                authority_verifier=verifier,
+            )
+            self.assertEqual(result["status"], "PENDING_OPERATOR_PUBLICATION")
 
 
 if __name__ == "__main__":

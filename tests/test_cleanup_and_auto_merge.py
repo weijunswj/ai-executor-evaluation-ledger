@@ -34,6 +34,10 @@ class TestCleanupAndActivation(unittest.TestCase):
     def test_workflow_is_manual_read_only_and_has_no_source_mutation_command(self):
         workflow = (ROOT / ".github" / "workflows" / "post-merge-cleanup.yml").read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("ref: ${{ inputs.canonical_main_sha }}", workflow)
+        self.assertIn("fetch-depth: 0", workflow)
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertNotIn("github.ref", workflow)
         self.assertNotIn("push:", workflow)
         self.assertIn("contents: read", workflow)
         self.assertIn("issues: read", workflow)

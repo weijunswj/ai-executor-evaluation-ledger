@@ -17,10 +17,9 @@ import jsonschema
 
 from scripts.processor.common import (
     ProcessorError,
-    safe_author_hash,
+    canonical_json_bytes,
     sha256_bytes,
     validate_batch_receipt_closure,
-    valid_author_login,
     valid_git_sha,
     valid_identifier,
 )
@@ -39,6 +38,14 @@ RECEIPT_VALIDATOR = jsonschema.Draft202012Validator(
     format_checker=jsonschema.FormatChecker(),
 )
 RECORDED_MARKER = "<!-- ledger-recorded:v1 -->"
+REQUIRED_CHECK_NAMES = frozenset({"CodeQL", "Scan public ledger", "validate"})
+CANONICAL_PATHS = {
+    "evaluations_jsonl": "evaluations.jsonl",
+    "dispositions_jsonl": "ledger/dispositions.jsonl",
+    "readme_md": "README.md",
+    "scorecard_md": "scorecard.md",
+    "model_recommendation_json": "analysis/model-recommendation.json",
+}
 
 
 def _reject_nonfinite_constant(_value: str) -> None:
@@ -97,6 +104,31 @@ def _validate_config(config: CleanupConfig) -> None:
         raise _safe_failure("processor_invalid_contract")
     if not config.repository_root.exists():
         raise _safe_failure("processor_invalid_contract")
+
+
+def _git_output(repository_root: Path, *args: str) -> bytes:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=repository_root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise _safe_failure("processor_cleanup_canonical_unavailable")
+    return result.stdout
+
+
+def _verify_local_canonical_checkout(repository_root: Path, canonical_main_sha: str) -> None:
+    _git_output(repository_root, "cat-file", "-e", f"{canonical_main_sha}^{{commit}}")
+    head = _git_output(repository_root, "rev-parse", "--verify", "HEAD").decode("ascii").strip()
+    if head != canonical_main_sha:
+        raise _safe_failure("processor_cleanup_authority_unverified")
+
+
+def _git_object_bytes(repository_root: Path, commit_sha: str, relative_path: str) -> bytes:
+    if relative_path.startswith(("/", "\\")) or ".." in Path(relative_path).parts:
+        raise _safe_failure("processor_cleanup_canonical_unavailable")
+    return _git_output(repository_root, "show", f"{commit_sha}:{relative_path}")
 
 
 def _gh_get_json(path: str, repository_root: Path) -> Any:
@@ -182,25 +214,55 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
         cursor = next_cursor
 
 
-def _recorded_receipt_status(batch_id: str, comments: list[dict[str, Any]]) -> str:
+def _parse_recorded_receipt_body(body: Any) -> Optional[dict[str, Any]]:
+    if not isinstance(body, str) or not body.startswith(RECORDED_MARKER):
+        return None
+    raw = body[len(RECORDED_MARKER):].lstrip(" \t\r\n")
+    try:
+        value, end = json.JSONDecoder(parse_constant=_reject_nonfinite_constant).raw_decode(raw)
+    except (TypeError, ValueError):
+        raise _safe_failure("processor_cleanup_receipt_invalid")
+    if raw[end:].strip() or not isinstance(value, dict):
+        raise _safe_failure("processor_cleanup_receipt_invalid")
+    if any(RECEIPT_VALIDATOR.iter_errors(value)):
+        raise _safe_failure("processor_cleanup_receipt_invalid")
+    expected_body = RECORDED_MARKER + "\n" + canonical_json_bytes(value).decode("utf-8")
+    if body != expected_body:
+        raise _safe_failure("processor_cleanup_receipt_invalid")
+    return value
+
+
+def _receipt_matches_authority(value: Mapping[str, Any], config: CleanupConfig) -> bool:
+    expected = {
+        "receipt_type": "cleanup",
+        "cleanup_status": "verified",
+        "batch_id": config.batch_id,
+        "canonical_merge_sha": config.canonical_merge_sha,
+        "canonical_main_sha": config.canonical_main_sha,
+        "expected_head_sha": config.expected_head_sha,
+        "pr_number": config.pr_number,
+        "source_issue_number": config.source_issue_number,
+        "receipt_issue_number": config.receipt_issue_number,
+        "source_retention_verified": True,
+    }
+    return all(value.get(field) == wanted for field, wanted in expected.items())
+
+
+def _recorded_receipt_status(config: CleanupConfig, comments: list[dict[str, Any]]) -> str:
     matches = 0
-    malformed = 0
     for comment in comments:
         body = comment.get("body")
         if not isinstance(body, str) or not body.startswith(RECORDED_MARKER):
             continue
-        raw = body[len(RECORDED_MARKER):].lstrip(" \t\r\n")
         try:
-            value, end = json.JSONDecoder(parse_constant=_reject_nonfinite_constant).raw_decode(raw)
-        except (TypeError, ValueError):
-            malformed += 1
-            continue
-        if raw[end:].strip() or not isinstance(value, dict):
-            malformed += 1
-            continue
-        if value.get("batch_id") == batch_id:
+            value = _parse_recorded_receipt_body(body)
+        except ProcessorError:
+            return "conflicting"
+        if value is not None and value.get("batch_id") == config.batch_id:
+            if not _receipt_matches_authority(value, config):
+                return "conflicting"
             matches += 1
-    if malformed or matches > 1:
+    if matches > 1:
         return "conflicting"
     return "present_matching" if matches == 1 else "absent"
 
@@ -212,12 +274,15 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         f"repos/weijunswj/ai-executor-evaluation-ledger/pulls/{config.pr_number}",
         config.repository_root,
     )
+    head_sha = pr.get("head", {}).get("sha") if isinstance(pr.get("head"), dict) else None
+    if not valid_git_sha(head_sha):
+        raise _safe_failure("processor_cleanup_authority_unverified")
     main_ref = _gh_get_json(
         "repos/weijunswj/ai-executor-evaluation-ledger/git/ref/heads/main",
         config.repository_root,
     )
     check_runs = _gh_get_paginated(
-        f"repos/weijunswj/ai-executor-evaluation-ledger/commits/{config.canonical_main_sha}/check-runs?per_page=100",
+        f"repos/weijunswj/ai-executor-evaluation-ledger/commits/{head_sha}/check-runs?per_page=100",
         config.repository_root,
     )
     reviews = _gh_get_paginated(
@@ -229,11 +294,14 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         "repos/weijunswj/ai-executor-evaluation-ledger/issues/143/comments?per_page=100",
         config.repository_root,
     )
-    check_state = "passed" if check_runs and all(
-        item.get("status") == "completed"
-        and item.get("conclusion") in {"success", "neutral", "skipped"}
+    successful_check_names = {
+        item.get("name")
         for item in check_runs
-    ) else "incomplete"
+        if item.get("head_sha") == head_sha
+        and item.get("status") == "completed"
+        and item.get("conclusion") == "success"
+    }
+    check_state = "passed" if REQUIRED_CHECK_NAMES.issubset(successful_check_names) else "incomplete"
     review_state = "blocking" if any(
         str(item.get("state", "")).upper() in {"CHANGES_REQUESTED", "PENDING"}
         for item in reviews
@@ -242,11 +310,10 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         review_state = "unresolved_actionable"
     state = str(pr.get("state", "")).lower()
     merged = pr.get("merged_at") is not None
-    head_sha = pr.get("head", {}).get("sha") if isinstance(pr.get("head"), dict) else None
     merge_sha = pr.get("merge_commit_sha")
     main_sha = main_ref.get("object", {}).get("sha") if isinstance(main_ref.get("object"), dict) else None
-    if state not in {"open", "closed"} or not isinstance(head_sha, str) or not isinstance(main_sha, str):
-        raise _safe_failure("cleanup_authority_unverified")
+    if state not in {"open", "closed"} or not valid_git_sha(main_sha):
+        raise _safe_failure("processor_cleanup_authority_unverified")
     return {
         "pr_state": state,
         "merge_state": "merged" if merged and merge_sha == main_sha else "unmerged",
@@ -255,7 +322,7 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         "expected_head_sha": head_sha,
         "canonical_merge_sha": merge_sha if isinstance(merge_sha, str) else "",
         "canonical_main_sha": main_sha,
-        "recorded_receipt_status": _recorded_receipt_status(config.batch_id, receipt_comments),
+        "recorded_receipt_status": _recorded_receipt_status(config, receipt_comments),
     }
 
 
@@ -288,42 +355,36 @@ def fetch_live_comment(comment_id: int, repository_root: Path = ROOT) -> Dict[st
     return value
 
 
-def _load_batch(root: Path, batch_id: str) -> tuple[Dict[str, Any], bytes, str]:
-    path = root / "ledger" / "receipts" / "batches" / f"{batch_id}.json"
-    if not path.is_file():
-        raise _safe_failure("cleanup_batch_unavailable")
-    raw = path.read_bytes()
+def _load_batch(root: Path, commit_sha: str, batch_id: str) -> tuple[Dict[str, Any], bytes, str]:
+    raw = _git_object_bytes(
+        root,
+        commit_sha,
+        f"ledger/receipts/batches/{batch_id}.json",
+    )
     try:
         batch = json.loads(raw.decode("utf-8"), parse_constant=_reject_nonfinite_constant)
     except (UnicodeDecodeError, ValueError):
-        raise _safe_failure("cleanup_batch_unavailable")
+        raise _safe_failure("processor_cleanup_batch_unavailable")
     if not isinstance(batch, dict) or batch.get("receipt_type") != "batch":
-        raise _safe_failure("cleanup_batch_unavailable")
+        raise _safe_failure("processor_cleanup_batch_unavailable")
     if any(RECEIPT_VALIDATOR.iter_errors(batch)):
-        raise _safe_failure("cleanup_batch_unavailable")
+        raise _safe_failure("processor_cleanup_batch_unavailable")
     if batch.get("schema_version") == 2 and not validate_batch_receipt_closure(batch):
-        raise _safe_failure("cleanup_batch_unavailable")
+        raise _safe_failure("processor_cleanup_batch_unavailable")
     return batch, raw, sha256_bytes(raw)
 
 
-def _current_hashes(root: Path) -> Dict[str, str]:
-    paths = {
-        "evaluations_jsonl": root / "evaluations.jsonl",
-        "dispositions_jsonl": root / "ledger" / "dispositions.jsonl",
-        "readme_md": root / "README.md",
-        "scorecard_md": root / "scorecard.md",
-        "model_recommendation_json": root / "analysis" / "model-recommendation.json",
+def _current_hashes(root: Path, commit_sha: str) -> Dict[str, str]:
+    return {
+        name: sha256_bytes(_git_object_bytes(root, commit_sha, relative))
+        for name, relative in CANONICAL_PATHS.items()
     }
-    if any(not path.is_file() for path in paths.values()):
-        raise _safe_failure("cleanup_canonical_unavailable")
-    return {name: sha256_bytes(path.read_bytes()) for name, path in paths.items()}
 
 
-def _record_hashes(root: Path, run_ids: list[str]) -> Dict[str, str]:
+def _record_hashes(evaluations_bytes: bytes, run_ids: list[str]) -> Dict[str, str]:
     wanted = set(run_ids)
     found: Dict[str, str] = {}
-    path = root / "evaluations.jsonl"
-    for line in path.read_bytes().splitlines(keepends=True):
+    for line in evaluations_bytes.splitlines(keepends=True):
         if not line.strip():
             continue
         try:
@@ -333,18 +394,19 @@ def _record_hashes(root: Path, run_ids: list[str]) -> Dict[str, str]:
         if isinstance(value, dict) and value.get("run_id") in wanted:
             run_id = value["run_id"]
             if run_id in found:
-                raise _safe_failure("cleanup_canonical_unavailable")
+                raise _safe_failure("processor_cleanup_canonical_unavailable")
+            if not line.endswith(b"\n"):
+                raise _safe_failure("processor_cleanup_canonical_unavailable")
             found[run_id] = sha256_bytes(line)
     if set(found) != wanted:
-        raise _safe_failure("cleanup_canonical_unavailable")
+        raise _safe_failure("processor_cleanup_canonical_unavailable")
     return found
 
 
-def _record_identity_proofs(root: Path, run_ids: list[str]) -> Dict[str, Dict[str, Any]]:
+def _record_identity_proofs(evaluations_bytes: bytes, run_ids: list[str]) -> Dict[str, Dict[str, Any]]:
     wanted = set(run_ids)
     found: Dict[str, Dict[str, Any]] = {}
-    path = root / "evaluations.jsonl"
-    for line in path.read_bytes().splitlines():
+    for line in evaluations_bytes.splitlines():
         if not line.strip():
             continue
         try:
@@ -355,9 +417,9 @@ def _record_identity_proofs(root: Path, run_ids: list[str]) -> Dict[str, Dict[st
             continue
         run_id = value["run_id"]
         if run_id in found or value.get("record_type") != "evaluation":
-            raise _safe_failure("cleanup_canonical_unavailable")
+            raise _safe_failure("processor_cleanup_canonical_unavailable")
         if any(EVALUATION_VALIDATOR.iter_errors(value)):
-            raise _safe_failure("cleanup_canonical_unavailable")
+            raise _safe_failure("processor_cleanup_canonical_unavailable")
         found[run_id] = {
             "provider": value["provider"],
             "model": value["model"],
@@ -365,7 +427,7 @@ def _record_identity_proofs(root: Path, run_ids: list[str]) -> Dict[str, Dict[st
             "weighted_score_5": value["weighted_score_5"],
         }
     if set(found) != wanted:
-        raise _safe_failure("cleanup_canonical_unavailable")
+        raise _safe_failure("processor_cleanup_canonical_unavailable")
     return found
 
 
@@ -390,18 +452,11 @@ def _retained_comment_evidence(
             actual_id = comment.get("id") if isinstance(comment, dict) else None
             actual_updated = comment.get("updated_at") if isinstance(comment, dict) else None
             actual_created = comment.get("created_at") if isinstance(comment, dict) else None
-            actual_user = comment.get("user") if isinstance(comment, dict) else None
-            actual_login = actual_user.get("login") if isinstance(actual_user, dict) else None
             binding = expected_bindings.get(comment_id)
-            expected_author_hash = binding.get("author_sha256") if isinstance(binding, dict) else None
-            if expected_author_hash is None and isinstance(binding, dict):
-                expected_author_hash = safe_author_hash(binding.get("author"))
             if (
                 actual_id != comment_id
                 or not isinstance(body, str)
                 or not isinstance(binding, dict)
-                or not valid_author_login(actual_login)
-                or safe_author_hash(actual_login) != expected_author_hash
                 or actual_created != binding.get("created_at")
                 or actual_updated != binding.get("updated_at")
             ):
@@ -426,13 +481,23 @@ def prepare_cleanup_receipt(
     """Prove the post-merge state and return a non-published v2 receipt."""
 
     _validate_config(config)
+    _verify_local_canonical_checkout(config.repository_root, config.canonical_main_sha)
     authority = authority_reader(config) if authority_reader is not None else _readback_live_authority(config)
     _assert_live_authority(config, authority)
-    batch, batch_bytes, batch_hash = _load_batch(config.repository_root, config.batch_id)
+    batch, batch_bytes, batch_hash = _load_batch(
+        config.repository_root,
+        config.canonical_main_sha,
+        config.batch_id,
+    )
     legacy_batch = batch.get("schema_version") != 2
-    current_hashes = _current_hashes(config.repository_root)
-    record_hashes = _record_hashes(config.repository_root, batch.get("admitted_run_ids", []))
-    record_proofs = _record_identity_proofs(config.repository_root, batch.get("admitted_run_ids", []))
+    evaluations_bytes = _git_object_bytes(
+        config.repository_root,
+        config.canonical_main_sha,
+        CANONICAL_PATHS["evaluations_jsonl"],
+    )
+    current_hashes = _current_hashes(config.repository_root, config.canonical_main_sha)
+    record_hashes = _record_hashes(evaluations_bytes, batch.get("admitted_run_ids", []))
+    record_proofs = _record_identity_proofs(evaluations_bytes, batch.get("admitted_run_ids", []))
     retained_ids, retention_verified = _retained_comment_evidence(
         batch,
         config.repository_root,
@@ -513,9 +578,12 @@ def publish_cleanup_receipt(
     *,
     activation_mode: str,
     operator_intent: str,
-    publisher: Optional[Callable[[Mapping[str, Any]], Mapping[str, Any]]] = None,
+    publisher: Optional[Callable[[str], int]] = None,
+    readback: Optional[Callable[[int], Mapping[str, Any]]] = None,
+    comments_reader: Optional[Callable[[], list[dict[str, Any]]]] = None,
+    authority_verifier: Optional[Callable[[Mapping[str, Any]], bool]] = None,
 ) -> Dict[str, Any]:
-    """Use an explicit future operator adapter; never publish implicitly."""
+    """Publish only through an operator adapter followed by exact canonical read-back."""
 
     if activation_mode != "reviewed-live" or operator_intent != "reviewed":
         raise _safe_failure("processor_activation_denied")
@@ -525,10 +593,44 @@ def publish_cleanup_receipt(
         raise _safe_failure("processor_activation_denied")
     if publisher is None:
         return {"status": "PENDING_OPERATOR_PUBLICATION", "platform_limitation_code": "web_orchestrator_publication_required"}
-    result = publisher(receipt)
-    if not isinstance(result, Mapping):
-        raise _safe_failure("cleanup_publication_failed")
-    return dict(result)
+    if readback is None or comments_reader is None or authority_verifier is None:
+        return {"status": "PENDING_OPERATOR_PUBLICATION", "platform_limitation_code": "publication_readback_required"}
+
+    intended_body = RECORDED_MARKER + "\n" + canonical_json_bytes(dict(receipt)).decode("utf-8")
+    try:
+        locator = publisher(intended_body)
+        if not isinstance(locator, int) or isinstance(locator, bool) or locator <= 0:
+            raise ValueError("invalid_locator")
+        comment = readback(locator)
+        if not isinstance(comment, Mapping):
+            raise ValueError("invalid_readback")
+        issue_url = comment.get("issue_url")
+        if (
+            comment.get("id") != locator
+            or comment.get("body") != intended_body
+            or not isinstance(issue_url, str)
+            or not issue_url.endswith("/issues/143")
+        ):
+            raise ValueError("mismatched_readback")
+        parsed = _parse_recorded_receipt_body(comment.get("body"))
+        if parsed != dict(receipt):
+            raise ValueError("mismatched_receipt")
+        comments = comments_reader()
+        matching = [
+            item for item in comments
+            if isinstance(item, dict) and item.get("body") == intended_body
+        ]
+        if len(matching) != 1 or matching[0].get("id") != locator:
+            raise ValueError("ambiguous_readback")
+        if not authority_verifier(parsed):
+            raise ValueError("authority_changed")
+    except (OSError, ProcessorError, TypeError, ValueError):
+        return {"status": "PENDING_OPERATOR_PUBLICATION", "platform_limitation_code": "publication_readback_unverified"}
+    return {
+        "status": "published",
+        "comment_id": locator,
+        "body_sha256": sha256_bytes(intended_body.encode("utf-8")),
+    }
 
 
 def run_cleanup(
