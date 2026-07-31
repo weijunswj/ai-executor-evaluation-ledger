@@ -798,6 +798,20 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             lambda candidate: candidate["reviews"].pop("pageInfo"),
         )
         assert_rejected(
+            "missing_has_next_page",
+            lambda candidate: candidate["reviews"]["pageInfo"].pop(
+                "hasNextPage"
+            ),
+        )
+        assert_rejected(
+            "missing_nodes",
+            lambda candidate: candidate["reviews"].pop("nodes"),
+        )
+        assert_rejected(
+            "missing_total_count",
+            lambda candidate: candidate["reviews"].pop("totalCount"),
+        )
+        assert_rejected(
             "malformed_page_info",
             lambda candidate: candidate["reviews"].update(pageInfo=None),
         )
@@ -811,6 +825,12 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             "unknown_page_info_field",
             lambda candidate: candidate["reviews"]["pageInfo"].update(
                 unavailable=True
+            ),
+        )
+        assert_rejected(
+            "unknown_connection_field",
+            lambda candidate: candidate["reviews"].update(
+                unexpected=True
             ),
         )
         for label in ("partial", "error", "unavailable"):
@@ -838,6 +858,102 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(
             planner.plan_pr_action(frozen, True, "d" * 40),
             {"action": "REFUSE_FROZEN", "reason": "frozen_head_mismatch"},
+        )
+
+    def test_native_graphql_page_info_omissions_preserve_fixture_results(self):
+        fixtures = json.loads(
+            Path(
+                "tests/fixtures/source_watch/"
+                "native_review_evidence.json"
+            ).read_text(encoding="utf-8")
+        )
+        planner = SourceWatchPlanner()
+        connection_names = ("reviews", "latestReviews", "reviewThreads")
+        optional_page_info_fields = (
+            "hasPreviousPage",
+            "startCursor",
+            "endCursor",
+        )
+        fixture_expectations = {
+            "mutable_empty": {
+                "normalized": {
+                    "reviews": [],
+                    "latestReviews": [],
+                    "reviewThreads": [],
+                },
+                "plan": {
+                    "action": "UPDATE_EXISTING_PR",
+                    "pr_number": 151,
+                    "reason": "safe_mutable_source_watch_pr",
+                },
+            },
+            "active_nonempty": {
+                "normalized": {
+                    "reviews": [{"state": "COMMENTED"}],
+                    "latestReviews": [{"state": "COMMENTED"}],
+                    "reviewThreads": [{"isResolved": False}],
+                },
+                "plan": {
+                    "action": "REFUSE_FROZEN",
+                    "reason": "review_freeze_conflict",
+                },
+            },
+        }
+
+        for fixture_name, expected in fixture_expectations.items():
+            baseline = copy.deepcopy(fixtures[fixture_name])
+            self.assertEqual(
+                normalize_native_review_evidence(baseline),
+                expected["normalized"],
+            )
+            self.assertEqual(
+                planner.plan_pr_action(baseline, True, "c" * 40),
+                expected["plan"],
+            )
+            for connection_name in connection_names:
+                for page_info_field in optional_page_info_fields:
+                    candidate = copy.deepcopy(baseline)
+                    candidate[connection_name]["pageInfo"].pop(page_info_field)
+                    with self.subTest(
+                        fixture=fixture_name,
+                        connection=connection_name,
+                        page_info_field=page_info_field,
+                    ):
+                        self.assertEqual(
+                            normalize_native_review_evidence(candidate),
+                            expected["normalized"],
+                        )
+                        self.assertEqual(
+                            planner.plan_pr_action(candidate, True, "c" * 40),
+                            expected["plan"],
+                        )
+
+        combined = copy.deepcopy(fixtures["active_nonempty"])
+        for connection_name in connection_names:
+            for page_info_field in optional_page_info_fields:
+                combined[connection_name]["pageInfo"].pop(page_info_field)
+            self.assertEqual(
+                set(combined[connection_name]),
+                {"nodes", "pageInfo", "totalCount"},
+            )
+            self.assertEqual(
+                set(combined[connection_name]["pageInfo"]),
+                {"hasNextPage"},
+            )
+            self.assertFalse(
+                combined[connection_name]["pageInfo"]["hasNextPage"]
+            )
+            self.assertEqual(
+                combined[connection_name]["totalCount"],
+                len(combined[connection_name]["nodes"]),
+            )
+        self.assertEqual(
+            normalize_native_review_evidence(combined),
+            fixture_expectations["active_nonempty"]["normalized"],
+        )
+        self.assertEqual(
+            planner.plan_pr_action(combined, True, "c" * 40),
+            fixture_expectations["active_nonempty"]["plan"],
         )
 
 
