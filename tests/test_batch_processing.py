@@ -275,10 +275,10 @@ class TestBatchProcessing(unittest.TestCase):
             )
         self.assertEqual(ctx.exception.code, "source_changed")
 
-    def test_duplicate_batch_id_is_a_generic_terminal_conflict(self):
+    def test_frozen_batch_refuses_incomplete_source_replay(self):
         with self.assertRaises(ProcessorError) as ctx:
             build_batch_candidate(self.config("batch-20260729-gate3-amendment-004"), comments=[])
-        self.assertEqual(ctx.exception.code, "receipt_conflict")
+        self.assertEqual(ctx.exception.code, "source_changed")
 
     def test_wrong_expected_head_is_rejected(self):
         config = ProcessBatchConfig(**{

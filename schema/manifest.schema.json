@@ -8,7 +8,8 @@
     {"$ref": "#/$defs/evaluationProtocol"},
     {"$ref": "#/$defs/historicalAdapter"},
     {"$ref": "#/$defs/preservation"},
-    {"$ref": "#/$defs/reasoningScrub"}
+    {"$ref": "#/$defs/reasoningScrub"},
+    {"$ref": "#/$defs/unicodeIdentityHistoryActivation"}
   ],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -163,7 +164,7 @@
       "required": [
         "schema_version", "manifest_type", "generated_at", "source_base_sha",
         "evaluations_sha256", "final_total_count", "field_aliases",
-        "model_aliases", "accepted_verdict_values"
+        "model_aliases", "accepted_verdict_values", "reviewed_at_authority"
       ],
       "properties": {
         "schema_version": {"type": "integer", "const": 1},
@@ -193,6 +194,29 @@
           "type": "array",
           "items": {"type": "string", "minLength": 1},
           "uniqueItems": true
+        },
+        "reviewed_at_authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "batch_id", "source_field", "destination_field",
+            "source_comment_count", "source_comment_watermark",
+            "source_snapshot_sha256", "requires_body_omission",
+            "requires_exact_fingerprint"
+          ],
+          "properties": {
+            "batch_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+            },
+            "source_field": {"const": "created_at"},
+            "destination_field": {"const": "reviewed_at"},
+            "source_comment_count": {"type": "integer", "const": 101},
+            "source_comment_watermark": {"type": "integer", "const": 5115014307},
+            "source_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+            "requires_body_omission": {"type": "boolean", "const": true},
+            "requires_exact_fingerprint": {"type": "boolean", "const": true}
+          }
         }
       }
     },
@@ -215,6 +239,44 @@
         "removed_attribute_key_count": {"type": "integer", "minimum": 0},
         "removed_correction_count": {"type": "integer", "minimum": 0},
         "removed_corrections_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "unicodeIdentityHistoryActivation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "manifest_type", "pr_activation_head",
+        "canonical_main_base", "generic_history_baseline",
+        "pre_activation_occurrence_count",
+        "pre_activation_inventory_sha256", "identity_rule_set_sha256"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "manifest_type": {"const": "unicode_identity_history_activation"},
+        "pr_activation_head": {
+          "allOf": [
+            {"$ref": "#/$defs/gitSha"},
+            {"const": "10f40ea2f820f4a6230355502639bd7a238b2c45"}
+          ]
+        },
+        "canonical_main_base": {
+          "allOf": [
+            {"$ref": "#/$defs/gitSha"},
+            {"const": "27748b1fa4b70eb69f18047c31ec97c3505beb88"}
+          ]
+        },
+        "generic_history_baseline": {
+          "allOf": [
+            {"$ref": "#/$defs/gitSha"},
+            {"const": "c644a6032dec6709ff08b10f8bfb4fe53de28b69"}
+          ]
+        },
+        "pre_activation_occurrence_count": {
+          "type": "integer",
+          "const": 571
+        },
+        "pre_activation_inventory_sha256": {"$ref": "#/$defs/sha256"},
+        "identity_rule_set_sha256": {"$ref": "#/$defs/sha256"}
       }
     }
   }

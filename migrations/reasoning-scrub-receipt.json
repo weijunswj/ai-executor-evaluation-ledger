@@ -1,6 +1,6 @@
 {
-  "evaluations_sha256": "cfc428521a870eb96ddcdc796a467b472506a07bf555adf9d08306a122faeb59",
-  "generated_at": "2026-07-29T04:29:56Z",
+  "evaluations_sha256": "7a690e8cfd44a9a42643333c9673ba571e19d0d32c4c626e30683fbc43d00230",
+  "generated_at": "2026-07-26T23:40:00+08:00",
   "manifest_type": "reasoning_scrub_receipt",
   "removed_attribute_key_count": 8,
   "removed_correction_count": 1,

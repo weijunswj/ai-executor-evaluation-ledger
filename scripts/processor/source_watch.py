@@ -134,7 +134,14 @@ def _complete_connection_nodes(value: Any) -> Optional[list[Any]]:
     if (
         not isinstance(nodes, list)
         or not isinstance(page_info, dict)
-        or set(page_info) != {"hasNextPage"}
+        or "hasNextPage" not in page_info
+        or set(page_info)
+        - {
+            "hasNextPage",
+            "hasPreviousPage",
+            "startCursor",
+            "endCursor",
+        }
         or not isinstance(page_info.get("hasNextPage"), bool)
         or page_info["hasNextPage"]
         or not isinstance(total_count, int)
@@ -142,21 +149,43 @@ def _complete_connection_nodes(value: Any) -> Optional[list[Any]]:
         or total_count != len(nodes)
     ):
         return None
+    if (
+        "hasPreviousPage" in page_info
+        and not isinstance(page_info["hasPreviousPage"], bool)
+    ):
+        return None
+    for field in ("startCursor", "endCursor"):
+        if field in page_info and not (
+            page_info[field] is None
+            or isinstance(page_info[field], str)
+        ):
+            return None
     return nodes
 
 
-def _native_review_activity(pr_meta: Dict[str, Any]) -> Optional[bool]:
-    """Return explicit review activity, or ``None`` for ambiguous evidence."""
+def normalize_native_review_evidence(
+    pr_meta: Dict[str, Any],
+) -> Optional[Dict[str, list[Any]]]:
+    """Convert closed native connections into the internal review DTO."""
 
-    activity = False
+    normalized: Dict[str, list[Any]] = {}
     for field in ("reviews", "latestReviews", "reviewThreads"):
         if field not in pr_meta:
             return None
         nodes = _complete_connection_nodes(pr_meta[field])
         if nodes is None:
             return None
-        if nodes:
-            activity = True
+        normalized[field] = nodes
+    return normalized
+
+
+def _native_review_activity(pr_meta: Dict[str, Any]) -> Optional[bool]:
+    """Return explicit review activity, or ``None`` for ambiguous evidence."""
+
+    normalized = normalize_native_review_evidence(pr_meta)
+    if normalized is None:
+        return None
+    activity = any(normalized.values())
     controller_started = pr_meta.get("controller_review_started")
     if controller_started is not None:
         if not isinstance(controller_started, bool):

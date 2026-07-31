@@ -2,7 +2,7 @@
   "after_corrections_sha256": "e7ea03b441ff5823d8e1ba26fb450c73227080817072bddeba7b3c6bb649d5ef",
   "before_corrections_sha256": "f6a1f024abf930622b754e87eea25c1f9107775e84cdba9aab967c816cb6f332",
   "final_correction_count": 1,
-  "generated_at": "2026-07-29T04:29:56Z",
+  "generated_at": "2026-07-26T23:40:00+08:00",
   "manifest_type": "correction_migration_manifest",
   "preserved_correction_count": 1,
   "preserved_corrections_sha256": "1959d73f094c9c2b0196dc03cb8436c5f4a8922b81098daa840a2e1da50f0b15",

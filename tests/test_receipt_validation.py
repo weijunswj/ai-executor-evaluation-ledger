@@ -5,8 +5,10 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts.processor.common import canonical_json_line_bytes, sha256_bytes
+from scripts.processor.frozen_replay import FrozenReplayResult
 from scripts.seal_batch_receipt import build_sealed_receipt
 from scripts.validate_receipts import (
     CANONICAL_PATHS,
@@ -44,20 +46,62 @@ class TestReceiptValidation(unittest.TestCase):
             }
             for binding in tracked["comment_bindings"]
         ]
-        receipt = build_sealed_receipt(
-            ROOT,
-            candidate_content_commit_sha=candidate_sha,
-            source_reader=lambda _root, _source: {
-                "fingerprints": fingerprints,
-                "source_body_sha256": tracked["source_body_sha256"],
-                "queue_snapshot_sha256": tracked["queue_snapshot_sha256"],
-            },
+        replayed_outcomes = copy.deepcopy(tracked["terminal_outcomes"])
+        changed_id = next(
+            comment_id
+            for comment_id, outcome in replayed_outcomes.items()
+            if outcome["outcome_code"] not in {"admitted", "already_recorded"}
         )
+        replacement_code = (
+            "authority_missing"
+            if replayed_outcomes[changed_id]["outcome_code"] == "no_marker"
+            else "no_marker"
+        )
+        replayed_outcomes[changed_id]["outcome_code"] = replacement_code
+        replayed_bindings = copy.deepcopy(tracked["comment_bindings"])
+        next(
+            binding
+            for binding in replayed_bindings
+            if str(binding["comment_id"]) == changed_id
+        )["outcome_code"] = replacement_code
+        replay = FrozenReplayResult(
+            candidate_files={},
+            artifact_hashes={},
+            canonical_hashes=tracked["canonical_hashes"],
+            terminal_outcomes=replayed_outcomes,
+            admitted_run_ids=tuple(tracked["admitted_run_ids"]),
+            accepted_record_proofs=tracked["accepted_record_proofs"],
+            canonical_record_hashes=tracked["canonical_record_hashes"],
+            comment_bindings=tuple(replayed_bindings),
+            source_comment_ids=tuple(tracked["source_comment_ids"]),
+            source_body_sha256=tracked["source_body_sha256"],
+            source_snapshot_sha256=tracked["queue_snapshot_sha256"],
+            later_comment_count=0,
+        )
+        with mock.patch(
+            "scripts.seal_batch_receipt.replay_frozen_from_receipt",
+            return_value=replay,
+        ):
+            receipt = build_sealed_receipt(
+                ROOT,
+                candidate_content_commit_sha=candidate_sha,
+                source_reader=lambda _root, _source: {
+                    "comments": [{} for _item in fingerprints],
+                    "fingerprints": fingerprints,
+                },
+            )
         self.assertEqual(receipt["schema_version"], 2)
         self.assertEqual(receipt["full_queue_count"], 101)
         self.assertEqual(receipt["selected_comment_count"], 101)
         self.assertEqual(receipt["terminal_outcome_count"], 101)
-        self.assertEqual(len(receipt["admitted_run_ids"]), 79)
+        self.assertEqual(
+            len(receipt["admitted_run_ids"]),
+            len(replay.admitted_run_ids),
+        )
+        self.assertEqual(
+            receipt["terminal_outcomes"][changed_id]["outcome_code"],
+            replacement_code,
+        )
         encoded = json.dumps(receipt, sort_keys=True)
         for forbidden in (
             '"author"',

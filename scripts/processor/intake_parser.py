@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any, Dict, FrozenSet, Optional, Set, Tuple
 
 import jsonschema
 
 from scripts.processor.common import (
     AUTHORIZED_PAIRS,
+    FROZEN_BATCH_ID,
+    FROZEN_COUNT,
+    FROZEN_SNAPSHOT_SHA256,
+    FROZEN_WATERMARK,
     INELIGIBLE_PAIRS,
     MODEL_ALIASES,
     PROHIBITED_IDENTITY_KEYS,
@@ -19,6 +24,7 @@ from scripts.processor.common import (
     find_unsafe_content,
     has_forbidden_key,
     normalize_known_model,
+    safe_comment_body_hash,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -26,6 +32,10 @@ INTAKE_SCHEMA_PATH = ROOT / "schema" / "intake.schema.json"
 INTAKE_SCHEMA = json.loads(INTAKE_SCHEMA_PATH.read_text(encoding="utf-8"))
 INTAKE_VALIDATOR = jsonschema.Draft202012Validator(
     INTAKE_SCHEMA,
+    format_checker=jsonschema.FormatChecker(),
+)
+REVIEWED_AT_VALIDATOR = jsonschema.Draft202012Validator(
+    INTAKE_SCHEMA["properties"]["reviewed_at"],
     format_checker=jsonschema.FormatChecker(),
 )
 
@@ -132,6 +142,39 @@ VERDICT_VALUES = frozenset(
 )
 
 
+@dataclass(frozen=True)
+class HistoricalReviewTimestampAuthority:
+    """Closed, fingerprint-bound authority for the one frozen migration."""
+
+    batch_id: str
+    comment_id: int
+    frozen_comment_ids: FrozenSet[int]
+    verified_snapshot_sha256: str
+    source_body_sha256: str
+    expected_body_sha256: str
+    source_created_at: Any
+    expected_created_at: Any
+    source_updated_at: Any
+    expected_updated_at: Any
+
+    def reviewed_at_for(self, body: str) -> Optional[str]:
+        if (
+            self.batch_id != FROZEN_BATCH_ID
+            or len(self.frozen_comment_ids) != FROZEN_COUNT
+            or self.comment_id not in self.frozen_comment_ids
+            or max(self.frozen_comment_ids, default=0) != FROZEN_WATERMARK
+            or self.verified_snapshot_sha256 != FROZEN_SNAPSHOT_SHA256
+            or self.source_body_sha256 != self.expected_body_sha256
+            or self.source_body_sha256 != safe_comment_body_hash(body)
+            or self.source_created_at != self.expected_created_at
+            or self.source_updated_at != self.expected_updated_at
+            or not isinstance(self.source_created_at, str)
+            or any(REVIEWED_AT_VALIDATOR.iter_errors(self.source_created_at))
+        ):
+            return None
+        return self.source_created_at
+
+
 def _reject(code: str) -> Tuple[str, Dict[str, Any], str]:
     """Return a disposition without retaining or echoing source values."""
 
@@ -202,8 +245,7 @@ def _schema_valid(payload: Dict[str, Any]) -> bool:
     return not any(INTAKE_VALIDATOR.iter_errors(payload))
 
 
-def _required_authority_present(payload: Dict[str, Any]) -> bool:
-    required = (
+REQUIRED_AUTHORITY_FIELDS = (
         "schema_version",
         "record_type",
         "controller_run_id",
@@ -221,8 +263,26 @@ def _required_authority_present(payload: Dict[str, Any]) -> bool:
         "public_safe_evidence",
         "secret_exposure_status",
         "reviewed_at",
-    )
-    return all(key in payload for key in required)
+)
+
+
+def _required_authority_present(payload: Dict[str, Any]) -> bool:
+    return all(key in payload for key in REQUIRED_AUTHORITY_FIELDS)
+
+
+def _otherwise_valid_for_historical_reviewed_at(
+    payload: Dict[str, Any],
+    reviewed_at: str,
+) -> bool:
+    if any(
+        key not in payload
+        for key in REQUIRED_AUTHORITY_FIELDS
+        if key != "reviewed_at"
+    ):
+        return False
+    candidate = dict(payload)
+    candidate["reviewed_at"] = reviewed_at
+    return not any(INTAKE_VALIDATOR.iter_errors(candidate))
 
 
 def contains_reasoning_keys(value: Any) -> bool:
@@ -262,6 +322,10 @@ def parse_intake_comment(
     body: str,
     recorded_run_ids: Set[str],
     seen_candidate_ids: Set[str],
+    *,
+    historical_review_authority: Optional[
+        HistoricalReviewTimestampAuthority
+    ] = None,
 ) -> Tuple[str, Dict[str, Any], str]:
     """Parse exactly one tainted comment into an admitted payload or safe code."""
 
@@ -290,9 +354,20 @@ def parse_intake_comment(
     adapted = adapt_historical_payload(payload)
     if not adapted:
         return _reject("invalid_schema")
+    if "reviewed_at" not in adapted and historical_review_authority is not None:
+        reviewed_at = historical_review_authority.reviewed_at_for(body)
+        if (
+            reviewed_at is not None
+            and _otherwise_valid_for_historical_reviewed_at(
+                adapted,
+                reviewed_at,
+            )
+        ):
+            adapted["reviewed_at"] = reviewed_at
     if not _required_authority_present(adapted):
         return _reject("authority_missing")
 
+    schema_errors = tuple(INTAKE_VALIDATOR.iter_errors(adapted))
     provider = adapted["provider"]
     model = adapted["canonical_base_model"]
     pair = (provider, model)
@@ -302,7 +377,7 @@ def parse_intake_comment(
         return _reject("ineligible_identity")
     if pair not in AUTHORIZED_PAIRS:
         return _reject("unsupported_identity")
-    if not _schema_valid(adapted):
+    if schema_errors:
         return _reject("invalid_schema")
     if adapted["verdict"] == "blocked":
         return _reject("ineligible_identity")

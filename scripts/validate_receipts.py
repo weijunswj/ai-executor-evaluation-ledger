@@ -17,10 +17,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.processor.common import (
+    FROZEN_BATCH_ID,
+    ProcessorError,
     sha256_bytes,
     validate_batch_receipt_closure,
     valid_git_sha,
 )
+from scripts.processor.frozen_replay import replay_frozen_from_receipt
+from scripts.processor.frozen_source import refetch_frozen_source
 
 RECEIPT_PREFIX = "ledger/receipts/batches/"
 CANONICAL_PATHS = {
@@ -253,29 +257,200 @@ def validate_all_tracked_batch_receipts(
     }
 
 
+def _terminal_seal_commit(
+    root: Path,
+    *,
+    authority_sha: str,
+    mode: str,
+    receipt_path: str,
+) -> str:
+    if mode == "pr":
+        return authority_sha
+    value = str(
+        _git(
+            root,
+            "log",
+            "-1",
+            "--format=%H",
+            authority_sha,
+            "--",
+            receipt_path,
+            text=True,
+        )
+    ).strip()
+    if not valid_git_sha(value):
+        raise ReceiptValidationError("receipt_terminal_seal_unavailable")
+    return value
+
+
+def _validate_terminal_seal_scope(
+    root: Path,
+    *,
+    seal_sha: str,
+    receipt_path: str,
+    candidate_sha: str,
+) -> None:
+    parent_line = str(
+        _git(root, "rev-list", "--parents", "-n", "1", seal_sha, text=True)
+    ).strip().split()
+    if len(parent_line) != 2 or parent_line[1] != candidate_sha:
+        raise ReceiptValidationError("receipt_candidate_parent_mismatch")
+    changed = str(
+        _git(
+            root,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            candidate_sha,
+            seal_sha,
+            text=True,
+        )
+    ).splitlines()
+    if changed != [receipt_path]:
+        raise ReceiptValidationError("receipt_final_commit_scope")
+
+
+def validate_source_replay(
+    root: Path,
+    *,
+    authority_sha: str,
+    mode: str,
+) -> dict[str, Any]:
+    """Validate source semantics independently of prior receipt outcomes."""
+
+    structural = validate_all_tracked_batch_receipts(
+        root,
+        authority_sha=authority_sha,
+        mode=mode,
+    )
+    authority_sha = structural["authority_sha"]
+    paths = structural["receipt_paths"]
+    if len(paths) != 1:
+        raise ReceiptValidationError("receipt_terminal_receipt_count")
+    receipt_path = paths[0]
+    schema = _load_schema(root)
+    receipt = _parse_batch(
+        git_object_bytes(root, authority_sha, receipt_path),
+        schema,
+    )
+    if receipt.get("batch_id") != FROZEN_BATCH_ID:
+        raise ReceiptValidationError("receipt_frozen_batch_mismatch")
+    candidate_sha = resolve_commit(
+        root,
+        receipt["candidate_content_commit_sha"],
+    )
+    seal_sha = _terminal_seal_commit(
+        root,
+        authority_sha=authority_sha,
+        mode=mode,
+        receipt_path=receipt_path,
+    )
+    _validate_terminal_seal_scope(
+        root,
+        seal_sha=seal_sha,
+        receipt_path=receipt_path,
+        candidate_sha=candidate_sha,
+    )
+    if git_object_bytes(root, seal_sha, receipt_path) != git_object_bytes(
+        root,
+        authority_sha,
+        receipt_path,
+    ):
+        raise ReceiptValidationError("receipt_terminal_receipt_not_current")
+
+    try:
+        live = refetch_frozen_source(root, receipt)
+        comments = live.get("comments")
+        if not isinstance(comments, list):
+            raise ProcessorError("processor_source_unavailable")
+        replay = replay_frozen_from_receipt(root, receipt, comments)
+    except (OSError, ValueError, ProcessorError) as error:
+        raise ReceiptValidationError(
+            "receipt_source_replay_unavailable"
+        ) from error
+
+    comparisons = {
+        "terminal_outcomes": dict(replay.terminal_outcomes),
+        "admitted_run_ids": list(replay.admitted_run_ids),
+        "accepted_record_proofs": dict(replay.accepted_record_proofs),
+        "canonical_record_hashes": dict(replay.canonical_record_hashes),
+        "canonical_hashes": dict(replay.canonical_hashes),
+        "comment_bindings": list(replay.comment_bindings),
+        "source_comment_ids": list(replay.source_comment_ids),
+        "source_body_sha256": dict(replay.source_body_sha256),
+        "queue_snapshot_sha256": replay.source_snapshot_sha256,
+    }
+    for field, expected in comparisons.items():
+        if receipt.get(field) != expected:
+            raise ReceiptValidationError(
+                f"receipt_source_replay_mismatch:{field}"
+            )
+    for relative_path, expected in replay.candidate_files.items():
+        if git_object_bytes(root, candidate_sha, relative_path) != expected:
+            raise ReceiptValidationError(
+                "receipt_candidate_replay_mismatch"
+            )
+        if git_object_bytes(root, seal_sha, relative_path) != expected:
+            raise ReceiptValidationError(
+                "receipt_terminal_content_mismatch"
+            )
+
+    return {
+        **structural,
+        "validation_level": "source-replay",
+        "seal_sha": seal_sha,
+        "candidate_sha": candidate_sha,
+        "replayed_outcome_count": len(replay.terminal_outcomes),
+        "replayed_admission_count": len(replay.admitted_run_ids),
+        "later_comment_count": replay.later_comment_count,
+    }
+
+
 def parse_cli(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="validate_receipts")
     parser.add_argument("--repository-root", type=Path, default=ROOT)
     parser.add_argument("--mode", choices=["pr", "canonical-main"], default="pr")
     parser.add_argument("--authority-sha", default="HEAD")
+    parser.add_argument(
+        "--validation-level",
+        choices=["structural", "source-replay"],
+        default="structural",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_cli(argv)
     try:
-        evidence = validate_all_tracked_batch_receipts(
-            args.repository_root,
-            authority_sha=args.authority_sha,
-            mode=args.mode,
-        )
+        if args.validation_level == "source-replay":
+            evidence = validate_source_replay(
+                args.repository_root,
+                authority_sha=args.authority_sha,
+                mode=args.mode,
+            )
+        else:
+            evidence = validate_all_tracked_batch_receipts(
+                args.repository_root,
+                authority_sha=args.authority_sha,
+                mode=args.mode,
+            )
     except ReceiptValidationError:
         print("Batch receipt validation failed.", file=sys.stderr)
         return 1
-    print(
-        "Batch receipt validation passed: "
-        f"{evidence['receipt_count']} tracked receipt(s) at {evidence['authority_sha']}."
-    )
+    if args.validation_level == "source-replay":
+        print(
+            "Batch receipt source replay passed: "
+            f"{evidence['replayed_outcome_count']} outcomes and "
+            f"{evidence['replayed_admission_count']} admissions at "
+            f"{evidence['authority_sha']}."
+        )
+    else:
+        print(
+            "Batch receipt structural validation passed: "
+            f"{evidence['receipt_count']} tracked receipt(s) at "
+            f"{evidence['authority_sha']}; semantic source replay not run."
+        )
     return 0
 
 

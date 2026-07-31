@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: read
 
 concurrency:
   group: public-safety-${{ github.workflow }}-${{ github.ref }}
@@ -50,11 +52,12 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           RAW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PUSH_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            python scripts/validate_receipts.py --mode pr --authority-sha "$RAW_HEAD_SHA"
+            python scripts/validate_receipts.py --mode pr --authority-sha "$RAW_HEAD_SHA" --validation-level source-replay
           else
-            python scripts/validate_receipts.py --mode canonical-main --authority-sha "$PUSH_SHA"
+            python scripts/validate_receipts.py --mode canonical-main --authority-sha "$PUSH_SHA" --validation-level source-replay
           fi
 
       - name: Verify append-only source and generated views

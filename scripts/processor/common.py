@@ -13,6 +13,14 @@ SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 SAFE_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 SAFE_AUTHOR_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}(?:\[bot\])?$")
 
+FROZEN_BATCH_ID = "batch-20260729-gate3-amendment-004"
+FROZEN_COUNT = 101
+FROZEN_WATERMARK = 5115014307
+FROZEN_SNAPSHOT_SHA256 = (
+    "ef85282e1bcbbd930db3264b9bda1345998e74d8bdbb89ab6ee47b3709b76300"
+)
+FROZEN_CANONICAL_BASE_SHA = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
+
 AUTHORIZED_PAIRS = frozenset(
     {
         ("Xiaomi", "MiMo 2.5 Pro"),

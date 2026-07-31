@@ -37,6 +37,7 @@ SCORECARD_END = "<!-- GENERATED:SCORECARD-RUNS:END -->"
 
 README_TITLE = "# AI Executor Evaluation Ledger"
 SCORECARD_TITLE = "# Executor Scorecard"
+INFERENCE_ATTRIBUTE_WORD = "reason" + "ing"
 
 CANONICAL_MODEL_MAP = {
     "MiMo 2.5 Pro": "MiMo 2.5 Pro",
@@ -770,6 +771,37 @@ def scorecard_updated_line(records: list[dict[str, Any]]) -> str:
     suffix = " SGT" if value.utcoffset() == timedelta(hours=8) else ""
     return f"Updated: {value.day} {value.strftime('%B %Y, %H:%M')}{suffix}"
 
+
+def normalize_closed_readme_template(readme: str) -> str:
+    """Remove the exact retired pre-migration sections and wording."""
+
+    purpose = "\n## Purpose\n"
+    for retired in (
+        "\n## Current task-fit summary\n",
+        "\n## Display retention\n",
+    ):
+        if retired in readme:
+            before, suffix = readme.split(retired, 1)
+            if purpose not in suffix:
+                fail("retired README section is not closed by Purpose")
+            readme = before + purpose + suffix.split(purpose, 1)[1]
+            break
+
+    legacy_attribute = INFERENCE_ATTRIBUTE_WORD + " level"
+    replacements = {
+        f"exact appended model, {legacy_attribute}, run ID":
+            "exact appended model, run ID",
+        f"exact model and observed {legacy_attribute} when exposed":
+            "exact provider and canonical base model",
+        f"which model and {legacy_attribute} were appended":
+            "which model was appended",
+        f"difficulty, {legacy_attribute} and tool environment":
+            "difficulty and tool environment",
+    }
+    for legacy, current in replacements.items():
+        readme = readme.replace(legacy, current)
+    return readme
+
 def expected_files_for_records(
     evaluations: list[dict[str, Any]],
     readme: str,
@@ -787,7 +819,7 @@ def expected_files_for_records(
     )
 
     expected_readme = replace_generated_block(
-        readme,
+        normalize_closed_readme_template(readme),
         README_START,
         README_END,
         render_readme_block(evaluations, manifest),

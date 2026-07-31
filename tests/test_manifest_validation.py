@@ -39,7 +39,7 @@ class TestClosedManifestValidation(unittest.TestCase):
     def test_repository_wide_manifest_validation(self):
         evidence = validate_all(ROOT)
         self.assertEqual(evidence["manifest_count"], len(MANIFEST_PATHS))
-        self.assertEqual(evidence["final_total_count"], 138)
+        self.assertEqual(evidence["final_total_count"], 59)
 
     def test_evaluations_have_one_canonical_lf_checkout_contract(self):
         attributes = (
@@ -83,6 +83,15 @@ class TestClosedManifestValidation(unittest.TestCase):
         expected = expected_manifests(ROOT)
         corrupted = copy.deepcopy(expected)
         corrupted["preservation-manifest.json"]["unexpected"] = True
+        with self.assertRaises(ManifestValidationError):
+            validate_manifest_documents(corrupted, expected, self.schema())
+
+    def test_unicode_activation_unknown_field_fails_closed_schema(self):
+        expected = expected_manifests(ROOT)
+        corrupted = copy.deepcopy(expected)
+        corrupted["unicode-identity-history-activation.json"][
+            "unexpected"
+        ] = True
         with self.assertRaises(ManifestValidationError):
             validate_manifest_documents(corrupted, expected, self.schema())
 

@@ -1,14 +1,23 @@
 import copy
 import json
 import unittest
+from pathlib import Path
 
-from scripts.processor.common import AUTHORIZED_PAIRS, REASONING_KEYS
+from scripts.processor.common import (
+    AUTHORIZED_PAIRS,
+    FROZEN_BATCH_ID,
+    FROZEN_SNAPSHOT_SHA256,
+    REASONING_KEYS,
+    safe_comment_body_hash,
+)
 from scripts.processor.intake_parser import (
+    HistoricalReviewTimestampAuthority,
     canonical_record_from_payload,
     parse_intake_comment,
 )
 from scripts.processor.source_watch import (
     SourceWatchPlanner,
+    normalize_native_review_evidence,
     parse_pr_body,
     validate_metadata,
 )
@@ -101,6 +110,105 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             self.assertEqual(disposition, "authority_missing", field)
             self.assertEqual(parsed, {})
             self.assertEqual(reason, "authority_missing")
+
+    def test_closed_frozen_timestamp_authority_repairs_only_reviewed_at(self):
+        receipt = json.loads(
+            Path(
+                "ledger/receipts/batches/"
+                "batch-20260729-gate3-amendment-004.json"
+            ).read_text(encoding="utf-8")
+        )
+        comment_id = receipt["source_comment_ids"][0]
+        frozen_ids = frozenset(receipt["source_comment_ids"])
+        created_at = "2026-07-29T10:00:00Z"
+        payload = copy.deepcopy(self.valid_payload)
+        payload.pop("reviewed_at")
+        body = self.body(payload)
+        body_hash = safe_comment_body_hash(body)
+        authority = HistoricalReviewTimestampAuthority(
+            batch_id=FROZEN_BATCH_ID,
+            comment_id=comment_id,
+            frozen_comment_ids=frozen_ids,
+            verified_snapshot_sha256=FROZEN_SNAPSHOT_SHA256,
+            source_body_sha256=body_hash,
+            expected_body_sha256=body_hash,
+            source_created_at=created_at,
+            expected_created_at=created_at,
+            source_updated_at=created_at,
+            expected_updated_at=created_at,
+        )
+        code, adapted, _reason = parse_intake_comment(
+            comment_id,
+            body,
+            set(),
+            set(),
+            historical_review_authority=authority,
+        )
+        self.assertEqual(code, "admitted")
+        self.assertEqual(adapted["reviewed_at"], created_at)
+
+        missing_other = copy.deepcopy(payload)
+        missing_other.pop("source_revision")
+        self.assertEqual(
+            parse_intake_comment(
+                comment_id,
+                self.body(missing_other),
+                set(),
+                set(),
+                historical_review_authority=authority,
+            )[0],
+            "authority_missing",
+        )
+        malformed = copy.deepcopy(authority.__dict__)
+        malformed["source_created_at"] = "not-a-date"
+        malformed["expected_created_at"] = "not-a-date"
+        self.assertEqual(
+            parse_intake_comment(
+                comment_id,
+                body,
+                set(),
+                set(),
+                historical_review_authority=HistoricalReviewTimestampAuthority(
+                    **malformed
+                ),
+            )[0],
+            "authority_missing",
+        )
+
+    def test_frozen_timestamp_authority_never_replaces_body_value(self):
+        receipt = json.loads(
+            Path(
+                "ledger/receipts/batches/"
+                "batch-20260729-gate3-amendment-004.json"
+            ).read_text(encoding="utf-8")
+        )
+        comment_id = receipt["source_comment_ids"][0]
+        body = self.body()
+        body_hash = safe_comment_body_hash(body)
+        authority = HistoricalReviewTimestampAuthority(
+            batch_id=FROZEN_BATCH_ID,
+            comment_id=comment_id,
+            frozen_comment_ids=frozenset(receipt["source_comment_ids"]),
+            verified_snapshot_sha256=FROZEN_SNAPSHOT_SHA256,
+            source_body_sha256=body_hash,
+            expected_body_sha256=body_hash,
+            source_created_at="2026-07-29T11:00:00Z",
+            expected_created_at="2026-07-29T11:00:00Z",
+            source_updated_at="2026-07-29T11:00:00Z",
+            expected_updated_at="2026-07-29T11:00:00Z",
+        )
+        code, adapted, _reason = parse_intake_comment(
+            comment_id,
+            body,
+            set(),
+            set(),
+            historical_review_authority=authority,
+        )
+        self.assertEqual(code, "admitted")
+        self.assertEqual(
+            adapted["reviewed_at"],
+            self.valid_payload["reviewed_at"],
+        )
 
     def test_unknown_top_level_and_nested_fields_are_closed(self):
         top = copy.deepcopy(self.valid_payload)
@@ -257,7 +365,12 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             nodes = list(nodes or [])
             return {
                 "nodes": nodes,
-                "pageInfo": {"hasNextPage": False},
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "hasPreviousPage": False,
+                    "startCursor": None,
+                    "endCursor": None,
+                },
                 "totalCount": len(nodes),
             }
 
@@ -275,6 +388,10 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             }
 
         mutable = live_pr(metadata)
+        self.assertEqual(
+            set(normalize_native_review_evidence(mutable)),
+            {"reviews", "latestReviews", "reviewThreads"},
+        )
         self.assertEqual(
             planner.plan_pr_action(mutable, True, "c" * 40)["action"],
             "UPDATE_EXISTING_PR",
@@ -358,6 +475,39 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(
             planner.plan_pr_action(
                 malformed_page_info,
+                True,
+                "c" * 40,
+            )["reason"],
+            "ambiguous_review_state",
+        )
+
+        string_cursor = live_pr(metadata)
+        string_cursor["reviews"]["pageInfo"]["endCursor"] = "cursor-1"
+        self.assertEqual(
+            planner.plan_pr_action(
+                string_cursor,
+                True,
+                "c" * 40,
+            )["action"],
+            "UPDATE_EXISTING_PR",
+        )
+
+        malformed_cursor = live_pr(metadata)
+        malformed_cursor["reviews"]["pageInfo"]["endCursor"] = 1
+        self.assertEqual(
+            planner.plan_pr_action(
+                malformed_cursor,
+                True,
+                "c" * 40,
+            )["reason"],
+            "ambiguous_review_state",
+        )
+
+        unknown_page_info = live_pr(metadata)
+        unknown_page_info["reviews"]["pageInfo"]["unavailable"] = True
+        self.assertEqual(
+            planner.plan_pr_action(
+                unknown_page_info,
                 True,
                 "c" * 40,
             )["reason"],

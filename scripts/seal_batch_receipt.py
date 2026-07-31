@@ -22,13 +22,11 @@ from scripts.processor.frozen_source import (
     FROZEN_WATERMARK,
     refetch_frozen_source,
 )
+from scripts.processor.frozen_replay import replay_frozen_from_receipt
 from scripts.validate_receipts import (
-    CANONICAL_PATHS,
     ReceiptValidationError,
-    _record_lines,
     git_object_bytes,
     resolve_commit,
-    sha256_bytes,
 )
 
 
@@ -71,78 +69,22 @@ def build_sealed_receipt(
         raise ReceiptValidationError("seal_frozen_authority_mismatch")
     live = source_reader(root, source)
     fingerprints = live.get("fingerprints")
-    source_hashes = live.get("source_body_sha256")
-    snapshot_hash = live.get("queue_snapshot_sha256")
+    comments = live.get("comments")
     if (
         not isinstance(fingerprints, list)
         or len(fingerprints) != FROZEN_COUNT
-        or not isinstance(source_hashes, dict)
-        or not isinstance(snapshot_hash, str)
+        or not isinstance(comments, list)
+        or len(comments) != FROZEN_COUNT
     ):
         raise ReceiptValidationError("seal_frozen_source_invalid")
-
-    records = _record_lines(
-        git_object_bytes(root, content_sha, CANONICAL_PATHS["evaluations_jsonl"])
-    )
-    terminal_source = source.get("terminal_outcomes")
-    source_ids = source.get("source_comment_ids")
-    if not isinstance(terminal_source, dict) or not isinstance(source_ids, list):
-        raise ReceiptValidationError("seal_frozen_membership_mismatch")
-    fingerprints_by_id = {item.get("id"): item for item in fingerprints}
-    if set(fingerprints_by_id) != set(source_ids):
-        raise ReceiptValidationError("seal_frozen_membership_mismatch")
-
-    terminal_outcomes: dict[str, dict[str, Any]] = {}
-    bindings: list[dict[str, Any]] = []
-    admitted_run_ids: list[str] = []
-    record_hashes: dict[str, str] = {}
-    record_proofs: dict[str, dict[str, Any]] = {}
-    for comment_id in source_ids:
-        prior = terminal_source.get(str(comment_id))
-        fingerprint = fingerprints_by_id.get(comment_id)
-        if not isinstance(prior, dict) or not isinstance(fingerprint, dict):
-            raise ReceiptValidationError("seal_frozen_binding_mismatch")
-        run_id = prior.get("evaluation_run_id")
-        if run_id is not None:
-            if not isinstance(run_id, str) or run_id not in records:
-                raise ReceiptValidationError("seal_admitted_record_missing")
-            line, record = records[run_id]
-            record_hash = sha256_bytes(line)
-            admitted_run_ids.append(run_id)
-            record_hashes[run_id] = record_hash
-            record_proofs[run_id] = {
-                "provider": record.get("provider"),
-                "model": record.get("model"),
-                "outcome": record.get("outcome"),
-                "weighted_score_5": record.get("weighted_score_5"),
-            }
-        else:
-            record_hash = None
-        outcome = {
-            "outcome_code": prior.get("outcome_code"),
-            "evaluation_run_id": run_id,
-            "canonical_record_sha256": record_hash,
-            "cleanup_eligible": prior.get("cleanup_eligible") is True,
-        }
-        terminal_outcomes[str(comment_id)] = outcome
-        bindings.append(
-            {
-                "comment_id": comment_id,
-                "created_at": fingerprint.get("created_at"),
-                "updated_at": fingerprint.get("updated_at"),
-                "body_sha256": fingerprint.get("body_sha256"),
-                **outcome,
-            }
-        )
-    if len(admitted_run_ids) != len(set(admitted_run_ids)):
-        raise ReceiptValidationError("seal_duplicate_admitted_record")
-
-    canonical_hashes = {
-        hash_name: sha256_bytes(
-            git_object_bytes(root, content_sha, relative_path)
-        )
-        for hash_name, relative_path in CANONICAL_PATHS.items()
-    }
+    try:
+        replay = replay_frozen_from_receipt(root, source, comments)
+    except Exception as error:
+        raise ReceiptValidationError("seal_replay_failure") from error
+    for relative_path, expected in replay.candidate_files.items():
+        if git_object_bytes(root, content_sha, relative_path) != expected:
+            raise ReceiptValidationError("seal_candidate_replay_mismatch")
+    source_ids = list(replay.source_comment_ids)
     receipt = {
         "schema_version": 2,
         "receipt_type": "batch",
@@ -159,20 +101,22 @@ def build_sealed_receipt(
         "full_queue_count": FROZEN_COUNT,
         "latest_observed_comment_id": FROZEN_WATERMARK,
         "latest_observed_update_time": max(
-            item["updated_at"] for item in fingerprints if item.get("updated_at")
+            item["updated_at"]
+            for item in replay.comment_bindings
+            if item.get("updated_at")
         ),
-        "queue_snapshot_sha256": snapshot_hash,
+        "queue_snapshot_sha256": replay.source_snapshot_sha256,
         "source_comment_ids": source_ids,
-        "source_body_sha256": source_hashes,
+        "source_body_sha256": dict(replay.source_body_sha256),
         "selected_comment_ids": source_ids,
         "selected_comment_count": FROZEN_COUNT,
         "terminal_outcome_count": FROZEN_COUNT,
-        "terminal_outcomes": terminal_outcomes,
-        "admitted_run_ids": admitted_run_ids,
-        "accepted_record_proofs": record_proofs,
-        "canonical_record_hashes": record_hashes,
-        "canonical_hashes": canonical_hashes,
-        "comment_bindings": bindings,
+        "terminal_outcomes": dict(replay.terminal_outcomes),
+        "admitted_run_ids": list(replay.admitted_run_ids),
+        "accepted_record_proofs": dict(replay.accepted_record_proofs),
+        "canonical_record_hashes": dict(replay.canonical_record_hashes),
+        "canonical_hashes": dict(replay.canonical_hashes),
+        "comment_bindings": list(replay.comment_bindings),
     }
     schema = json.loads(
         (root / "schema" / "receipt.schema.json").read_text(encoding="utf-8")

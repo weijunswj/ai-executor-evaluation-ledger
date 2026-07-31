@@ -14,6 +14,7 @@ import jsonschema
 from scripts.check_public_safety import audit_tree
 from scripts.processor.common import (
     AUTHORIZED_PAIRS,
+    FROZEN_BATCH_ID,
     ProcessorError,
     canonical_json_bytes,
     canonical_json_line_bytes,
@@ -24,6 +25,10 @@ from scripts.processor.common import (
     valid_author_login,
     valid_git_sha,
     valid_identifier,
+)
+from scripts.processor.frozen_replay import (
+    FrozenBatchPolicy,
+    replay_frozen_from_receipt,
 )
 from scripts.processor.intake_parser import (
     canonical_record_from_payload,
@@ -375,6 +380,102 @@ def _validate_candidate_tree(
         raise ProcessorError("processor_public_safety_failure")
 
 
+def _frozen_policy_receipt(config: ProcessBatchConfig) -> Dict[str, Any]:
+    try:
+        raw = read_git_object(
+            config.repository_root,
+            config.expected_head_sha,
+            f"ledger/receipts/batches/{FROZEN_BATCH_ID}.json",
+        )
+        receipt = json.loads(
+            raw.decode("utf-8", errors="strict"),
+            parse_constant=_reject_nonfinite_constant,
+        )
+    except (UnicodeDecodeError, TypeError, ValueError):
+        raise ProcessorError("source_changed")
+    if not isinstance(receipt, dict):
+        raise ProcessorError("source_changed")
+    FrozenBatchPolicy.from_receipt(receipt)
+    return receipt
+
+
+def _build_frozen_candidate(
+    config: ProcessBatchConfig,
+    comments: Optional[List[Dict[str, Any]]],
+    *,
+    failure_hook: Optional[Callable[[str, str], None]],
+    queue_fetcher: Callable[[Path], List[Dict[str, Any]]],
+) -> Tuple[Dict[str, bytes], Dict[str, Any]]:
+    policy_receipt = _frozen_policy_receipt(config)
+    first_comments = (
+        comments
+        if comments is not None
+        else queue_fetcher(config.repository_root)
+    )
+    replay = replay_frozen_from_receipt(
+        config.repository_root,
+        policy_receipt,
+        first_comments,
+    )
+    policy = FrozenBatchPolicy.from_receipt(policy_receipt)
+    final_source = policy.verify_source(queue_fetcher(config.repository_root))
+    if final_source.snapshot_sha256 != replay.source_snapshot_sha256:
+        raise ProcessorError("source_changed")
+
+    candidate_files = dict(replay.candidate_files)
+    if config.candidate_content_commit_sha is not None:
+        for relative_path, expected in candidate_files.items():
+            if read_git_object(
+                config.repository_root,
+                config.candidate_content_commit_sha,
+                relative_path,
+            ) != expected:
+                raise ProcessorError("processor_integrity_failure")
+
+    final_records = _validate_json_lines(candidate_files["evaluations.jsonl"])
+    try:
+        final_dispositions = [
+            json.loads(line, parse_constant=_reject_nonfinite_constant)
+            for line in candidate_files[
+                "ledger/dispositions.jsonl"
+            ].decode("utf-8", errors="strict").splitlines()
+            if line.strip()
+        ]
+    except (UnicodeDecodeError, TypeError, ValueError):
+        raise ProcessorError("processor_schema_failure")
+    with build_complete_candidate_tree(
+        config.repository_root,
+        candidate_files,
+    ) as candidate_tree:
+        _validate_candidate_tree(
+            candidate_tree.path,
+            candidate_files,
+            final_records,
+            final_dispositions,
+            None,
+        )
+        if failure_hook:
+            failure_hook("candidate_validation_complete", "")
+
+    return candidate_files, {
+        "status": "CANDIDATE_VALIDATED",
+        "batch_id": config.batch_id,
+        "full_queue_count": len(replay.source_comment_ids),
+        "selected_comment_count": len(replay.source_comment_ids),
+        "admitted_count": len(replay.admitted_run_ids),
+        "terminal_count": len(replay.terminal_outcomes),
+        "snapshot_hash": replay.source_snapshot_sha256,
+        "later_comment_count": replay.later_comment_count,
+        "evaluations_sha256": replay.canonical_hashes[
+            "evaluations_jsonl"
+        ],
+        "record_hashes": dict(replay.canonical_record_hashes),
+        "receipt_sha256": None,
+        "receipt_sealed": False,
+        "candidate_files": tuple(sorted(candidate_files)),
+    }
+
+
 def build_batch_candidate(
     config: ProcessBatchConfig,
     comments: Optional[List[Dict[str, Any]]] = None,
@@ -389,8 +490,15 @@ def build_batch_candidate(
     if canonical_main_fetcher(config.repository_root) != config.canonical_main_sha:
         raise ProcessorError("processor_authority_mismatch")
     recover_incomplete_transaction(config.repository_root, failure_hook=failure_hook)
-    authority_files, preserved_records = _authority_files(config)
     queue_fetcher = queue_fetcher or fetch_live_142_comments
+    if config.batch_id == FROZEN_BATCH_ID:
+        return _build_frozen_candidate(
+            config,
+            comments,
+            failure_hook=failure_hook,
+            queue_fetcher=queue_fetcher,
+        )
+    authority_files, preserved_records = _authority_files(config)
     comment_fetcher = comment_fetcher or fetch_single_comment
     existing_receipt_path = f"ledger/receipts/batches/{config.batch_id}.json"
     if existing_receipt_path in authority_files:
@@ -636,7 +744,13 @@ def process_batch(
     )
     queue_fetcher = queue_fetcher or fetch_live_142_comments
     final_queue = queue_fetcher(config.repository_root)
-    _, final_snapshot_hash = _queue_snapshot(final_queue)
+    if config.batch_id == FROZEN_BATCH_ID:
+        receipt = _frozen_policy_receipt(config)
+        final_snapshot_hash = FrozenBatchPolicy.from_receipt(
+            receipt
+        ).verify_source(final_queue).snapshot_sha256
+    else:
+        _, final_snapshot_hash = _queue_snapshot(final_queue)
     if final_snapshot_hash != evidence["snapshot_hash"]:
         raise ProcessorError("source_changed")
     if config.dry_run:

@@ -25,6 +25,7 @@ MANIFEST_PATHS = {
     "historical-intake-adapter-manifest.json": "historical_intake_adapter_manifest",
     "preservation-manifest.json": "canonical_base_preservation_manifest",
     "reasoning-scrub-receipt.json": "reasoning_scrub_receipt",
+    "unicode-identity-history-activation.json": "unicode_identity_history_activation",
 }
 
 
@@ -84,13 +85,33 @@ def _record_lines(raw: bytes) -> dict[str, bytes]:
     return lines
 
 
-def expected_manifests(root: Path = ROOT) -> dict[str, dict[str, Any]]:
-    from scripts.processor.common import MODEL_ALIASES, REASONING_KEYS
+def expected_manifests_for_bytes(
+    root: Path,
+    final_raw: bytes,
+    *,
+    base_raw: Optional[bytes] = None,
+) -> dict[str, dict[str, Any]]:
+    from scripts.processor.common import (
+        FROZEN_BATCH_ID,
+        FROZEN_COUNT,
+        FROZEN_SNAPSHOT_SHA256,
+        FROZEN_WATERMARK,
+        MODEL_ALIASES,
+        REASONING_KEYS,
+    )
     from scripts.processor.intake_parser import LEGACY_ALIAS_PAIRS, VERDICT_VALUES
     from scripts.scrub_identity_variants import legacy_identity_renames
+    from scripts.check_public_safety import expected_activation_manifest
 
-    base_raw = _git_object(root, SOURCE_BASE_SHA, "evaluations.jsonl")
-    final_raw = (root / "evaluations.jsonl").read_bytes()
+    try:
+        unicode_activation = expected_activation_manifest(root)
+    except (RuntimeError, subprocess.CalledProcessError) as error:
+        raise ManifestValidationError(
+            "unicode_activation_authority_invalid"
+        ) from error
+
+    if base_raw is None:
+        base_raw = _git_object(root, SOURCE_BASE_SHA, "evaluations.jsonl")
     base = _records(base_raw)
     final = _records(final_raw)
     base_lines = _record_lines(base_raw)
@@ -239,6 +260,16 @@ def expected_manifests(root: Path = ROOT) -> dict[str, dict[str, Any]]:
             ],
             "model_aliases": dict(sorted(MODEL_ALIASES.items())),
             "accepted_verdict_values": sorted(VERDICT_VALUES),
+            "reviewed_at_authority": {
+                "batch_id": FROZEN_BATCH_ID,
+                "source_field": "created_at",
+                "destination_field": "reviewed_at",
+                "source_comment_count": FROZEN_COUNT,
+                "source_comment_watermark": FROZEN_WATERMARK,
+                "source_snapshot_sha256": FROZEN_SNAPSHOT_SHA256,
+                "requires_body_omission": True,
+                "requires_exact_fingerprint": True,
+            },
         },
         "preservation-manifest.json": {
             "schema_version": 1,
@@ -257,8 +288,16 @@ def expected_manifests(root: Path = ROOT) -> dict[str, dict[str, Any]]:
             "removed_correction_count": len(folded_corrections),
             "removed_corrections_sha256": _closed_set_hash(folded_corrections),
         },
+        "unicode-identity-history-activation.json": unicode_activation,
     }
     return manifests
+
+
+def expected_manifests(root: Path = ROOT) -> dict[str, dict[str, Any]]:
+    return expected_manifests_for_bytes(
+        root,
+        (root / "evaluations.jsonl").read_bytes(),
+    )
 
 
 def _schema(root: Path) -> dict[str, Any]:
