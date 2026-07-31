@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -38,6 +40,41 @@ class TestClosedManifestValidation(unittest.TestCase):
         evidence = validate_all(ROOT)
         self.assertEqual(evidence["manifest_count"], len(MANIFEST_PATHS))
         self.assertEqual(evidence["final_total_count"], 138)
+
+    def test_evaluations_have_one_canonical_lf_checkout_contract(self):
+        attributes = (
+            ROOT / ".gitattributes"
+        ).read_text(encoding="utf-8").splitlines()
+        self.assertEqual(
+            1,
+            attributes.count("evaluations.jsonl text eol=lf"),
+        )
+        attribute_result = subprocess.run(
+            ["git", "check-attr", "eol", "--", "evaluations.jsonl"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        self.assertEqual(
+            "evaluations.jsonl: eol: lf",
+            attribute_result.stdout.strip(),
+        )
+        blob = subprocess.run(
+            ["git", "show", "HEAD:evaluations.jsonl"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        checkout = (ROOT / "evaluations.jsonl").read_bytes()
+        self.assertNotIn(b"\r\n", blob)
+        self.assertNotIn(b"\r\n", checkout)
+        self.assertEqual(blob, checkout)
+        expected = expected_manifests(ROOT)
+        self.assertEqual(
+            expected["preservation-manifest.json"]["after_sha256"],
+            hashlib.sha256(checkout).hexdigest(),
+        )
 
     def test_append_only_verifier_accepts_closed_manifest_contract(self):
         verify_append_only(CANONICAL_MAIN)

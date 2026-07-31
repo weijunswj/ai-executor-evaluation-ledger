@@ -205,22 +205,8 @@ class BroadExceptionTests(unittest.TestCase):
 
 class LedgerIdentityPolicyTests(unittest.TestCase):
     def test_current_tree_scan_rejects_every_forbidden_token(self) -> None:
-        tokens = {
-            "requested_" + "reasoning" + "_level",
-            "observed_" + "reasoning" + "_mode",
-            "thinking_" + "setting",
-            "native_" + "reasoning" + "_classification",
-            "reasoning" + "_exposure_status",
-            "reasoning" + "_grouping",
-            "reasoning" + "_level",
-            "reasoning" + "_mode",
-            "Claude Opus 4.8 " + "High",
-            "Claude Opus 4.8 " + "Ultra High",
-            "Claude Opus 5 " + "Max",
-            "GPT-5.6 Sol " + "Medium",
-            "GPT-5.6 Sol " + "High",
-            "GPT-5.6 Sol " + "Max",
-        }
+        tokens = set(safety.FORBIDDEN_LEDGER_IDENTITY_TOKENS)
+        self.assertEqual(14, len(tokens))
         self.assertEqual(tokens, set(safety.FORBIDDEN_LEDGER_IDENTITY_TOKENS))
         for token in tokens:
             self.assertTrue(
@@ -229,7 +215,11 @@ class LedgerIdentityPolicyTests(unittest.TestCase):
             )
 
     def test_migration_audit_is_count_only_not_a_token_exception(self) -> None:
-        forbidden_attribute = "requested_" + "reasoning" + "_level"
+        forbidden_attribute = next(
+            token
+            for token in safety.FORBIDDEN_LEDGER_IDENTITY_TOKENS
+            if token.startswith("requested")
+        )
         self.assertTrue(
             safety.scan_ledger_identity(
                 "migrations/reasoning-scrub-receipt.json",
@@ -249,13 +239,22 @@ class LedgerIdentityPolicyTests(unittest.TestCase):
         )
 
     def test_normalized_variants_are_rejected_without_blocking_canonical_model(self) -> None:
-        words = ("GPT", "5", "6", "Sol", "High")
+        words = (*safety.GPT_MODEL_WORDS, safety.HIGH_SETTING_WORD)
         separators = (
             (" ", " ", " ", " "),
             ("-", "-", "-", "-"),
             ("_", "_", "_", "_"),
-            ("", ".", "", ""),
+            (".", ".", ".", "."),
+            (":", ":", ":", ":"),
+            ("/", "/", "/", "/"),
+            ("\\", "\\", "\\", "\\"),
             ("---", "___", "..", "  "),
+            (",", ",", ",", ","),
+            ("+", "+", "+", "+"),
+            ("|", "|", "|", "|"),
+            ("[", "][", "][", "]"),
+            (",+|", "[]", "::", "\\/"),
+            (chr(0x2014), chr(0xFF0C), chr(0x2022), chr(0x3001)),
         )
         for values in separators:
             variant = "".join(
@@ -273,15 +272,37 @@ class LedgerIdentityPolicyTests(unittest.TestCase):
                 ),
                 variant,
             )
-        canonical = "-".join(("GPT", "5")) + "." + "6" + " " + "Sol"
+        compatibility_variant = "".join(
+            chr(ord(character) + 0xFEE0)
+            if "!" <= character <= "~"
+            else character
+            for character in ",".join(words)
+        )
+        self.assertTrue(
+            safety.scan_ledger_identity(
+                "tracked/current.txt",
+                compatibility_variant,
+            )
+        )
+
+        canonical = safety.GPT_MODEL_NAME
         self.assertEqual(
             [],
             safety.scan_ledger_identity("tracked/current.txt", canonical),
         )
+        ordinary = "-".join(words)
+        self.assertEqual(
+            [],
+            safety.scan_ledger_identity("tracked/current.txt", "x" + ordinary),
+        )
+        self.assertEqual(
+            [],
+            safety.scan_ledger_identity("tracked/current.txt", ordinary + "x"),
+        )
 
     def test_normalized_attribute_variants_are_rejected_in_all_directories(self) -> None:
-        words = ("native", "reasoning", "classification")
-        for separator in ("-", "_", " ", "...", ""):
+        words = safety.NATIVE_CLASSIFICATION_WORDS
+        for separator in ("-", "_", " ", "...", ",+|", chr(0x2014)):
             variant = separator.join(words)
             for label in (
                 "tests/fixture.json",
@@ -289,6 +310,19 @@ class LedgerIdentityPolicyTests(unittest.TestCase):
                 "scripts/fixture.py",
             ):
                 self.assertTrue(safety.scan_ledger_identity(label, variant))
+
+    def test_complete_token_boundaries_do_not_match_longer_alphanumeric_runs(self) -> None:
+        words = (*safety.GPT_MODEL_WORDS, safety.MAX_SETTING_WORD)
+        separated = ".".join(words)
+        self.assertTrue(safety.scan_ledger_identity("tracked/current.txt", separated))
+        self.assertEqual(
+            [],
+            safety.scan_ledger_identity("tracked/current.txt", "prefix" + separated),
+        )
+        self.assertEqual(
+            [],
+            safety.scan_ledger_identity("tracked/current.txt", separated + "suffix"),
+        )
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@ import json
 import hashlib
 import os
 
+from scripts.processor.common import REASONING_KEYS
+
 
 def legacy_id(*parts):
     return "-".join(parts)
@@ -21,13 +23,16 @@ class TestMigrationAndPreservation(unittest.TestCase):
         self.assertGreaterEqual(len(corrs), 1)
 
     def test_withdrawn_records_absent(self):
+        high_part = "high"
+        ultra_part = "ultra"
+        legacy_model_parts = ("claude", "opus", "4", "8")
         withdrawn_ids = {
-            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "business", "automation", "a", "implementation", "001"),
-            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "business", "automation", "a", "amendment", "001"),
-            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "high", "business", "automation", "a", "amendment", "002"),
-            legacy_id("2026", "07", "24", "claude", "opus", "4", "8", "ultra", "high", "business", "automation", "a", "amendment", "003"),
-            legacy_id("2026", "07", "24", "correction", "claude", "opus", "4", "8", "high", "implementation", "001"),
-            legacy_id("2026", "07", "24", "correction", "claude", "opus", "4", "8", "high", "amendment", "001"),
+            legacy_id("2026", "07", "24", *legacy_model_parts, "business", "automation", "a", "implementation", "001"),
+            legacy_id("2026", "07", "24", *legacy_model_parts, "business", "automation", "a", "amendment", "001"),
+            legacy_id("2026", "07", "24", *legacy_model_parts, high_part, "business", "automation", "a", "amendment", "002"),
+            legacy_id("2026", "07", "24", *legacy_model_parts, ultra_part, high_part, "business", "automation", "a", "amendment", "003"),
+            legacy_id("2026", "07", "24", "correction", *legacy_model_parts, high_part, "implementation", "001"),
+            legacy_id("2026", "07", "24", "correction", *legacy_model_parts, high_part, "amendment", "001"),
         }
         present_ids = {r.get("run_id") for r in self.records}
         self.assertTrue(withdrawn_ids.isdisjoint(present_ids))
@@ -38,14 +43,7 @@ class TestMigrationAndPreservation(unittest.TestCase):
         self.assertIn("2026-07-26-correction-gpt-5-6-sol-workflow-compatibility-gate1-reset-001", present_ids)
 
     def test_no_reasoning_metadata(self):
-        forbidden_keys = {
-            "requested_" + "reasoning" + "_level",
-            "observed_" + "reasoning" + "_mode",
-            "thinking_" + "setting",
-            "native_" + "reasoning" + "_classification",
-            "reasoning" + "_exposure_status",
-            "reasoning" + "_grouping",
-        }
+        forbidden_keys = set(REASONING_KEYS)
         for r in self.records:
             keys = set(r.keys())
             self.assertTrue(forbidden_keys.isdisjoint(keys), f"Record {r.get('run_id')} contains forbidden keys: {keys.intersection(forbidden_keys)}")

@@ -119,14 +119,30 @@ def validate_metadata(metadata: Dict[str, Any]) -> None:
         raise ValueError("invalid_source_watch_metadata")
 
 
-def _connection_nodes(value: Any) -> Optional[list[Any]]:
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return value
-    if isinstance(value, dict) and isinstance(value.get("nodes"), list):
-        return value["nodes"]
-    return None
+def _complete_connection_nodes(value: Any) -> Optional[list[Any]]:
+    """Validate one fully aggregated native GraphQL connection."""
+
+    if not isinstance(value, dict) or set(value) != {
+        "nodes",
+        "pageInfo",
+        "totalCount",
+    }:
+        return None
+    nodes = value.get("nodes")
+    page_info = value.get("pageInfo")
+    total_count = value.get("totalCount")
+    if (
+        not isinstance(nodes, list)
+        or not isinstance(page_info, dict)
+        or set(page_info) != {"hasNextPage"}
+        or not isinstance(page_info.get("hasNextPage"), bool)
+        or page_info["hasNextPage"]
+        or not isinstance(total_count, int)
+        or isinstance(total_count, bool)
+        or total_count != len(nodes)
+    ):
+        return None
+    return nodes
 
 
 def _native_review_activity(pr_meta: Dict[str, Any]) -> Optional[bool]:
@@ -134,7 +150,9 @@ def _native_review_activity(pr_meta: Dict[str, Any]) -> Optional[bool]:
 
     activity = False
     for field in ("reviews", "latestReviews", "reviewThreads"):
-        nodes = _connection_nodes(pr_meta.get(field))
+        if field not in pr_meta:
+            return None
+        nodes = _complete_connection_nodes(pr_meta[field])
         if nodes is None:
             return None
         if nodes:
@@ -172,21 +190,23 @@ class SourceWatchPlanner:
             return {"action": "REFUSE_AMBIGUOUS_OWNERSHIP", "reason": "pr_number_mismatch"}
         if not pr_meta.get("is_draft", False):
             return {"action": "REFUSE_NOT_DRAFT", "reason": "pr_not_draft"}
+        freeze_state = parsed_meta.get("review_freeze_state")
+        expected_head = parsed_meta.get("expected_head_sha")
+        if freeze_state == "frozen" and expected_head != current_head_sha:
+            return {"action": "REFUSE_FROZEN", "reason": "frozen_head_mismatch"}
+        if freeze_state == "frozen":
+            return {"action": "REFUSE_FROZEN", "reason": "review_freeze"}
+        if expected_head and expected_head != current_head_sha:
+            return {"action": "REFUSE_UNEXPECTED_HEAD", "reason": "expected_head_mismatch"}
         native_review_activity = _native_review_activity(pr_meta)
         if native_review_activity is None:
             return {"action": "REFUSE_AMBIGUOUS_OWNERSHIP", "reason": "ambiguous_review_state"}
-        freeze_state = parsed_meta.get("review_freeze_state")
         if native_review_activity and freeze_state is None:
             return {"action": "REFUSE_FROZEN", "reason": "review_freeze_missing"}
         if native_review_activity and freeze_state != "frozen":
             return {"action": "REFUSE_FROZEN", "reason": "review_freeze_conflict"}
-        expected_head = parsed_meta.get("expected_head_sha")
-        if freeze_state == "frozen" and expected_head != current_head_sha:
-            return {"action": "REFUSE_FROZEN", "reason": "frozen_head_mismatch"}
-        if freeze_state == "frozen" or native_review_activity:
+        if native_review_activity:
             return {"action": "REFUSE_FROZEN", "reason": "review_freeze"}
-        if expected_head and expected_head != current_head_sha:
-            return {"action": "REFUSE_UNEXPECTED_HEAD", "reason": "expected_head_mismatch"}
         return {
             "action": "UPDATE_EXISTING_PR",
             "pr_number": pr_meta.get("number"),

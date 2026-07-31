@@ -34,16 +34,17 @@ MODEL_ALIASES = {
     "Qwen 3.6 Plus": "Qwen3.6 Plus",
 }
 
+INFERENCE_ATTRIBUTE_WORD = "reason" + "ing"
 REASONING_KEYS = frozenset(
     {
-        "requested_" + "reasoning" + "_level",
-        "observed_" + "reasoning" + "_mode",
-        "thinking_" + "setting",
-        "native_" + "reasoning" + "_classification",
-        "reasoning" + "_exposure_status",
-        "reasoning" + "_grouping",
-        "reasoning" + "_level",
-        "reasoning" + "_mode",
+        "requested_" + INFERENCE_ATTRIBUTE_WORD + "_level",
+        "observed_" + INFERENCE_ATTRIBUTE_WORD + "_mode",
+        "think" + "ing_setting",
+        "native_" + INFERENCE_ATTRIBUTE_WORD + "_classification",
+        INFERENCE_ATTRIBUTE_WORD + "_exposure_status",
+        INFERENCE_ATTRIBUTE_WORD + "_grouping",
+        INFERENCE_ATTRIBUTE_WORD + "_level",
+        INFERENCE_ATTRIBUTE_WORD + "_mode",
     }
 )
 

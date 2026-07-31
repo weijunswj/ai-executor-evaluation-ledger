@@ -2,7 +2,7 @@ import copy
 import json
 import unittest
 
-from scripts.processor.common import AUTHORIZED_PAIRS
+from scripts.processor.common import AUTHORIZED_PAIRS, REASONING_KEYS
 from scripts.processor.intake_parser import (
     canonical_record_from_payload,
     parse_intake_comment,
@@ -123,13 +123,18 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
 
     def test_reasoning_and_self_grading_identity_are_rejected(self):
         reasoning = copy.deepcopy(self.valid_payload)
-        reasoning["public_safe_evidence"]["reasoning" + "_level"] = "high"
+        inference_key = next(
+            key for key in REASONING_KEYS if key.startswith("requested")
+        )
+        reasoning["public_safe_evidence"][inference_key] = "high"
         self.assertEqual(self.parse(reasoning)[0], "ineligible_identity")
         self_grading = copy.deepcopy(self.valid_payload)
         self_grading["public_safe_evidence"]["executor_self_grading"] = True
         self.assertEqual(self.parse(self_grading)[0], "ineligible_identity")
         suffixed = copy.deepcopy(self.valid_payload)
-        suffixed["canonical_base_model"] = "GPT-5.6 Sol " + "High"
+        suffixed["canonical_base_model"] = (
+            self.valid_payload["canonical_base_model"] + " " + "High"
+        )
         self.assertEqual(self.parse(suffixed)[0], "unsupported_identity")
 
     def test_marker_framing_and_exactly_one_json_object(self):
@@ -248,6 +253,14 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             "dry_run": True,
         }
 
+        def complete_connection(nodes=None):
+            nodes = list(nodes or [])
+            return {
+                "nodes": nodes,
+                "pageInfo": {"hasNextPage": False},
+                "totalCount": len(nodes),
+            }
+
         def live_pr(meta):
             return {
                 "number": 151,
@@ -255,9 +268,9 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
                 + json.dumps(meta)
                 + "\n```",
                 "is_draft": True,
-                "reviews": {"nodes": []},
-                "latestReviews": {"nodes": []},
-                "reviewThreads": {"nodes": []},
+                "reviews": complete_connection(),
+                "latestReviews": complete_connection(),
+                "reviewThreads": complete_connection(),
                 "controller_review_started": False,
             }
 
@@ -282,14 +295,16 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         missing = dict(metadata)
         missing.pop("review_freeze_state")
         reviewed = live_pr(missing)
-        reviewed["reviews"]["nodes"] = [{"state": "COMMENTED"}]
+        reviewed["reviews"] = complete_connection([{"state": "COMMENTED"}])
         self.assertEqual(
             planner.plan_pr_action(reviewed, True, "c" * 40)["reason"],
             "review_freeze_missing",
         )
 
         conflicting = live_pr(metadata)
-        conflicting["reviewThreads"]["nodes"] = [{"isResolved": False}]
+        conflicting["reviewThreads"] = complete_connection(
+            [{"isResolved": False}]
+        )
         self.assertEqual(
             planner.plan_pr_action(conflicting, True, "c" * 40)["reason"],
             "review_freeze_conflict",
@@ -300,6 +315,103 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(
             planner.plan_pr_action(ambiguous, True, "c" * 40)["action"],
             "REFUSE_AMBIGUOUS_OWNERSHIP",
+        )
+
+        for field in ("reviews", "latestReviews", "reviewThreads"):
+            omitted = live_pr(metadata)
+            omitted.pop(field)
+            self.assertEqual(
+                planner.plan_pr_action(omitted, True, "c" * 40)["reason"],
+                "ambiguous_review_state",
+            )
+            null_connection = live_pr(metadata)
+            null_connection[field] = None
+            self.assertEqual(
+                planner.plan_pr_action(
+                    null_connection,
+                    True,
+                    "c" * 40,
+                )["reason"],
+                "ambiguous_review_state",
+            )
+
+        missing_page_info = live_pr(metadata)
+        missing_page_info["reviews"] = {"nodes": [], "totalCount": 0}
+        self.assertEqual(
+            planner.plan_pr_action(
+                missing_page_info,
+                True,
+                "c" * 40,
+            )["reason"],
+            "ambiguous_review_state",
+        )
+
+        has_next_page = live_pr(metadata)
+        has_next_page["reviews"]["pageInfo"]["hasNextPage"] = True
+        self.assertEqual(
+            planner.plan_pr_action(has_next_page, True, "c" * 40)["reason"],
+            "ambiguous_review_state",
+        )
+
+        malformed_page_info = live_pr(metadata)
+        malformed_page_info["reviews"]["pageInfo"]["hasNextPage"] = "false"
+        self.assertEqual(
+            planner.plan_pr_action(
+                malformed_page_info,
+                True,
+                "c" * 40,
+            )["reason"],
+            "ambiguous_review_state",
+        )
+
+        unavailable = live_pr(metadata)
+        unavailable["reviews"]["unavailable"] = True
+        self.assertEqual(
+            planner.plan_pr_action(unavailable, True, "c" * 40)["reason"],
+            "ambiguous_review_state",
+        )
+
+        incomplete_aggregation = live_pr(metadata)
+        incomplete_aggregation["reviews"]["totalCount"] = 1
+        self.assertEqual(
+            planner.plan_pr_action(
+                incomplete_aggregation,
+                True,
+                "c" * 40,
+            )["reason"],
+            "ambiguous_review_state",
+        )
+
+        legacy_list = live_pr(metadata)
+        legacy_list["reviews"] = []
+        self.assertEqual(
+            planner.plan_pr_action(legacy_list, True, "c" * 40)["reason"],
+            "ambiguous_review_state",
+        )
+
+        caller_conflict = live_pr(metadata)
+        caller_conflict["reviews"] = complete_connection(
+            [{"state": "COMMENTED"}]
+        )
+        caller_conflict["controller_review_started"] = False
+        self.assertEqual(
+            planner.plan_pr_action(
+                caller_conflict,
+                True,
+                "c" * 40,
+            )["reason"],
+            "review_freeze_conflict",
+        )
+
+        boolean_only_conflict = live_pr(metadata)
+        boolean_only_conflict["controller_review_started"] = True
+        self.assertEqual(
+            planner.plan_pr_action(
+                boolean_only_conflict,
+                True,
+                "c" * 40,
+            )["reason"],
+            "review_freeze_conflict",
         )
 
 

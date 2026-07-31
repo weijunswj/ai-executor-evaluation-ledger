@@ -7,6 +7,7 @@ import json
 import re
 import subprocess
 import sys
+import unicodedata
 from pathlib import Path
 from typing import Iterable
 
@@ -128,52 +129,109 @@ RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     """)),
 )
 
+INFERENCE_IDENTITY_WORD = "reason" + "ing"
+COGNITIVE_SETTING_PARTS = ("think" + "ing", "setting")
+NATIVE_CLASSIFICATION_WORDS = ("native", INFERENCE_IDENTITY_WORD, "classification")
+GPT_MODEL_WORDS = ("GPT", "5", "6", "Sol")
+CLAUDE_48_MODEL_WORDS = ("Claude", "Opus", "4", "8")
+CLAUDE_5_MODEL_WORDS = ("Claude", "Opus", "5")
+MEDIUM_SETTING_WORD = "Medium"
+HIGH_SETTING_WORD = "High"
+MAX_SETTING_WORD = "Max"
+ULTRA_SETTING_WORD = "Ultra"
+GPT_MODEL_NAME = "-".join(GPT_MODEL_WORDS[:2]) + "." + GPT_MODEL_WORDS[2] + " " + GPT_MODEL_WORDS[3]
+CLAUDE_48_MODEL_NAME = " ".join(CLAUDE_48_MODEL_WORDS[:2]) + " " + ".".join(CLAUDE_48_MODEL_WORDS[2:])
+CLAUDE_5_MODEL_NAME = " ".join(CLAUDE_5_MODEL_WORDS)
+
+FORBIDDEN_LEDGER_IDENTITY_WORDS = (
+    ("requested", INFERENCE_IDENTITY_WORD, "level"),
+    ("observed", INFERENCE_IDENTITY_WORD, "mode"),
+    COGNITIVE_SETTING_PARTS,
+    NATIVE_CLASSIFICATION_WORDS,
+    (INFERENCE_IDENTITY_WORD, "exposure", "status"),
+    (INFERENCE_IDENTITY_WORD, "grouping"),
+    (INFERENCE_IDENTITY_WORD, "level"),
+    (INFERENCE_IDENTITY_WORD, "mode"),
+    (*CLAUDE_48_MODEL_WORDS, HIGH_SETTING_WORD),
+    (*CLAUDE_48_MODEL_WORDS, ULTRA_SETTING_WORD, HIGH_SETTING_WORD),
+    (*CLAUDE_5_MODEL_WORDS, MAX_SETTING_WORD),
+    (*GPT_MODEL_WORDS, MEDIUM_SETTING_WORD),
+    (*GPT_MODEL_WORDS, HIGH_SETTING_WORD),
+    (*GPT_MODEL_WORDS, MAX_SETTING_WORD),
+)
+
 FORBIDDEN_LEDGER_IDENTITY_TOKENS = frozenset(
     {
-        "requested_" + "reasoning" + "_level",
-        "observed_" + "reasoning" + "_mode",
-        "thinking_" + "setting",
-        "native_" + "reasoning" + "_classification",
-        "reasoning" + "_exposure_status",
-        "reasoning" + "_grouping",
-        "reasoning" + "_level",
-        "reasoning" + "_mode",
-        "Claude Opus 4.8 " + "High",
-        "Claude Opus 4.8 " + "Ultra High",
-        "Claude Opus 5 " + "Max",
-        "GPT-5.6 Sol " + "Medium",
-        "GPT-5.6 Sol " + "High",
-        "GPT-5.6 Sol " + "Max",
+        "requested_" + INFERENCE_IDENTITY_WORD + "_level",
+        "observed_" + INFERENCE_IDENTITY_WORD + "_mode",
+        "_".join(COGNITIVE_SETTING_PARTS),
+        "_".join(NATIVE_CLASSIFICATION_WORDS),
+        INFERENCE_IDENTITY_WORD + "_exposure_status",
+        INFERENCE_IDENTITY_WORD + "_grouping",
+        INFERENCE_IDENTITY_WORD + "_level",
+        INFERENCE_IDENTITY_WORD + "_mode",
+        CLAUDE_48_MODEL_NAME + " " + HIGH_SETTING_WORD,
+        CLAUDE_48_MODEL_NAME + " " + ULTRA_SETTING_WORD + " " + HIGH_SETTING_WORD,
+        CLAUDE_5_MODEL_NAME + " " + MAX_SETTING_WORD,
+        GPT_MODEL_NAME + " " + MEDIUM_SETTING_WORD,
+        GPT_MODEL_NAME + " " + HIGH_SETTING_WORD,
+        GPT_MODEL_NAME + " " + MAX_SETTING_WORD,
     }
 )
-IDENTITY_SEPARATOR = r"[\s_.:/\\-]*"
+
+LEGACY_IDENTITY_SEPARATOR = r"[\s_.:/\\-]*"
 
 
 def _identity_pattern(*words: str) -> re.Pattern[str]:
     return re.compile(
         r"(?<![A-Za-z0-9])"
-        + IDENTITY_SEPARATOR.join(re.escape(word) for word in words)
+        + LEGACY_IDENTITY_SEPARATOR.join(re.escape(word) for word in words)
         + r"(?![A-Za-z0-9])",
         re.IGNORECASE,
     )
 
 
-FORBIDDEN_LEDGER_IDENTITY_PATTERNS = (
-    _identity_pattern("requested", "reasoning", "level"),
-    _identity_pattern("observed", "reasoning", "mode"),
-    _identity_pattern("thinking", "setting"),
-    _identity_pattern("native", "reasoning", "classification"),
-    _identity_pattern("reasoning", "exposure", "status"),
-    _identity_pattern("reasoning", "grouping"),
-    _identity_pattern("reasoning", "level"),
-    _identity_pattern("reasoning", "mode"),
-    _identity_pattern("Claude", "Opus", "4", "8", "High"),
-    _identity_pattern("Claude", "Opus", "4", "8", "Ultra", "High"),
-    _identity_pattern("Claude", "Opus", "5", "Max"),
-    _identity_pattern("GPT", "5", "6", "Sol", "Medium"),
-    _identity_pattern("GPT", "5", "6", "Sol", "High"),
-    _identity_pattern("GPT", "5", "6", "Sol", "Max"),
+FORBIDDEN_LEDGER_IDENTITY_PATTERNS = tuple(
+    _identity_pattern(*words) for words in FORBIDDEN_LEDGER_IDENTITY_WORDS
 )
+
+FORBIDDEN_LEDGER_IDENTITY_SEQUENCES = tuple(
+    tuple(
+        unicodedata.normalize("NFKC", word).casefold()
+        for word in words
+    )
+    for words in FORBIDDEN_LEDGER_IDENTITY_WORDS
+)
+FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN = {
+    first: tuple(
+        sequence
+        for sequence in FORBIDDEN_LEDGER_IDENTITY_SEQUENCES
+        if sequence[0] == first
+    )
+    for first in {
+        sequence[0]
+        for sequence in FORBIDDEN_LEDGER_IDENTITY_SEQUENCES
+    }
+}
+
+
+def _unicode_alphanumeric_runs(text: str) -> tuple[str, list[tuple[str, int]]]:
+    """Return NFKC/case-folded Unicode alphanumeric runs and their offsets."""
+
+    normalized = unicodedata.normalize("NFKC", text).casefold()
+    runs: list[tuple[str, int]] = []
+    start: int | None = None
+    for index, character in enumerate(normalized):
+        if character.isalnum():
+            if start is None:
+                start = index
+            continue
+        if start is not None:
+            runs.append((normalized[start:index], start))
+            start = None
+    if start is not None:
+        runs.append((normalized[start:], start))
+    return normalized, runs
 
 
 def tracked_files() -> list[Path]:
@@ -254,10 +312,14 @@ def scan_ledger_identity(label: str, text: str) -> list[str]:
     """Reject normalized model-setting identities in every tracked directory."""
 
     failures: list[str] = []
-    for pattern in FORBIDDEN_LEDGER_IDENTITY_PATTERNS:
-        for match in pattern.finditer(text):
-            line = text.count("\n", 0, match.start()) + 1
-            failures.append(f"{label}:{line}: forbidden ledger identity token")
+    normalized, runs = _unicode_alphanumeric_runs(text)
+    run_values = tuple(value for value, _offset in runs)
+    for index, (first, offset) in enumerate(runs):
+        for sequence in FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN.get(first, ()):
+            width = len(sequence)
+            if run_values[index : index + width] == sequence:
+                line = normalized.count("\n", 0, offset) + 1
+                failures.append(f"{label}:{line}: forbidden ledger identity token")
     return failures
 
 

@@ -103,7 +103,7 @@ class RepositoryPathGuard:
             path.is_absolute()
             or any(part in {"", ".", ".."} for part in path.parts)
             or path.as_posix() != value
-            or ":" in path.parts[0]
+            or any(":" in part for part in path.parts)
         ):
             raise ProcessorError("processor_invalid_contract")
         return value
@@ -349,6 +349,7 @@ def _validate_manifest(value: Any) -> dict[str, Any]:
                 or len(original_digest) != 64
                 or not isinstance(snapshot, str)
                 or Path(snapshot).name != snapshot
+                or _validate_relative_path(snapshot) != snapshot
             ):
                 raise ProcessorError("processor_recovery_required")
         elif original_digest is not None or snapshot is not None:

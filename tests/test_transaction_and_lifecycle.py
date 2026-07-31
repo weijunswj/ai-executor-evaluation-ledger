@@ -513,9 +513,91 @@ class TestRepositoryPathContainment(unittest.TestCase):
                 "C:/absolute",
                 "nested//deep/tracked.txt",
                 "nested/./deep/tracked.txt",
+                "nested/file.txt:stream",
+                "nested:stream/file.txt",
+                "nested/deep/file.txt:stream",
+                "nested/deep:stream/file.txt",
             ):
                 with self.assertRaises(ProcessorError, msg=unsafe):
                     guard.path(unsafe)
+            self.assertEqual(
+                root / "nested" / "deep" / "tracked.txt",
+                guard.path(
+                    "nested/deep/tracked.txt",
+                    leaf_may_be_missing=False,
+                ),
+            )
+
+    def test_colon_paths_fail_before_snapshot_prepare_or_replacement(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-path-colon-") as raw:
+            root = Path(raw)
+            self.make_repo(root)
+            guard = RepositoryPathGuard(root)
+            original = (root / "nested" / "deep" / "tracked.txt").read_bytes()
+            unsafe_paths = (
+                "nested/file.txt:stream",
+                "nested:stream/file.txt",
+                "nested/deep/file.txt:stream",
+                "nested/deep:stream/file.txt",
+            )
+            for unsafe in unsafe_paths:
+                with self.subTest(path=unsafe):
+                    with self.assertRaises(ProcessorError):
+                        guard.prepare(unsafe)
+                    with self.assertRaises(ProcessorError):
+                        snapshot_tracked_files(root, (unsafe,))
+                    with self.assertRaises(ProcessorError):
+                        replace_tracked_files(root, {unsafe: b"candidate\n"})
+                    self.assertEqual(
+                        original,
+                        (root / "nested" / "deep" / "tracked.txt").read_bytes(),
+                    )
+                    self.assertFalse(recovery_journal_path(root).exists())
+
+    def test_recovery_rejects_colons_in_target_and_snapshot_before_mutation(self):
+        class SimulatedProcessExit(BaseException):
+            pass
+
+        with tempfile.TemporaryDirectory(prefix="ledger-path-colon-recovery-") as raw:
+            root = Path(raw)
+            self.make_repo(root)
+
+            def interrupt(stage, relative):
+                if (
+                    stage == "after_candidate_replace"
+                    and relative == "nested/deep/tracked.txt"
+                ):
+                    raise SimulatedProcessExit()
+
+            with self.assertRaises(SimulatedProcessExit):
+                replace_tracked_files(
+                    root,
+                    {"nested/deep/tracked.txt": b"candidate\n"},
+                    failure_hook=interrupt,
+                )
+            journal = recovery_journal_path(root)
+            manifest_path = journal / "manifest.json"
+            original_manifest = json.loads(
+                manifest_path.read_text(encoding="utf-8")
+            )
+            candidate = (root / "nested" / "deep" / "tracked.txt")
+            self.assertEqual(b"candidate\n", candidate.read_bytes())
+
+            corruptions = (
+                ("path", "nested/deep/tracked.txt:stream"),
+                ("path", "nested/deep:stream/tracked.txt"),
+                ("snapshot", "0000.snapshot:stream"),
+            )
+            for field, value in corruptions:
+                with self.subTest(field=field, value=value):
+                    manifest = copy.deepcopy(original_manifest)
+                    manifest["targets"][0][field] = value
+                    manifest_bytes = canonical_json_bytes(manifest) + b"\n"
+                    manifest_path.write_bytes(manifest_bytes)
+                    with self.assertRaises(ProcessorError):
+                        recover_incomplete_transaction(root)
+                    self.assertEqual(manifest_bytes, manifest_path.read_bytes())
+                    self.assertEqual(b"candidate\n", candidate.read_bytes())
 
     @unittest.skipIf(os.name == "nt", "POSIX-specific symlink escape")
     def test_posix_symlink_parent_escape_and_nested_redirect_are_rejected(self):
