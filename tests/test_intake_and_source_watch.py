@@ -1,7 +1,9 @@
 import copy
 import json
 import unittest
+from dataclasses import replace
 from pathlib import Path
+from unittest import mock
 
 from scripts.processor.common import (
     AUTHORIZED_PAIRS,
@@ -10,6 +12,7 @@ from scripts.processor.common import (
     REASONING_KEYS,
     safe_comment_body_hash,
 )
+from scripts.processor import intake_parser
 from scripts.processor.intake_parser import (
     HistoricalReviewTimestampAuthority,
     canonical_record_from_payload,
@@ -76,6 +79,33 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             recorded if recorded is not None else set(),
             seen if seen is not None else set(),
         )
+
+    def _frozen_authority(self, body, *, comment_id=None, **overrides):
+        receipt = json.loads(
+            Path(
+                "ledger/receipts/batches/"
+                "batch-20260729-gate3-amendment-004.json"
+            ).read_text(encoding="utf-8")
+        )
+        frozen_ids = frozenset(receipt["source_comment_ids"])
+        values = {
+            "batch_id": FROZEN_BATCH_ID,
+            "comment_id": (
+                receipt["source_comment_ids"][0]
+                if comment_id is None
+                else comment_id
+            ),
+            "frozen_comment_ids": frozen_ids,
+            "verified_snapshot_sha256": FROZEN_SNAPSHOT_SHA256,
+            "source_body_sha256": safe_comment_body_hash(body),
+            "expected_body_sha256": safe_comment_body_hash(body),
+            "source_created_at": "2026-07-29T10:00:00Z",
+            "expected_created_at": "2026-07-29T10:00:00Z",
+            "source_updated_at": "2026-07-29T10:00:00Z",
+            "expected_updated_at": "2026-07-29T10:00:00Z",
+        }
+        values.update(overrides)
+        return HistoricalReviewTimestampAuthority(**values)
 
     def test_valid_authorised_pair_is_admitted_without_invented_fields(self):
         disposition, parsed, reason = self.parse()
@@ -209,6 +239,118 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             adapted["reviewed_at"],
             self.valid_payload["reviewed_at"],
         )
+
+    def test_historical_timestamp_authority_rejects_frozen_scope_mismatches(self):
+        payload = copy.deepcopy(self.valid_payload)
+        payload.pop("reviewed_at")
+        body = self.body(payload)
+        receipt = json.loads(
+            Path(
+                "ledger/receipts/batches/"
+                "batch-20260729-gate3-amendment-004.json"
+            ).read_text(encoding="utf-8")
+        )
+        nonmember_id = max(receipt["source_comment_ids"]) + 1
+        baseline = self._frozen_authority(body)
+        mismatches = {
+            "different_batch": {
+                "batch_id": FROZEN_BATCH_ID + "-future",
+            },
+            "comment_outside_frozen_membership": {
+                "comment_id": nonmember_id,
+            },
+            "snapshot_hash": {"verified_snapshot_sha256": "0" * 64},
+            "source_body_hash": {"source_body_sha256": "0" * 64},
+            "expected_body_hash": {"expected_body_sha256": "1" * 64},
+            "created_at": {
+                "expected_created_at": "2026-07-29T10:01:00Z",
+            },
+            "updated_at": {
+                "expected_updated_at": "2026-07-29T10:01:00Z",
+            },
+            "malformed_created_at": {
+                "source_created_at": "not-a-date",
+                "expected_created_at": "not-a-date",
+            },
+        }
+        for label, changes in mismatches.items():
+            with self.subTest(label=label):
+                code, parsed, reason = parse_intake_comment(
+                    baseline.comment_id,
+                    body,
+                    set(),
+                    set(),
+                    historical_review_authority=replace(baseline, **changes),
+                )
+                self.assertEqual(
+                    (code, parsed, reason),
+                    ("authority_missing", {}, "authority_missing"),
+                )
+
+    def test_historical_timestamp_authority_uses_created_at_only(self):
+        payload = copy.deepcopy(self.valid_payload)
+        payload.pop("reviewed_at")
+        body = self.body(payload)
+        authority = self._frozen_authority(
+            body,
+            source_created_at="2026-07-29T12:00:00Z",
+            expected_created_at="2026-07-29T12:00:00Z",
+            source_updated_at="2026-07-29T13:00:00Z",
+            expected_updated_at="2026-07-29T13:00:00Z",
+        )
+        code, adapted, reason = parse_intake_comment(
+            authority.comment_id,
+            body,
+            set(),
+            set(),
+            historical_review_authority=authority,
+        )
+        self.assertEqual((code, reason), ("admitted", "admitted"))
+        self.assertEqual(adapted["reviewed_at"], "2026-07-29T12:00:00Z")
+
+    def test_historical_timestamp_parser_does_not_consult_clock_or_local_artifacts(self):
+        payload = copy.deepcopy(self.valid_payload)
+        payload.pop("reviewed_at")
+        body = self.body(payload)
+        authority = self._frozen_authority(body)
+
+        class FailIfAccessed:
+            def __getattr__(self, name):
+                raise AssertionError("unexpected external source access")
+
+        with mock.patch.object(
+            intake_parser,
+            "time",
+            FailIfAccessed(),
+            create=True,
+        ), mock.patch.object(
+            intake_parser,
+            "datetime",
+            FailIfAccessed(),
+            create=True,
+        ), mock.patch.object(
+            intake_parser.Path,
+            "read_text",
+            side_effect=AssertionError("unexpected local text read"),
+        ), mock.patch.object(
+            intake_parser.Path,
+            "read_bytes",
+            side_effect=AssertionError("unexpected local byte read"),
+        ), mock.patch.object(
+            intake_parser.Path,
+            "open",
+            side_effect=AssertionError("unexpected local file open"),
+        ):
+            code, adapted, reason = parse_intake_comment(
+                authority.comment_id,
+                body,
+                {"fixture-existing-evaluation"},
+                set(),
+                historical_review_authority=authority,
+            )
+
+        self.assertEqual((code, reason), ("admitted", "admitted"))
+        self.assertEqual(adapted["reviewed_at"], "2026-07-29T10:00:00Z")
 
     def test_unknown_top_level_and_nested_fields_are_closed(self):
         top = copy.deepcopy(self.valid_payload)
@@ -562,6 +704,140 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
                 "c" * 40,
             )["reason"],
             "review_freeze_conflict",
+        )
+
+    def test_native_graphql_fixtures_flow_through_normalizer_and_planner(self):
+        fixtures = json.loads(
+            Path(
+                "tests/fixtures/source_watch/"
+                "native_review_evidence.json"
+            ).read_text(encoding="utf-8")
+        )
+        planner = SourceWatchPlanner()
+        empty = fixtures["mutable_empty"]
+        active = fixtures["active_nonempty"]
+
+        for connection_name in ("reviews", "latestReviews", "reviewThreads"):
+            self.assertIsNone(
+                empty[connection_name]["pageInfo"]["startCursor"]
+            )
+            self.assertIsNone(
+                empty[connection_name]["pageInfo"]["endCursor"]
+            )
+            self.assertIsInstance(
+                empty[connection_name]["pageInfo"]["hasPreviousPage"],
+                bool,
+            )
+            self.assertIsInstance(
+                active[connection_name]["pageInfo"]["hasPreviousPage"],
+                bool,
+            )
+            self.assertIsInstance(
+                active[connection_name]["pageInfo"]["startCursor"],
+                str,
+            )
+            self.assertIsInstance(
+                active[connection_name]["pageInfo"]["endCursor"],
+                str,
+            )
+
+        empty_normalized = normalize_native_review_evidence(empty)
+        self.assertEqual(
+            empty_normalized,
+            {"reviews": [], "latestReviews": [], "reviewThreads": []},
+        )
+        self.assertEqual(
+            planner.plan_pr_action(empty, True, "c" * 40)["action"],
+            "UPDATE_EXISTING_PR",
+        )
+        active_normalized = normalize_native_review_evidence(active)
+        self.assertEqual(
+            {field: len(nodes) for field, nodes in active_normalized.items()},
+            {"reviews": 1, "latestReviews": 1, "reviewThreads": 1},
+        )
+        self.assertEqual(
+            planner.plan_pr_action(active, True, "c" * 40)["reason"],
+            "review_freeze_conflict",
+        )
+
+        def assert_rejected(label, mutate):
+            candidate = copy.deepcopy(empty)
+            mutate(candidate)
+            with self.subTest(label=label):
+                self.assertIsNone(normalize_native_review_evidence(candidate))
+                self.assertEqual(
+                    planner.plan_pr_action(candidate, True, "c" * 40)["reason"],
+                    "ambiguous_review_state",
+                )
+
+        assert_rejected(
+            "has_next_page",
+            lambda candidate: candidate["reviews"]["pageInfo"].update(
+                hasNextPage=True
+            ),
+        )
+        assert_rejected(
+            "total_count_mismatch",
+            lambda candidate: candidate["reviews"].update(totalCount=1),
+        )
+        assert_rejected(
+            "boolean_total_count",
+            lambda candidate: candidate["reviews"].update(totalCount=True),
+        )
+        for field in ("reviews", "latestReviews", "reviewThreads"):
+            assert_rejected(
+                "missing_" + field,
+                lambda candidate, field=field: candidate.pop(field),
+            )
+            assert_rejected(
+                "null_" + field,
+                lambda candidate, field=field: candidate.update({field: None}),
+            )
+        assert_rejected(
+            "missing_page_info",
+            lambda candidate: candidate["reviews"].pop("pageInfo"),
+        )
+        assert_rejected(
+            "malformed_page_info",
+            lambda candidate: candidate["reviews"].update(pageInfo=None),
+        )
+        assert_rejected(
+            "malformed_has_next_page",
+            lambda candidate: candidate["reviews"]["pageInfo"].update(
+                hasNextPage="false"
+            ),
+        )
+        assert_rejected(
+            "unknown_page_info_field",
+            lambda candidate: candidate["reviews"]["pageInfo"].update(
+                unavailable=True
+            ),
+        )
+        for label in ("partial", "error", "unavailable"):
+            assert_rejected(
+                label + "_connection",
+                lambda candidate, label=label: candidate["reviews"].update(
+                    {label: True} if label != "error" else {"errors": [{"message": "fixture"}]}
+                ),
+            )
+
+        frozen = copy.deepcopy(empty)
+        metadata, remainder = parse_pr_body(frozen["body"])
+        metadata["review_freeze_state"] = "frozen"
+        frozen["body"] = (
+            SourceWatchPlanner.OWNERSHIP_MARKER
+            + "\n```json\n"
+            + json.dumps(metadata)
+            + "\n```\n"
+            + remainder
+        )
+        self.assertEqual(
+            planner.plan_pr_action(frozen, True, "c" * 40),
+            {"action": "REFUSE_FROZEN", "reason": "review_freeze"},
+        )
+        self.assertEqual(
+            planner.plan_pr_action(frozen, True, "d" * 40),
+            {"action": "REFUSE_FROZEN", "reason": "frozen_head_mismatch"},
         )
 
 

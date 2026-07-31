@@ -458,6 +458,33 @@ class HistoricalPipelineTests(unittest.TestCase):
                 for variant in variants:
                     self.assertNotIn(variant, diagnostics)
 
+    def test_historical_scan_fails_closed_on_invalid_utf8(self):
+        with tempfile.TemporaryDirectory(
+            prefix="public-safety-invalid-utf8-"
+        ) as raw:
+            root = Path(raw)
+            with self.activated_repo(root):
+                label = "invalid-utf8-fixture.txt"
+                (root / label).write_bytes(
+                    b"fixture-invalid-utf8-byte-\xff\n"
+                )
+                self.git(root, "add", label)
+                self.git(root, "commit", "-qm", "invalid UTF-8 fixture")
+
+                with self.assertRaises(RuntimeError) as caught:
+                    safety.history_failures(root)
+
+                diagnostic = str(caught.exception)
+                self.assertEqual(
+                    diagnostic,
+                    "history patch is not strict UTF-8",
+                )
+                self.assertTrue(diagnostic.isascii())
+                self.assertNotIn(chr(0xFFFD), diagnostic)
+                self.assertNotIn("invalid-utf8-fixture", diagnostic)
+                self.assertNotIn("fixture-invalid-utf8-byte", diagnostic)
+                self.assertNotIn("gh" + "p_", diagnostic)
+
     def test_history_pipeline_preserves_generic_rules_after_deletion(self):
         secret = "gh" + "p_" + "A" * 24
         with tempfile.TemporaryDirectory(

@@ -1,0 +1,80 @@
+{
+  "mutable_empty": {
+    "number": 151,
+    "body": "<!-- ledger-source-watch:v1 -->\n```json\n{\"schema_version\":1,\"record_type\":\"source_watch_pr_metadata\",\"mode\":\"initial\",\"base_sha\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"canonical_main_sha\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"batch_id\":\"batch-fixture-001\",\"controller_run_id\":\"controller-fixture-001\",\"pr_number\":151,\"expected_head_sha\":\"cccccccccccccccccccccccccccccccccccccccc\",\"activation_mode\":\"dry-run\",\"source_issue_number\":142,\"receipt_issue_number\":143,\"review_freeze_state\":\"not_started\",\"dry_run\":true}\n```\n",
+    "is_draft": true,
+    "reviews": {
+      "nodes": [],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": false,
+        "startCursor": null,
+        "endCursor": null
+      },
+      "totalCount": 0
+    },
+    "latestReviews": {
+      "nodes": [],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": false,
+        "startCursor": null,
+        "endCursor": null
+      },
+      "totalCount": 0
+    },
+    "reviewThreads": {
+      "nodes": [],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": false,
+        "startCursor": null,
+        "endCursor": null
+      },
+      "totalCount": 0
+    },
+    "controller_review_started": false
+  },
+  "active_nonempty": {
+    "number": 151,
+    "body": "<!-- ledger-source-watch:v1 -->\n```json\n{\"schema_version\":1,\"record_type\":\"source_watch_pr_metadata\",\"mode\":\"initial\",\"base_sha\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"canonical_main_sha\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"batch_id\":\"batch-fixture-001\",\"controller_run_id\":\"controller-fixture-001\",\"pr_number\":151,\"expected_head_sha\":\"cccccccccccccccccccccccccccccccccccccccc\",\"activation_mode\":\"dry-run\",\"source_issue_number\":142,\"receipt_issue_number\":143,\"review_freeze_state\":\"not_started\",\"dry_run\":true}\n```\n",
+    "is_draft": true,
+    "reviews": {
+      "nodes": [
+        {"state": "COMMENTED"}
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "fixture-start",
+        "endCursor": "fixture-end"
+      },
+      "totalCount": 1
+    },
+    "latestReviews": {
+      "nodes": [
+        {"state": "COMMENTED"}
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "fixture-start",
+        "endCursor": "fixture-end"
+      },
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "nodes": [
+        {"isResolved": false}
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "fixture-start",
+        "endCursor": "fixture-end"
+      },
+      "totalCount": 1
+    },
+    "controller_review_started": false
+  }
+}
