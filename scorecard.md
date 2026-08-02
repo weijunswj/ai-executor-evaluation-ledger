@@ -18,65 +18,65 @@ Newest first. This table displays at most 30 formal evaluation runs.
 |---|---|---|---|---|---:|---:|---|
 | 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | Security Remediation | High | ACCEPTED | 4.34 | No | Verified |
 | 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | Security Review | High | AMEND | 3.49 | No | Verified |
-| 26 Jul 2026 23:20 SGT | GPT-5.6 Sol | Security Audit | High | ACCEPTED | 4.70 | Yes | Verified |
+| 26 Jul 2026 23:20 SGT | GPT-5.6 Sol | Security Audit | High | ACCEPTED | 4.74 | Yes | Verified |
 | 26 Jul 2026 22:19 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.32 | No | Verified |
 | 26 Jul 2026 21:46 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.09 | No | Verified |
 | 26 Jul 2026 21:45 SGT | GPT-5.6 Sol | Research | High | ACCEPTED | 4.73 | Yes | Verified |
 | 26 Jul 2026 21:42 SGT | GPT-5.6 Sol | Hosted Product Uat | Medium | AMEND | 4.20 | No | Verified |
 | 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Security Review | High | AMEND | 3.48 | No | Verified |
 | 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Security Remediation | High | AMEND | 3.49 | No | Verified |
-| 26 Jul 2026 21:38 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.80 | Yes | Verified |
+| 26 Jul 2026 21:38 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.85 | Yes | Verified |
 | 26 Jul 2026 21:25 SGT | DeepSeek V4 Pro | Research | High | AMEND | 3.38 | No | Verified |
-| 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Hosted Product Uat | Medium | ACCEPTED | 4.85 | Yes | Verified |
-| 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
-| 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
+| 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Hosted Product Uat | Medium | ACCEPTED | 4.89 | Yes | Verified |
+| 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Hosted Product Uat | High | AMEND | 3.50 | No | Verified |
+| 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.72 | Yes | Verified |
 | 26 Jul 2026 20:47 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.19 | No | Verified |
 | 26 Jul 2026 20:46 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.13 | No | Verified |
 | 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.28 | No | Verified |
-| 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Production Deployment | High | ACCEPTED | 4.55 | Yes | Verified |
+| 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Production Deployment | High | ACCEPTED | 4.59 | Yes | Verified |
 | 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Production Operations | High | AMEND | 3.84 | No | Verified |
-| 26 Jul 2026 20:12 SGT | DeepSeek V4 Pro | Research | High | AMEND | 3.58 | No | Verified |
-| 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.10 | Yes | Verified |
-| 26 Jul 2026 20:04 SGT | DeepSeek V4 Pro | Security Architecture Audit | High | AMEND | 3.85 | No | Verified |
-| 26 Jul 2026 20:03 SGT | DeepSeek V4 Pro | Incident Diagnosis | High | ACCEPTED | 4.80 | Yes | Verified |
+| 26 Jul 2026 20:12 SGT | DeepSeek V4 Pro | Research | High | AMEND | 3.83 | No | Verified |
+| 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.23 | Yes | Verified |
+| 26 Jul 2026 20:04 SGT | DeepSeek V4 Pro | Security Architecture Audit | High | AMEND | 4.01 | No | Verified |
+| 26 Jul 2026 20:03 SGT | DeepSeek V4 Pro | Incident Diagnosis | High | ACCEPTED | 4.87 | Yes | Verified |
 | 26 Jul 2026 19:54 SGT | DeepSeek V4 Pro | Complex Repository Change | High | AMEND | 2.75 | No | Verified |
 | 26 Jul 2026 19:22 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.93 | No | Verified |
 | 26 Jul 2026 19:18 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.67 | No | Verified |
 | 26 Jul 2026 19:12 SGT | GPT-5.6 Sol | Complex Repository Change | High | ACCEPTED | 4.77 | Yes | Verified |
 | 26 Jul 2026 19:05 SGT | GPT-5.6 Sol | Complex Repository Change | High | AMEND | 4.11 | No | Verified |
 | 26 Jul 2026 18:20 SGT | DeepSeek V4 Pro | Research | High | PASS | 4.42 | Yes | Verified |
-| 26 Jul 2026 15:32 SGT | Claude Opus 5 | Complex Repository Change | High | AMEND | 4.05 | No | Verified |
+| 26 Jul 2026 15:32 SGT | Claude Opus 5 | Complex Repository Change | High | AMEND | 4.24 | No | Verified |
 
 ## Task-class aggregates
 
 | Model | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
 |---|---|---|---:|---:|---:|---|
 | Claude Opus 5 | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
-| Claude Opus 5 | Complex Repository Change | High | 5 | 3.63 | 0% | Provisional |
+| Claude Opus 5 | Complex Repository Change | High | 5 | 3.66 | 0% | Provisional |
 | DeepSeek V4 Pro | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Hosted Product Uat | High | 1 | 3.15 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Hosted Product Uat | Medium | 1 | 4.85 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Production Operations | High | 4 | 4.35 | 75% | Provisional |
-| DeepSeek V4 Pro | Research | High | 6 | 3.91 | 17% | Moderate |
-| DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Hosted Product Uat | High | 1 | 3.50 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Hosted Product Uat | Medium | 1 | 4.89 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Incident Diagnosis | High | 1 | 4.87 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Production Deployment | High | 1 | 4.59 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Production Operations | High | 4 | 4.41 | 75% | Provisional |
+| DeepSeek V4 Pro | Research | High | 6 | 3.97 | 17% | Moderate |
+| DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
 | GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
-| GPT-5.6 Sol | Security Audit | High | 1 | 4.70 | 100% | Anecdotal |
+| GPT-5.6 Sol | Security Audit | High | 1 | 4.74 | 100% | Anecdotal |
 | GPT-5.6 Sol | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
-| MiMo 2.5 Pro | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Architecture Proposal | High | 1 | 4.53 | 100% | Anecdotal |
+| MiMo 2.5 Pro | Complex Repository Change | High | 2 | 3.38 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
 | MiMo 2.5 Pro | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Provider Operation | High | 5 | 3.55 | 0% | Provisional |
+| MiMo 2.5 Pro | Provider Operation | High | 5 | 3.56 | 0% | Provisional |
 | MiMo 2.5 Pro | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Security Remediation | High | 5 | 3.50 | 0% | Provisional |
+| MiMo 2.5 Pro | Security Remediation | High | 5 | 3.52 | 0% | Provisional |
 
 ## Latest formal evaluations
 
@@ -129,7 +129,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-gpt-5-6-sol-public-web-app-a-production-dependency-audit-005`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.70/5**
+- Weighted score: **4.74/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -270,7 +270,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-provider-hostname-admission-004`
 - Subject alias: `shared-platform-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.80/5**
+- Weighted score: **4.85/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -312,7 +312,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-browser-capability-003`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.85/5**
+- Weighted score: **4.89/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -330,7 +330,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-http-walkthrough-002`
 - Subject alias: `public-web-app-a`
 - Result: **AMEND**
-- Weighted score: **3.15/5**
+- Weighted score: **3.50/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -352,7 +352,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-canonical-operator-source-003`
 - Subject alias: `shared-platform-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.65/5**
+- Weighted score: **4.72/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -436,7 +436,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-source-commit-deployment-001`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.55/5**
+- Weighted score: **4.59/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -474,7 +474,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-005`
 - Subject alias: `governance-tooling-a`
 - Result: **AMEND**
-- Weighted score: **3.58/5**
+- Weighted score: **3.83/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -497,7 +497,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-runtime-activation-preflight-001`
 - Subject alias: `shared-platform-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.10/5**
+- Weighted score: **4.23/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -517,7 +517,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-audit-001`
 - Subject alias: `private-quote-service-a`
 - Result: **AMEND**
-- Weighted score: **3.85/5**
+- Weighted score: **4.01/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -540,7 +540,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-build-root-cause-001`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.80/5**
+- Weighted score: **4.87/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -686,7 +686,7 @@ Newest first. This section displays at most 30 formal evaluation runs.
 - Run ID: `2026-07-26-claude-opus-5-business-automation-a-amendment-008`
 - Subject alias: `business-automation-a`
 - Result: **AMEND**
-- Weighted score: **4.05/5**
+- Weighted score: **4.24/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:

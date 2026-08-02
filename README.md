@@ -29,31 +29,31 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Model | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
 |---|---|---|---:|---:|---:|---|
 | Claude Opus 5 | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
-| Claude Opus 5 | Complex Repository Change | High | 5 | 3.63 | 0% | Provisional |
+| Claude Opus 5 | Complex Repository Change | High | 5 | 3.66 | 0% | Provisional |
 | DeepSeek V4 Pro | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Hosted Product Uat | High | 1 | 3.15 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Hosted Product Uat | Medium | 1 | 4.85 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Production Operations | High | 4 | 4.35 | 75% | Provisional |
-| DeepSeek V4 Pro | Research | High | 6 | 3.91 | 17% | Moderate |
-| DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Hosted Product Uat | High | 1 | 3.50 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Hosted Product Uat | Medium | 1 | 4.89 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Incident Diagnosis | High | 1 | 4.87 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Production Deployment | High | 1 | 4.59 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Production Operations | High | 4 | 4.41 | 75% | Provisional |
+| DeepSeek V4 Pro | Research | High | 6 | 3.97 | 17% | Moderate |
+| DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
 | GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
-| GPT-5.6 Sol | Security Audit | High | 1 | 4.70 | 100% | Anecdotal |
+| GPT-5.6 Sol | Security Audit | High | 1 | 4.74 | 100% | Anecdotal |
 | GPT-5.6 Sol | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
-| MiMo 2.5 Pro | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Architecture Proposal | High | 1 | 4.53 | 100% | Anecdotal |
+| MiMo 2.5 Pro | Complex Repository Change | High | 2 | 3.38 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
 | MiMo 2.5 Pro | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Provider Operation | High | 5 | 3.55 | 0% | Provisional |
+| MiMo 2.5 Pro | Provider Operation | High | 5 | 3.56 | 0% | Provisional |
 | MiMo 2.5 Pro | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Security Remediation | High | 5 | 3.50 | 0% | Provisional |
+| MiMo 2.5 Pro | Security Remediation | High | 5 | 3.52 | 0% | Provisional |
 
 These tables are generated from the append-only ledger. Do not edit them manually.
 <!-- GENERATED:README-SCORES:END -->

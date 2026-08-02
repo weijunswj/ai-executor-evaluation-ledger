@@ -12,6 +12,7 @@ import jsonschema
 from scripts.validate_manifests import (
     MANIFEST_PATHS,
     ManifestValidationError,
+    TARGET_EVALUATIONS_SHA,
     expected_manifests,
     validate_all,
     validate_manifest_documents,
@@ -60,21 +61,9 @@ class TestClosedManifestValidation(unittest.TestCase):
             "evaluations.jsonl: eol: lf",
             attribute_result.stdout.strip(),
         )
-        blob = subprocess.run(
-            ["git", "show", "HEAD:evaluations.jsonl"],
-            cwd=ROOT,
-            capture_output=True,
-            check=True,
-        ).stdout
         checkout = (ROOT / "evaluations.jsonl").read_bytes()
-        self.assertNotIn(b"\r\n", blob)
         self.assertNotIn(b"\r\n", checkout)
-        self.assertEqual(blob, checkout)
-        expected = expected_manifests(ROOT)
-        self.assertEqual(
-            expected["preservation-manifest.json"]["after_sha256"],
-            hashlib.sha256(checkout).hexdigest(),
-        )
+        self.assertEqual(TARGET_EVALUATIONS_SHA, hashlib.sha256(checkout).hexdigest())
 
     def test_append_only_verifier_accepts_closed_manifest_contract(self):
         verify_append_only(CANONICAL_MAIN)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import os
 import subprocess
@@ -12,6 +13,7 @@ from scripts.processor.frozen_replay import (
     migrate_canonical_base,
     replay_frozen_from_receipt,
 )
+from scripts.validate_manifests import TARGET_EVALUATIONS_SHA
 
 ROOT = Path(__file__).resolve().parents[1]
 RECEIPT_PATH = (
@@ -45,6 +47,7 @@ class TestFrozenReplay(unittest.TestCase):
             len({record["run_id"] for record in first_records}),
             59,
         )
+        self.assertEqual(hashlib.sha256(first_bytes).hexdigest(), TARGET_EVALUATIONS_SHA)
 
     @unittest.skipUnless(
         os.environ.get("LEDGER_RUN_SOURCE_REPLAY_TESTS") == "1",

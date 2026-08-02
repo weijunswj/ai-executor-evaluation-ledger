@@ -211,9 +211,8 @@ class TestReceiptValidation(unittest.TestCase):
         }
         receipt_path = root / "ledger/receipts/batches/batch-receipt-fixture.json"
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
-        receipt_path.write_text(
-            json.dumps(receipt, sort_keys=True, indent=2) + "\n",
-            encoding="utf-8",
+        receipt_path.write_bytes(
+            (json.dumps(receipt, sort_keys=True, indent=2) + "\n").encode("utf-8")
         )
         if extra_final_file:
             (root / "extra.txt").write_text("extra\n", encoding="utf-8")

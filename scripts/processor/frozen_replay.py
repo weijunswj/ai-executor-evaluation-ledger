@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 from dataclasses import dataclass
@@ -18,7 +19,6 @@ from scripts.processor.common import (
     FROZEN_SNAPSHOT_SHA256,
     FROZEN_WATERMARK,
     REASONING_KEYS,
-    WITHDRAWN_PAIRS,
     ProcessorError,
     canonical_json_bytes,
     canonical_json_line_bytes,
@@ -39,8 +39,10 @@ from scripts.rebuild_views import (
 )
 from scripts.scrub_identity_variants import _scrub_value, legacy_identity_renames
 from scripts.validate_manifests import (
+    TARGET_EVALUATIONS_SHA,
     MANIFEST_PATHS,
     expected_manifests_for_bytes,
+    source_bound_public_bindings,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -104,6 +106,23 @@ def _append_jsonl(existing: bytes, lines: Sequence[bytes]) -> bytes:
     return output + b"".join(lines)
 
 
+def _source_record_sha256(record: Mapping[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(record, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    ).hexdigest()
+
+
+def _source_binding_sha256(record: Mapping[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            record,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+
 def _git_object_bytes(
     root: Path,
     revision: str,
@@ -128,15 +147,38 @@ def _git_object_bytes(
 def migrate_canonical_base(
     canonical_base_bytes: bytes,
 ) -> tuple[list[dict[str, Any]], bytes]:
-    """Apply the already-closed v1-to-v2 migration without candidate evidence."""
+    """Derive the locked G3 candidate from the immutable canonical main bytes."""
 
     source_records = _jsonl_records(canonical_base_bytes)
     renames = legacy_identity_renames()
+    (
+        withdrawn_source_shas,
+        replacement_source_shas,
+        score_source_shas,
+        reasoning_removed_sha,
+    ) = source_bound_public_bindings(ROOT)
+    source_sha_by_id: dict[str, str] = {}
+    for source in source_records:
+        source_id = source.get("run_id")
+        source_sha = _source_binding_sha256(source)
+        if not isinstance(source_id, str) or source_sha in source_sha_by_id.values():
+            raise ProcessorError("processor_schema_failure")
+        source_sha_by_id[source_id] = source_sha
+    if (
+        len(withdrawn_source_shas) != 10
+        or len(replacement_source_shas) != 3
+        or not set(replacement_source_shas).issubset(withdrawn_source_shas)
+        or reasoning_removed_sha not in withdrawn_source_shas
+        or not withdrawn_source_shas.issubset(set(source_sha_by_id.values()))
+    ):
+        raise ProcessorError("processor_authority_mismatch")
     replacements = [0]
     migrated_records: list[dict[str, Any]] = []
-    withdrawn_count = 0
-    folded_count = 0
+    folded_source_shas: list[str] = []
+    replacement_output_subjects: set[str] = set()
     for source in source_records:
+        source_run_id = source.get("run_id")
+        source_sha = source_sha_by_id[source_run_id]
         migrated = _scrub_value(
             copy.deepcopy(source),
             renames=renames,
@@ -151,7 +193,7 @@ def migrate_canonical_base(
             for key in REASONING_KEYS:
                 corrected.pop(key, None)
             if not corrected:
-                folded_count += 1
+                folded_source_shas.append(source_sha)
                 continue
 
         raw_model = migrated.get("model")
@@ -173,22 +215,47 @@ def migrate_canonical_base(
             "evaluation_protocol",
             "protocol_unknown",
         )
-        if (migrated.get("provider"), canonical_model) in WITHDRAWN_PAIRS:
-            withdrawn_count += 1
+        if source_sha in withdrawn_source_shas and source_sha not in replacement_source_shas:
             continue
+        normalized_subject = f"subject-{_source_record_sha256(migrated)}"
+        if source_sha in replacement_source_shas:
+            expected_replacement = replacement_source_shas[source_sha]
+            if normalized_subject != expected_replacement:
+                raise ProcessorError("processor_authority_mismatch")
+            replacement_output_subjects.add(normalized_subject)
+        score_values = score_source_shas.get(_source_record_sha256(migrated))
+        if score_values is not None:
+            migrated["weighted_score_5"] = float(score_values[0])
+            migrated["weighted_score_10"] = float(score_values[1])
         migrated_records.append(migrated)
 
+    source_ids = {record["run_id"] for record in source_records}
+    migrated_ids = {record["run_id"] for record in migrated_records}
+    removed_ids = source_ids - migrated_ids
+    expected_withdrawn_ids = {
+        source_id
+        for source_id, source_sha in source_sha_by_id.items()
+        if source_sha in withdrawn_source_shas
+    }
+    expected_candidate_ids = (source_ids - expected_withdrawn_ids) | {
+        record["run_id"]
+        for record in migrated_records
+        if f"subject-{_source_record_sha256(record)}" in replacement_output_subjects
+    }
     if (
         len(source_records) != 66
         or len(migrated_records) != 59
-        or withdrawn_count != 6
-        or folded_count != 1
+        or removed_ids != expected_withdrawn_ids
+        or folded_source_shas != [reasoning_removed_sha]
+        or migrated_ids != expected_candidate_ids
     ):
         raise ProcessorError("processor_authority_mismatch")
     migrated_bytes = b"".join(
-        (json.dumps(record, ensure_ascii=False) + "\n").encode("utf-8")
+        (json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
         for record in migrated_records
     )
+    if sha256_bytes(migrated_bytes) != TARGET_EVALUATIONS_SHA:
+        raise ProcessorError("processor_authority_mismatch")
     return migrated_records, migrated_bytes
 
 

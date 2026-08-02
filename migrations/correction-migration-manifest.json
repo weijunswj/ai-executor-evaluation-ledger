@@ -1,16 +1,82 @@
 {
-  "after_corrections_sha256": "e7ea03b441ff5823d8e1ba26fb450c73227080817072bddeba7b3c6bb649d5ef",
+  "after_corrections_sha256": "a098c11c056acc1ed57ff0db71f5fde70716899888294980a0adf5dac8ad3b4c",
+  "append_only_factual_score_correction_count": 19,
+  "authority_gap_record_count": 59,
   "before_corrections_sha256": "f6a1f024abf930622b754e87eea25c1f9107775e84cdba9aab967c816cb6f332",
+  "candidate_allowed_files": [
+    "README.md",
+    "evaluations.jsonl",
+    "migrations/base-model-v2.json",
+    "migrations/correction-migration-manifest.json",
+    "migrations/correction-records-v3.jsonl",
+    "migrations/reasoning-scrub-receipt.json",
+    "schema/correction-v3.schema.json",
+    "schema/disposition.schema.json",
+    "schema/manifest.schema.json",
+    "schema/receipt.schema.json",
+    "scorecard.md",
+    "scripts/processor/frozen_replay.py",
+    "scripts/rebuild_views.py",
+    "scripts/validate_manifests.py",
+    "scripts/validate_receipts.py",
+    "tests/test_check_public_safety.py",
+    "tests/test_frozen_replay.py",
+    "tests/test_manifest_validation.py",
+    "tests/test_migration.py",
+    "tests/test_receipt_validation.py"
+  ],
+  "candidate_dispositions_sha256": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
+  "candidate_evaluations_sha256": "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
+  "candidate_record_count": 59,
+  "correction_record_count": 116,
+  "correction_records_sha256": "a1011b3b57f28998fe23b3a0e72f305f838afa35ac6b15be43faa6d24017ceb5",
+  "expected_commit_count": 2,
   "final_correction_count": 1,
-  "generated_at": "2026-07-26T23:40:00+08:00",
+  "generated_at": "2026-08-02T00:00:00+08:00",
+  "generated_files": [
+    "README.md",
+    "scorecard.md",
+    "analysis/model-recommendation.json",
+    "ledger/dispositions.jsonl"
+  ],
+  "generated_output_hashes": {
+    "README.md": "c2564c634a1709dcbc7712473c420ac679aa654e242a8dc1ccf693768fa8e8ba",
+    "analysis/model-recommendation.json": "8408f47f19176fd14b38beeab8d1e524137bf5e2aeecb545b016d0da4fba63a8",
+    "ledger/dispositions.jsonl": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
+    "scorecard.md": "7db9da098abdd88335fbcf8b7ca8193f8e0476f0a8530687878d49b6529cbcbb"
+  },
   "manifest_type": "correction_migration_manifest",
   "preserved_correction_count": 1,
-  "preserved_corrections_sha256": "1959d73f094c9c2b0196dc03cb8436c5f4a8922b81098daa840a2e1da50f0b15",
+  "preserved_correction_ids": [
+    "subject-6f82159111848d28e853fc142f522820fa9f9e3d88018b43e272951f03c34d42"
+  ],
+  "preserved_corrections_sha256": "53a17adae77d5ab737b03840d668ce3362a73a60d8a471bb3a6d8f4db385342a",
+  "public_safe_redaction_count": 25,
   "removed_or_folded_correction_count": 1,
-  "removed_or_folded_corrections_sha256": "95e9851b9ad097dd1400db0317852685c194a99022b978c288fec8f3b7e74ab9",
-  "schema_version": 1,
+  "removed_or_folded_correction_ids": [
+    "subject-5b7e12fcb75b9a9d1b05655857ec47e44f7d856c5bed7bed45abc52012758176"
+  ],
+  "removed_or_folded_corrections_sha256": "b10ff981ed7ee5880d2899a8f43b04ddc73f2c214aa66507a2aa971a399b1cc2",
+  "replacement_count": 3,
+  "schema_version": 3,
   "source_base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "source_candidate_sha": "45990433a0f8199f056d1ad71a51f934b3bae7aa",
+  "source_inputs": [
+    "evaluations.jsonl",
+    "migrations/correction-records-v3.jsonl",
+    "migrations/correction-migration-manifest.json",
+    "migrations/base-model-v2.json",
+    "migrations/reasoning-scrub-receipt.json"
+  ],
   "starting_correction_count": 4,
-  "withdrawn_correction_count": 2,
-  "withdrawn_corrections_sha256": "b734a4674d26dc879c762d0cb0da256486d086ae49cd6df89f888d6d333104f3"
+  "terminal_seal_file": "ledger/receipts/batches/batch-20260729-gate3-amendment-004.json",
+  "unchanged_record_count": 22,
+  "withdrawal_count": 10,
+  "withdrawn_correction_count": 3,
+  "withdrawn_correction_ids": [
+    "subject-a156c756c5a5d38cf2306c68449df530b573be59ce792f5d10aefa03a3a5e43c",
+    "subject-7019e07f76c50404e721ee12783b52a29d90b14e9906d7a693afc7bb4ca9820c",
+    "subject-5b7e12fcb75b9a9d1b05655857ec47e44f7d856c5bed7bed45abc52012758176"
+  ],
+  "withdrawn_corrections_sha256": "74683772267c40fa630e59fddb7bbcfef262ced2af328824f74d49e049e18dc8"
 }

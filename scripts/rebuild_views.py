@@ -52,6 +52,14 @@ CANONICAL_MODEL_MAP = {
     "Qwen3.6 Plus": "Qwen3.6 Plus"
 }
 CORRECTION_ALLOWED_FIELDS = frozenset({"task_class", "weighted_score_5", "weighted_score_10"})
+G3_SOURCE_BASE_SHA = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
+G3_TARGET_EVALUATIONS_SHA = "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64"
+G3_TARGET_OUTPUT_HASHES = {
+    "README.md": "c2564c634a1709dcbc7712473c420ac679aa654e242a8dc1ccf693768fa8e8ba",
+    "scorecard.md": "7db9da098abdd88335fbcf8b7ca8193f8e0476f0a8530687878d49b6529cbcbb",
+    "analysis/model-recommendation.json": "8408f47f19176fd14b38beeab8d1e524137bf5e2aeecb545b016d0da4fba63a8",
+    "ledger/dispositions.jsonl": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
+}
 
 def fail(message: str) -> None:
     raise ValueError("rebuild_failed")
@@ -60,15 +68,43 @@ def fail(message: str) -> None:
 def _reject_nonfinite_constant(_value: str) -> None:
     raise ValueError("nonfinite_json_number")
 
+
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, child in pairs:
+        if key in value:
+            raise ValueError("duplicate_json_key")
+        value[key] = child
+    return value
+
 def load_records() -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
+    raw = LEDGER_PATH.read_bytes()
+    if (
+        not raw
+        or raw.startswith(b"\xef\xbb\xbf")
+        or b"\r" in raw
+        or not raw.endswith(b"\n")
+        or raw.endswith(b"\n\n")
+    ):
+        fail("invalid_jsonl_bytes")
 
-    for line_number, raw_line in enumerate(LEDGER_PATH.read_text(encoding="utf-8").splitlines(), start=1):
-        if not raw_line.strip():
+    for raw_line in raw.splitlines(keepends=True):
+        if not raw_line.endswith(b"\n"):
+            fail("invalid_jsonl_delimiter")
+        try:
+            line = raw_line[:-1].decode("utf-8", errors="strict")
+        except UnicodeDecodeError:
+            fail("invalid_utf8")
+        if not line.strip():
             continue
         try:
-            record = json.loads(raw_line, parse_constant=_reject_nonfinite_constant)
+            record = json.loads(
+                line,
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_constant=_reject_nonfinite_constant,
+            )
         except (json.JSONDecodeError, ValueError):
             fail("invalid_json")
         if not isinstance(record, dict):
@@ -1015,40 +1051,20 @@ def _migration_prefix_from_base(
 
 
 def verify_append_only(base_ref: str) -> None:
-    """Require a base prefix, allowing only checkout line endings and the recorded v1 migration."""
+    """Require the exact locked G3 migration from canonical main."""
 
     if not re.fullmatch(r"[0-9a-f]{40}|[A-Za-z0-9._/-]+", base_ref):
         fail("invalid append-only base reference")
-    result = subprocess.run(
-        ["git", "show", f"{base_ref}:evaluations.jsonl"],
-        cwd=ROOT,
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        fail("append_only_base_unavailable")
-    base_bytes = result.stdout
-    current_bytes = LEDGER_PATH.read_bytes()
-    normalized_current = current_bytes.replace(b"\r\n", b"\n")
-    normalized_base = base_bytes.replace(b"\r\n", b"\n")
-    if normalized_current.startswith(normalized_base):
-        return
-
-    try:
-        manifest = json.loads(MIGRATION_MANIFEST_PATH.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        fail("migration_manifest_unavailable")
-    if not isinstance(manifest, dict):
-        fail("migration_manifest_invalid")
-    if manifest.get("source_base_sha") != base_ref:
+    if base_ref != G3_SOURCE_BASE_SHA:
         fail("migration_source_mismatch")
-    expected_prefix = _migration_prefix_from_base(
-        base_bytes,
-        normalized_current,
-        manifest,
-    )
-    if not normalized_current.startswith(expected_prefix):
-        fail("append_only_base_unverified")
+    if hashlib.sha256(LEDGER_PATH.read_bytes()).hexdigest() != G3_TARGET_EVALUATIONS_SHA:
+        fail("append_only_candidate_hash_mismatch")
+    try:
+        from scripts.validate_manifests import validate_all
+
+        validate_all(ROOT)
+    except Exception as error:
+        raise ValueError("rebuild_failed") from error
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -1081,6 +1097,16 @@ def main() -> int:
         mismatches.append("analysis/model-recommendation.json")
 
     if args.check:
+        try:
+            from scripts.validate_manifests import validate_all
+
+            validate_all(ROOT)
+        except Exception:
+            mismatches.append("migration manifests")
+        for relative_path, expected_hash in G3_TARGET_OUTPUT_HASHES.items():
+            target = ROOT / relative_path
+            if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
+                mismatches.append(relative_path)
         if mismatches:
             print("Generated ledger views are stale: " + ", ".join(mismatches), file=sys.stderr)
             print("Run: python scripts/rebuild_views.py", file=sys.stderr)

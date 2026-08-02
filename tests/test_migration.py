@@ -4,10 +4,12 @@ import hashlib
 import os
 
 from scripts.processor.common import REASONING_KEYS
-
-
-def legacy_id(*parts):
-    return "-".join(parts)
+from scripts.validate_manifests import (
+    REASONING_ONLY_REMOVED,
+    REPLACEMENTS,
+    SCORE_VALUES,
+    WITHDRAWN_IDS,
+)
 
 
 class TestMigrationAndPreservation(unittest.TestCase):
@@ -19,34 +21,47 @@ class TestMigrationAndPreservation(unittest.TestCase):
     def test_record_counts(self):
         evals = [r for r in self.records if r.get("record_type") == "evaluation"]
         corrs = [r for r in self.records if r.get("record_type") == "correction"]
-        self.assertGreaterEqual(len(evals), 58)
-        self.assertGreaterEqual(len(corrs), 1)
+        self.assertEqual(len(evals), 58)
+        self.assertEqual(len(corrs), 1)
+        self.assertEqual(len(self.records), 59)
+
+    def test_g3_locked_record_sets_and_score_corrections(self):
+        with open("migrations/correction-records-v3.jsonl", "r", encoding="utf-8") as f:
+            corrections = [json.loads(line) for line in f if line.strip()]
+        self.assertEqual(len(self.records), 59)
+        self.assertEqual(len(corrections), 116)
+        self.assertEqual(
+            set(REPLACEMENTS.values()),
+            {
+                record["replacement"]["replacement_run_id"]
+                for record in corrections
+                if record["record_type"] == "base_model_replacement"
+            },
+        )
+        self.assertTrue(set(WITHDRAWN_IDS).isdisjoint({record["run_id"] for record in self.records}))
+        observed_scores = {
+            record["target"]["run_id"]: tuple(
+                str(change["after_public_safe"])
+                for change in record["correction"]["field_changes"]
+            )
+            for record in corrections
+            if record["record_type"] == "factual_correction"
+        }
+        self.assertEqual(observed_scores, SCORE_VALUES)
 
     def test_withdrawn_records_absent(self):
-        high_part = "high"
-        ultra_part = "ultra"
-        legacy_model_parts = ("claude", "opus", "4", "8")
-        withdrawn_ids = {
-            legacy_id("2026", "07", "24", *legacy_model_parts, "business", "automation", "a", "implementation", "001"),
-            legacy_id("2026", "07", "24", *legacy_model_parts, "business", "automation", "a", "amendment", "001"),
-            legacy_id("2026", "07", "24", *legacy_model_parts, high_part, "business", "automation", "a", "amendment", "002"),
-            legacy_id("2026", "07", "24", *legacy_model_parts, ultra_part, high_part, "business", "automation", "a", "amendment", "003"),
-            legacy_id("2026", "07", "24", "correction", *legacy_model_parts, high_part, "implementation", "001"),
-            legacy_id("2026", "07", "24", "correction", *legacy_model_parts, high_part, "amendment", "001"),
-        }
         present_ids = {r.get("run_id") for r in self.records}
-        self.assertTrue(withdrawn_ids.isdisjoint(present_ids))
+        self.assertTrue(set(WITHDRAWN_IDS).isdisjoint(present_ids))
 
     def test_reasoning_only_correction_removed(self):
         present_ids = {r.get("run_id") for r in self.records}
-        self.assertNotIn("2026-07-25-correction-mimo-2-5-pro-default-provenance-repair-003", present_ids)
-        self.assertIn("2026-07-26-correction-gpt-5-6-sol-workflow-compatibility-gate1-reset-001", present_ids)
+        self.assertNotIn(REASONING_ONLY_REMOVED, present_ids)
 
     def test_no_reasoning_metadata(self):
         forbidden_keys = set(REASONING_KEYS)
         for r in self.records:
             keys = set(r.keys())
-            self.assertTrue(forbidden_keys.isdisjoint(keys), f"Record {r.get('run_id')} contains forbidden keys: {keys.intersection(forbidden_keys)}")
+            self.assertTrue(forbidden_keys.isdisjoint(keys))
             if r.get("record_type") == "correction":
                 cfields = set(r.get("corrected_fields", {}).keys())
                 self.assertTrue(forbidden_keys.isdisjoint(cfields))

@@ -55,6 +55,23 @@ class ReceiptValidationError(RuntimeError):
     pass
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, child in pairs:
+        if key in value:
+            raise ReceiptValidationError("receipt_duplicate_json_key")
+        value[key] = child
+    return value
+
+
+def _reject_nonfinite(_value: str) -> None:
+    raise ReceiptValidationError("receipt_nonfinite_json_number")
+
+
+def _canonical_document_bytes(value: Mapping[str, Any]) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n").encode("utf-8")
+
+
 def _git(root: Path, *args: str, text: bool = False) -> bytes | str:
     result = subprocess.run(
         ["git", *args],
@@ -113,19 +130,34 @@ def _walk_forbidden_keys(value: Any) -> None:
 
 def _load_schema(root: Path) -> dict[str, Any]:
     try:
-        value = json.loads((root / "schema" / "receipt.schema.json").read_text(encoding="utf-8"))
+        raw = (root / "schema" / "receipt.schema.json").read_bytes()
+        if not raw or raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n") or raw.endswith(b"\n\n"):
+            raise ReceiptValidationError("receipt_schema_bytes_invalid")
+        value = json.loads(
+            raw.decode("utf-8", errors="strict"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonfinite,
+        )
+        if not isinstance(value, dict) or _canonical_document_bytes(value) != raw:
+            raise ReceiptValidationError("receipt_schema_noncanonical")
         jsonschema.Draft202012Validator.check_schema(value)
-    except (OSError, UnicodeDecodeError, ValueError, jsonschema.SchemaError):
+    except (OSError, UnicodeDecodeError, ValueError, ReceiptValidationError, jsonschema.SchemaError):
         raise ReceiptValidationError("receipt_schema_unavailable")
     return value
 
 
 def _parse_batch(raw: bytes, schema: Mapping[str, Any]) -> dict[str, Any]:
+    if not raw or raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n") or raw.endswith(b"\n\n"):
+        raise ReceiptValidationError("receipt_bytes_invalid")
     try:
-        value = json.loads(raw.decode("utf-8"), parse_constant=lambda _value: (_ for _ in ()).throw(ValueError()))
-    except (UnicodeDecodeError, ValueError):
+        value = json.loads(
+            raw.decode("utf-8", errors="strict"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonfinite,
+        )
+    except (UnicodeDecodeError, ValueError, ReceiptValidationError):
         raise ReceiptValidationError("receipt_invalid_json")
-    if not isinstance(value, dict) or value.get("schema_version") != 2:
+    if not isinstance(value, dict) or value.get("schema_version") != 2 or _canonical_document_bytes(value) != raw:
         raise ReceiptValidationError("receipt_legacy_or_invalid")
     try:
         jsonschema.Draft202012Validator(
@@ -141,17 +173,24 @@ def _parse_batch(raw: bytes, schema: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _record_lines(evaluations_bytes: bytes) -> dict[str, tuple[bytes, dict[str, Any]]]:
-    if evaluations_bytes and not evaluations_bytes.endswith(b"\n"):
+    if evaluations_bytes and (
+        evaluations_bytes.startswith(b"\xef\xbb\xbf")
+        or b"\r" in evaluations_bytes
+        or not evaluations_bytes.endswith(b"\n")
+        or evaluations_bytes.endswith(b"\n\n")
+    ):
         raise ReceiptValidationError("receipt_unterminated_record")
     records: dict[str, tuple[bytes, dict[str, Any]]] = {}
     for line in evaluations_bytes.splitlines(keepends=True):
-        if not line.strip():
-            continue
-        if not line.endswith(b"\n") or line.endswith(b"\r\n"):
+        if not line.endswith(b"\n") or not line[:-1].strip():
             raise ReceiptValidationError("receipt_noncanonical_record_delimiter")
         try:
-            value = json.loads(line.decode("utf-8"))
-        except (UnicodeDecodeError, ValueError):
+            value = json.loads(
+                line[:-1].decode("utf-8", errors="strict"),
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_constant=_reject_nonfinite,
+            )
+        except (UnicodeDecodeError, ValueError, ReceiptValidationError):
             raise ReceiptValidationError("receipt_invalid_record")
         run_id = value.get("run_id") if isinstance(value, dict) else None
         if not isinstance(run_id, str) or run_id in records:

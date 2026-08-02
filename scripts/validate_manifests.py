@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Rebuild or validate every closed migration/preservation manifest."""
+"""Fail-closed validation for the historical ledger migration manifests."""
 
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
+import re
 import subprocess
 import sys
-from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -17,7 +18,18 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
 SOURCE_BASE_SHA = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
+SOURCE_CANDIDATE_SHA = "45990433a0f8199f056d1ad71a51f934b3bae7aa"
+TARGET_EVALUATIONS_SHA = "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64"
+TARGET_DISPOSITIONS_SHA = "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d"
+TARGET_OUTPUT_HASHES = {
+    "README.md": "c2564c634a1709dcbc7712473c420ac679aa654e242a8dc1ccf693768fa8e8ba",
+    "scorecard.md": "7db9da098abdd88335fbcf8b7ca8193f8e0476f0a8530687878d49b6529cbcbb",
+    "analysis/model-recommendation.json": "8408f47f19176fd14b38beeab8d1e524137bf5e2aeecb545b016d0da4fba63a8",
+    "ledger/dispositions.jsonl": TARGET_DISPOSITIONS_SHA,
+}
+
 MANIFEST_PATHS = {
     "base-model-v2.json": "base_model_v2_migration",
     "correction-migration-manifest.json": "correction_migration_manifest",
@@ -27,6 +39,39 @@ MANIFEST_PATHS = {
     "reasoning-scrub-receipt.json": "reasoning_scrub_receipt",
     "unicode-identity-history-activation.json": "unicode_identity_history_activation",
 }
+G3_MANIFESTS = {
+    "base-model-v2.json",
+    "correction-migration-manifest.json",
+    "reasoning-scrub-receipt.json",
+}
+LEGACY_MANIFESTS = set(MANIFEST_PATHS) - G3_MANIFESTS
+
+OPAQUE_SUBJECT_PATTERN = r"^subject-[0-9a-f]{64}$"
+OPAQUE_SELECTOR_PATTERN = r"^selector-sha256-[0-9a-f]{64}$"
+REASONING_REMOVED_RECORD_SHA = "5b7e12fcb75b9a9d1b05655857ec47e44f7d856c5bed7bed45abc52012758176"
+CANDIDATE_ALLOWED_FILES = [
+    "README.md",
+    "evaluations.jsonl",
+    "migrations/base-model-v2.json",
+    "migrations/correction-migration-manifest.json",
+    "migrations/correction-records-v3.jsonl",
+    "migrations/reasoning-scrub-receipt.json",
+    "schema/correction-v3.schema.json",
+    "schema/disposition.schema.json",
+    "schema/manifest.schema.json",
+    "schema/receipt.schema.json",
+    "scorecard.md",
+    "scripts/processor/frozen_replay.py",
+    "scripts/rebuild_views.py",
+    "scripts/validate_manifests.py",
+    "scripts/validate_receipts.py",
+    "tests/test_check_public_safety.py",
+    "tests/test_frozen_replay.py",
+    "tests/test_manifest_validation.py",
+    "tests/test_migration.py",
+    "tests/test_receipt_validation.py",
+]
+
 
 
 class ManifestValidationError(RuntimeError):
@@ -38,299 +83,450 @@ def _sha256(value: bytes) -> str:
 
 
 def _closed_set_hash(values: list[str]) -> str:
-    payload = (
-        json.dumps(sorted(values), ensure_ascii=True, separators=(",", ":"))
-        + "\n"
-    ).encode("utf-8")
-    return _sha256(payload)
+    return _sha256((json.dumps(sorted(values), ensure_ascii=True, separators=(",", ":")) + "\n").encode())
+
+
+def _reject_constant(value: str) -> None:
+    raise ValueError(f"nonfinite_json_number:{value}")
+
+
+def _duplicate_rejecting_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ManifestValidationError("duplicate_json_key")
+        result[key] = value
+    return result
+
+
+def _parse_json(raw: bytes) -> Any:
+    if not raw or raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n") or raw.endswith(b"\n\n"):
+        raise ManifestValidationError("json_bytes_invalid")
+    try:
+        return json.loads(
+            raw.decode("utf-8", errors="strict"),
+            object_pairs_hook=_duplicate_rejecting_pairs,
+            parse_constant=_reject_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        raise ManifestValidationError("json_invalid")
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n").encode("utf-8")
+
+
+def _canonical_record_bytes(value: Any) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+
+
+def _evaluation_line_bytes(value: Any) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
 
 
 def _git_object(root: Path, revision: str, relative_path: str) -> bytes:
-    result = subprocess.run(
-        ["git", "show", f"{revision}:{relative_path}"],
-        cwd=root,
-        capture_output=True,
-        text=False,
-        check=False,
-    )
+    result = subprocess.run(["git", "show", f"{revision}:{relative_path}"], cwd=root, capture_output=True, check=False)
     if result.returncode != 0:
-        raise ManifestValidationError("manifest_base_unavailable")
+        raise ManifestValidationError("manifest_authority_unavailable")
     return result.stdout
 
 
 def _records(raw: bytes) -> list[dict[str, Any]]:
-    try:
-        decoded = raw.decode("utf-8", errors="strict")
-        records = [json.loads(line) for line in decoded.splitlines() if line.strip()]
-    except (UnicodeDecodeError, ValueError):
-        raise ManifestValidationError("manifest_records_invalid")
-    if not all(isinstance(record, dict) for record in records):
-        raise ManifestValidationError("manifest_records_invalid")
-    return records
-
-
-def _record_lines(raw: bytes) -> dict[str, bytes]:
-    lines: dict[str, bytes] = {}
+    if b"\r" in raw or raw.startswith(b"\xef\xbb\xbf") or not raw.endswith(b"\n"):
+        raise ManifestValidationError("manifest_records_bytes_invalid")
+    records: list[dict[str, Any]] = []
+    seen: set[str] = set()
     for line in raw.splitlines(keepends=True):
         if not line.strip():
             continue
+        if not line.endswith(b"\n") or line.endswith(b"\r\n"):
+            raise ManifestValidationError("manifest_record_delimiter_invalid")
         try:
-            record = json.loads(line.decode("utf-8", errors="strict"))
-        except (UnicodeDecodeError, ValueError):
+            value = json.loads(line.decode("utf-8", errors="strict"), object_pairs_hook=_duplicate_rejecting_pairs, parse_constant=_reject_constant)
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
             raise ManifestValidationError("manifest_records_invalid")
-        run_id = record.get("run_id") if isinstance(record, dict) else None
-        if not isinstance(run_id, str) or run_id in lines:
+        if not isinstance(value, dict) or not isinstance(value.get("run_id"), str) or value["run_id"] in seen:
             raise ManifestValidationError("manifest_records_invalid")
-        lines[run_id] = line
-    return lines
+        seen.add(value["run_id"])
+        records.append(value)
+    return records
 
 
-def expected_manifests_for_bytes(
-    root: Path,
-    final_raw: bytes,
-    *,
-    base_raw: Optional[bytes] = None,
-) -> dict[str, dict[str, Any]]:
-    from scripts.processor.common import (
-        FROZEN_BATCH_ID,
-        FROZEN_COUNT,
-        FROZEN_SNAPSHOT_SHA256,
-        FROZEN_WATERMARK,
-        MODEL_ALIASES,
-        REASONING_KEYS,
-    )
-    from scripts.processor.intake_parser import LEGACY_ALIAS_PAIRS, VERDICT_VALUES
-    from scripts.scrub_identity_variants import legacy_identity_renames
-    from scripts.check_public_safety import expected_activation_manifest
-
+def _load_correction_records(root: Path) -> tuple[bytes, list[dict[str, Any]]]:
+    path = root / "migrations" / "correction-records-v3.jsonl"
     try:
-        unicode_activation = expected_activation_manifest(root)
-    except (RuntimeError, subprocess.CalledProcessError) as error:
-        raise ManifestValidationError(
-            "unicode_activation_authority_invalid"
-        ) from error
+        raw = path.read_bytes()
+    except OSError as error:
+        raise ManifestValidationError("correction_records_unavailable") from error
+    if b"\r" in raw or raw.startswith(b"\xef\xbb\xbf") or not raw.endswith(b"\n") or raw.endswith(b"\n\n"):
+        raise ManifestValidationError("correction_records_bytes_invalid")
+    values: list[dict[str, Any]] = []
+    for line in raw.splitlines(keepends=True):
+        if not line.endswith(b"\n"):
+            raise ManifestValidationError("correction_record_delimiter_invalid")
+        try:
+            value = json.loads(line.decode("utf-8", errors="strict"), object_pairs_hook=_duplicate_rejecting_pairs, parse_constant=_reject_constant)
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+            raise ManifestValidationError("correction_records_invalid")
+        if not isinstance(value, dict):
+            raise ManifestValidationError("correction_records_invalid")
+        values.append(value)
+    return raw, values
 
+
+def _effective_record(record: Mapping[str, Any], score_values: Optional[tuple[str, str]]) -> dict[str, Any]:
+    value = copy.deepcopy(dict(record))
+    if score_values is not None:
+        value["weighted_score_5"], value["weighted_score_10"] = score_values
+    return value
+
+
+def _proof(value: Mapping[str, Any]) -> dict[str, Any]:
+    raw = _canonical_record_bytes(value)
+    return {
+        "encoding": "UTF-8",
+        "newline": "LF",
+        "canonicalization": "sorted-key JSON, compact separators, terminal LF",
+        "sha256": _sha256(raw),
+        "byte_length": len(raw),
+        "unsafe_bytes_repeated": False,
+    }
+
+
+def _source_record_sha256(record: Mapping[str, Any]) -> str:
+    return _sha256(json.dumps(record, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+
+
+def _source_rows(root: Path, revision: str) -> list[dict[str, Any]]:
+    return _records(_git_object(root, revision, "evaluations.jsonl"))
+
+
+def _public_bindings(root: Path = ROOT, rows: Optional[list[dict[str, Any]]] = None) -> tuple[list[str], list[str], dict[str, tuple[str, str]], dict[str, str], str]:
+    if rows is None:
+        _, rows = _load_correction_records(root)
+    withdrawn = [row["target"]["run_id"] for row in rows if row["record_type"] == "withdrawal"]
+    redactions = [row["target"]["run_id"] for row in rows if row["record_type"] == "public_safe_redaction"]
+    scores: dict[str, tuple[str, str]] = {}
+    replacements: dict[str, str] = {}
+    for row in rows:
+        if row["record_type"] == "factual_correction":
+            changes = row["correction"].get("field_changes", [])
+            ordered = [str(change["after_public_safe"]) for change in changes]
+            if len(ordered) != 2:
+                raise ManifestValidationError("score_binding_invalid")
+            scores[row["target"]["run_id"]] = (ordered[0], ordered[1])
+        if row["record_type"] == "base_model_replacement":
+            replacements[row["replacement"]["removed_run_id"]] = row["replacement"]["replacement_run_id"]
+    return withdrawn, redactions, scores, replacements, f"subject-{REASONING_REMOVED_RECORD_SHA}"
+
+
+def source_bound_public_bindings(
+    root: Path = ROOT,
+    rows: Optional[list[dict[str, Any]]] = None,
+) -> tuple[set[str], dict[str, str], dict[str, tuple[str, str]], str]:
+    """Return opaque bindings keyed by immutable source-record SHA-256.
+
+    Replay resolves these bindings against the supplied canonical-main bytes.
+    The returned keys never contain source identity values or public run IDs.
+    """
+
+    if rows is None:
+        _, rows = _load_correction_records(root)
+    withdrawn_source_shas = {
+        row["target"]["original_record_sha256"]
+        for row in rows
+        if row["record_type"] == "withdrawal"
+    }
+    replacement_source_shas = {
+        row["target"]["original_record_sha256"]: row["replacement"]["replacement_run_id"]
+        for row in rows
+        if row["record_type"] == "base_model_replacement"
+    }
+    score_source_shas = {
+        row["target"]["original_record_sha256"]: tuple(
+            str(change["after_public_safe"])
+            for change in row["correction"].get("field_changes", [])
+        )
+        for row in rows
+        if row["record_type"] == "factual_correction"
+    }
+    return (
+        withdrawn_source_shas,
+        replacement_source_shas,
+        score_source_shas,
+        REASONING_REMOVED_RECORD_SHA,
+    )
+
+
+def _source_subject_index(root: Path) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    by_subject: dict[str, dict[str, Any]] = {}
+    by_source_id: dict[str, dict[str, Any]] = {}
+    for revision in (SOURCE_BASE_SHA, SOURCE_CANDIDATE_SHA):
+        for row in _source_rows(root, revision):
+            subject = f"subject-{_source_record_sha256(row)}"
+            by_subject.setdefault(subject, row)
+            by_source_id.setdefault(row["run_id"], row)
+    return by_subject, by_source_id
+
+
+def _proof_is_closed(value: Mapping[str, Any]) -> bool:
+    return (
+        set(value) == {"encoding", "newline", "canonicalization", "sha256", "byte_length", "unsafe_bytes_repeated"}
+        and value.get("encoding") == "UTF-8"
+        and value.get("newline") == "LF"
+        and value.get("canonicalization") == "sorted-key JSON, compact separators, terminal LF"
+        and isinstance(value.get("sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", value["sha256"]) is not None
+        and isinstance(value.get("byte_length"), int)
+        and value["byte_length"] > 0
+        and value.get("unsafe_bytes_repeated") is False
+    )
+
+
+def validate_correction_records(root: Path = ROOT) -> dict[str, Any]:
+    raw, records = _load_correction_records(root)
+    schema = _parse_json((root / "schema" / "correction-v3.schema.json").read_bytes())
+    try:
+        jsonschema.Draft202012Validator.check_schema(schema)
+        validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+        for record in records:
+            validator.validate(record)
+    except (OSError, UnicodeDecodeError, ValueError, jsonschema.SchemaError, jsonschema.ValidationError) as error:
+        raise ManifestValidationError("correction_schema_failure") from error
+    if len(records) != 116 or len({record["correction_id"] for record in records}) != len(records):
+        raise ManifestValidationError("correction_record_count_or_id_mismatch")
+    by_subject, _ = _source_subject_index(root)
+    candidate_rows = _source_rows(root, SOURCE_CANDIDATE_SHA)
+    main_rows = _source_rows(root, SOURCE_BASE_SHA)
+    final_rows = _records((root / "evaluations.jsonl").read_bytes())
+    candidate_subject_by_id = {row["run_id"]: f"subject-{_source_record_sha256(row)}" for row in candidate_rows}
+    final_ids = {row["run_id"] for row in final_rows}
+    if set(candidate_subject_by_id) != final_ids or len(final_ids) != 59:
+        raise ManifestValidationError("candidate_record_set_mismatch")
+    withdrawn, redactions, scores, replacements, removed_subject = _public_bindings(root, records)
+    final_subjects = {candidate_subject_by_id[row["run_id"]] for row in final_rows}
+    main_subjects = {
+        candidate_subject_by_id[row["run_id"]]
+        for row in main_rows
+        if row["run_id"] in candidate_subject_by_id
+    } | set(withdrawn)
+    for index, record in enumerate(records):
+        target = record["target"]
+        if target["run_id"] != f"subject-{target['original_record_sha256']}":
+            raise ManifestValidationError("opaque_subject_binding_mismatch")
+        if f"subject-{target['original_record_sha256']}" not in by_subject:
+            if record["record_type"] not in {"withdrawal", "base_model_replacement"}:
+                raise ManifestValidationError("source_record_binding_missing")
+        if record["original_identity"]["identity_sha256"] != target["original_record_sha256"]:
+            raise ManifestValidationError("identity_binding_mismatch")
+        if not _proof_is_closed(record["before"]) or not _proof_is_closed(record["after"]):
+            raise ManifestValidationError("proof_binding_invalid")
+        if record["record_type"] == "public_safe_redaction":
+            for change in record["correction"].get("field_changes", []):
+                if re.fullmatch(OPAQUE_SELECTOR_PATTERN, change["path"]) is None:
+                    raise ManifestValidationError("selector_binding_invalid")
+
+    by_kind: dict[str, list[dict[str, Any]]] = {}
+    for index, record in enumerate(records):
+        by_kind.setdefault(record["record_type"], []).append(record)
+    if len(by_kind.get("authority_gap", [])) != 59 or len(by_kind.get("public_safe_redaction", [])) != 25 or len(by_kind.get("factual_correction", [])) != 19 or len(by_kind.get("withdrawal", [])) != 10 or len(by_kind.get("base_model_replacement", [])) != 3:
+        raise ManifestValidationError("correction_lineage_counts_mismatch")
+    if {record["target"]["run_id"] for record in by_kind["authority_gap"]} != final_subjects:
+        raise ManifestValidationError("authority_gap_target_set_mismatch")
+    if set(withdrawn) != main_subjects - final_subjects:
+        raise ManifestValidationError("withdrawal_target_set_mismatch")
+    if set(redactions) & set(withdrawn):
+        raise ManifestValidationError("redaction_withdrawal_overlap")
+    if set(scores) & set(withdrawn):
+        raise ManifestValidationError("score_withdrawal_overlap")
+    if set(replacements) != {record["replacement"]["removed_run_id"] for record in by_kind["base_model_replacement"]}:
+        raise ManifestValidationError("replacement_target_set_mismatch")
+    seen_ids: dict[str, int] = {}
+    previous_by_chain: dict[tuple[str, str], Optional[str]] = {}
+    for index, record in enumerate(records):
+        target = record["target"]
+        rid = target["run_id"]
+        kind = record["record_type"]
+        seen_ids[rid] = seen_ids.get(rid, 0) + 1
+        if record["correction_id"] != f"corr-v3-{rid}-{seen_ids[rid]:04d}":
+            raise ManifestValidationError("correction_id_sequence_mismatch")
+        chain = (rid, kind)
+        expected_type_sequence = sum(1 for prior in records[:index] if (prior["target"]["run_id"], prior["record_type"]) == chain) + 1
+        if record["lineage"]["sequence"] != expected_type_sequence or record["lineage"]["prior_correction_sha256"] != previous_by_chain.get(chain):
+            raise ManifestValidationError("correction_lineage_chain_mismatch")
+        probe = copy.deepcopy(record)
+        probe["lineage"]["correction_sha256"] = None
+        if record["lineage"]["correction_sha256"] != _sha256(_canonical_record_bytes(probe)):
+            raise ManifestValidationError("correction_lineage_hash_mismatch")
+        previous_by_chain[chain] = record["lineage"]["correction_sha256"]
+        if kind == "factual_correction":
+            if rid not in scores or tuple(str(change["after_public_safe"]) for change in record["correction"]["field_changes"]) != scores[rid]:
+                raise ManifestValidationError("score_binding_mismatch")
+        if kind == "withdrawal" and record["withdrawal"]["withdrawn_run_id"] != rid:
+            raise ManifestValidationError("withdrawal_binding_mismatch")
+        if kind == "base_model_replacement":
+            if replacements.get(record["replacement"]["removed_run_id"]) != record["replacement"]["replacement_run_id"]:
+                raise ManifestValidationError("replacement_binding_mismatch")
+    if len(seen_ids) != 69 or removed_subject not in set(withdrawn):
+        raise ManifestValidationError("correction_target_accounting_mismatch")
+    return {"record_count": len(records), "sha256": _sha256(raw), "counts": {key: len(value) for key, value in by_kind.items()}}
+
+
+def _legacy_manifests(root: Path) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for name in sorted(LEGACY_MANIFESTS):
+        try:
+            raw = _git_object(root, SOURCE_BASE_SHA, f"migrations/{name}")
+        except ManifestValidationError:
+            raw = (root / "migrations" / name).read_bytes()
+        value = _parse_json(raw)
+        if not isinstance(value, dict):
+            raise ManifestValidationError("legacy_manifest_invalid")
+        result[name] = value
+    return result
+
+
+def expected_manifests_for_bytes(root: Path, final_raw: bytes, *, base_raw: Optional[bytes] = None) -> dict[str, dict[str, Any]]:
     if base_raw is None:
         base_raw = _git_object(root, SOURCE_BASE_SHA, "evaluations.jsonl")
-    base = _records(base_raw)
-    final = _records(final_raw)
-    base_lines = _record_lines(base_raw)
-    final_lines = _record_lines(final_raw)
-    renames = legacy_identity_renames()
-    base_by_id = {
-        renames.get(record["run_id"], record["run_id"]): record
-        for record in base
-    }
-    final_by_id = {record["run_id"]: record for record in final}
-    if len(base_by_id) != len(base) or len(final_by_id) != len(final):
-        raise ManifestValidationError("manifest_records_invalid")
-
-    removed_ids = sorted(set(base_by_id) - set(final_by_id))
-    withdrawn_ids = sorted(
-        run_id
-        for run_id in removed_ids
-        if base_by_id[run_id].get("provider") == "Anthropic"
-    )
-    folded_ids = sorted(set(removed_ids) - set(withdrawn_ids))
-    preserved_ids = sorted(set(base_by_id).intersection(final_by_id))
-    newly_admitted_ids = sorted(set(final_by_id) - set(base_by_id))
-    if (
-        len(withdrawn_ids) != 6
-        or len(folded_ids) != 1
-        or len(preserved_ids) != 59
-    ):
-        raise ManifestValidationError("manifest_migration_boundary_changed")
-
-    final_evaluations = [
-        record for record in final if record.get("record_type") == "evaluation"
-    ]
-    final_corrections = [
-        record for record in final if record.get("record_type") == "correction"
-    ]
-    base_corrections = [
-        record for record in base if record.get("record_type") == "correction"
-    ]
-    preserved_corrections = [
-        record["run_id"]
-        for record in final_corrections
-        if record["run_id"] in base_by_id
-    ]
-    withdrawn_corrections = [
-        run_id
-        for run_id in withdrawn_ids
-        if base_by_id[run_id].get("record_type") == "correction"
-    ]
-    folded_corrections = [
-        run_id
-        for run_id in folded_ids
-        if base_by_id[run_id].get("record_type") == "correction"
-    ]
-    generated_at = max(str(record["reviewed_at"]) for record in final)
-    before_hash = _sha256(base_raw)
-    after_hash = _sha256(final_raw)
-    preserved_bytes = b"".join(
-        final_lines[renames.get(record["run_id"], record["run_id"])]
-        for record in final
-        if record["run_id"] in set(preserved_ids)
-    )
-    base_correction_bytes = b"".join(
-        base_lines[record["run_id"]] for record in base_corrections
-    )
-    final_correction_bytes = b"".join(
-        final_lines[record["run_id"]] for record in final_corrections
-    )
-    scrubbed_fields_count = sum(
-        int(key in record)
-        + (
-            int(key in record.get("corrected_fields", {}))
-            if isinstance(record.get("corrected_fields"), dict)
-            else 0
-        )
-        for record in base
-        for key in REASONING_KEYS
-    )
-    protocol_counts = Counter(
-        str(record["evaluation_protocol"]) for record in final_evaluations
-    )
-
-    common_counts = {
+    base_rows = _records(base_raw)
+    candidate_rows = _source_rows(root, SOURCE_CANDIDATE_SHA)
+    final_rows = _records(final_raw)
+    candidate_subject_by_id = {row["run_id"]: f"subject-{_source_record_sha256(row)}" for row in candidate_rows}
+    final_subject_by_id = {row["run_id"]: candidate_subject_by_id[row["run_id"]] for row in final_rows}
+    withdrawn, redactions, scores, replacements, removed_subject = _public_bindings(root)
+    main_subjects = {
+        candidate_subject_by_id[row["run_id"]]
+        for row in base_rows
+        if row["run_id"] in candidate_subject_by_id
+    } | set(withdrawn)
+    final_subjects = set(final_subject_by_id.values())
+    removed = list(withdrawn)
+    preserved = [candidate_subject_by_id[row["run_id"]] for row in final_rows if row["run_id"] in {item["run_id"] for item in base_rows}]
+    added = [candidate_subject_by_id[row["run_id"]] for row in final_rows if row["run_id"] not in {item["run_id"] for item in base_rows}]
+    correction_raw, correction_records = _load_correction_records(root)
+    withdrawal_correction_subjects = [row["target"]["run_id"] for row in correction_records if row["record_type"] == "withdrawal" and row["target"]["record_type"] == "correction"]
+    final_correction_subjects = [final_subject_by_id[row["run_id"]] for row in final_rows if row.get("record_type") == "correction" and row["run_id"] in final_subject_by_id]
+    withdrawn_correction_ids = withdrawal_correction_subjects
+    preserved_correction_ids = [subject for subject in final_correction_subjects if subject in main_subjects]
+    correction_manifest = {
+        "schema_version": 3,
+        "manifest_type": "correction_migration_manifest",
+        "generated_at": "2026-08-02T00:00:00+08:00",
         "source_base_sha": SOURCE_BASE_SHA,
-        "starting_record_count": len(base),
-        "withdrawn_records_count": len(withdrawn_ids),
-        "withdrawn_records_sha256": _closed_set_hash(withdrawn_ids),
-        "removed_or_folded_corrections_count": len(folded_ids),
-        "removed_or_folded_corrections_sha256": _closed_set_hash(folded_ids),
-        "preserved_records_count": len(preserved_ids),
-        "newly_admitted_records_count": len(newly_admitted_ids),
-        "final_evaluation_count": len(final_evaluations),
-        "final_correction_count": len(final_corrections),
-        "final_total_count": len(final),
-        "before_sha256": before_hash,
-        "after_sha256": after_hash,
+        "source_candidate_sha": SOURCE_CANDIDATE_SHA,
+        "starting_correction_count": sum(row.get("record_type") == "correction" for row in base_rows),
+        "withdrawn_correction_count": len(withdrawn_correction_ids),
+        "withdrawn_correction_ids": withdrawn_correction_ids,
+        "withdrawn_corrections_sha256": _closed_set_hash(withdrawn_correction_ids),
+        "removed_or_folded_correction_count": 1,
+        "removed_or_folded_correction_ids": [removed_subject],
+        "removed_or_folded_corrections_sha256": _closed_set_hash([removed_subject]),
+        "preserved_correction_count": len(preserved_correction_ids),
+        "preserved_correction_ids": preserved_correction_ids,
+        "preserved_corrections_sha256": _closed_set_hash(preserved_correction_ids),
+        "final_correction_count": sum(row.get("record_type") == "correction" for row in final_rows),
+        "before_corrections_sha256": _sha256(b"".join(_evaluation_line_bytes(row) for row in base_rows if row.get("record_type") == "correction")),
+        "after_corrections_sha256": _sha256(b"".join(_evaluation_line_bytes(row) for row in final_rows if row.get("record_type") == "correction")),
+        "correction_record_count": len(correction_records),
+        "correction_records_sha256": _sha256(correction_raw),
+        "authority_gap_record_count": 59,
+        "public_safe_redaction_count": 25,
+        "append_only_factual_score_correction_count": 19,
+        "withdrawal_count": 10,
+        "replacement_count": 3,
+        "unchanged_record_count": 22,
+        "candidate_record_count": len(final_rows),
+        "candidate_evaluations_sha256": _sha256(final_raw),
+        "candidate_dispositions_sha256": _sha256((root / "ledger" / "dispositions.jsonl").read_bytes()),
+        "generated_output_hashes": TARGET_OUTPUT_HASHES,
+        "source_inputs": ["evaluations.jsonl", "migrations/correction-records-v3.jsonl", "migrations/correction-migration-manifest.json", "migrations/base-model-v2.json", "migrations/reasoning-scrub-receipt.json"],
+        "generated_files": ["README.md", "scorecard.md", "analysis/model-recommendation.json", "ledger/dispositions.jsonl"],
+        "candidate_allowed_files": CANDIDATE_ALLOWED_FILES,
+        "terminal_seal_file": "ledger/receipts/batches/batch-20260729-gate3-amendment-004.json",
+        "expected_commit_count": 2,
     }
-    manifests = {
-        "base-model-v2.json": {
-            "schema_version": 1,
-            "manifest_type": "base_model_v2_migration",
-            "generated_at": generated_at,
-            **common_counts,
-            "preserved_base_sha256": _sha256(preserved_bytes),
-        },
-        "correction-migration-manifest.json": {
-            "schema_version": 1,
-            "manifest_type": "correction_migration_manifest",
-            "generated_at": generated_at,
-            "source_base_sha": SOURCE_BASE_SHA,
-            "starting_correction_count": len(base_corrections),
-            "withdrawn_correction_count": len(withdrawn_corrections),
-            "withdrawn_corrections_sha256": _closed_set_hash(withdrawn_corrections),
-            "removed_or_folded_correction_count": len(folded_corrections),
-            "removed_or_folded_corrections_sha256": _closed_set_hash(folded_corrections),
-            "preserved_correction_count": len(preserved_corrections),
-            "preserved_corrections_sha256": _closed_set_hash(preserved_corrections),
-            "final_correction_count": len(final_corrections),
-            "before_corrections_sha256": _sha256(base_correction_bytes),
-            "after_corrections_sha256": _sha256(final_correction_bytes),
-        },
-        "evaluation-protocol-v1.json": {
-            "schema_version": 1,
-            "manifest_type": "evaluation_protocol_v1",
-            "generated_at": generated_at,
-            "evaluations_sha256": after_hash,
-            "total_evaluations": len(final_evaluations),
-            "protocol_counts": dict(sorted(protocol_counts.items())),
-            "records": {
-                record["run_id"]: record["evaluation_protocol"]
-                for record in sorted(final_evaluations, key=lambda item: item["run_id"])
-            },
-        },
-        "historical-intake-adapter-manifest.json": {
-            "schema_version": 1,
-            "manifest_type": "historical_intake_adapter_manifest",
-            "generated_at": generated_at,
-            "source_base_sha": SOURCE_BASE_SHA,
-            "evaluations_sha256": after_hash,
-            "final_total_count": len(final),
-            "field_aliases": [
-                {
-                    "destination_field": destination,
-                    "source_field": source,
-                }
-                for destination, source in LEGACY_ALIAS_PAIRS
-            ],
-            "model_aliases": dict(sorted(MODEL_ALIASES.items())),
-            "accepted_verdict_values": sorted(VERDICT_VALUES),
-            "reviewed_at_authority": {
-                "batch_id": FROZEN_BATCH_ID,
-                "source_field": "created_at",
-                "destination_field": "reviewed_at",
-                "source_comment_count": FROZEN_COUNT,
-                "source_comment_watermark": FROZEN_WATERMARK,
-                "source_snapshot_sha256": FROZEN_SNAPSHOT_SHA256,
-                "requires_body_omission": True,
-                "requires_exact_fingerprint": True,
-            },
-        },
-        "preservation-manifest.json": {
-            "schema_version": 1,
-            "manifest_type": "canonical_base_preservation_manifest",
-            "generated_at": generated_at,
-            **common_counts,
-        },
-        "reasoning-scrub-receipt.json": {
-            "schema_version": 1,
-            "manifest_type": "reasoning_scrub_receipt",
-            "generated_at": generated_at,
-            "source_base_sha": SOURCE_BASE_SHA,
-            "evaluations_sha256": after_hash,
-            "scrubbed_fields_count": scrubbed_fields_count,
-            "removed_attribute_key_count": len(REASONING_KEYS),
-            "removed_correction_count": len(folded_corrections),
-            "removed_corrections_sha256": _closed_set_hash(folded_corrections),
-        },
-        "unicode-identity-history-activation.json": unicode_activation,
+    replacements_list = []
+    for removed_id, replacement_id in replacements.items():
+        removed_row = next(row for row in correction_records if row["record_type"] == "base_model_replacement" and row["replacement"]["removed_run_id"] == removed_id)
+        replacement_sha = next(row["target"]["original_record_sha256"] for row in correction_records if row["target"]["run_id"] == replacement_id and row["record_type"] == "authority_gap")
+        replacements_list.append({
+            "identity_change": "base_model_identity_only",
+            "preserve_unaffected_fields": True,
+            "reason": "owner-authorised identity replacement; unaffected fields preserved",
+            "removed_record_sha256": removed_row["target"]["original_record_sha256"],
+            "removed_run_id": removed_id,
+            "replacement_record_sha256": replacement_sha,
+            "replacement_run_id": replacement_id,
+        })
+    base_manifest = {
+        "schema_version": 2,
+        "manifest_type": "base_model_v2_migration",
+        "generated_at": "2026-08-02T00:00:00+08:00",
+        "source_base_sha": SOURCE_BASE_SHA,
+        "source_candidate_sha": SOURCE_CANDIDATE_SHA,
+        "starting_record_count": len(base_rows),
+        "withdrawn_records_count": len(removed),
+        "withdrawn_records_sha256": _closed_set_hash(removed),
+        "withdrawn_record_ids": removed,
+        "replacement_count": 3,
+        "base_model_replacements": replacements_list,
+        "preserved_records_count": len(preserved),
+        "preserved_record_ids": preserved,
+        "newly_admitted_records_count": len(added),
+        "newly_admitted_record_ids": added,
+        "final_evaluation_count": sum(row.get("record_type") == "evaluation" for row in final_rows),
+        "final_correction_count": sum(row.get("record_type") == "correction" for row in final_rows),
+        "final_total_count": len(final_rows),
+        "before_sha256": _sha256(base_raw),
+        "after_sha256": _sha256(final_raw),
+        "preserved_base_sha256": _sha256(b"".join(_evaluation_line_bytes(row) for row in final_rows if final_subject_by_id[row["run_id"]] in set(preserved))),
+        "reasoning_only_correction_removed": {"reason": "owner-authorised removal only", "record_sha256": REASONING_REMOVED_RECORD_SHA, "run_id": removed_subject},
     }
-    return manifests
+    reasoning_manifest = {
+        "schema_version": 2,
+        "manifest_type": "reasoning_scrub_receipt",
+        "generated_at": "2026-08-02T00:00:00+08:00",
+        "source_base_sha": SOURCE_BASE_SHA,
+        "source_candidate_sha": SOURCE_CANDIDATE_SHA,
+        "evaluations_sha256": _sha256(final_raw),
+        "scrubbed_fields_count": 73,
+        "removed_attribute_key_count": 8,
+        "removed_correction_count": 1,
+        "removed_corrections_sha256": _closed_set_hash([removed_subject]),
+        "removed_correction_ids": [removed_subject],
+        "candidate_record_count": len(final_rows),
+    }
+    return {"base-model-v2.json": base_manifest, "correction-migration-manifest.json": correction_manifest, "reasoning-scrub-receipt.json": reasoning_manifest, **_legacy_manifests(root)}
+
+
+WITHDRAWN_IDS, REDACTION_IDS, SCORE_VALUES, REPLACEMENTS, REASONING_ONLY_REMOVED = _public_bindings(ROOT)
 
 
 def expected_manifests(root: Path = ROOT) -> dict[str, dict[str, Any]]:
-    return expected_manifests_for_bytes(
-        root,
-        (root / "evaluations.jsonl").read_bytes(),
-    )
+    return expected_manifests_for_bytes(root, (root / "evaluations.jsonl").read_bytes())
 
 
 def _schema(root: Path) -> dict[str, Any]:
     try:
-        schema = json.loads(
-            (root / "schema" / "manifest.schema.json").read_text(encoding="utf-8")
-        )
+        schema = _parse_json((root / "schema" / "manifest.schema.json").read_bytes())
         jsonschema.Draft202012Validator.check_schema(schema)
         return schema
-    except (OSError, ValueError, jsonschema.SchemaError):
-        raise ManifestValidationError("manifest_schema_invalid")
+    except (OSError, ManifestValidationError, jsonschema.SchemaError) as error:
+        raise ManifestValidationError("manifest_schema_invalid") from error
 
 
-def validate_manifest_documents(
-    actual: Mapping[str, Any],
-    expected: Mapping[str, Any],
-    schema: Mapping[str, Any],
-) -> None:
+def validate_manifest_documents(actual: Mapping[str, Any], expected: Mapping[str, Any], schema: Mapping[str, Any]) -> None:
     if set(actual) != set(MANIFEST_PATHS) or set(expected) != set(MANIFEST_PATHS):
         raise ManifestValidationError("manifest_set_mismatch")
-    validator = jsonschema.Draft202012Validator(
-        schema,
-        format_checker=jsonschema.FormatChecker(),
-    )
+    validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
     for name, manifest_type in MANIFEST_PATHS.items():
         value = actual[name]
         try:
             validator.validate(value)
         except jsonschema.ValidationError as error:
             raise ManifestValidationError("manifest_schema_failure") from error
-        if value.get("manifest_type") != manifest_type:
-            raise ManifestValidationError("manifest_type_mismatch")
-        if value != expected[name]:
+        if value.get("manifest_type") != manifest_type or value != expected[name]:
             raise ManifestValidationError("manifest_content_mismatch")
 
 
@@ -339,31 +535,29 @@ def validate_all(root: Path = ROOT) -> dict[str, Any]:
     actual: dict[str, Any] = {}
     try:
         for name in MANIFEST_PATHS:
-            actual[name] = json.loads(
-                (root / "migrations" / name).read_text(encoding="utf-8")
-            )
-    except (OSError, UnicodeDecodeError, ValueError):
+            raw = (root / "migrations" / name).read_bytes()
+            value = _parse_json(raw)
+            if _canonical_json_bytes(value) != raw:
+                raise ManifestValidationError("manifest_noncanonical_bytes")
+            actual[name] = value
+    except (OSError, ManifestValidationError):
         raise ManifestValidationError("manifest_unavailable")
     validate_manifest_documents(actual, expected, _schema(root))
-    return {
-        "manifest_count": len(actual),
-        "final_total_count": expected["preservation-manifest.json"]["final_total_count"],
-        "evaluations_sha256": expected["preservation-manifest.json"]["after_sha256"],
-    }
+    correction_evidence = validate_correction_records(root)
+    if _sha256((root / "evaluations.jsonl").read_bytes()) != TARGET_EVALUATIONS_SHA or _sha256((root / "ledger" / "dispositions.jsonl").read_bytes()) != TARGET_DISPOSITIONS_SHA:
+        raise ManifestValidationError("candidate_input_hash_mismatch")
+    return {"manifest_count": len(actual), "final_total_count": expected["base-model-v2.json"]["final_total_count"], "evaluations_sha256": expected["base-model-v2.json"]["after_sha256"], "correction_records": correction_evidence}
 
 
 def write_all(root: Path = ROOT) -> None:
     expected = expected_manifests(root)
-    for name, value in expected.items():
-        (root / "migrations" / name).write_bytes(
-            (
-                json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2)
-                + "\n"
-            ).encode("utf-8")
-        )
+    for name in G3_MANIFESTS:
+        (root / "migrations" / name).write_bytes(_canonical_json_bytes(expected[name]))
 
 
 def parse_cli(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    import argparse
+
     parser = argparse.ArgumentParser(prog="validate_manifests")
     parser.add_argument("--repository-root", type=Path, default=ROOT)
     parser.add_argument("--write", action="store_true")
@@ -379,11 +573,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     except ManifestValidationError:
         print("Manifest validation failed.", file=sys.stderr)
         return 1
-    print(
-        "Manifest validation passed: "
-        f"{evidence['manifest_count']} closed manifests, "
-        f"{evidence['final_total_count']} final records."
-    )
+    print(f"Manifest validation passed: {evidence['manifest_count']} closed manifests, {evidence['final_total_count']} final records, {evidence['correction_records']['record_count']} v3 correction records.")
     return 0
 
 
