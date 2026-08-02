@@ -4,13 +4,13 @@
   "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "batch_id": "batch-20260729-gate3-amendment-004",
   "batch_mode": "initial",
-  "candidate_content_commit_sha": "0212c8e8eb527c9e9d9b96d07319172353ef7c9b",
+  "candidate_content_commit_sha": "6bae7bd8ba35cb5c0d74fd1b3086cf3b2803a2c3",
   "canonical_hashes": {
     "dispositions_jsonl": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
-    "evaluations_jsonl": "7a690e8cfd44a9a42643333c9673ba571e19d0d32c4c626e30683fbc43d00230",
+    "evaluations_jsonl": "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
     "model_recommendation_json": "8408f47f19176fd14b38beeab8d1e524137bf5e2aeecb545b016d0da4fba63a8",
-    "readme_md": "eaea1885e69c37ee3628950a5ca7eb8f32aa2bb5f0b28b9966bbaeaf5a3b325c",
-    "scorecard_md": "881c73ef4cc3810b821109e6dd2b16c2e2af43436b7610f87fdf6f9b4de14780"
+    "readme_md": "c2564c634a1709dcbc7712473c420ac679aa654e242a8dc1ccf693768fa8e8ba",
+    "scorecard_md": "7db9da098abdd88335fbcf8b7ca8193f8e0476f0a8530687878d49b6529cbcbb"
   },
   "canonical_main_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "canonical_record_hashes": {},
