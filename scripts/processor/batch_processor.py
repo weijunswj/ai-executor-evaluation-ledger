@@ -119,7 +119,7 @@ def _validate_json_lines(content: bytes) -> List[Dict[str, Any]]:
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:
-        raise ProcessorError("authority_missing")
+        raise ProcessorError("processor_schema_failure")
     records: List[Dict[str, Any]] = []
     seen: set[str] = set()
     for line in text.splitlines():

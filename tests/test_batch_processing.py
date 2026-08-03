@@ -14,6 +14,7 @@ from scripts.processor.batch_processor import (
     process_batch,
 )
 from scripts.processor.common import ProcessorError, sha256_bytes
+from scripts.processor.frozen_replay import _jsonl_records
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_MAIN = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
@@ -170,6 +171,83 @@ class TestBatchProcessing(unittest.TestCase):
                     _validate_json_lines(value.encode("utf-8"))
                 self.assertEqual(raised.exception.code, "processor_schema_failure")
 
+
+    def test_batch_jsonl_boundary_rejects_malformed_input_and_accepts_valid_records(self):
+        record = json.loads(
+            next(line for line in (ROOT / "evaluations.jsonl").read_text(encoding="utf-8").splitlines() if line.strip())
+        )
+        raw = json.dumps(record, ensure_ascii=False, separators=(",", ":"))
+        run_id_fragment = '"run_id":"' + record["run_id"] + '"'
+        model_fragment = '"model":"' + record["model"] + '"'
+        cases = {
+            "top_identical": raw.replace(
+                run_id_fragment,
+                run_id_fragment + "," + run_id_fragment,
+                1,
+            ),
+            "top_conflicting": raw.replace(
+                model_fragment,
+                model_fragment + ',"model":"DUPLICATE_FIXTURE"',
+                1,
+            ),
+            "nested_identical": raw.replace(
+                '"scores":{',
+                '"scores":{"correctness":2,"correctness":2,',
+                1,
+            ),
+            "nested_conflicting": raw.replace(
+                '"scores":{',
+                '"scores":{"correctness":2,"correctness":"DUPLICATE_FIXTURE",',
+                1,
+            ),
+            "nonfinite": raw[:-1] + ',"fixture_nan":NaN}',
+            "trailing": raw + " trailing",
+        }
+        for label, value in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaises(ProcessorError) as raised:
+                    _validate_json_lines(value.encode("utf-8"))
+                self.assertEqual(raised.exception.code, "processor_schema_failure")
+                self.assertNotIn("DUPLICATE_FIXTURE", str(raised.exception))
+
+        with self.assertRaises(ProcessorError) as raised:
+            _validate_json_lines(b"\xff\xfe\n")
+        self.assertEqual(raised.exception.code, "processor_schema_failure")
+        self.assertNotIn("\\xff", str(raised.exception))
+
+        self.assertEqual(_validate_json_lines(raw.encode("utf-8")), [record])
+        second = copy.deepcopy(record)
+        second["run_id"] = record["run_id"][:-1] + ("x" if record["run_id"][-1] != "x" else "y")
+        multiple = (raw + "\n" + json.dumps(second, ensure_ascii=False, separators=(",", ":")) + "\n").encode(
+            "utf-8"
+        )
+        self.assertEqual(_validate_json_lines(multiple), [record, second])
+
+    def test_frozen_replay_jsonl_boundary_rejects_duplicates_and_malformed_input(self):
+        cases = {
+            "top_identical": b'{"run_id":"fixture-a","provider":"OpenAI","provider":"OpenAI"}',
+            "top_conflicting": b'{"run_id":"fixture-a","provider":"OpenAI","provider":"DUPLICATE_FIXTURE"}',
+            "nested_identical": b'{"run_id":"fixture-a","nested":{"key":1,"key":1}}',
+            "nested_conflicting": b'{"run_id":"fixture-a","nested":{"key":1,"key":"DUPLICATE_FIXTURE"}}',
+            "nonfinite": b'{"run_id":"fixture-a","score":NaN}',
+            "trailing": b'{"run_id":"fixture-a"} trailing',
+        }
+        for label, value in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaises(ProcessorError) as raised:
+                    _jsonl_records(value)
+                self.assertEqual(raised.exception.code, "processor_schema_failure")
+                self.assertNotIn("DUPLICATE_FIXTURE", str(raised.exception))
+
+        with self.assertRaises(ProcessorError) as raised:
+            _jsonl_records(b'{"run_id":"fixture-a"}\xff')
+        self.assertEqual(raised.exception.code, "processor_schema_failure")
+        self.assertNotIn("\\xff", str(raised.exception))
+
+        distinct = b'{"run_id":"fixture-a","provider":"OpenAI","nested":{"key":1,"other":2}}'
+        self.assertEqual(_jsonl_records(distinct), [{"run_id": "fixture-a", "provider": "OpenAI", "nested": {"key": 1, "other": 2}}])
+        multiple = b'{"run_id":"fixture-a"}\n{"run_id":"fixture-b"}\n'
+        self.assertEqual(_jsonl_records(multiple), [{"run_id": "fixture-a"}, {"run_id": "fixture-b"}])
 
     def test_dry_run_builds_candidate_without_tracked_mutation(self):
         comments = self.comments()

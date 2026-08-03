@@ -20,6 +20,7 @@ from scripts.processor.common import (
     FROZEN_WATERMARK,
     REASONING_KEYS,
     ProcessorError,
+    reject_duplicate_json_keys,
     canonical_json_bytes,
     canonical_json_line_bytes,
     safe_author_hash,
@@ -82,7 +83,7 @@ def _jsonl_records(raw: bytes) -> list[dict[str, Any]]:
     try:
         text = raw.decode("utf-8", errors="strict")
         values = [
-            json.loads(line, parse_constant=_reject_nonfinite_constant)
+            json.loads(line, object_pairs_hook=reject_duplicate_json_keys, parse_constant=_reject_nonfinite_constant)
             for line in text.splitlines()
             if line.strip()
         ]
