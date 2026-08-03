@@ -428,6 +428,86 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(first[0], "admitted")
         self.assertEqual(second[0], "duplicate_identity")
 
+    def test_duplicate_intake_keys_fail_closed_before_adaptation(self):
+        compact = json.dumps(self.valid_payload, separators=(",", ":"))
+        cases = {
+            "provider_identical": compact[:-1] + ',"provider":"OpenAI","provider":"OpenAI"}',
+            "provider_conflicting": compact[:-1] + ',"provider":"OpenAI","provider":"Qwen"}',
+            "model_alias": compact[:-1] + ',"model":"GPT-5.6 Sol","model":"Qwen3.7 Plus"}',
+            "verdict": compact[:-1] + ',"verdict":"accepted","verdict":"hold"}',
+            "nested_score": compact.replace(
+                '"score_dimensions":{"correctness":5,',
+                '"score_dimensions":{"correctness":5,"correctness":5,',
+                1,
+            ),
+            "nested_evidence": compact.replace(
+                '"public_safe_evidence":{"first_pass_accepted":true,',
+                '"public_safe_evidence":{"first_pass_accepted":true,"first_pass_accepted":false,',
+                1,
+            ),
+            "nested_multiple": (
+                compact.replace(
+                    '"score_dimensions":{"correctness":5,',
+                    '"score_dimensions":{"correctness":5,"correctness":5,',
+                    1,
+                ).replace(
+                    '"public_safe_evidence":{"first_pass_accepted":true,',
+                    '"public_safe_evidence":{"first_pass_accepted":true,"first_pass_accepted":false,',
+                    1,
+                )
+            ),
+            "historical_alias": compact[:-1] + ',"base_model":"GPT-5.6 Sol","base_model":"Qwen3.7 Plus"}',
+            "nonfinite_combination": compact[:-1] + ',"provider":NaN}',
+            "trailing_json": compact + " trailing",
+        }
+        for label, raw in cases.items():
+            with self.subTest(label=label):
+                result = parse_intake_comment(
+                    1001,
+                    "<!-- ledger-intake:v1 -->\n" + raw,
+                    set(),
+                    set(),
+                )
+                self.assertEqual(result, ("invalid_schema", {}, "invalid_schema"))
+
+    def test_source_watch_duplicate_metadata_keys_fail_closed(self):
+        metadata = {
+            "schema_version": 1,
+            "record_type": "source_watch_pr_metadata",
+            "mode": "initial",
+            "base_sha": "a" * 40,
+            "canonical_main_sha": "b" * 40,
+            "batch_id": "batch-a005-001",
+            "controller_run_id": "controller-a005-001",
+            "pr_number": 151,
+            "expected_head_sha": "c" * 40,
+            "activation_mode": "dry-run",
+            "source_issue_number": 142,
+            "receipt_issue_number": 143,
+            "dry_run": True,
+        }
+        compact = json.dumps(metadata, separators=(",", ":"))
+        cases = {
+            "activation_mode": compact[:-1] + ',"activation_mode":"dry-run","activation_mode":"live"}',
+            "dry_run": compact[:-1] + ',"dry_run":true,"dry_run":false}',
+            "base_sha": compact[:-1] + ',"base_sha":"' + "a" * 40 + '","base_sha":"' + "b" * 40 + '"}',
+            "canonical_main_sha": compact[:-1] + ',"canonical_main_sha":"' + "b" * 40 + '","canonical_main_sha":"' + "a" * 40 + '"}',
+            "expected_head_sha": compact[:-1] + ',"expected_head_sha":"' + "c" * 40 + '","expected_head_sha":"' + "d" * 40 + '"}',
+            "nonfinite_combination": compact[:-1] + ',"dry_run":NaN}',
+            "trailing_json": compact + " trailing",
+        }
+        for label, raw in cases.items():
+            with self.subTest(label=label):
+                body = (
+                    "<!-- ledger-source-watch:v1 -->\n```json\n"
+                    + raw
+                    + "\n```\nsummary"
+                )
+                with self.assertRaises(ValueError) as raised:
+                    parse_pr_body(body)
+                self.assertEqual(str(raised.exception), "invalid_source_watch_envelope")
+
+
     def test_source_watch_requires_closed_metadata_and_triple_fence(self):
         metadata = {
             "schema_version": 1,

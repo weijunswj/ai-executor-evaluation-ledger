@@ -15,6 +15,7 @@ from scripts.validate_manifests import (
     TARGET_EVALUATIONS_SHA,
     expected_manifests,
     validate_all,
+    validate_correction_records,
     validate_manifest_documents,
 )
 from scripts.rebuild_views import verify_append_only
@@ -107,6 +108,125 @@ class TestClosedManifestValidation(unittest.TestCase):
             {value["manifest_type"] for value in expected.values()},
             set(MANIFEST_PATHS.values()),
         )
+
+
+    def assert_correction_mutation_rejected(self, mutate):
+        path = ROOT / "migrations" / "correction-records-v3.jsonl"
+        original = path.read_bytes()
+        records = [
+            json.loads(line)
+            for line in original.decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        try:
+            mutate(records)
+            path.write_bytes(
+                b"".join(
+                    (
+                        json.dumps(
+                            record,
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
+                        + "\n"
+                    ).encode("utf-8")
+                    for record in records
+                )
+            )
+            with self.assertRaises(ManifestValidationError):
+                validate_correction_records(ROOT)
+        finally:
+            path.write_bytes(original)
+
+    def test_correction_proofs_bind_all_locked_records(self):
+        evidence = validate_correction_records(ROOT)
+        self.assertEqual(evidence["record_count"], 116)
+        self.assertEqual(evidence["proofs_checked"], 116)
+        self.assertEqual(evidence["before_proofs_recomputed"], 116)
+        self.assertEqual(evidence["after_proofs_recomputed"], 106)
+        self.assertEqual(evidence["withdrawal_absence_checks"], 10)
+        self.assertEqual(
+            evidence["counts"],
+            {
+                "authority_gap": 59,
+                "public_safe_redaction": 25,
+                "factual_correction": 19,
+                "withdrawal": 10,
+                "base_model_replacement": 3,
+            },
+        )
+        rows = [
+            json.loads(line)
+            for line in (ROOT / "evaluations.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertTrue(
+            all(
+                isinstance(row["weighted_score_5"], (int, float))
+                and isinstance(row["weighted_score_10"], (int, float))
+                for row in rows
+            )
+        )
+
+    def test_each_correction_proof_hash_and_length_corruption_fails_closed(self):
+        mutations = {
+            "before_sha256": lambda records: records[0]["before"].update(sha256="0" * 64),
+            "before_byte_length": lambda records: records[0]["before"].update(byte_length=1),
+            "after_sha256": lambda records: records[0]["after"].update(sha256="0" * 64),
+            "after_byte_length": lambda records: records[0]["after"].update(byte_length=1),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                self.assert_correction_mutation_rejected(mutate)
+
+    def test_string_score_drift_fails_closed(self):
+        path = ROOT / "evaluations.jsonl"
+        original = path.read_bytes()
+        rows = [
+            json.loads(line)
+            for line in original.decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        for row in rows:
+            row["weighted_score_5"] = str(row["weighted_score_5"])
+            row["weighted_score_10"] = str(row["weighted_score_10"])
+        try:
+            path.write_bytes(
+                b"".join(
+                    (json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+                    for row in rows
+                )
+            )
+            with self.assertRaises(ManifestValidationError):
+                validate_correction_records(ROOT)
+        finally:
+            path.write_bytes(original)
+
+    def test_withdrawal_and_replacement_membership_fail_closed(self):
+        def corrupt_withdrawal(records):
+            record = next(item for item in records if item["record_type"] == "withdrawal")
+            record["target"]["original_record_sha256"] = "0" * 64
+
+        def corrupt_replacement(records):
+            record = next(item for item in records if item["record_type"] == "base_model_replacement")
+            record["replacement"]["replacement_run_id"] = "subject-" + "0" * 64
+
+        self.assert_correction_mutation_rejected(corrupt_withdrawal)
+        self.assert_correction_mutation_rejected(corrupt_replacement)
+
+    def test_lineage_hash_chain_and_order_corruption_fail_closed(self):
+        self.assert_correction_mutation_rejected(
+            lambda records: records[0]["lineage"].update(correction_sha256="0" * 64)
+        )
+        self.assert_correction_mutation_rejected(
+            lambda records: records[1]["lineage"].update(prior_correction_sha256="0" * 64)
+        )
+
+        def swap_records(records):
+            records[0], records[1] = records[1], records[0]
+
+        self.assert_correction_mutation_rejected(swap_records)
 
 
 if __name__ == "__main__":

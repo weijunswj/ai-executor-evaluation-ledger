@@ -5,7 +5,11 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional, Tuple
 
-from scripts.processor.common import valid_git_sha, valid_identifier
+from scripts.processor.common import (
+    reject_duplicate_json_keys,
+    valid_git_sha,
+    valid_identifier,
+)
 
 OWNERSHIP_MARKER = "<!-- ledger-source-watch:v1 -->"
 METADATA_RECORD_TYPE = "source_watch_pr_metadata"
@@ -57,7 +61,11 @@ def parse_pr_body(body: str) -> Tuple[Dict[str, Any], str]:
 
     json_text = "".join(payload_lines).strip()
     try:
-        metadata = json.loads(json_text, parse_constant=_reject_nonfinite_constant)
+        metadata = json.loads(
+            json_text,
+            object_pairs_hook=reject_duplicate_json_keys,
+            parse_constant=_reject_nonfinite_constant,
+        )
     except (TypeError, ValueError):
         raise _safe_invalid()
     if not isinstance(metadata, dict):

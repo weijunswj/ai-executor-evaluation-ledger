@@ -8,6 +8,7 @@ from unittest import mock
 
 from scripts.processor.batch_processor import (
     ProcessBatchConfig,
+    _validate_json_lines,
     build_batch_candidate,
     parse_cli,
     process_batch,
@@ -136,6 +137,39 @@ class TestBatchProcessing(unittest.TestCase):
     def fetcher(self, comments):
         by_id = {item["id"]: item for item in comments}
         return lambda comment_id, _root: copy.deepcopy(by_id[comment_id])
+
+    def test_duplicate_evaluation_json_keys_fail_closed(self):
+        record = json.loads(
+            next(line for line in (ROOT / "evaluations.jsonl").read_text(encoding="utf-8").splitlines() if line.strip())
+        )
+        raw = json.dumps(record, ensure_ascii=False, separators=(",", ":"))
+        run_id_fragment = '"run_id":"' + record["run_id"] + '"'
+        model_fragment = '"model":"' + record["model"] + '"'
+        cases = {
+            "run_id_identical": raw.replace(
+                run_id_fragment,
+                run_id_fragment + "," + run_id_fragment,
+                1,
+            ),
+            "model_conflicting": raw.replace(
+                model_fragment,
+                model_fragment + ',"model":"GPT-5.6 Sol"',
+                1,
+            ),
+            "nested_scores": raw.replace(
+                '"scores":{',
+                '"scores":{"correctness":2,"correctness":2,',
+                1,
+            ),
+            "nonfinite_combination": raw[:-1] + ',"run_id":NaN}',
+            "trailing_json": raw + " trailing",
+        }
+        for label, value in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaises(ProcessorError) as raised:
+                    _validate_json_lines(value.encode("utf-8"))
+                self.assertEqual(raised.exception.code, "processor_schema_failure")
+
 
     def test_dry_run_builds_candidate_without_tracked_mutation(self):
         comments = self.comments()

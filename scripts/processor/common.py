@@ -159,6 +159,17 @@ def canonical_json_line_bytes(value: Any) -> bytes:
     return canonical_json_bytes(value) + b"\n"
 
 
+def reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject duplicate object members without retaining the rejected key/value."""
+
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate_json_key")
+        result[key] = value
+    return result
+
+
 def valid_git_sha(value: Any) -> bool:
     return isinstance(value, str) and bool(GIT_SHA_PATTERN.fullmatch(value))
 

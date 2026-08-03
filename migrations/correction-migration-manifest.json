@@ -29,7 +29,7 @@
   "candidate_evaluations_sha256": "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
   "candidate_record_count": 59,
   "correction_record_count": 116,
-  "correction_records_sha256": "a1011b3b57f28998fe23b3a0e72f305f838afa35ac6b15be43faa6d24017ceb5",
+  "correction_records_sha256": "4fd97e5d78a6e149c895b5740e99fe64fd7f1af47d0d0bc0c26d533deac87483",
   "expected_commit_count": 2,
   "final_correction_count": 1,
   "generated_at": "2026-08-02T00:00:00+08:00",

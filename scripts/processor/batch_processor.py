@@ -18,6 +18,7 @@ from scripts.processor.common import (
     ProcessorError,
     canonical_json_bytes,
     canonical_json_line_bytes,
+    reject_duplicate_json_keys,
     safe_author_hash,
     safe_comment_body_hash,
     sha256_bytes,
@@ -125,7 +126,11 @@ def _validate_json_lines(content: bytes) -> List[Dict[str, Any]]:
         if not line.strip():
             continue
         try:
-            value = json.loads(line, parse_constant=_reject_nonfinite_constant)
+            value = json.loads(
+                line,
+                object_pairs_hook=reject_duplicate_json_keys,
+                parse_constant=_reject_nonfinite_constant,
+            )
         except (TypeError, ValueError):
             raise ProcessorError("processor_schema_failure")
         if not isinstance(value, dict):

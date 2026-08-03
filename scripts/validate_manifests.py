@@ -7,6 +7,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
@@ -21,6 +22,7 @@ if str(ROOT) not in sys.path:
 
 SOURCE_BASE_SHA = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 SOURCE_CANDIDATE_SHA = "45990433a0f8199f056d1ad71a51f934b3bae7aa"
+CORRECTION_ORDER_AUTHORITY_SHA = "223e6ecc24c84421a4bab60fcf87472b1d620744"
 TARGET_EVALUATIONS_SHA = "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64"
 TARGET_DISPOSITIONS_SHA = "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d"
 TARGET_OUTPUT_HASHES = {
@@ -174,10 +176,48 @@ def _load_correction_records(root: Path) -> tuple[bytes, list[dict[str, Any]]]:
     return raw, values
 
 
+def _locked_correction_order(root: Path) -> list[tuple[Any, Any, Any, Any]]:
+    raw = _git_object(
+        root,
+        CORRECTION_ORDER_AUTHORITY_SHA,
+        "migrations/correction-records-v3.jsonl",
+    )
+    if b"\r" in raw or raw.startswith(b"\xef\xbb\xbf") or not raw.endswith(b"\n"):
+        raise ManifestValidationError("correction_order_authority_invalid")
+    order: list[tuple[Any, Any, Any, Any]] = []
+    for line in raw.splitlines(keepends=True):
+        try:
+            value = json.loads(
+                line.decode("utf-8", errors="strict"),
+                object_pairs_hook=_duplicate_rejecting_pairs,
+                parse_constant=_reject_constant,
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+            raise ManifestValidationError("correction_order_authority_invalid")
+        if not isinstance(value, dict):
+            raise ManifestValidationError("correction_order_authority_invalid")
+        order.append(
+            (
+                value.get("correction_id"),
+                value.get("target", {}).get("run_id") if isinstance(value.get("target"), dict) else None,
+                value.get("record_type"),
+                value.get("lineage", {}).get("sequence") if isinstance(value.get("lineage"), dict) else None,
+            )
+        )
+    return order
+
+
+
 def _effective_record(record: Mapping[str, Any], score_values: Optional[tuple[str, str]]) -> dict[str, Any]:
     value = copy.deepcopy(dict(record))
     if score_values is not None:
-        value["weighted_score_5"], value["weighted_score_10"] = score_values
+        try:
+            numeric_scores = tuple(float(score) for score in score_values)
+        except (TypeError, ValueError) as error:
+            raise ManifestValidationError("score_binding_invalid") from error
+        if len(numeric_scores) != 2 or any(not math.isfinite(score) for score in numeric_scores):
+            raise ManifestValidationError("score_binding_invalid")
+        value["weighted_score_5"], value["weighted_score_10"] = numeric_scores
     return value
 
 
@@ -195,6 +235,17 @@ def _proof(value: Mapping[str, Any]) -> dict[str, Any]:
 
 def _source_record_sha256(record: Mapping[str, Any]) -> str:
     return _sha256(json.dumps(record, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+
+
+def _source_binding_sha256(record: Mapping[str, Any]) -> str:
+    return _sha256(
+        json.dumps(
+            record,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    )
 
 
 def _source_rows(root: Path, revision: str) -> list[dict[str, Any]]:
@@ -283,6 +334,60 @@ def _proof_is_closed(value: Mapping[str, Any]) -> bool:
     )
 
 
+def _correction_proof_bindings(
+    records: list[dict[str, Any]],
+    candidate_rows: list[dict[str, Any]],
+    main_rows: list[dict[str, Any]],
+    final_rows: list[dict[str, Any]],
+) -> list[tuple[dict[str, Any], dict[str, Any], bool]]:
+    candidate_by_subject = {
+        f"subject-{_source_record_sha256(row)}": row for row in candidate_rows
+    }
+    base_by_run = {row["run_id"]: row for row in main_rows}
+    final_by_run = {row["run_id"]: row for row in final_rows}
+    source_by_binding = {
+        _source_binding_sha256(row): row for row in main_rows
+    }
+    if len(source_by_binding) != len(main_rows):
+        raise ManifestValidationError("source_membership_ambiguous")
+
+    bindings: list[tuple[dict[str, Any], dict[str, Any], bool]] = []
+    for record in records:
+        kind = record["record_type"]
+        target = record["target"]
+        try:
+            if kind in {"authority_gap", "factual_correction"}:
+                source = candidate_by_subject[target["run_id"]]
+                after_source = final_by_run[source["run_id"]]
+                after_is_final = True
+            elif kind == "public_safe_redaction":
+                candidate_source = candidate_by_subject[target["run_id"]]
+                source = base_by_run[candidate_source["run_id"]]
+                after_source = final_by_run[source["run_id"]]
+                after_is_final = True
+            elif kind == "withdrawal":
+                source = source_by_binding[target["original_record_sha256"]]
+                if source["run_id"] in final_by_run:
+                    raise ManifestValidationError("withdrawal_source_present")
+                after_source = source
+                after_is_final = False
+            elif kind == "base_model_replacement":
+                source = source_by_binding[target["original_record_sha256"]]
+                if source["run_id"] in final_by_run:
+                    raise ManifestValidationError("replacement_source_present")
+                replacement_subject = record["replacement"]["replacement_run_id"]
+                replacement_candidate = candidate_by_subject[replacement_subject]
+                after_source = final_by_run[replacement_candidate["run_id"]]
+                after_is_final = True
+            else:
+                raise ManifestValidationError("correction_record_type_invalid")
+        except KeyError as error:
+            raise ManifestValidationError("correction_source_membership_missing") from error
+        bindings.append((_proof(source), _proof(after_source), after_is_final))
+    return bindings
+
+
+
 def validate_correction_records(root: Path = ROOT) -> dict[str, Any]:
     raw, records = _load_correction_records(root)
     schema = _parse_json((root / "schema" / "correction-v3.schema.json").read_bytes())
@@ -295,14 +400,41 @@ def validate_correction_records(root: Path = ROOT) -> dict[str, Any]:
         raise ManifestValidationError("correction_schema_failure") from error
     if len(records) != 116 or len({record["correction_id"] for record in records}) != len(records):
         raise ManifestValidationError("correction_record_count_or_id_mismatch")
+    current_order = [
+        (
+            record["correction_id"],
+            record["target"]["run_id"],
+            record["record_type"],
+            record["lineage"]["sequence"],
+        )
+        for record in records
+    ]
+    if current_order != _locked_correction_order(root):
+        raise ManifestValidationError("correction_ordering_mismatch")
+
     by_subject, _ = _source_subject_index(root)
     candidate_rows = _source_rows(root, SOURCE_CANDIDATE_SHA)
     main_rows = _source_rows(root, SOURCE_BASE_SHA)
-    final_rows = _records((root / "evaluations.jsonl").read_bytes())
+    final_raw = (root / "evaluations.jsonl").read_bytes()
+    final_rows = _records(final_raw)
     candidate_subject_by_id = {row["run_id"]: f"subject-{_source_record_sha256(row)}" for row in candidate_rows}
     final_ids = {row["run_id"] for row in final_rows}
     if set(candidate_subject_by_id) != final_ids or len(final_ids) != 59:
         raise ManifestValidationError("candidate_record_set_mismatch")
+    score_source_shas = source_bound_public_bindings(root, records)[2]
+    expected_final_rows = [
+        _effective_record(row, score_source_shas.get(_source_record_sha256(row)))
+        for row in candidate_rows
+    ]
+    expected_final_raw = b"".join(_evaluation_line_bytes(row) for row in expected_final_rows)
+    if final_raw != expected_final_raw:
+        raise ManifestValidationError("effective_final_record_mismatch")
+    proof_bindings = _correction_proof_bindings(
+        records,
+        candidate_rows,
+        main_rows,
+        final_rows,
+    )
     withdrawn, redactions, scores, replacements, removed_subject = _public_bindings(root, records)
     final_subjects = {candidate_subject_by_id[row["run_id"]] for row in final_rows}
     main_subjects = {
@@ -321,6 +453,11 @@ def validate_correction_records(root: Path = ROOT) -> dict[str, Any]:
             raise ManifestValidationError("identity_binding_mismatch")
         if not _proof_is_closed(record["before"]) or not _proof_is_closed(record["after"]):
             raise ManifestValidationError("proof_binding_invalid")
+        expected_before, expected_after, _ = proof_bindings[index]
+        if record["before"] != expected_before:
+            raise ManifestValidationError("correction_before_proof_mismatch")
+        if record["after"] != expected_after:
+            raise ManifestValidationError("correction_after_proof_mismatch")
         if record["record_type"] == "public_safe_redaction":
             for change in record["correction"].get("field_changes", []):
                 if re.fullmatch(OPAQUE_SELECTOR_PATTERN, change["path"]) is None:
@@ -369,7 +506,59 @@ def validate_correction_records(root: Path = ROOT) -> dict[str, Any]:
                 raise ManifestValidationError("replacement_binding_mismatch")
     if len(seen_ids) != 69 or removed_subject not in set(withdrawn):
         raise ManifestValidationError("correction_target_accounting_mismatch")
-    return {"record_count": len(records), "sha256": _sha256(raw), "counts": {key: len(value) for key, value in by_kind.items()}}
+    return {
+        "record_count": len(records),
+        "sha256": _sha256(raw),
+        "counts": {key: len(value) for key, value in by_kind.items()},
+        "proofs_checked": len(proof_bindings),
+        "before_proofs_recomputed": len(proof_bindings),
+        "after_proofs_recomputed": sum(1 for _, _, is_final in proof_bindings if is_final),
+        "withdrawal_absence_checks": sum(1 for _, _, is_final in proof_bindings if not is_final),
+    }
+
+
+def rewrite_correction_proofs(root: Path = ROOT) -> dict[str, int]:
+    """Regenerate correction proofs and all dependent lineage hashes."""
+
+    _, records = _load_correction_records(root)
+    candidate_rows = _source_rows(root, SOURCE_CANDIDATE_SHA)
+    main_rows = _source_rows(root, SOURCE_BASE_SHA)
+    final_rows = _records((root / "evaluations.jsonl").read_bytes())
+    proof_bindings = _correction_proof_bindings(
+        records,
+        candidate_rows,
+        main_rows,
+        final_rows,
+    )
+    updated: list[dict[str, Any]] = []
+    previous_by_chain: dict[tuple[str, str], Optional[str]] = {}
+    changed_after = 0
+    for record, (before, after, _) in zip(records, proof_bindings):
+        if record["after"] != after:
+            changed_after += 1
+        value = copy.deepcopy(record)
+        value["before"] = before
+        value["after"] = after
+        chain = (value["target"]["run_id"], value["record_type"])
+        value["lineage"]["prior_correction_sha256"] = previous_by_chain.get(chain)
+        value["lineage"]["correction_sha256"] = None
+        value["lineage"]["correction_sha256"] = _sha256(_canonical_record_bytes(value))
+        previous_by_chain[chain] = value["lineage"]["correction_sha256"]
+        updated.append(value)
+    raw = b"".join(
+        (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        for value in updated
+    )
+    (root / "migrations" / "correction-records-v3.jsonl").write_bytes(raw)
+    return {
+        "record_count": len(updated),
+        "before_proofs_recomputed": len(updated),
+        "after_proofs_recomputed": sum(1 for _, _, is_final in proof_bindings if is_final),
+        "withdrawal_absence_checks": sum(1 for _, _, is_final in proof_bindings if not is_final),
+        "previously_mismatched_after_proofs": changed_after,
+    }
+
+
 
 
 def _legacy_manifests(root: Path) -> dict[str, dict[str, Any]]:
@@ -561,12 +750,15 @@ def parse_cli(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="validate_manifests")
     parser.add_argument("--repository-root", type=Path, default=ROOT)
     parser.add_argument("--write", action="store_true")
+    parser.add_argument("--rewrite-correction-proofs", action="store_true")
     return parser.parse_args(argv)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_cli(argv)
     try:
+        if args.rewrite_correction_proofs:
+            rewrite_correction_proofs(args.repository_root)
         if args.write:
             write_all(args.repository_root)
         evidence = validate_all(args.repository_root)

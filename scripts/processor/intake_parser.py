@@ -24,6 +24,7 @@ from scripts.processor.common import (
     find_unsafe_content,
     has_forbidden_key,
     normalize_known_model,
+    reject_duplicate_json_keys,
     safe_comment_body_hash,
 )
 
@@ -340,7 +341,10 @@ def parse_intake_comment(
     if not raw:
         return _reject("invalid_schema")
     try:
-        payload, end = json.JSONDecoder(parse_constant=_reject_nonfinite_constant).raw_decode(raw)
+        payload, end = json.JSONDecoder(
+            object_pairs_hook=reject_duplicate_json_keys,
+            parse_constant=_reject_nonfinite_constant,
+        ).raw_decode(raw)
     except (TypeError, ValueError):
         return _reject("invalid_schema")
     if not isinstance(payload, dict) or raw[end:].strip():

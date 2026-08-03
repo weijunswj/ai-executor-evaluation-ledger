@@ -4,5 +4,7 @@ evaluations.jsonl text eol=lf
 ledger/dispositions.jsonl text eol=lf
 ledger/receipts/batches/*.json text eol=lf
 migrations/*.json text eol=lf
+migrations/*.jsonl text eol=lf
+schema/*.json text eol=lf
 README.md text eol=lf
 scorecard.md text eol=lf
