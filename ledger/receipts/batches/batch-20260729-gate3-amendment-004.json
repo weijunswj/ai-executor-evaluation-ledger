@@ -4,7 +4,7 @@
   "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "batch_id": "batch-20260729-gate3-amendment-004",
   "batch_mode": "initial",
-  "candidate_content_commit_sha": "6bae7bd8ba35cb5c0d74fd1b3086cf3b2803a2c3",
+  "candidate_content_commit_sha": "b652a17e9837bf515b09bd116c4d136bcc9b5674",
   "canonical_hashes": {
     "dispositions_jsonl": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
     "evaluations_jsonl": "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
