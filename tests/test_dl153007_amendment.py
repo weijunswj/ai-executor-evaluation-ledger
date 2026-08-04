@@ -286,7 +286,7 @@ class TestA3EffectiveReviewerState(unittest.TestCase):
 
     def test_pending_review_remains_blocking(self):
         self.assertEqual(
-            self.state([self.review(1, 10, "PENDING", "2026-08-04T00:00:00Z")]),
+            self.state([self.review(1, 10, "PENDING", None)]),
             "blocking",
         )
 

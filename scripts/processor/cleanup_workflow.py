@@ -193,13 +193,20 @@ def _gh_get_paginated(path: str, repository_root: Path) -> list[dict[str, Any]]:
 
 
 def _effective_review_state(reviews: list[dict[str, Any]]) -> str:
-    """Derive each stable reviewer's latest decisive submitted state."""
+    """Derive each stable reviewer's effective production review state."""
 
     grouped: dict[int, list[tuple[datetime, int, str]]] = {}
+    pending_reviewers: set[int] = set()
     reviewer_logins: dict[int, str] = {}
     reviewer_ids_by_login: dict[str, int] = {}
     review_ids: set[int] = set()
-    supported_states = {"APPROVED", "CHANGES_REQUESTED", "COMMENTED", "PENDING"}
+    supported_states = {
+        "APPROVED",
+        "CHANGES_REQUESTED",
+        "COMMENTED",
+        "DISMISSED",
+        "PENDING",
+    }
     for review in reviews:
         if not isinstance(review, dict):
             raise _safe_failure("cleanup_source_unavailable")
@@ -219,8 +226,12 @@ def _effective_review_state(reviews: list[dict[str, Any]]) -> str:
             or reviewer_id <= 0
             or not valid_author_login(reviewer_login)
             or state not in supported_states
-            or not valid_timestamp(submitted_at)
         ):
+            raise _safe_failure("cleanup_source_unavailable")
+        if state == "PENDING":
+            if submitted_at is not None:
+                raise _safe_failure("cleanup_source_unavailable")
+        elif not valid_timestamp(submitted_at):
             raise _safe_failure("cleanup_source_unavailable")
         if (
             reviewer_id in reviewer_logins
@@ -233,15 +244,15 @@ def _effective_review_state(reviews: list[dict[str, Any]]) -> str:
         reviewer_logins[reviewer_id] = reviewer_login
         review_ids.add(review_id)
         reviewer_ids_by_login[reviewer_login] = reviewer_id
+        if state == "PENDING":
+            pending_reviewers.add(reviewer_id)
+            continue
         submitted = datetime.fromisoformat(submitted_at.replace("Z", "+00:00"))
         grouped.setdefault(reviewer_id, []).append((submitted, review_id, state))
 
-    blocking = False
+    blocking = bool(pending_reviewers)
     for submissions in grouped.values():
         submissions.sort(key=lambda item: (item[0], item[1]))
-        if any(item[2] == "PENDING" for item in submissions):
-            blocking = True
-            continue
         decisive = [
             item[2]
             for item in submissions
@@ -257,10 +268,12 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
         "query($owner:String!,$repo:String!,$number:Int!,$cursor:String){"
         "repository(owner:$owner,name:$repo){pullRequest(number:$number){"
         "reviewThreads(first:100,after:$cursor){nodes{isResolved,isOutdated}"
-        "pageInfo{hasNextPage,endCursor}}}}}"
+        "totalCount,pageInfo{hasNextPage,endCursor}}}}}"
     )
     nodes: list[dict[str, Any]] = []
     cursor: Optional[str] = None
+    seen_cursors: set[str] = set()
+    expected_total: Optional[int] = None
     while True:
         cursor_arg = "null" if cursor is None else cursor
         value = gh_json(
@@ -276,19 +289,67 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
             failure_code="cleanup_source_unavailable",
         )
         try:
-            connection = value["data"]["repository"]["pullRequest"]["reviewThreads"]
+            if not isinstance(value, dict) or "errors" in value:
+                raise TypeError
+            data = value["data"]
+            repository = data["repository"]
+            pull_request = repository["pullRequest"]
+            connection = pull_request["reviewThreads"]
+            if not all(
+                isinstance(item, dict)
+                for item in (data, repository, pull_request, connection)
+            ):
+                raise TypeError
             page_nodes = connection["nodes"]
             page_info = connection["pageInfo"]
+            total_count = connection["totalCount"]
+            if (
+                not isinstance(page_nodes, list)
+                or not isinstance(page_info, dict)
+                or not isinstance(total_count, int)
+                or isinstance(total_count, bool)
+                or total_count < 0
+            ):
+                raise TypeError
+            has_next = page_info["hasNextPage"]
+            if not isinstance(has_next, bool):
+                raise TypeError
+            for node in page_nodes:
+                if (
+                    not isinstance(node, dict)
+                    or not isinstance(node.get("isResolved"), bool)
+                    or not isinstance(node.get("isOutdated"), bool)
+                ):
+                    raise TypeError
         except (KeyError, TypeError, ValueError):
             raise _safe_failure("cleanup_source_unavailable")
-        nodes.extend(node for node in page_nodes if isinstance(node, dict))
-        if not page_info.get("hasNextPage"):
-            return nodes
-        next_cursor = page_info.get("endCursor")
-        if not isinstance(next_cursor, str) or not next_cursor:
+        if expected_total is None:
+            expected_total = total_count
+        elif total_count != expected_total:
             raise _safe_failure("cleanup_source_unavailable")
-        cursor = next_cursor
-
+        nodes.extend(page_nodes)
+        if len(nodes) > total_count:
+            raise _safe_failure("cleanup_source_unavailable")
+        end_cursor = page_info.get("endCursor")
+        if has_next:
+            if (
+                not page_nodes
+                or len(nodes) >= total_count
+                or not isinstance(end_cursor, str)
+                or not end_cursor
+                or end_cursor in seen_cursors
+            ):
+                raise _safe_failure("cleanup_source_unavailable")
+            seen_cursors.add(end_cursor)
+            cursor = end_cursor
+            continue
+        if end_cursor is not None and (
+            not isinstance(end_cursor, str) or not end_cursor
+        ):
+            raise _safe_failure("cleanup_source_unavailable")
+        if len(nodes) != total_count:
+            raise _safe_failure("cleanup_source_unavailable")
+        return nodes
 
 def _required_check_attempts(
     head_sha: str,

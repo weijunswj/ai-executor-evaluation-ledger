@@ -26,6 +26,7 @@ from scripts.processor.common import (
     valid_author_login,
     valid_git_sha,
     valid_identifier,
+    valid_timestamp,
 )
 from scripts.processor.frozen_replay import (
     FrozenBatchPolicy,
@@ -170,6 +171,31 @@ def _safe_gh_json(repository_root: Path, args: List[str], *, paginate: bool = Fa
     )
 
 
+def _validate_live_142_comment(value: Any) -> Dict[str, Any]:
+    user = value.get("user") if isinstance(value, dict) else None
+    entry_key = value.get("id") if isinstance(value, dict) else None
+    numeric_id = user.get("id") if isinstance(user, dict) else None
+    login = user.get("login") if isinstance(user, dict) else None
+    association = value.get("author_association") if isinstance(value, dict) else None
+    if (
+        not isinstance(value, dict)
+        or not isinstance(entry_key, int)
+        or isinstance(entry_key, bool)
+        or entry_key <= 0
+        or not isinstance(numeric_id, int)
+        or isinstance(numeric_id, bool)
+        or numeric_id <= 0
+        or not valid_author_login(login)
+        or not isinstance(association, str)
+        or not association
+        or not isinstance(value.get("body"), str)
+        or not valid_timestamp(value.get("created_at"))
+        or not valid_timestamp(value.get("updated_at"))
+    ):
+        raise ProcessorError("processor_source_unavailable")
+    return value
+
+
 def fetch_live_142_comments(repository_root: Path = ROOT) -> List[Dict[str, Any]]:
     pages = _safe_gh_json(
         repository_root,
@@ -182,7 +208,8 @@ def fetch_live_142_comments(repository_root: Path = ROOT) -> List[Dict[str, Any]
     for page in pages:
         if not isinstance(page, list):
             raise ProcessorError("processor_source_unavailable")
-        comments.extend(item for item in page if isinstance(item, dict))
+        for item in page:
+            comments.append(_validate_live_142_comment(item))
     return comments
 
 

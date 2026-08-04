@@ -388,7 +388,11 @@ def _correction_proof_bindings(
 
 
 
-def validate_correction_records(root: Path = ROOT) -> dict[str, Any]:
+def validate_correction_records(
+    root: Path = ROOT,
+    *,
+    final_raw: Optional[bytes] = None,
+) -> dict[str, Any]:
     raw, records = _load_correction_records(root)
     schema = _parse_json((root / "schema" / "correction-v3.schema.json").read_bytes())
     try:
@@ -415,7 +419,8 @@ def validate_correction_records(root: Path = ROOT) -> dict[str, Any]:
     by_subject, _ = _source_subject_index(root)
     candidate_rows = _source_rows(root, SOURCE_CANDIDATE_SHA)
     main_rows = _source_rows(root, SOURCE_BASE_SHA)
-    final_raw = (root / "evaluations.jsonl").read_bytes()
+    if final_raw is None:
+        final_raw = (root / "evaluations.jsonl").read_bytes()
     final_rows = _records(final_raw)
     candidate_subject_by_id = {row["run_id"]: f"subject-{_source_record_sha256(row)}" for row in candidate_rows}
     final_ids = {row["run_id"] for row in final_rows}
@@ -575,9 +580,17 @@ def _legacy_manifests(root: Path) -> dict[str, dict[str, Any]]:
     return result
 
 
-def expected_manifests_for_bytes(root: Path, final_raw: bytes, *, base_raw: Optional[bytes] = None) -> dict[str, dict[str, Any]]:
+def expected_manifests_for_bytes(
+    root: Path,
+    final_raw: bytes,
+    *,
+    base_raw: Optional[bytes] = None,
+    dispositions_raw: Optional[bytes] = None,
+) -> dict[str, dict[str, Any]]:
     if base_raw is None:
         base_raw = _git_object(root, SOURCE_BASE_SHA, "evaluations.jsonl")
+    if dispositions_raw is None:
+        dispositions_raw = (root / "ledger" / "dispositions.jsonl").read_bytes()
     base_rows = _records(base_raw)
     candidate_rows = _source_rows(root, SOURCE_CANDIDATE_SHA)
     final_rows = _records(final_raw)
@@ -627,7 +640,7 @@ def expected_manifests_for_bytes(root: Path, final_raw: bytes, *, base_raw: Opti
         "unchanged_record_count": 22,
         "candidate_record_count": len(final_rows),
         "candidate_evaluations_sha256": _sha256(final_raw),
-        "candidate_dispositions_sha256": _sha256((root / "ledger" / "dispositions.jsonl").read_bytes()),
+        "candidate_dispositions_sha256": _sha256(dispositions_raw),
         "generated_output_hashes": TARGET_OUTPUT_HASHES,
         "source_inputs": ["evaluations.jsonl", "migrations/correction-records-v3.jsonl", "migrations/correction-migration-manifest.json", "migrations/base-model-v2.json", "migrations/reasoning-scrub-receipt.json"],
         "generated_files": ["README.md", "scorecard.md", "analysis/model-recommendation.json", "ledger/dispositions.jsonl"],
@@ -692,8 +705,29 @@ def expected_manifests_for_bytes(root: Path, final_raw: bytes, *, base_raw: Opti
 WITHDRAWN_IDS, REDACTION_IDS, SCORE_VALUES, REPLACEMENTS, REASONING_ONLY_REMOVED = _public_bindings(ROOT)
 
 
+def _locked_historical_final_raw(root: Path) -> bytes:
+    """Rebuild the immutable migration result from its locked source authority."""
+
+    _, correction_records = _load_correction_records(root)
+    candidate_rows = _source_rows(root, SOURCE_CANDIDATE_SHA)
+    score_source_shas = source_bound_public_bindings(root, correction_records)[2]
+    final_rows = [
+        _effective_record(row, score_source_shas.get(_source_record_sha256(row)))
+        for row in candidate_rows
+    ]
+    return b"".join(_evaluation_line_bytes(row) for row in final_rows)
+
+
+def _locked_dispositions_raw(root: Path) -> bytes:
+    return _git_object(root, SOURCE_CANDIDATE_SHA, "ledger/dispositions.jsonl")
+
+
 def expected_manifests(root: Path = ROOT) -> dict[str, dict[str, Any]]:
-    return expected_manifests_for_bytes(root, (root / "evaluations.jsonl").read_bytes())
+    return expected_manifests_for_bytes(
+        root,
+        _locked_historical_final_raw(root),
+        dispositions_raw=_locked_dispositions_raw(root),
+    )
 
 
 def _schema(root: Path) -> dict[str, Any]:
@@ -719,7 +753,176 @@ def validate_manifest_documents(actual: Mapping[str, Any], expected: Mapping[str
             raise ManifestValidationError("manifest_content_mismatch")
 
 
-def validate_all(root: Path = ROOT) -> dict[str, Any]:
+def _validated_jsonl(
+    root: Path,
+    raw: bytes,
+    *,
+    schema_path: str,
+    identity_fields: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    if (
+        not raw
+        or raw.startswith(b"\xef\xbb\xbf")
+        or b"\r" in raw
+        or not raw.endswith(b"\n")
+        or raw.endswith(b"\n\n")
+    ):
+        raise ManifestValidationError("candidate_jsonl_bytes_invalid")
+    schema = _parse_json((root / schema_path).read_bytes())
+    try:
+        jsonschema.Draft202012Validator.check_schema(schema)
+        validator = jsonschema.Draft202012Validator(
+            schema,
+            format_checker=jsonschema.FormatChecker(),
+        )
+    except jsonschema.SchemaError as error:
+        raise ManifestValidationError("candidate_schema_invalid") from error
+    records: list[dict[str, Any]] = []
+    identities: set[tuple[Any, ...]] = set()
+    for line in raw.splitlines(keepends=True):
+        if line == b"\n" or not line.endswith(b"\n"):
+            raise ManifestValidationError("candidate_jsonl_delimiter_invalid")
+        try:
+            value = json.loads(
+                line[:-1].decode("utf-8", errors="strict"),
+                object_pairs_hook=_duplicate_rejecting_pairs,
+                parse_constant=_reject_constant,
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+            raise ManifestValidationError("candidate_jsonl_invalid")
+        if not isinstance(value, dict) or any(validator.iter_errors(value)):
+            raise ManifestValidationError("candidate_record_invalid")
+        identity = tuple(value.get(field) for field in identity_fields)
+        if identity in identities:
+            raise ManifestValidationError("candidate_identity_duplicate")
+        identities.add(identity)
+        records.append(value)
+    return records
+
+
+def _resolve_base(root: Path, base_ref: str) -> str:
+    if not isinstance(base_ref, str) or not re.fullmatch(
+        r"[0-9a-f]{40}|[A-Za-z0-9._/-]+",
+        base_ref,
+    ):
+        raise ManifestValidationError("candidate_base_invalid")
+    result = subprocess.run(
+        [
+            "git",
+            "rev-parse",
+            "--verify",
+            "--end-of-options",
+            f"{base_ref}^{{commit}}",
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    resolved = result.stdout.strip()
+    if result.returncode != 0 or re.fullmatch(r"[0-9a-f]{40}", resolved) is None:
+        raise ManifestValidationError("candidate_base_invalid")
+    return resolved
+
+
+def _validate_generated_outputs(
+    root: Path,
+    evaluation_records: list[dict[str, Any]],
+) -> None:
+    try:
+        from scripts.rebuild_views import expected_files_for_records, resolved_evaluations
+
+        readme_raw = (root / "README.md").read_bytes()
+        scorecard_raw = (root / "scorecard.md").read_bytes()
+        readme = readme_raw.decode("utf-8", errors="strict")
+        scorecard = scorecard_raw.decode("utf-8", errors="strict")
+        expected_readme, expected_scorecard, recommendation = expected_files_for_records(
+            resolved_evaluations(evaluation_records),
+            readme,
+            scorecard,
+        )
+        expected_recommendation = (
+            json.dumps(
+                recommendation,
+                ensure_ascii=False,
+                sort_keys=True,
+                indent=2,
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+        if (
+            readme_raw != expected_readme.encode("utf-8")
+            or scorecard_raw != expected_scorecard.encode("utf-8")
+            or (root / "analysis" / "model-recommendation.json").read_bytes()
+            != expected_recommendation
+        ):
+            raise ManifestValidationError("candidate_generated_output_mismatch")
+    except (OSError, UnicodeDecodeError, ValueError) as error:
+        raise ManifestValidationError("candidate_generated_output_invalid") from error
+
+
+def _validate_future_candidate(
+    root: Path,
+    *,
+    base_ref: str,
+    locked_evaluations: bytes,
+    locked_dispositions: bytes,
+) -> dict[str, Any]:
+    resolved = _resolve_base(root, base_ref)
+    base_evaluations = _git_object(root, resolved, "evaluations.jsonl")
+    base_dispositions = _git_object(root, resolved, "ledger/dispositions.jsonl")
+    candidate_evaluations = (root / "evaluations.jsonl").read_bytes()
+    candidate_dispositions = (root / "ledger" / "dispositions.jsonl").read_bytes()
+    if (
+        not base_evaluations.startswith(locked_evaluations)
+        or not candidate_evaluations.startswith(base_evaluations)
+        or not base_dispositions.startswith(locked_dispositions)
+        or not candidate_dispositions.startswith(base_dispositions)
+    ):
+        raise ManifestValidationError("candidate_append_only_prefix_mismatch")
+    base_evaluation_records = _validated_jsonl(
+        root,
+        base_evaluations,
+        schema_path="schema/evaluation.schema.json",
+        identity_fields=("run_id",),
+    )
+    candidate_evaluation_records = _validated_jsonl(
+        root,
+        candidate_evaluations,
+        schema_path="schema/evaluation.schema.json",
+        identity_fields=("run_id",),
+    )
+    base_disposition_records = _validated_jsonl(
+        root,
+        base_dispositions,
+        schema_path="schema/disposition.schema.json",
+        identity_fields=("comment_id", "comment_body_sha256"),
+    )
+    candidate_disposition_records = _validated_jsonl(
+        root,
+        candidate_dispositions,
+        schema_path="schema/disposition.schema.json",
+        identity_fields=("comment_id", "comment_body_sha256"),
+    )
+    _validate_generated_outputs(root, candidate_evaluation_records)
+    return {
+        "mode": "future_append_only",
+        "base_sha": resolved,
+        "appended_evaluations": len(candidate_evaluation_records)
+        - len(base_evaluation_records),
+        "appended_dispositions": len(candidate_disposition_records)
+        - len(base_disposition_records),
+    }
+
+
+def validate_all(
+    root: Path = ROOT,
+    *,
+    base_ref: Optional[str] = None,
+) -> dict[str, Any]:
+    locked_evaluations = _locked_historical_final_raw(root)
+    locked_dispositions = _locked_dispositions_raw(root)
     expected = expected_manifests(root)
     actual: dict[str, Any] = {}
     try:
@@ -732,10 +935,53 @@ def validate_all(root: Path = ROOT) -> dict[str, Any]:
     except (OSError, ManifestValidationError):
         raise ManifestValidationError("manifest_unavailable")
     validate_manifest_documents(actual, expected, _schema(root))
-    correction_evidence = validate_correction_records(root)
-    if _sha256((root / "evaluations.jsonl").read_bytes()) != TARGET_EVALUATIONS_SHA or _sha256((root / "ledger" / "dispositions.jsonl").read_bytes()) != TARGET_DISPOSITIONS_SHA:
-        raise ManifestValidationError("candidate_input_hash_mismatch")
-    return {"manifest_count": len(actual), "final_total_count": expected["base-model-v2.json"]["final_total_count"], "evaluations_sha256": expected["base-model-v2.json"]["after_sha256"], "correction_records": correction_evidence}
+    correction_evidence = validate_correction_records(
+        root,
+        final_raw=locked_evaluations,
+    )
+    evaluations_raw = (root / "evaluations.jsonl").read_bytes()
+    dispositions_raw = (root / "ledger" / "dispositions.jsonl").read_bytes()
+    if (
+        _sha256(evaluations_raw) == TARGET_EVALUATIONS_SHA
+        and _sha256(dispositions_raw) == TARGET_DISPOSITIONS_SHA
+    ):
+        evaluation_records = _validated_jsonl(
+            root,
+            evaluations_raw,
+            schema_path="schema/evaluation.schema.json",
+            identity_fields=("run_id",),
+        )
+        _validated_jsonl(
+            root,
+            dispositions_raw,
+            schema_path="schema/disposition.schema.json",
+            identity_fields=("comment_id", "comment_body_sha256"),
+        )
+        for relative_path, expected_hash in TARGET_OUTPUT_HASHES.items():
+            if _sha256((root / relative_path).read_bytes()) != expected_hash:
+                raise ManifestValidationError("candidate_generated_output_hash_mismatch")
+        _validate_generated_outputs(root, evaluation_records)
+        candidate_evidence = {
+            "mode": "unchanged_canonical_head",
+            "appended_evaluations": 0,
+            "appended_dispositions": 0,
+        }
+    else:
+        if base_ref is None:
+            raise ManifestValidationError("candidate_base_required")
+        candidate_evidence = _validate_future_candidate(
+            root,
+            base_ref=base_ref,
+            locked_evaluations=locked_evaluations,
+            locked_dispositions=locked_dispositions,
+        )
+    return {
+        "manifest_count": len(actual),
+        "final_total_count": expected["base-model-v2.json"]["final_total_count"],
+        "evaluations_sha256": expected["base-model-v2.json"]["after_sha256"],
+        "correction_records": correction_evidence,
+        "candidate": candidate_evidence,
+    }
 
 
 def write_all(root: Path = ROOT) -> None:
@@ -749,6 +995,7 @@ def parse_cli(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(prog="validate_manifests")
     parser.add_argument("--repository-root", type=Path, default=ROOT)
+    parser.add_argument("--base-ref")
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--rewrite-correction-proofs", action="store_true")
     return parser.parse_args(argv)
@@ -761,7 +1008,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             rewrite_correction_proofs(args.repository_root)
         if args.write:
             write_all(args.repository_root)
-        evidence = validate_all(args.repository_root)
+        evidence = validate_all(args.repository_root, base_ref=args.base_ref)
     except ManifestValidationError:
         print("Manifest validation failed.", file=sys.stderr)
         return 1

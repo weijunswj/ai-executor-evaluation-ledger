@@ -1176,7 +1176,7 @@ def main() -> int:
         try:
             from scripts.validate_manifests import validate_all
 
-            validate_all(ROOT)
+            validate_all(ROOT, base_ref=args.base_ref)
         except Exception:
             mismatches.append("migration manifests")
         if (
