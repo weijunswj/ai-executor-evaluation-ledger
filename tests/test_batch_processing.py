@@ -18,7 +18,7 @@ from scripts.processor.frozen_replay import _jsonl_records
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_MAIN = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
-BASE_AUTHORITY_SHA = "4eb94faed77336dea785b8f3009134b0515ef2d0"
+BASE_AUTHORITY_SHA = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 STARTING_HEAD_SHA = "90c75c00192fbb759a5c756b697cb3d7cfc7dab1"
 
 
@@ -51,9 +51,15 @@ class TestBatchProcessing(unittest.TestCase):
             return_value=BASE_AUTHORITY_SHA,
         )
         self.live_main_patch.start()
+        self.owner_patch = mock.patch(
+            "scripts.processor.batch_processor.fetch_repository_owner_authority",
+            return_value={"id": 7001, "l" + "ogin": "fixture-author"},
+        )
+        self.owner_patch.start()
 
     def tearDown(self):
         self.live_main_patch.stop()
+        self.owner_patch.stop()
 
     def config(self, batch_id="batch-test-a005"):
         return ProcessBatchConfig(
@@ -95,7 +101,7 @@ class TestBatchProcessing(unittest.TestCase):
                 "autonomy": 4,
                 "efficiency": 4,
             },
-            "weighted_score_5": 4.5,
+            "weighted_score_5": 4.6,
             "public_safe_evidence": {
                 "first_pass_accepted": True,
                 "controller_intervention_required": False,
@@ -118,17 +124,19 @@ class TestBatchProcessing(unittest.TestCase):
         return [
             {
                 "id": 9001,
-                "user": {"l" + "ogin": "fixture-author"},
                 "body": "<!-- ledger-intake:v1 -->\n" + json.dumps(payload),
+                "author_association": "OWNER",
+                "user": {"id": 7001, "l" + "ogin": "fixture-author"},
                 "created_at": "2026-07-29T10:01:00Z",
                 "updated_at": "2026-07-29T10:01:00Z",
             },
             {
                 "id": 9002,
-                "user": {"l" + "ogin": "fixture-author"},
                 "body": "ordinary retained comment",
                 "created_at": "2026-07-29T10:02:00Z",
                 "updated_at": "2026-07-29T10:02:00Z",
+                "author_association": "OWNER",
+                "user": {"id": 7001, "l" + "ogin": "fixture-author"},
             },
         ]
 

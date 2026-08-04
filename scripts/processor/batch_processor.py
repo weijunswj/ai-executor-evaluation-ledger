@@ -32,6 +32,7 @@ from scripts.processor.frozen_replay import (
     replay_frozen_from_receipt,
 )
 from scripts.processor.intake_parser import (
+    INTAKE_MARKER,
     canonical_record_from_payload,
     parse_intake_comment,
 )
@@ -195,6 +196,21 @@ def fetch_single_comment(comment_id: int, repository_root: Path = ROOT) -> Dict[
     return value
 
 
+def fetch_repository_owner_authority(repository_root: Path = ROOT) -> Dict[str, Any]:
+    """Fetch the repository owner identity for in-memory comparison only."""
+
+    value = _safe_gh_json(
+        repository_root,
+        ["repos/weijunswj/ai-executor-evaluation-ledger"],
+    )
+    owner = value.get("owner") if isinstance(value, dict) else None
+    owner_id = owner.get("id") if isinstance(owner, dict) else None
+    owner_login = owner.get("login") if isinstance(owner, dict) else None
+    if not isinstance(owner_id, int) or isinstance(owner_id, bool) or owner_id <= 0 or not valid_author_login(owner_login):
+        raise ProcessorError("authority_missing")
+    return {"id": owner_id, "login": owner_login}
+
+
 def fetch_issue_metadata(repository_root: Path = ROOT) -> Dict[str, Any]:
     value = _safe_gh_json(
         repository_root,
@@ -259,9 +275,54 @@ def _same_snapshot(left: List[Mapping[str, Any]], right: List[Mapping[str, Any]]
         return False
 
 
-def _verify_selected_comment(ref: Mapping[str, Any], fresh: Mapping[str, Any]) -> None:
-    if _comment_fingerprint(ref) != _comment_fingerprint(fresh):
+def _comment_author_identity(comment: Mapping[str, Any]) -> tuple[int, str, str]:
+    user = comment.get("user")
+    numeric_id = user.get("id") if isinstance(user, Mapping) else None
+    login = user.get("login") if isinstance(user, Mapping) else None
+    association = comment.get("author_association")
+    if (
+        not isinstance(numeric_id, int)
+        or isinstance(numeric_id, bool)
+        or numeric_id <= 0
+        or not valid_author_login(login)
+        or not isinstance(association, str)
+    ):
         raise ProcessorError("source_changed")
+    return numeric_id, login, association
+
+
+def _verify_selected_comment(ref: Mapping[str, Any], fresh: Mapping[str, Any]) -> None:
+    if (
+        _comment_fingerprint(ref) != _comment_fingerprint(fresh)
+        or _comment_author_identity(ref) != _comment_author_identity(fresh)
+    ):
+        raise ProcessorError("source_changed")
+
+
+def _parse_authorized_intake_comment(
+    comment: Mapping[str, Any],
+    owner: Mapping[str, Any],
+    recorded_run_ids: set[str],
+    seen_candidate_ids: set[str],
+) -> Tuple[str, Dict[str, Any], str]:
+    body = comment.get("body")
+    if isinstance(body, str) and body.startswith(INTAKE_MARKER):
+        try:
+            numeric_id, login, association = _comment_author_identity(comment)
+        except ProcessorError:
+            return "authority_missing", {}, "authority_missing"
+        if (
+            numeric_id != owner.get("id")
+            or login != owner.get("login")
+            or association != "OWNER"
+        ):
+            return "authority_missing", {}, "authority_missing"
+    return parse_intake_comment(
+        int(comment.get("id", 0)),
+        body,
+        recorded_run_ids,
+        seen_candidate_ids,
+    )
 
 
 def _validate_config(config: ProcessBatchConfig) -> None:
@@ -489,6 +550,7 @@ def build_batch_candidate(
     queue_fetcher: Optional[Callable[[Path], List[Dict[str, Any]]]] = None,
     comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
     canonical_main_fetcher: Optional[Callable[[Path], str]] = None,
+    owner_fetcher: Optional[Callable[[Path], Dict[str, Any]]] = None,
 ) -> Tuple[Dict[str, bytes], Dict[str, Any]]:
     _validate_config(config)
     canonical_main_fetcher = canonical_main_fetcher or fetch_live_canonical_main_sha
@@ -511,6 +573,8 @@ def build_batch_candidate(
     if comments is None:
         comments = queue_fetcher(config.repository_root)
     comments = sorted(comments, key=lambda item: item.get("id", 0))
+    owner_fetcher = owner_fetcher or fetch_repository_owner_authority
+    owner_authority = owner_fetcher(config.repository_root)
     first_fingerprints, first_queue_hash = _queue_snapshot(comments)
 
     for comment in comments:
@@ -543,8 +607,9 @@ def build_batch_candidate(
 
     for comment, fingerprint in zip(comments, first_fingerprints):
         comment_id = int(comment["id"])
-        body = comment.get("body", "")
-        code, payload, _ = parse_intake_comment(comment_id, body, recorded_run_ids, seen_candidate_ids)
+        code, payload, _ = _parse_authorized_intake_comment(
+            comment, owner_authority, recorded_run_ids, seen_candidate_ids
+        )
         evaluation_run_id = None
         record_hash = None
         if code == "admitted":
@@ -738,6 +803,7 @@ def process_batch(
     queue_fetcher: Optional[Callable[[Path], List[Dict[str, Any]]]] = None,
     comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
     canonical_main_fetcher: Optional[Callable[[Path], str]] = None,
+    owner_fetcher: Optional[Callable[[Path], Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     candidate_files, evidence = build_batch_candidate(
         config,
@@ -746,6 +812,7 @@ def process_batch(
         queue_fetcher=queue_fetcher,
         comment_fetcher=comment_fetcher,
         canonical_main_fetcher=canonical_main_fetcher,
+        owner_fetcher=owner_fetcher,
     )
     queue_fetcher = queue_fetcher or fetch_live_142_comments
     final_queue = queue_fetcher(config.repository_root)

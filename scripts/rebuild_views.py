@@ -27,6 +27,11 @@ SCORECARD_PATH = ROOT / "scorecard.md"
 RECOMMENDATION_JSON_PATH = ROOT / "analysis" / "model-recommendation.json"
 MIGRATION_MANIFEST_PATH = ROOT / "migrations" / "base-model-v2.json"
 RECOMMENDATION_SCHEMA_PATH = ROOT / "schema" / "recommendation.schema.json"
+EVALUATION_SCHEMA_PATH = ROOT / "schema" / "evaluation.schema.json"
+EVALUATION_SCHEMA = json.loads(EVALUATION_SCHEMA_PATH.read_text(encoding="utf-8"))
+EVALUATION_VALIDATOR = jsonschema.Draft202012Validator(
+    EVALUATION_SCHEMA, format_checker=jsonschema.FormatChecker()
+)
 DISPLAY_LIMIT = 30
 INDEPENDENT_OBSERVATION_THRESHOLD = 3
 
@@ -1050,21 +1055,91 @@ def _migration_prefix_from_base(
     return b""
 
 
-def verify_append_only(base_ref: str) -> None:
-    """Require the exact locked G3 migration from canonical main."""
+def _strict_evaluation_jsonl(raw: bytes) -> list[dict[str, Any]]:
+    if (
+        not raw
+        or raw.startswith(b"\xef\xbb\xbf")
+        or b"\r" in raw
+        or not raw.endswith(b"\n")
+        or raw.endswith(b"\n\n")
+    ):
+        fail("invalid_jsonl_bytes")
+    records: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for raw_line in raw.splitlines(keepends=True):
+        if raw_line == b"\n" or not raw_line.endswith(b"\n"):
+            fail("invalid_jsonl_delimiter")
+        try:
+            value = json.loads(
+                raw_line[:-1].decode("utf-8", errors="strict"),
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_constant=_reject_nonfinite_constant,
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+            fail("invalid_json")
+        if not isinstance(value, dict) or any(
+            EVALUATION_VALIDATOR.iter_errors(value)
+        ):
+            fail("invalid_record")
+        run_id = value.get("run_id")
+        if not isinstance(run_id, str) or run_id in seen_ids:
+            fail("duplicate_run_id")
+        seen_ids.add(run_id)
+        records.append(value)
+    return records
+
+
+def verify_append_only(base_ref: str) -> str:
+    """Verify the locked migration or a generic post-migration append."""
 
     if not re.fullmatch(r"[0-9a-f]{40}|[A-Za-z0-9._/-]+", base_ref):
         fail("invalid append-only base reference")
-    if base_ref != G3_SOURCE_BASE_SHA:
-        fail("migration_source_mismatch")
-    if hashlib.sha256(LEDGER_PATH.read_bytes()).hexdigest() != G3_TARGET_EVALUATIONS_SHA:
-        fail("append_only_candidate_hash_mismatch")
-    try:
-        from scripts.validate_manifests import validate_all
+    if base_ref == G3_SOURCE_BASE_SHA:
+        if hashlib.sha256(LEDGER_PATH.read_bytes()).hexdigest() != G3_TARGET_EVALUATIONS_SHA:
+            fail("append_only_candidate_hash_mismatch")
+        try:
+            from scripts.validate_manifests import validate_all
 
-        validate_all(ROOT)
-    except Exception as error:
-        raise ValueError("rebuild_failed") from error
+            validate_all(ROOT)
+        except Exception as error:
+            raise ValueError("rebuild_failed") from error
+        return "locked_migration"
+
+    resolved = subprocess.run(
+        [
+            "git",
+            "rev-parse",
+            "--verify",
+            "--end-of-options",
+            f"{base_ref}^{{commit}}",
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", resolved):
+        fail("invalid append-only base reference")
+    result = subprocess.run(
+        ["git", "show", f"{resolved}:evaluations.jsonl"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=False,
+    )
+    base_bytes = result.stdout
+    current_bytes = LEDGER_PATH.read_bytes()
+    base_records = _strict_evaluation_jsonl(base_bytes)
+    if not current_bytes.startswith(base_bytes):
+        fail("append_only_prefix_mismatch")
+    appended_bytes = current_bytes[len(base_bytes):]
+    appended_records = _strict_evaluation_jsonl(appended_bytes) if appended_bytes else []
+    base_ids = {record["run_id"] for record in base_records}
+    appended_ids = {record["run_id"] for record in appended_records}
+
+    if base_ids & appended_ids:
+        fail("duplicate_run_id")
+    return "generic_append"
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -1072,9 +1147,10 @@ def main() -> int:
     parser.add_argument("--base-ref", help="optional Git revision used to enforce append-only JSONL")
     args = parser.parse_args()
 
+    append_only_mode: Optional[str] = None
     try:
         if args.base_ref:
-            verify_append_only(args.base_ref)
+            append_only_mode = verify_append_only(args.base_ref)
         records = load_records()
         evaluations = resolved_evaluations(records)
         expected_readme, expected_scorecard, manifest = expected_files(evaluations)
@@ -1103,10 +1179,15 @@ def main() -> int:
             validate_all(ROOT)
         except Exception:
             mismatches.append("migration manifests")
-        for relative_path, expected_hash in G3_TARGET_OUTPUT_HASHES.items():
-            target = ROOT / relative_path
-            if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
-                mismatches.append(relative_path)
+        if (
+            append_only_mode == "locked_migration"
+            or hashlib.sha256(LEDGER_PATH.read_bytes()).hexdigest()
+            == G3_TARGET_EVALUATIONS_SHA
+        ):
+            for relative_path, expected_hash in G3_TARGET_OUTPUT_HASHES.items():
+                target = ROOT / relative_path
+                if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
+                    mismatches.append(relative_path)
         if mismatches:
             print("Generated ledger views are stale: " + ", ".join(mismatches), file=sys.stderr)
             print("Run: python scripts/rebuild_views.py", file=sys.stderr)

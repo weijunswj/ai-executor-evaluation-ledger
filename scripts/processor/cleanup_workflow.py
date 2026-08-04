@@ -10,6 +10,7 @@ import argparse
 import base64
 import json
 import subprocess
+from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional
@@ -21,8 +22,10 @@ from scripts.processor.common import (
     canonical_json_bytes,
     sha256_bytes,
     validate_batch_receipt_closure,
+    valid_author_login,
     valid_git_sha,
     valid_identifier,
+    valid_timestamp,
 )
 from scripts.processor.github_cli import gh_json
 from scripts.validate_receipts import (
@@ -181,9 +184,72 @@ def _gh_get_paginated(path: str, repository_root: Path) -> list[dict[str, Any]]:
         raise _safe_failure("cleanup_source_unavailable")
     flattened: list[dict[str, Any]] = []
     for page in pages:
-        if isinstance(page, list):
-            flattened.extend(item for item in page if isinstance(item, dict))
+        if not isinstance(page, list) or any(
+            not isinstance(item, dict) for item in page
+        ):
+            raise _safe_failure("cleanup_source_unavailable")
+        flattened.extend(page)
     return flattened
+
+
+def _effective_review_state(reviews: list[dict[str, Any]]) -> str:
+    """Derive each stable reviewer's latest decisive submitted state."""
+
+    grouped: dict[int, list[tuple[datetime, int, str]]] = {}
+    reviewer_logins: dict[int, str] = {}
+    reviewer_ids_by_login: dict[str, int] = {}
+    review_ids: set[int] = set()
+    supported_states = {"APPROVED", "CHANGES_REQUESTED", "COMMENTED", "PENDING"}
+    for review in reviews:
+        if not isinstance(review, dict):
+            raise _safe_failure("cleanup_source_unavailable")
+        review_id = review.get("id")
+        reviewer = review.get("user")
+        reviewer_id = reviewer.get("id") if isinstance(reviewer, dict) else None
+        reviewer_login = reviewer.get("login") if isinstance(reviewer, dict) else None
+        state = review.get("state")
+        submitted_at = review.get("submitted_at")
+        if (
+            not isinstance(review_id, int)
+            or isinstance(review_id, bool)
+            or review_id <= 0
+            or review_id in review_ids
+            or not isinstance(reviewer_id, int)
+            or isinstance(reviewer_id, bool)
+            or reviewer_id <= 0
+            or not valid_author_login(reviewer_login)
+            or state not in supported_states
+            or not valid_timestamp(submitted_at)
+        ):
+            raise _safe_failure("cleanup_source_unavailable")
+        if (
+            reviewer_id in reviewer_logins
+            and reviewer_logins[reviewer_id] != reviewer_login
+        ) or (
+            reviewer_login in reviewer_ids_by_login
+            and reviewer_ids_by_login[reviewer_login] != reviewer_id
+        ):
+            raise _safe_failure("cleanup_source_unavailable")
+        reviewer_logins[reviewer_id] = reviewer_login
+        review_ids.add(review_id)
+        reviewer_ids_by_login[reviewer_login] = reviewer_id
+        submitted = datetime.fromisoformat(submitted_at.replace("Z", "+00:00"))
+        grouped.setdefault(reviewer_id, []).append((submitted, review_id, state))
+
+    blocking = False
+    for submissions in grouped.values():
+        submissions.sort(key=lambda item: (item[0], item[1]))
+        if any(item[2] == "PENDING" for item in submissions):
+            blocking = True
+            continue
+        decisive = [
+            item[2]
+            for item in submissions
+            if item[2] in {"APPROVED", "CHANGES_REQUESTED"}
+        ]
+        if decisive and decisive[-1] == "CHANGES_REQUESTED":
+            blocking = True
+    return "blocking" if blocking else "clear"
 
 
 def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
@@ -445,10 +511,7 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         workflow_runs,
         jobs_by_attempt,
     )
-    review_state = "blocking" if any(
-        str(item.get("state", "")).upper() in {"CHANGES_REQUESTED", "PENDING"}
-        for item in reviews
-    ) else "clear"
+    review_state = _effective_review_state(reviews)
     if any(not item.get("isResolved") and not item.get("isOutdated") for item in threads):
         review_state = "unresolved_actionable"
     state = str(pr.get("state", "")).lower()

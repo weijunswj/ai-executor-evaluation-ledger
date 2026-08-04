@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BASELINE_FILE = ROOT / ".public-safety-baseline"
 MAX_TEXT_BYTES = 2_000_000
 GENERIC_HISTORY_BASELINE = "c644a6032dec6709ff08b10f8bfb4fe53de28b69"
+UUID_HISTORY_ACTIVATION_HEAD = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 PR_ACTIVATION_HEAD = "10f40ea2f820f4a6230355502639bd7a238b2c45"
 CANONICAL_MAIN_BASE = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 PRE_ACTIVATION_OCCURRENCE_COUNT = 571
@@ -111,6 +112,10 @@ SENSITIVE_JSON_KEYS = {
     "connection_string",
 }
 
+UUID_RULE = (
+    "UUID",
+    re.compile(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b"),
+)
 RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("private key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----")),
     ("GitHub token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b")),
@@ -137,6 +142,7 @@ RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
         \s*[:=]\s*
         ["'][^"']+["']
     """)),
+    UUID_RULE,
     ("prohibited UUID assignment", re.compile(r"""(?ix)
         ["']?(?:workspace_uuid|project_ref|project_id|application_uuid|deployment_uuid|client_id|support_case_id?|owner|user_id|owner_id)["']?
         \s*[:=]\s*
@@ -150,6 +156,10 @@ RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
         ["'](?!REDACTED|PLACEHOLDER|EXAMPLE|CHANGEME)[^"']{8,}["']
     """)),
 )
+# The UUID rule is prospective. Immutable history before DL-153-007 is still
+# covered by every rule that was authoritative when that history was accepted.
+HISTORICAL_RULES = tuple(rule for rule in RULES if rule != UUID_RULE)
+
 
 INFERENCE_IDENTITY_WORD = "reason" + "ing"
 COGNITIVE_SETTING_PARTS = ("think" + "ing", "setting")
@@ -343,9 +353,13 @@ def prepare_historical_text(commit: str, label: str, text: str) -> str:
     return mask_exact_lines(text, allowed_lines)
 
 
-def scan_text(label: str, text: str) -> list[str]:
+def scan_text(
+    label: str,
+    text: str,
+    rules: Iterable[tuple[str, re.Pattern[str]]] = RULES,
+) -> list[str]:
     failures: list[str] = []
-    for rule_name, pattern in RULES:
+    for rule_name, pattern in rules:
         for match in pattern.finditer(text):
             line = text.count("\n", 0, match.start()) + 1
             failures.append(f"{label}:{line}: {rule_name}")
@@ -424,11 +438,18 @@ def scan_public_text(
     *,
     generic_text: str | None = None,
     policy_failures: Iterable[str] = (),
+    generic_rules: Iterable[tuple[str, re.Pattern[str]]] = RULES,
 ) -> list[str]:
     """Apply the one generic and normalized-identity scanning pipeline."""
 
     failures = list(policy_failures)
-    failures.extend(scan_text(label, text if generic_text is None else generic_text))
+    failures.extend(
+        scan_text(
+            label,
+            text if generic_text is None else generic_text,
+            generic_rules,
+        )
+    )
     failures.extend(scan_ledger_identity(label, text))
     return failures
 
@@ -881,6 +902,22 @@ def unicode_history_start(root: Path, manifest: Mapping[str, Any]) -> tuple[str,
     return canonical, "canonical-main-squash"
 
 
+def uuid_history_start(root: Path) -> tuple[str, str]:
+    """Select the prospective UUID-rule history without rewriting legacy history."""
+
+    _require_complete_history(root)
+    if _git_commit_exists(root, UUID_HISTORY_ACTIVATION_HEAD) and _is_ancestor(
+        root,
+        UUID_HISTORY_ACTIVATION_HEAD,
+    ):
+        return UUID_HISTORY_ACTIVATION_HEAD, "pr-descendant"
+    if not _git_commit_exists(root, CANONICAL_MAIN_BASE):
+        raise RuntimeError("canonical history authority is unavailable")
+    if not _is_ancestor(root, CANONICAL_MAIN_BASE):
+        raise RuntimeError("no authorised UUID history ancestry")
+    return CANONICAL_MAIN_BASE, "canonical-main-squash"
+
+
 def tree_failures(root: Path) -> list[str]:
     """Return privacy-safe failures for a complete isolated candidate tree."""
     failures: list[str] = []
@@ -915,13 +952,14 @@ def history_failures(root: Path = ROOT) -> list[str]:
     manifest = validate_activation_manifest(root)
 
     # The original generic rules retain their original baseline and exact line
-    # exceptions. The Unicode rule receives no authority over that range.
+    # exceptions. New prospective rules receive no authority over that range.
     for commit, label, line_number, addition in added_lines_since_baseline(root):
         prepared = prepare_historical_text(commit, label, addition)
         failures.extend(
             scan_text(
                 f"commit:{commit[:12]}:{label}:added-line-{line_number}",
                 prepared,
+                HISTORICAL_RULES,
             )
         )
 
@@ -936,8 +974,24 @@ def history_failures(root: Path = ROOT) -> list[str]:
                 f"commit:{commit[:12]}:{label}:added-line-{line_number}",
                 addition,
                 generic_text=prepared,
+                generic_rules=HISTORICAL_RULES,
             )
         )
+
+    uuid_start, _mode = uuid_history_start(root)
+    for commit, label, line_number, addition in added_lines_in_range(
+        uuid_start,
+        root=root,
+    ):
+        prepared = prepare_historical_text(commit, label, addition)
+        failures.extend(
+            scan_text(
+                f"commit:{commit[:12]}:{label}:added-line-{line_number}",
+                prepared,
+                (UUID_RULE,),
+            )
+        )
+
     return sorted(set(failures))
 
 

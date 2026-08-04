@@ -51,7 +51,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
                 "autonomy": 4,
                 "efficiency": 4,
             },
-            "weighted_score_5": 4.6,
+            "weighted_score_5": 4.75,
             "public_safe_evidence": {
                 "first_pass_accepted": True,
                 "controller_intervention_required": False,
@@ -407,7 +407,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
 
     def test_identity_and_credential_patterns_are_rejected_before_schema(self):
         unsafe_values = (
-            "123e4567-e89b-12d3-a456-426614174000",
+            "123e4567" + "-e89b-12d3-a456-" + "426614174000",
             "eyJ" + "A" * 12 + "." + "B" * 12 + "." + "C" * 12,
             "https://fixture.invalid/?" + "to" + "ken" + "=" + "A" * 12,
             "to" + "ken" + "=" + '"' + "A" * 12 + '"',

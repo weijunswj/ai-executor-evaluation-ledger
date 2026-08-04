@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Dict, FrozenSet, Optional, Set, Tuple
 
@@ -53,6 +54,16 @@ SCORE_FIELDS = (
     "autonomy",
     "efficiency",
 )
+SCORE_WEIGHTS = {
+    "correctness": 20,
+    "safety_and_scope_control": 20,
+    "evidence_quality": 15,
+    "operational_judgement": 15,
+    "task_understanding": 10,
+    "tracker_and_repository_hygiene": 10,
+    "autonomy": 5,
+    "efficiency": 5,
+}
 
 EVIDENCE_FIELDS = (
     "first_pass_accepted",
@@ -185,6 +196,30 @@ def _reject(code: str) -> Tuple[str, Dict[str, Any], str]:
 def _reject_nonfinite_constant(_value: str) -> None:
     raise ValueError("nonfinite_json_number")
 
+
+def derive_weighted_score_5(score_dimensions: Dict[str, Any]) -> Decimal:
+    """Derive the rubric total using exact decimal arithmetic."""
+
+    if not isinstance(score_dimensions, dict) or set(score_dimensions) != set(SCORE_WEIGHTS):
+        raise ValueError("invalid_score_dimensions")
+    total = Decimal(0)
+    try:
+        for field, weight in SCORE_WEIGHTS.items():
+            value = score_dimensions[field]
+            if isinstance(value, bool):
+                raise ValueError("invalid_score_dimensions")
+            decimal_value = Decimal(str(value))
+            if not decimal_value.is_finite() or not Decimal(0) <= decimal_value <= Decimal(5):
+                raise ValueError("invalid_score_dimensions")
+            total += decimal_value * Decimal(weight)
+    except (InvalidOperation, TypeError):
+        raise ValueError("invalid_score_dimensions")
+    return total / Decimal(100)
+
+
+def _json_score(value: Decimal) -> int | float:
+    integral = value.to_integral_value()
+    return int(integral) if value == integral else float(value)
 
 def _same_or_missing(left: Any, right: Any) -> bool:
     return left is None or right is None or left == right
@@ -387,6 +422,17 @@ def parse_intake_comment(
         return _reject("ineligible_identity")
     if adapted["secret_exposure_status"] != "none":
         return _reject("unsafe_content")
+    try:
+        derived_score = derive_weighted_score_5(adapted["score_dimensions"])
+        supplied_score = Decimal(str(adapted["weighted_score_5"]))
+        supplied_score_10 = adapted.get("weighted_score_10")
+        if supplied_score != derived_score or (
+            supplied_score_10 is not None
+            and Decimal(str(supplied_score_10)) != derived_score * Decimal(2)
+        ):
+            return _reject("invalid_schema")
+    except (InvalidOperation, TypeError, ValueError):
+        return _reject("invalid_schema")
 
     run_id = adapted["evaluation_run_id"]
     if run_id in recorded_run_ids:
@@ -417,19 +463,22 @@ def canonical_record_from_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
         "first_pass_accepted": evidence["first_pass_accepted"],
         "controller_intervention_required": evidence["controller_intervention_required"],
         "scores": {field: payload["score_dimensions"][field] for field in SCORE_FIELDS},
-        "weighted_score_5": payload["weighted_score_5"],
+        "weighted_score_5": _json_score(derive_weighted_score_5(payload["score_dimensions"])),
         "confidence": evidence["confidence"],
     }
 
     optional_top_level = (
         "executor_reported_at",
         "prompt_sha256",
-        "weighted_score_10",
         "objective",
     )
     for field in optional_top_level:
         if field in payload:
             record[field] = payload[field]
+    if payload.get("weighted_score_10") is not None:
+        record["weighted_score_10"] = _json_score(
+            derive_weighted_score_5(payload["score_dimensions"]) * Decimal(2)
+        )
 
     for field in EVIDENCE_FIELDS:
         if field in evidence and field not in record:

@@ -11,13 +11,18 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.processor.common import ProcessorError, canonical_json_line_bytes
-from scripts.processor.frozen_source import refetch_frozen_source
+from scripts.processor.common import (
+    ProcessorError,
+    canonical_json_line_bytes,
+    reject_duplicate_json_keys,
+)
+from scripts.processor.frozen_source import refetch_frozen_source_for_refreeze
 from scripts.processor.intake_parser import (
     INTAKE_MARKER,
     INTAKE_VALIDATOR,
     adapt_historical_payload,
     canonical_record_from_payload,
+    parse_intake_comment,
 )
 
 RECEIPT_PATH = (
@@ -29,6 +34,19 @@ RECEIPT_PATH = (
 )
 
 
+def _reject_nonfinite_constant(_value: str) -> None:
+    raise ValueError("nonfinite_json_number")
+
+
+def canonical_refreeze_replacement(body: str, expected_run_id: str) -> dict:
+    """Validate and construct one exact canonical replacement record."""
+
+    code, adapted, _reason = parse_intake_comment(1, body, set(), set())
+    if code != "admitted" or adapted.get("evaluation_run_id") != expected_run_id:
+        raise ProcessorError("source_changed")
+    return canonical_record_from_payload(adapted)
+
+
 def refreeze(root: Path = ROOT) -> dict[str, int]:
     receipt_path = (
         root
@@ -38,7 +56,7 @@ def refreeze(root: Path = ROOT) -> dict[str, int]:
         / "batch-20260729-gate3-amendment-004.json"
     )
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    evidence = refetch_frozen_source(root, receipt)
+    evidence = refetch_frozen_source_for_refreeze(root, receipt)
     old_hashes = receipt.get("source_body_sha256", {})
     changed_ids = [
         int(comment_id)
@@ -63,7 +81,10 @@ def refreeze(root: Path = ROOT) -> dict[str, int]:
                 raise ProcessorError("source_changed")
             raw = body[len(INTAKE_MARKER):].lstrip(" \t\r\n")
             try:
-                payload, end = json.JSONDecoder().raw_decode(raw)
+                payload, end = json.JSONDecoder(
+                    object_pairs_hook=reject_duplicate_json_keys,
+                    parse_constant=_reject_nonfinite_constant,
+                ).raw_decode(raw)
             except (TypeError, ValueError):
                 raise ProcessorError("source_changed")
             if not isinstance(payload, dict) or raw[end:].strip():
@@ -76,7 +97,7 @@ def refreeze(root: Path = ROOT) -> dict[str, int]:
                 raise ProcessorError("source_changed")
             intake_errors = list(INTAKE_VALIDATOR.iter_errors(adapted))
             if not intake_errors:
-                record = canonical_record_from_payload(adapted)
+                record = canonical_refreeze_replacement(body, expected_run_id)
                 changed_records[record["run_id"]] = record
             elif comment_id == 5086781596:
                 evidence_value = payload.get("public_safe_evidence")
