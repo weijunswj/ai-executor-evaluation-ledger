@@ -264,6 +264,18 @@ def _effective_review_state(reviews: list[dict[str, Any]]) -> str:
     return "blocking" if blocking else "clear"
 
 
+def _valid_review_thread_cursor(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and 1 <= len(value) <= 256
+        and value == value.strip()
+        and not any(
+            unicodedata.category(character) == "Cc"
+            for character in value
+        )
+    )
+
+
 def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
     query = (
         "query($owner:String!,$repo:String!,$number:Int!,$cursor:String){"
@@ -314,6 +326,7 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
             ):
                 raise TypeError
             has_next = page_info["hasNextPage"]
+            end_cursor = page_info["endCursor"]
             if not isinstance(has_next, bool):
                 raise TypeError
             page_ids: set[str] = set()
@@ -347,22 +360,18 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
         nodes.extend(page_nodes)
         if len(seen_ids) > total_count:
             raise _safe_failure("cleanup_source_unavailable")
-        end_cursor = page_info.get("endCursor")
         if has_next:
             if (
                 not page_nodes
                 or len(nodes) >= total_count
-                or not isinstance(end_cursor, str)
-                or not end_cursor
+                or not _valid_review_thread_cursor(end_cursor)
                 or end_cursor in seen_cursors
             ):
                 raise _safe_failure("cleanup_source_unavailable")
             seen_cursors.add(end_cursor)
             cursor = end_cursor
             continue
-        if end_cursor is not None and (
-            not isinstance(end_cursor, str) or not end_cursor
-        ):
+        if end_cursor is not None and not _valid_review_thread_cursor(end_cursor):
             raise _safe_failure("cleanup_source_unavailable")
         if len(seen_ids) != total_count:
             raise _safe_failure("cleanup_source_unavailable")

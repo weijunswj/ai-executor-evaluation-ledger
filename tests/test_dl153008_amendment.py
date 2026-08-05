@@ -464,7 +464,37 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
         with mock.patch.object(cleanup_workflow, "gh_json", side_effect=responses):
             return cleanup_workflow._gh_get_threads(self.config())
 
-    def test_valid_empty_nonempty_and_optional_final_cursor_omission(self):
+    def readback_authority(self, *thread_responses):
+        config = self.config()
+        pr = {
+            "state": "open",
+            "merged_at": None,
+            "merge_commit_sha": "a" * 40,
+            "head": {"sha": "c" * 40},
+        }
+        main = {"object": {"sha": "b" * 40}}
+        raw_commit = {"parents": [], "files": []}
+        raw_receipt = {"type": "file", "encoding": "base64", "content": "e30="}
+        with (
+            mock.patch.object(
+                cleanup_workflow,
+                "_gh_get_json",
+                side_effect=[pr, main, raw_commit, raw_receipt, {"workflow_runs": []}],
+            ),
+            mock.patch.object(
+                cleanup_workflow,
+                "_gh_get_paginated",
+                side_effect=[[], []],
+            ),
+            mock.patch.object(
+                cleanup_workflow,
+                "gh_json",
+                side_effect=thread_responses,
+            ),
+        ):
+            return cleanup_workflow._readback_live_authority(config)
+
+    def test_valid_empty_nonempty_and_explicit_final_cursor(self):
         self.assertEqual(self.threads(self.envelope([], total=0)), [])
         node = {"id": "thread-1", "isResolved": True, "isOutdated": False}
         self.assertEqual(self.threads(self.envelope([node], total=1)), [node])
@@ -473,7 +503,7 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
                 self.envelope(
                     [node],
                     total=1,
-                    include_end_cursor=False,
+                    end_cursor="cursor-final",
                 )
             ),
             [node],
@@ -489,6 +519,106 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
             ),
             [first, second],
         )
+
+    def test_final_end_cursor_is_required_and_bounded(self):
+        node = {"id": "thread-1", "isResolved": True, "isOutdated": False}
+        cases = {
+            "missing": self.envelope(
+                [node], total=1, include_end_cursor=False
+            ),
+            "empty": self.envelope([node], total=1, end_cursor=""),
+            "whitespace": self.envelope([node], total=1, end_cursor=" "),
+            "padded": self.envelope([node], total=1, end_cursor=" cursor-final "),
+            "control": self.envelope([node], total=1, end_cursor="bad\ncursor"),
+            "overlong": self.envelope([node], total=1, end_cursor="x" * 257),
+            "numeric": self.envelope([node], total=1, end_cursor=1),
+            "boolean": self.envelope([node], total=1, end_cursor=True),
+        }
+        for label, response in cases.items():
+            with self.subTest(label=label), self.assertRaises(ProcessorError):
+                self.threads(response)
+
+    def test_intermediate_cursor_is_required_and_bounded(self):
+        first = {"id": "thread-1", "isResolved": True, "isOutdated": False}
+        second = {"id": "thread-2", "isResolved": True, "isOutdated": False}
+        cases = {
+            "missing": {"include_end_cursor": False},
+            "null": {"end_cursor": None},
+            "numeric": {"end_cursor": 1},
+            "boolean": {"end_cursor": True},
+            "empty": {"end_cursor": ""},
+            "whitespace": {"end_cursor": " "},
+            "leading_padding": {"end_cursor": " cursor-1"},
+            "trailing_padding": {"end_cursor": "cursor-1 "},
+            "control": {"end_cursor": "bad\ncursor"},
+            "unicode_control": {"end_cursor": "bad\u0085cursor"},
+            "overlong": {"end_cursor": "x" * 257},
+        }
+        for label, cursor_args in cases.items():
+            with self.subTest(label=label), self.assertRaises(ProcessorError):
+                self.threads(
+                    self.envelope(
+                        [first], total=2, has_next=True, **cursor_args
+                    ),
+                    self.envelope([second], total=2),
+                )
+
+    def test_valid_256_character_intermediate_cursor(self):
+        first = {"id": "thread-1", "isResolved": True, "isOutdated": False}
+        second = {"id": "thread-2", "isResolved": True, "isOutdated": False}
+        self.assertEqual(
+            [first, second],
+            self.threads(
+                self.envelope(
+                    [first], total=2, has_next=True, end_cursor="x" * 256
+                ),
+                self.envelope([second], total=2),
+            ),
+        )
+
+    def test_malformed_pagination_cannot_return_clear_review_state(self):
+        first = {"id": "thread-1", "isResolved": True, "isOutdated": False}
+        second = {"id": "thread-2", "isResolved": True, "isOutdated": False}
+        cases = {
+            "missing_final": [
+                self.envelope([first], total=1, include_end_cursor=False)
+            ],
+            "missing_intermediate": [
+                self.envelope(
+                    [first], total=2, has_next=True, include_end_cursor=False
+                ),
+                self.envelope([second], total=2),
+            ],
+            "null_intermediate": [
+                self.envelope([first], total=2, has_next=True, end_cursor=None),
+                self.envelope([second], total=2),
+            ],
+            "empty_intermediate": [
+                self.envelope([first], total=2, has_next=True, end_cursor=""),
+                self.envelope([second], total=2),
+            ],
+            "padded_intermediate": [
+                self.envelope(
+                    [first], total=2, has_next=True, end_cursor=" cursor-1 "
+                ),
+                self.envelope([second], total=2),
+            ],
+            "control_intermediate": [
+                self.envelope(
+                    [first], total=2, has_next=True, end_cursor="bad\ncursor"
+                ),
+                self.envelope([second], total=2),
+            ],
+            "overlong_intermediate": [
+                self.envelope(
+                    [first], total=2, has_next=True, end_cursor="x" * 257
+                ),
+                self.envelope([second], total=2),
+            ],
+        }
+        for label, responses in cases.items():
+            with self.subTest(label=label), self.assertRaises(ProcessorError):
+                self.readback_authority(*responses)
 
     def test_malformed_envelope_connection_nodes_and_mixed_nodes_fail_closed(self):
         cases = {
@@ -522,15 +652,17 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
                 self.threads(value)
 
     def test_invalid_pagination_booleans_cursors_and_repeated_cursor_fail_closed(self):
+        first = {"id": "thread-1", "isResolved": True, "isOutdated": False}
+        second = {"id": "thread-2", "isResolved": True, "isOutdated": False}
         cases = {
             "string_boolean": [self.envelope([], total=0, has_next="false")],
             "numeric_boolean": [self.envelope([], total=0, has_next=1)],
-            "missing_next_cursor": [self.envelope([], total=1, has_next=True, include_end_cursor=False)],
-            "null_next_cursor": [self.envelope([], total=1, has_next=True, end_cursor=None)],
-            "numeric_cursor": [self.envelope([], total=1, has_next=True, end_cursor=1)],
+            "missing_next_cursor": [self.envelope([first], total=2, has_next=True, include_end_cursor=False)],
+            "null_next_cursor": [self.envelope([first], total=2, has_next=True, end_cursor=None)],
+            "numeric_cursor": [self.envelope([first], total=2, has_next=True, end_cursor=1)],
             "repeated_cursor": [
-                self.envelope([], total=2, has_next=True, end_cursor="cursor-1"),
-                self.envelope([], total=2, has_next=True, end_cursor="cursor-1"),
+                self.envelope([first], total=3, has_next=True, end_cursor="cursor-1"),
+                self.envelope([second], total=3, has_next=True, end_cursor="cursor-1"),
             ],
         }
         for label, responses in cases.items():
