@@ -10,6 +10,7 @@ import argparse
 import base64
 import json
 import subprocess
+import unicodedata
 from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
@@ -267,13 +268,14 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
     query = (
         "query($owner:String!,$repo:String!,$number:Int!,$cursor:String){"
         "repository(owner:$owner,name:$repo){pullRequest(number:$number){"
-        "reviewThreads(first:100,after:$cursor){nodes{isResolved,isOutdated}"
+        "reviewThreads(first:100,after:$cursor){nodes{id,isResolved,isOutdated}"
         "totalCount,pageInfo{hasNextPage,endCursor}}}}}"
     )
     nodes: list[dict[str, Any]] = []
     cursor: Optional[str] = None
     seen_cursors: set[str] = set()
     expected_total: Optional[int] = None
+    seen_ids: set[str] = set()
     while True:
         cursor_arg = "null" if cursor is None else cursor
         value = gh_json(
@@ -314,21 +316,36 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
             has_next = page_info["hasNextPage"]
             if not isinstance(has_next, bool):
                 raise TypeError
+            page_ids: set[str] = set()
             for node in page_nodes:
+                thread_id = node.get("id") if isinstance(node, dict) else None
                 if (
                     not isinstance(node, dict)
+                    or set(node) != {"id", "isResolved", "isOutdated"}
+                    or not isinstance(thread_id, str)
+                    or not thread_id
+                    or thread_id != thread_id.strip()
+                    or len(thread_id) > 256
+                    or any(
+                        unicodedata.category(character) == "Cc"
+                        for character in thread_id
+                    )
+                    or thread_id in page_ids
+                    or thread_id in seen_ids
                     or not isinstance(node.get("isResolved"), bool)
                     or not isinstance(node.get("isOutdated"), bool)
                 ):
                     raise TypeError
+                page_ids.add(thread_id)
         except (KeyError, TypeError, ValueError):
             raise _safe_failure("cleanup_source_unavailable")
         if expected_total is None:
             expected_total = total_count
         elif total_count != expected_total:
             raise _safe_failure("cleanup_source_unavailable")
+        seen_ids.update(page_ids)
         nodes.extend(page_nodes)
-        if len(nodes) > total_count:
+        if len(seen_ids) > total_count:
             raise _safe_failure("cleanup_source_unavailable")
         end_cursor = page_info.get("endCursor")
         if has_next:
@@ -347,7 +364,7 @@ def _gh_get_threads(config: CleanupConfig) -> list[dict[str, Any]]:
             not isinstance(end_cursor, str) or not end_cursor
         ):
             raise _safe_failure("cleanup_source_unavailable")
-        if len(nodes) != total_count:
+        if len(seen_ids) != total_count:
             raise _safe_failure("cleanup_source_unavailable")
         return nodes
 

@@ -138,6 +138,9 @@
           "const": 142,
           "type": "integer"
         },
+        "source_replay": {
+          "$ref": "#/$defs/sourceReplay"
+        },
         "terminal_outcome_count": {
           "minimum": 0,
           "type": "integer"
@@ -610,6 +613,19 @@
     "sha256": {
       "pattern": "^[0-9a-f]{64}$",
       "type": "string"
+    },
+    "sourceReplay": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "github-intake-v1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "adapter"
+      ],
+      "type": "object"
     },
     "terminalOutcome": {
       "additionalProperties": false,

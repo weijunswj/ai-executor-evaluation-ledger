@@ -23,8 +23,14 @@ from scripts.processor.common import (
     validate_batch_receipt_closure,
     valid_git_sha,
 )
+from scripts.processor.batch_processor import (
+    ProcessBatchConfig,
+    build_batch_candidate,
+    fetch_single_comment,
+)
 from scripts.processor.frozen_replay import replay_frozen_from_receipt
 from scripts.processor.frozen_source import refetch_frozen_source
+from scripts.processor.intake_parser import INTAKE_MARKER
 
 RECEIPT_PREFIX = "ledger/receipts/batches/"
 CANONICAL_PATHS = {
@@ -168,6 +174,12 @@ def _parse_batch(raw: bytes, schema: Mapping[str, Any]) -> dict[str, Any]:
         raise ReceiptValidationError("receipt_schema_failure")
     if value.get("receipt_type") != "batch" or not validate_batch_receipt_closure(value):
         raise ReceiptValidationError("receipt_closure_failure")
+    source_replay = value.get("source_replay")
+    if value.get("batch_id") == FROZEN_BATCH_ID:
+        if source_replay is not None:
+            raise ReceiptValidationError("receipt_frozen_replay_contract_invalid")
+    elif source_replay != {"adapter": "github-intake-v1"}:
+        raise ReceiptValidationError("receipt_replay_contract_unsupported")
     _walk_forbidden_keys(value)
     return value
 
@@ -237,7 +249,6 @@ def validate_batch_receipt_object(
         raise ReceiptValidationError("receipt_candidate_commit_invalid")
     candidate_sha = resolve_commit(root, candidate_sha)
     _validate_content_at_commit(root, candidate_sha, receipt)
-    _validate_content_at_commit(root, authority_sha, receipt)
 
 
 def validate_all_tracked_batch_receipts(
@@ -252,8 +263,16 @@ def validate_all_tracked_batch_receipts(
     if not paths:
         raise ReceiptValidationError("receipt_missing")
     parsed: dict[str, dict[str, Any]] = {}
+    batch_ids: set[str] = set()
     for path in paths:
         receipt = _parse_batch(git_object_bytes(root, authority_sha, path), schema)
+        batch_id = receipt["batch_id"]
+        expected_path = f"{RECEIPT_PREFIX}{batch_id}.json"
+        if path != expected_path:
+            raise ReceiptValidationError("receipt_path_identity_mismatch")
+        if batch_id in batch_ids:
+            raise ReceiptValidationError("receipt_duplicate_batch_id")
+        batch_ids.add(batch_id)
         validate_batch_receipt_object(root, receipt, authority_sha=authority_sha)
         parsed[path] = receipt
 
@@ -286,15 +305,46 @@ def validate_all_tracked_batch_receipts(
     elif mode != "canonical-main":
         raise ReceiptValidationError("receipt_invalid_mode")
 
+    seals: dict[str, str] = {}
+    for path, receipt in parsed.items():
+        seal_sha = _terminal_seal_commit(
+            root,
+            authority_sha=authority_sha,
+            mode=mode,
+            receipt_path=path,
+        )
+        candidate_sha = resolve_commit(root, receipt["candidate_content_commit_sha"])
+        _validate_terminal_seal_scope(
+            root,
+            seal_sha=seal_sha,
+            receipt_path=path,
+            candidate_sha=candidate_sha,
+        )
+        ancestor = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", seal_sha, authority_sha],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        )
+        if ancestor.returncode != 0:
+            raise ReceiptValidationError("receipt_seal_not_ancestor")
+        if git_object_bytes(root, seal_sha, path) != git_object_bytes(
+            root, authority_sha, path
+        ):
+            raise ReceiptValidationError("receipt_historical_bytes_changed")
+        if path == changed_path and seal_sha != authority_sha:
+            raise ReceiptValidationError("receipt_current_terminal_not_seal")
+        seals[path] = seal_sha
+
     return {
         "mode": mode,
         "authority_sha": authority_sha,
         "receipt_count": len(paths),
         "receipt_paths": paths,
+        "receipt_seals": seals,
         "final_parent_sha": parent_sha,
         "changed_receipt_path": changed_path,
     }
-
 
 def _terminal_seal_commit(
     root: Path,
@@ -303,8 +353,7 @@ def _terminal_seal_commit(
     mode: str,
     receipt_path: str,
 ) -> str:
-    if mode == "pr":
-        return authority_sha
+    del mode
     value = str(
         _git(
             root,
@@ -350,54 +399,13 @@ def _validate_terminal_seal_scope(
         raise ReceiptValidationError("receipt_final_commit_scope")
 
 
-def validate_source_replay(
+def _validate_frozen_source_replay(
     root: Path,
     *,
-    authority_sha: str,
-    mode: str,
-) -> dict[str, Any]:
-    """Validate source semantics independently of prior receipt outcomes."""
-
-    structural = validate_all_tracked_batch_receipts(
-        root,
-        authority_sha=authority_sha,
-        mode=mode,
-    )
-    authority_sha = structural["authority_sha"]
-    paths = structural["receipt_paths"]
-    if len(paths) != 1:
-        raise ReceiptValidationError("receipt_terminal_receipt_count")
-    receipt_path = paths[0]
-    schema = _load_schema(root)
-    receipt = _parse_batch(
-        git_object_bytes(root, authority_sha, receipt_path),
-        schema,
-    )
-    if receipt.get("batch_id") != FROZEN_BATCH_ID:
-        raise ReceiptValidationError("receipt_frozen_batch_mismatch")
-    candidate_sha = resolve_commit(
-        root,
-        receipt["candidate_content_commit_sha"],
-    )
-    seal_sha = _terminal_seal_commit(
-        root,
-        authority_sha=authority_sha,
-        mode=mode,
-        receipt_path=receipt_path,
-    )
-    _validate_terminal_seal_scope(
-        root,
-        seal_sha=seal_sha,
-        receipt_path=receipt_path,
-        candidate_sha=candidate_sha,
-    )
-    if git_object_bytes(root, seal_sha, receipt_path) != git_object_bytes(
-        root,
-        authority_sha,
-        receipt_path,
-    ):
-        raise ReceiptValidationError("receipt_terminal_receipt_not_current")
-
+    receipt: Mapping[str, Any],
+    candidate_sha: str,
+    seal_sha: str,
+) -> dict[str, int]:
     try:
         live = refetch_frozen_source(root, receipt)
         comments = live.get("comments")
@@ -405,9 +413,7 @@ def validate_source_replay(
             raise ProcessorError("processor_source_unavailable")
         replay = replay_frozen_from_receipt(root, receipt, comments)
     except (OSError, ValueError, ProcessorError) as error:
-        raise ReceiptValidationError(
-            "receipt_source_replay_unavailable"
-        ) from error
+        raise ReceiptValidationError("receipt_source_replay_unavailable") from error
 
     comparisons = {
         "terminal_outcomes": dict(replay.terminal_outcomes),
@@ -422,27 +428,171 @@ def validate_source_replay(
     }
     for field, expected in comparisons.items():
         if receipt.get(field) != expected:
-            raise ReceiptValidationError(
-                f"receipt_source_replay_mismatch:{field}"
-            )
+            raise ReceiptValidationError(f"receipt_source_replay_mismatch:{field}")
     for relative_path, expected in replay.candidate_files.items():
         if git_object_bytes(root, candidate_sha, relative_path) != expected:
-            raise ReceiptValidationError(
-                "receipt_candidate_replay_mismatch"
-            )
+            raise ReceiptValidationError("receipt_candidate_replay_mismatch")
         if git_object_bytes(root, seal_sha, relative_path) != expected:
-            raise ReceiptValidationError(
-                "receipt_terminal_content_mismatch"
+            raise ReceiptValidationError("receipt_terminal_content_mismatch")
+    return {
+        "outcomes": len(replay.terminal_outcomes),
+        "admissions": len(replay.admitted_run_ids),
+        "later_comments": replay.later_comment_count,
+    }
+
+
+def _validate_github_intake_source_replay(
+    root: Path,
+    *,
+    authority_sha: str,
+    receipt_path: str,
+    receipt: Mapping[str, Any],
+    candidate_sha: str,
+    seal_sha: str,
+) -> dict[str, int]:
+    try:
+        comments = [
+            fetch_single_comment(comment_id, root)
+            for comment_id in receipt["source_comment_ids"]
+        ]
+        by_id = {int(item["id"]): item for item in comments}
+        if len(by_id) != len(comments):
+            raise ProcessorError("source_changed")
+        owner: dict[str, Any] = {}
+        owner_identity: Optional[tuple[int, str]] = None
+        bindings = {item["comment_id"]: item for item in receipt["comment_bindings"]}
+        for comment_id in receipt["source_comment_ids"]:
+            comment = by_id.get(comment_id)
+            binding = bindings.get(comment_id)
+            if not isinstance(comment, dict) or not isinstance(binding, dict):
+                raise ProcessorError("source_changed")
+            body = comment.get("body")
+            if (
+                not isinstance(body, str)
+                or sha256_bytes(body.encode("utf-8")) != binding.get("body_sha256")
+                or comment.get("created_at") != binding.get("created_at")
+                or comment.get("updated_at") != binding.get("updated_at")
+            ):
+                raise ProcessorError("source_changed")
+            if body.startswith(INTAKE_MARKER):
+                user = comment.get("user")
+                identity = (
+                    user.get("id") if isinstance(user, dict) else None,
+                    user.get("login") if isinstance(user, dict) else None,
+                )
+                if (
+                    comment.get("author_association") != "OWNER"
+                    or not isinstance(identity[0], int)
+                    or isinstance(identity[0], bool)
+                    or identity[0] <= 0
+                    or not isinstance(identity[1], str)
+                    or not identity[1]
+                    or (owner_identity is not None and identity != owner_identity)
+                ):
+                    raise ProcessorError("authority_missing")
+                owner_identity = identity
+                owner = {"id": identity[0], "login": identity[1]}
+
+        config = ProcessBatchConfig(
+            operating_mode=receipt["batch_mode"],
+            base_sha=receipt["base_sha"],
+            canonical_main_sha=receipt["canonical_main_sha"],
+            batch_id=receipt["batch_id"],
+            controller_run_id=receipt["controller_run_id"],
+            pr_number=receipt["pr_number"],
+            expected_head_sha=authority_sha,
+            activation_mode="dry-run",
+            dry_run=True,
+            source_issue_number=receipt["source_issue_number"],
+            receipt_issue_number=receipt["receipt_issue_number"],
+            repository_root=root,
+            candidate_content_commit_sha=candidate_sha,
+        )
+        candidate_files, evidence = build_batch_candidate(
+            config,
+            comments=comments,
+            queue_fetcher=lambda _root: comments,
+            comment_fetcher=lambda comment_id, _root: by_id[comment_id],
+            canonical_main_fetcher=lambda _root: receipt["canonical_main_sha"],
+            owner_fetcher=lambda _root: owner,
+        )
+    except (KeyError, OSError, TypeError, ValueError, ProcessorError) as error:
+        raise ReceiptValidationError("receipt_source_replay_unavailable") from error
+
+    replayed_receipt = candidate_files.get(receipt_path)
+    if replayed_receipt != git_object_bytes(root, seal_sha, receipt_path):
+        raise ReceiptValidationError("receipt_source_replay_mismatch:receipt")
+    for relative_path in CANONICAL_PATHS.values():
+        expected = candidate_files.get(relative_path)
+        if expected is None or git_object_bytes(root, candidate_sha, relative_path) != expected:
+            raise ReceiptValidationError("receipt_candidate_replay_mismatch")
+    return {
+        "outcomes": int(evidence["terminal_count"]),
+        "admissions": int(evidence["admitted_count"]),
+        "later_comments": 0,
+    }
+
+
+def validate_source_replay(
+    root: Path,
+    *,
+    authority_sha: str,
+    mode: str,
+) -> dict[str, Any]:
+    """Validate every receipt using its declared immutable source adapter."""
+
+    structural = validate_all_tracked_batch_receipts(
+        root,
+        authority_sha=authority_sha,
+        mode=mode,
+    )
+    authority_sha = structural["authority_sha"]
+    schema = _load_schema(root)
+    replayed_outcomes = 0
+    replayed_admissions = 0
+    later_comments = 0
+    replayed_receipts: list[dict[str, str]] = []
+    for receipt_path in structural["receipt_paths"]:
+        receipt = _parse_batch(
+            git_object_bytes(root, authority_sha, receipt_path),
+            schema,
+        )
+        candidate_sha = resolve_commit(root, receipt["candidate_content_commit_sha"])
+        seal_sha = structural["receipt_seals"][receipt_path]
+        if receipt["batch_id"] == FROZEN_BATCH_ID:
+            evidence = _validate_frozen_source_replay(
+                root,
+                receipt=receipt,
+                candidate_sha=candidate_sha,
+                seal_sha=seal_sha,
             )
+            adapter = "frozen-v1"
+        elif receipt.get("source_replay") == {"adapter": "github-intake-v1"}:
+            evidence = _validate_github_intake_source_replay(
+                root,
+                authority_sha=authority_sha,
+                receipt_path=receipt_path,
+                receipt=receipt,
+                candidate_sha=candidate_sha,
+                seal_sha=seal_sha,
+            )
+            adapter = "github-intake-v1"
+        else:
+            raise ReceiptValidationError("receipt_replay_contract_unsupported")
+        replayed_outcomes += evidence["outcomes"]
+        replayed_admissions += evidence["admissions"]
+        later_comments += evidence["later_comments"]
+        replayed_receipts.append(
+            {"path": receipt_path, "adapter": adapter, "seal_sha": seal_sha}
+        )
 
     return {
         **structural,
         "validation_level": "source-replay",
-        "seal_sha": seal_sha,
-        "candidate_sha": candidate_sha,
-        "replayed_outcome_count": len(replay.terminal_outcomes),
-        "replayed_admission_count": len(replay.admitted_run_ids),
-        "later_comment_count": replay.later_comment_count,
+        "replayed_receipts": replayed_receipts,
+        "replayed_outcome_count": replayed_outcomes,
+        "replayed_admission_count": replayed_admissions,
+        "later_comment_count": later_comments,
     }
 
 

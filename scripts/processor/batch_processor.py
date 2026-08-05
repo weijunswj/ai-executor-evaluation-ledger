@@ -767,6 +767,7 @@ def build_batch_candidate(
             "pr_number": config.pr_number,
             "source_issue_number": config.source_issue_number,
             "receipt_issue_number": config.receipt_issue_number,
+            "source_replay": {"adapter": "github-intake-v1"},
             "source_comment_watermark": latest_id or 0,
             "full_queue_count": len(first_fingerprints),
             "latest_observed_comment_id": latest_id,

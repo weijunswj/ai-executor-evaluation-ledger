@@ -6,6 +6,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Immutable 40-character lowercase base commit SHA
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -22,15 +27,42 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out full history
+      - name: Check out immutable workflow authority with full history
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Verify immutable checkout and base authority
+        id: authority
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_AUTHORITY_SHA: ${{ github.sha }}
+          CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          DISPATCH_BASE_SHA: ${{ inputs.base_sha }}
+        run: |
+          args=(
+            python scripts/resolve_workflow_authority.py
+            --repository-root .
+            --event-name "$EVENT_NAME"
+            --github-sha "$GITHUB_AUTHORITY_SHA"
+            --checkout-sha "$CHECKOUT_SHA"
+            --pr-head-sha "$PR_HEAD_SHA"
+            --pr-base-sha "$PR_BASE_SHA"
+            --before-sha "$BEFORE_SHA"
+            --dispatch-base-sha "$DISPATCH_BASE_SHA"
+            --output-file "$GITHUB_OUTPUT"
+          )
+          "${args[@]}"
 
       - name: Install dependencies
         run: |
@@ -44,39 +76,25 @@ jobs:
         run: python scripts/check_public_safety.py
 
       - name: Validate closed migration manifests
-        shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          if [[ -n "$BASE_SHA" && "$BASE_SHA" != "0000000000000000000000000000000000000000" ]]; then
-            python scripts/validate_manifests.py --base-ref "$BASE_SHA"
-          else
-            python scripts/validate_manifests.py
-          fi
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
+        run: python scripts/validate_manifests.py --base-ref "$BASE_SHA"
 
       - name: Validate immutable batch receipt seals
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          RAW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PUSH_SHA: ${{ github.sha }}
+          HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            python scripts/validate_receipts.py --mode pr --authority-sha "$RAW_HEAD_SHA" --validation-level source-replay
-          else
-            python scripts/validate_receipts.py --mode canonical-main --authority-sha "$PUSH_SHA" --validation-level source-replay
+          mode=pr
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            mode=canonical-main
           fi
+          args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --validation-level source-replay)
+          "${args[@]}"
 
       - name: Verify append-only source and generated views
-        shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
-          else
-            python scripts/rebuild_views.py --check
-          fi
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
+        run: python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"

@@ -466,7 +466,7 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
 
     def test_valid_empty_nonempty_and_optional_final_cursor_omission(self):
         self.assertEqual(self.threads(self.envelope([], total=0)), [])
-        node = {"isResolved": True, "isOutdated": False}
+        node = {"id": "thread-1", "isResolved": True, "isOutdated": False}
         self.assertEqual(self.threads(self.envelope([node], total=1)), [node])
         self.assertEqual(
             self.threads(
@@ -480,8 +480,8 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
         )
 
     def test_valid_multiple_pages(self):
-        first = {"isResolved": True, "isOutdated": False}
-        second = {"isResolved": False, "isOutdated": True}
+        first = {"id": "thread-1", "isResolved": True, "isOutdated": False}
+        second = {"id": "thread-2", "isResolved": False, "isOutdated": True}
         self.assertEqual(
             self.threads(
                 self.envelope([first], total=2, has_next=True, end_cursor="cursor-1"),
@@ -498,7 +498,7 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
             "missing_connection": {"data": {"repository": {"pullRequest": {}}}},
             "malformed_connection": {"data": {"repository": {"pullRequest": {"reviewThreads": []}}}},
             "non_list_nodes": self.envelope({}, total=0),
-            "mixed_nodes": self.envelope([{"isResolved": True, "isOutdated": False}, []], total=2),
+            "mixed_nodes": self.envelope([{"id": "thread-1", "isResolved": True, "isOutdated": False}, []], total=2),
         }
         for label, value in cases.items():
             with self.subTest(label=label), self.assertRaises(ProcessorError):
@@ -511,7 +511,7 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
         malformed_page["data"]["repository"]["pullRequest"]["reviewThreads"]["pageInfo"] = []
         missing_boolean = self.envelope([], total=0)
         del missing_boolean["data"]["repository"]["pullRequest"]["reviewThreads"]["pageInfo"]["hasNextPage"]
-        bad_node = self.envelope([{"isResolved": True}], total=1)
+        bad_node = self.envelope([{"id": "thread-1", "isResolved": True}], total=1)
         for label, value in {
             "missing_page_info": missing_page,
             "malformed_page_info": malformed_page,
@@ -546,11 +546,11 @@ class TestF3ReviewThreadGraphQLEvidence(unittest.TestCase):
             "negative_count": [self.envelope([], total=-1)],
             "final_count_mismatch": [self.envelope([], total=1)],
             "changing_total": [
-                self.envelope([{"isResolved": True, "isOutdated": False}], total=2, has_next=True, end_cursor="cursor-1"),
-                self.envelope([{"isResolved": True, "isOutdated": False}], total=3),
+                self.envelope([{"id": "thread-1", "isResolved": True, "isOutdated": False}], total=2, has_next=True, end_cursor="cursor-1"),
+                self.envelope([{"id": "thread-1", "isResolved": True, "isOutdated": False}], total=3),
             ],
             "has_next_at_total": [
-                self.envelope([{"isResolved": True, "isOutdated": False}], total=1, has_next=True, end_cursor="cursor-1")
+                self.envelope([{"id": "thread-1", "isResolved": True, "isOutdated": False}], total=1, has_next=True, end_cursor="cursor-1")
             ],
         }
         for label, responses in cases.items():

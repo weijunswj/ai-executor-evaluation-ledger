@@ -162,6 +162,7 @@ class TestReceiptValidation(unittest.TestCase):
             "pr_number": 151,
             "source_issue_number": 142,
             "receipt_issue_number": 143,
+            "source_replay": {"adapter": "github-intake-v1"},
             "source_comment_watermark": 1,
             "full_queue_count": 1,
             "latest_observed_comment_id": 1,
