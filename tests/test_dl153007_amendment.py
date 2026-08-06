@@ -51,7 +51,7 @@ def valid_payload(run_id: str = "run-dl153007-fixture") -> dict:
         "efficiency": 3,
     }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "record_type": "evaluation_intake",
         "controller_run_id": "controller-dl153007-fixture",
         "evaluation_run_id": run_id,
@@ -59,7 +59,7 @@ def valid_payload(run_id: str = "run-dl153007-fixture") -> dict:
         "canonical_base_model": "GPT-5.6 Sol",
         "evaluation_protocol": "gated_v1",
         "repository_alias": "ledger-public",
-        "source_revision": "a" * 40,
+        "revision_assertion": "private_revision_verified",
         "task_class": "repository-repair",
         "difficulty": "high",
         "verdict": "accepted",
@@ -85,8 +85,20 @@ def valid_payload(run_id: str = "run-dl153007-fixture") -> dict:
 
 
 def intake_body(payload: dict) -> str:
-    return "<!-- ledger-intake:v1 -->\n" + json.dumps(
+    return "<!-- ledger-intake:v2 -->\n" + json.dumps(
         payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
+def historical_intake_body(payload: dict) -> str:
+    value = copy.deepcopy(payload)
+    value["schema_version"] = 1
+    value.pop("revision_assertion", None)
+    value["source_revision"] = "a" * 40
+    return "<!-- ledger-intake:v1 -->\n" + json.dumps(
+        value,
         ensure_ascii=False,
         separators=(",", ":"),
     )
@@ -405,12 +417,15 @@ class TestA4ReachableRefreeze(FrozenRefreezeFixture):
     def test_replacement_marker_payload_and_run_identity_are_revalidated(self):
         helper = getattr(refreeze_frozen_batch, "canonical_refreeze_replacement")
         payload = valid_payload("run-refreeze-fixture")
-        record = helper(intake_body(payload), payload["evaluation_run_id"])
+        record = helper(
+            historical_intake_body(payload),
+            payload["evaluation_run_id"],
+        )
         self.assertEqual(record["run_id"], payload["evaluation_run_id"])
         cases = (
             (json.dumps(payload), payload["evaluation_run_id"]),
             ("<!-- ledger-intake:v1 -->\n{} trailing", payload["evaluation_run_id"]),
-            (intake_body(payload), "different-run"),
+            (historical_intake_body(payload), "different-run"),
         )
         for body, expected in cases:
             with self.subTest(body=body[:20]), self.assertRaises(ProcessorError):

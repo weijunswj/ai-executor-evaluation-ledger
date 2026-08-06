@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Iterable
 
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -176,6 +178,78 @@ def valid_git_sha(value: Any) -> bool:
 
 def valid_sha256(value: Any) -> bool:
     return isinstance(value, str) and bool(SHA256_PATTERN.fullmatch(value))
+
+
+def git_tree_file_bindings(
+    repository_root: Path,
+    revision: str,
+    *,
+    excluded_paths: Iterable[str] = (),
+) -> list[dict[str, str]]:
+    """Return deterministic path/mode/blob/content evidence for one Git tree."""
+
+    if not valid_git_sha(revision):
+        raise ProcessorError("processor_integrity_failure")
+    excluded = frozenset(excluded_paths)
+    listing = subprocess.run(
+        ["git", "ls-tree", "-r", "--full-tree", "-z", revision],
+        cwd=repository_root,
+        capture_output=True,
+        check=False,
+    )
+    if listing.returncode != 0:
+        raise ProcessorError("processor_integrity_failure")
+
+    bindings: list[dict[str, str]] = []
+    for raw_entry in listing.stdout.split(b"\0"):
+        if not raw_entry:
+            continue
+        try:
+            metadata, raw_path = raw_entry.split(b"\t", 1)
+            mode, object_type, object_sha = metadata.decode("ascii").split(" ")
+            relative_path = raw_path.decode("utf-8", errors="strict")
+        except (UnicodeDecodeError, ValueError):
+            raise ProcessorError("processor_integrity_failure")
+        if (
+            object_type != "blob"
+            or not relative_path
+            or relative_path in excluded
+            or relative_path.startswith("/")
+            or "\\" in relative_path
+            or ".." in Path(relative_path).parts
+        ):
+            if object_type != "blob":
+                raise ProcessorError("processor_integrity_failure")
+            continue
+        blob = subprocess.run(
+            ["git", "cat-file", "blob", object_sha],
+            cwd=repository_root,
+            capture_output=True,
+            check=False,
+        )
+        if blob.returncode != 0:
+            raise ProcessorError("processor_integrity_failure")
+        bindings.append(
+            {
+                "path": relative_path,
+                "mode": mode,
+                "blob_sha": object_sha,
+                "content_sha256": sha256_bytes(blob.stdout),
+            }
+        )
+    bindings.sort(key=lambda item: item["path"])
+    if len({item["path"] for item in bindings}) != len(bindings):
+        raise ProcessorError("processor_integrity_failure")
+    return bindings
+
+
+def git_tree_manifest_sha256(bindings: Iterable[dict[str, str]]) -> str:
+    """Hash one already-validated deterministic Git-tree binding list."""
+
+    normalized = list(bindings)
+    if normalized != sorted(normalized, key=lambda item: item.get("path", "")):
+        raise ProcessorError("processor_integrity_failure")
+    return sha256_bytes(canonical_json_bytes(normalized))
 
 
 def valid_identifier(value: Any) -> bool:

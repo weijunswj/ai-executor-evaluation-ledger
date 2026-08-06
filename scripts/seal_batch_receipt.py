@@ -15,7 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.processor.common import validate_batch_receipt_closure
+from scripts.processor.common import (
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
+    validate_batch_receipt_closure,
+)
 from scripts.processor.frozen_source import (
     FROZEN_BATCH_ID,
     FROZEN_COUNT,
@@ -85,6 +89,12 @@ def build_sealed_receipt(
         if git_object_bytes(root, content_sha, relative_path) != expected:
             raise ReceiptValidationError("seal_candidate_replay_mismatch")
     source_ids = list(replay.source_comment_ids)
+    receipt_path = f"ledger/receipts/batches/{batch_id}.json"
+    candidate_manifest = git_tree_file_bindings(
+        root,
+        content_sha,
+        excluded_paths=(receipt_path,),
+    )
     receipt = {
         "schema_version": 2,
         "receipt_type": "batch",
@@ -94,6 +104,10 @@ def build_sealed_receipt(
         "base_sha": source.get("base_sha"),
         "canonical_main_sha": source.get("canonical_main_sha"),
         "candidate_content_commit_sha": content_sha,
+        "candidate_content_manifest": candidate_manifest,
+        "candidate_content_manifest_sha256": git_tree_manifest_sha256(
+            candidate_manifest
+        ),
         "pr_number": source.get("pr_number"),
         "source_issue_number": source.get("source_issue_number"),
         "receipt_issue_number": source.get("receipt_issue_number"),

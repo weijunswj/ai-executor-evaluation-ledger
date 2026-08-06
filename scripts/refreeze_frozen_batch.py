@@ -18,11 +18,11 @@ from scripts.processor.common import (
 )
 from scripts.processor.frozen_source import refetch_frozen_source_for_refreeze
 from scripts.processor.intake_parser import (
-    INTAKE_MARKER,
+    HISTORICAL_INTAKE_MARKER,
     INTAKE_VALIDATOR,
     adapt_historical_payload,
     canonical_record_from_payload,
-    parse_intake_comment,
+    parse_historical_intake_comment,
 )
 
 RECEIPT_PATH = (
@@ -41,7 +41,12 @@ def _reject_nonfinite_constant(_value: str) -> None:
 def canonical_refreeze_replacement(body: str, expected_run_id: str) -> dict:
     """Validate and construct one exact canonical replacement record."""
 
-    code, adapted, _reason = parse_intake_comment(1, body, set(), set())
+    code, adapted, _reason = parse_historical_intake_comment(
+        1,
+        body,
+        set(),
+        set(),
+    )
     if code != "admitted" or adapted.get("evaluation_run_id") != expected_run_id:
         raise ProcessorError("source_changed")
     return canonical_record_from_payload(adapted)
@@ -77,9 +82,12 @@ def refreeze(root: Path = ROOT) -> dict[str, int]:
             raise ProcessorError("source_changed")
         if outcome.get("outcome_code") == "admitted":
             body = comments[comment_id]["body"]
-            if not isinstance(body, str) or not body.startswith(INTAKE_MARKER):
+            if (
+                not isinstance(body, str)
+                or not body.startswith(HISTORICAL_INTAKE_MARKER)
+            ):
                 raise ProcessorError("source_changed")
-            raw = body[len(INTAKE_MARKER):].lstrip(" \t\r\n")
+            raw = body[len(HISTORICAL_INTAKE_MARKER):].lstrip(" \t\r\n")
             try:
                 payload, end = json.JSONDecoder(
                     object_pairs_hook=reject_duplicate_json_keys,

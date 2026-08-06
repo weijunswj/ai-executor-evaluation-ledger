@@ -306,6 +306,20 @@ class LedgerIdentityPolicyTests(unittest.TestCase):
             safety.scan_ledger_identity("tracked/current.txt", ordinary + "x"),
         )
 
+
+class CandidateTreeRootTests(unittest.TestCase):
+    def test_candidate_tree_root_scans_files_even_when_root_is_under_git_metadata(self):
+        with tempfile.TemporaryDirectory(
+            prefix="ledger-candidate-red-",
+            dir=Path(__file__).resolve().parents[1] / ".git",
+        ) as raw:
+            root = Path(raw)
+            (root / "candidate.txt").write_text(
+                "gh" + "p_" + "A" * 24 + "\n",
+                encoding="utf-8",
+            )
+            self.assertNotEqual(safety.audit_tree(root), 0)
+
     def test_normalized_attribute_variants_are_rejected_in_all_directories(self) -> None:
         words = safety.NATIVE_CLASSIFICATION_WORDS
         for separator in ("-", "_", " ", "...", ",+|", chr(0x2014)):
