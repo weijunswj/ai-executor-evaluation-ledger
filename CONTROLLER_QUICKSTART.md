@@ -11,16 +11,13 @@ Do not:
 - rewrite or delete an existing evaluation line;
 - replace the whole JSONL file with a partial copy;
 - edit the generated score tables or detailed-run sections by hand;
-- shorten `GPT-5.6 Sol Medium` or `GPT-5.6 Sol High`;
-- guess a reasoning level that the provider did not expose;
 - instruct the evaluated executor to touch this repository.
 
 ## Required fields
 
 Record the exact public-safe:
 
-- model label;
-- observed reasoning level, or `not-exposed`;
+- provider and canonical base model;
 - run ID;
 - reviewed timestamp;
 - task class and difficulty;
@@ -33,7 +30,7 @@ Never publish repository identities, user identities, raw revisions, provider id
 
 ## Summary-table eligibility
 
-Generated model summaries include only model-and-reasoning groups with at least one formal evaluation merged into `main`. Do not add zero-run placeholder rows or advertise planned backfills as formal evidence.
+Generated model summaries include only models with at least one formal evaluation merged into `main`. Do not add zero-run placeholder rows or advertise planned backfills as formal evidence.
 
 ## Zero-pending gate
 
@@ -44,7 +41,7 @@ Before issuing another executor prompt, the controller must:
 1. append every reviewed ledger-pending result;
 2. reconcile every applicable private project tracker;
 3. merge the ledger update;
-4. confirm the appended model, reasoning level, run ID, verdict and score to the user;
+4. confirm the appended model, run ID, verdict and score to the user;
 5. verify that the reviewed-but-unmerged queue is empty.
 
 When reporting counts, always distinguish:
@@ -67,7 +64,7 @@ Never count ledger-pending or in-flight work as a formal run. If several reports
 8. After merge, tell the user:
 
 ```text
-Ledger appended: <model> | reasoning: <level-or-not-exposed> | <run-id> | <verdict> | <score>/5
+Ledger appended: <provider> | <canonical-base-model> | <run-id> | <verdict> | <score>/5
 ```
 
 Do not issue the next executor prompt before the ledger and applicable private project tracker are reconciled.

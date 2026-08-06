@@ -1,0 +1,685 @@
+{
+  "$defs": {
+    "batch": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "selected_comment_count": {
+                "minimum": 1
+              }
+            },
+            "required": [
+              "selected_comment_count"
+            ]
+          },
+          "then": {
+            "properties": {
+              "terminal_outcomes": {
+                "minProperties": 1
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "accepted_record_proofs": {
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$": {
+              "$ref": "#/$defs/recordProof"
+            }
+          },
+          "type": "object"
+        },
+        "admitted_run_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "base_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "batch_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "batch_mode": {
+          "enum": [
+            "initial",
+            "incremental"
+          ],
+          "type": "string"
+        },
+        "candidate_content_commit_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "canonical_hashes": {
+          "$ref": "#/$defs/canonicalHashes"
+        },
+        "canonical_main_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "canonical_record_hashes": {
+          "$ref": "#/$defs/recordHashMap"
+        },
+        "comment_bindings": {
+          "items": {
+            "$ref": "#/$defs/binding"
+          },
+          "type": "array"
+        },
+        "controller_run_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "full_queue_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "latest_observed_comment_id": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "latest_observed_update_time": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "pr_number": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "queue_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_issue_number": {
+          "const": 143,
+          "type": "integer"
+        },
+        "receipt_type": {
+          "const": "batch",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 2,
+          "type": "integer"
+        },
+        "selected_comment_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "selected_comment_ids": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_body_sha256": {
+          "$ref": "#/$defs/commentHashMap"
+        },
+        "source_comment_ids": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_comment_watermark": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "source_issue_number": {
+          "const": 142,
+          "type": "integer"
+        },
+        "source_replay": {
+          "$ref": "#/$defs/sourceReplay"
+        },
+        "terminal_outcome_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "terminal_outcomes": {
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[0-9]+$": {
+              "$ref": "#/$defs/terminalOutcome"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "schema_version",
+        "receipt_type",
+        "batch_id",
+        "batch_mode",
+        "controller_run_id",
+        "base_sha",
+        "canonical_main_sha",
+        "candidate_content_commit_sha",
+        "pr_number",
+        "source_issue_number",
+        "receipt_issue_number",
+        "source_comment_watermark",
+        "full_queue_count",
+        "latest_observed_comment_id",
+        "latest_observed_update_time",
+        "queue_snapshot_sha256",
+        "source_comment_ids",
+        "source_body_sha256",
+        "selected_comment_ids",
+        "selected_comment_count",
+        "terminal_outcome_count",
+        "terminal_outcomes",
+        "admitted_run_ids",
+        "accepted_record_proofs",
+        "canonical_record_hashes",
+        "canonical_hashes",
+        "comment_bindings"
+      ],
+      "type": "object"
+    },
+    "binding": {
+      "additionalProperties": false,
+      "properties": {
+        "body_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "canonical_record_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cleanup_eligible": {
+          "type": "boolean"
+        },
+        "comment_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "created_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "evaluation_run_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome_code": {
+          "$ref": "#/$defs/outcomeCode"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      },
+      "required": [
+        "comment_id",
+        "created_at",
+        "updated_at",
+        "body_sha256",
+        "outcome_code",
+        "evaluation_run_id",
+        "canonical_record_sha256",
+        "cleanup_eligible"
+      ],
+      "type": "object"
+    },
+    "canonicalHashes": {
+      "additionalProperties": false,
+      "properties": {
+        "dispositions_jsonl": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evaluations_jsonl": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_recommendation_json": {
+          "$ref": "#/$defs/sha256"
+        },
+        "readme_md": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scorecard_md": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "evaluations_jsonl",
+        "dispositions_jsonl",
+        "readme_md",
+        "scorecard_md",
+        "model_recommendation_json"
+      ],
+      "type": "object"
+    },
+    "cleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "batch_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "batch_receipt_bytes_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "batch_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "branch_cleanup_eligible": {
+          "type": "boolean"
+        },
+        "branch_cleanup_reason": {
+          "enum": [
+            "not_merged",
+            "open_pr",
+            "head_moved",
+            "canonical_unverified",
+            "receipt_unverified",
+            "source_retention_unverified",
+            "checks_unverified",
+            "review_unverified",
+            "eligible"
+          ],
+          "type": "string"
+        },
+        "canonical_hashes": {
+          "$ref": "#/$defs/canonicalHashes"
+        },
+        "canonical_main_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "canonical_merge_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "canonical_record_hashes": {
+          "$ref": "#/$defs/recordHashMap"
+        },
+        "canonical_record_proofs": {
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$": {
+              "$ref": "#/$defs/recordProof"
+            }
+          },
+          "type": "object"
+        },
+        "cleanup_status": {
+          "enum": [
+            "verified",
+            "blocked",
+            "pending_operator_publication"
+          ],
+          "type": "string"
+        },
+        "expected_head_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "platform_limitation_code": {
+          "enum": [
+            "web_orchestrator_publication_required",
+            "none"
+          ],
+          "type": "string"
+        },
+        "pr_number": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "publication_status": {
+          "enum": [
+            "not_attempted",
+            "pending_operator_publication",
+            "published"
+          ],
+          "type": "string"
+        },
+        "receipt_issue_number": {
+          "const": 143,
+          "type": "integer"
+        },
+        "receipt_type": {
+          "const": "cleanup",
+          "type": "string"
+        },
+        "recorded_receipt_status": {
+          "enum": [
+            "absent",
+            "present_matching",
+            "conflicting",
+            "unverified"
+          ],
+          "type": "string"
+        },
+        "retained_comment_ids": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "schema_version": {
+          "const": 2,
+          "type": "integer"
+        },
+        "source_body_sha256": {
+          "$ref": "#/$defs/commentHashMap"
+        },
+        "source_comment_ids": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_issue_number": {
+          "const": 142,
+          "type": "integer"
+        },
+        "source_retention_verified": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_version",
+        "receipt_type",
+        "cleanup_status",
+        "batch_id",
+        "canonical_merge_sha",
+        "canonical_main_sha",
+        "expected_head_sha",
+        "pr_number",
+        "source_issue_number",
+        "receipt_issue_number",
+        "canonical_hashes",
+        "canonical_record_hashes",
+        "source_comment_ids",
+        "source_body_sha256",
+        "retained_comment_ids",
+        "source_retention_verified",
+        "canonical_record_proofs",
+        "recorded_receipt_status",
+        "branch_cleanup_eligible",
+        "branch_cleanup_reason",
+        "publication_status",
+        "platform_limitation_code",
+        "batch_receipt_sha256",
+        "batch_receipt_bytes_sha256"
+      ],
+      "type": "object"
+    },
+    "commentHashMap": {
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[0-9]+$": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "type": "object"
+    },
+    "gitSha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "identifier": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$",
+      "type": "string"
+    },
+    "outcomeCode": {
+      "enum": [
+        "admitted",
+        "already_recorded",
+        "authority_missing",
+        "conflicting_identity",
+        "duplicate_identity",
+        "ineligible_identity",
+        "invalid_schema",
+        "no_marker",
+        "source_changed",
+        "unsafe_content",
+        "unsupported_identity",
+        "withdrawn_identity"
+      ],
+      "type": "string"
+    },
+    "recordHashMap": {
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "type": "object"
+    },
+    "recordProof": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "model": {
+                  "const": "MiMo 2.5 Pro"
+                },
+                "provider": {
+                  "const": "Xiaomi"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
+                  "const": "MiMo 2.5 Pro"
+                },
+                "provider": {
+                  "const": "MiMo"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
+                  "const": "Claude Opus 5"
+                },
+                "provider": {
+                  "const": "Anthropic"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
+                  "const": "DeepSeek V4 Pro"
+                },
+                "provider": {
+                  "const": "DeepSeek"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
+                  "const": "GPT-5.6 Sol"
+                },
+                "provider": {
+                  "const": "OpenAI"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
+                  "const": "Qwen3.7 Plus"
+                },
+                "provider": {
+                  "const": "Qwen"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
+                  "const": "Gemini 3.1 Pro"
+                },
+                "provider": {
+                  "const": "Google"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
+                  "const": "MiniMax M3"
+                },
+                "provider": {
+                  "const": "MiniMax"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "model": {
+          "enum": [
+            "MiMo 2.5 Pro",
+            "Claude Opus 5",
+            "DeepSeek V4 Pro",
+            "GPT-5.6 Sol",
+            "Qwen3.7 Plus",
+            "Gemini 3.1 Pro",
+            "MiniMax M3"
+          ],
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "accepted",
+            "pass",
+            "rejected",
+            "amend",
+            "hold",
+            "fail",
+            "blocked",
+            "reset",
+            "rescheduled",
+            "error",
+            "owner_withdrawn",
+            "withdrawn"
+          ],
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "Xiaomi",
+            "MiMo",
+            "Anthropic",
+            "DeepSeek",
+            "OpenAI",
+            "Qwen",
+            "Google",
+            "MiniMax"
+          ],
+          "type": "string"
+        },
+        "weighted_score_5": {
+          "maximum": 5,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "outcome",
+        "weighted_score_5"
+      ],
+      "type": "object"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "sourceReplay": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "github-intake-v1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "adapter"
+      ],
+      "type": "object"
+    },
+    "terminalOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_record_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cleanup_eligible": {
+          "type": "boolean"
+        },
+        "evaluation_run_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome_code": {
+          "$ref": "#/$defs/outcomeCode"
+        }
+      },
+      "required": [
+        "outcome_code",
+        "evaluation_run_id",
+        "canonical_record_sha256",
+        "cleanup_eligible"
+      ],
+      "type": "object"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "$id": "urn:ai-executor-evaluation-ledger:receipt:v2",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/batch"
+    },
+    {
+      "$ref": "#/$defs/cleanup"
+    }
+  ],
+  "title": "AI Executor Evaluation Receipt Schema"
+}

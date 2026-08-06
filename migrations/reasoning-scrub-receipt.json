@@ -1,0 +1,16 @@
+{
+  "candidate_record_count": 59,
+  "evaluations_sha256": "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
+  "generated_at": "2026-08-02T00:00:00+08:00",
+  "manifest_type": "reasoning_scrub_receipt",
+  "removed_attribute_key_count": 8,
+  "removed_correction_count": 1,
+  "removed_correction_ids": [
+    "subject-5b7e12fcb75b9a9d1b05655857ec47e44f7d856c5bed7bed45abc52012758176"
+  ],
+  "removed_corrections_sha256": "b10ff981ed7ee5880d2899a8f43b04ddc73f2c214aa66507a2aa971a399b1cc2",
+  "schema_version": 2,
+  "scrubbed_fields_count": 73,
+  "source_base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "source_candidate_sha": "45990433a0f8199f056d1ad71a51f934b3bae7aa"
+}

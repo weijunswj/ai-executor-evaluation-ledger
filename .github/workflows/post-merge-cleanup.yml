@@ -1,0 +1,135 @@
+name: Post-Merge Ledger Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_id:
+        description: "Exact batch receipt identifier"
+        required: true
+        type: string
+      canonical_merge_sha:
+        description: "Verified canonical merge commit"
+        required: true
+        type: string
+      canonical_main_sha:
+        description: "Verified current canonical main commit"
+        required: true
+        type: string
+      expected_head_sha:
+        description: "Exact reviewed PR head"
+        required: true
+        type: string
+      pr_number:
+        description: "Reviewed PR number"
+        required: true
+        type: string
+      activation_mode:
+        description: "Explicit mode; reviewed-live remains operator-gated"
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - reviewed-live
+      operator_intent:
+        description: "Explicit operator review state"
+        required: true
+        type: choice
+        options:
+          - unreviewed
+          - reviewed
+      pr_state:
+        description: "Read-back PR state"
+        required: true
+        type: choice
+        options:
+          - open
+          - closed
+      merge_state:
+        description: "Read-back merge state"
+        required: true
+        type: choice
+        options:
+          - unmerged
+          - merged
+      checks_state:
+        description: "Read-back required-check state"
+        required: true
+        type: choice
+        options:
+          - incomplete
+          - passed
+      review_state:
+        description: "Read-back review and thread state"
+        required: true
+        type: choice
+        options:
+          - blocking
+          - clear
+          - unresolved_actionable
+      recorded_receipt_status:
+        description: "Read-back #143 receipt status"
+        required: true
+        type: choice
+        options:
+          - absent
+          - present_matching
+          - conflicting
+          - unverified
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact canonical repository state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.canonical_main_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install validation dependency
+        run: python -m pip install jsonschema
+
+      - name: Verify canonical state and prepare operator receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          CANONICAL_MERGE_SHA: ${{ inputs.canonical_merge_sha }}
+          CANONICAL_MAIN_SHA: ${{ inputs.canonical_main_sha }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          ACTIVATION_MODE: ${{ inputs.activation_mode }}
+          OPERATOR_INTENT: ${{ inputs.operator_intent }}
+          PR_STATE: ${{ inputs.pr_state }}
+          MERGE_STATE: ${{ inputs.merge_state }}
+          CHECKS_STATE: ${{ inputs.checks_state }}
+          REVIEW_STATE: ${{ inputs.review_state }}
+          RECORDED_RECEIPT_STATUS: ${{ inputs.recorded_receipt_status }}
+        run: >-
+          python scripts/processor/cleanup_workflow.py
+          --batch-id "$BATCH_ID"
+          --repository-root .
+          --canonical-merge-sha "$CANONICAL_MERGE_SHA"
+          --canonical-main-sha "$CANONICAL_MAIN_SHA"
+          --expected-head-sha "$EXPECTED_HEAD_SHA"
+          --pr-number "$PR_NUMBER"
+          --source-issue-number 142
+          --receipt-issue-number 143
+          --activation-mode "$ACTIVATION_MODE"
+          --operator-intent "$OPERATOR_INTENT"
+          --pr-state "$PR_STATE"
+          --merge-state "$MERGE_STATE"
+          --checks-state "$CHECKS_STATE"
+          --review-state "$REVIEW_STATE"
+          --recorded-receipt-status "$RECORDED_RECEIPT_STATUS"

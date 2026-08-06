@@ -1,10 +1,15 @@
-name: Public safety
+name: CI Integrated Ledger Validation
 
 on:
-  pull_request:
   push:
     branches:
       - main
+      - "gemini/**"
+      - "controller/**"
+  pull_request:
+    branches:
+      - main
+      - "gemini/**"
   workflow_dispatch:
     inputs:
       base_sha:
@@ -17,17 +22,12 @@ permissions:
   issues: read
   pull-requests: read
 
-concurrency:
-  group: public-safety-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  scan:
-    name: Scan public ledger
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Check out immutable workflow authority with full history
+      - name: Checkout immutable workflow authority
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -36,7 +36,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
       - name: Verify immutable checkout and base authority
         id: authority
@@ -69,10 +69,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install jsonschema
 
-      - name: Run public-safety regression tests
-        run: python -m unittest discover -s tests -p "test_*.py"
+      - name: Run complete unit test suite
+        run: python -m unittest discover -s tests
 
-      - name: Scan tracked content and added history
+      - name: Verify deterministic append-only view rebuild twice
+        env:
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
+        run: |
+          python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+          python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+
+      - name: Run Public Safety Scan
         run: python scripts/check_public_safety.py
 
       - name: Validate closed migration manifests
@@ -84,17 +91,16 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
           HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           mode=pr
-          if [[ "$EVENT_NAME" == "push" ]]; then
+          if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
             mode=canonical-main
           fi
           args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --validation-level source-replay)
           "${args[@]}"
 
-      - name: Verify append-only source and generated views
-        env:
-          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
-        run: python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+      - name: Git diff whitespace check
+        run: git diff --check

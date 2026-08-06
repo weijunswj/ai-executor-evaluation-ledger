@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-executor-evaluation-ledger:recommendation:v2",
+  "title": "AI Executor Recommendation Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "comparison_contract",
+    "populations",
+    "cohort_identities",
+    "recommendation",
+    "model_statistics",
+    "material_limitations"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 2},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "comparison_contract": {"$ref": "#/$defs/comparisonContract"},
+    "populations": {"$ref": "#/$defs/populations"},
+    "cohort_identities": {
+      "type": "object",
+      "propertyNames": {"type": "string", "minLength": 1},
+      "additionalProperties": {"$ref": "#/$defs/cohortIdentity"}
+    },
+    "recommendation": {"$ref": "#/$defs/recommendation"},
+    "model_statistics": {
+      "type": "object",
+      "propertyNames": {"type": "string", "minLength": 1},
+      "additionalProperties": {"$ref": "#/$defs/modelStatistics"}
+    },
+    "material_limitations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "runIds": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "run_ids"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 0},
+        "run_ids": {"$ref": "#/$defs/runIds"}
+      }
+    },
+    "populations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recorded", "queued", "available"],
+      "properties": {
+        "recorded": {"$ref": "#/$defs/population"},
+        "queued": {"$ref": "#/$defs/population"},
+        "available": {"$ref": "#/$defs/population"}
+      }
+    },
+    "comparisonContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "minimum_independent_observations",
+        "exact_match_fields",
+        "similar_match_fields"
+      ],
+      "properties": {
+        "protocol": {"type": "string", "const": "gated_v1"},
+        "minimum_independent_observations": {"type": "integer", "minimum": 1},
+        "exact_match_fields": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "subject_alias"},
+            {"const": "source_revision"},
+            {"const": "task_class"},
+            {"const": "difficulty"},
+            {"const": "evaluation_protocol"},
+            {"const": "task_stage"},
+            {"const": "tool_environment_class"},
+            {"const": "operation_gate_type"}
+          ],
+          "items": false
+        },
+        "similar_match_fields": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "task_class"},
+            {"const": "difficulty"},
+            {"const": "evaluation_protocol"}
+          ],
+          "items": false
+        }
+      }
+    },
+    "cohortIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_alias",
+        "source_revision",
+        "task_class",
+        "difficulty",
+        "evaluation_protocol",
+        "task_stage",
+        "tool_environment_class",
+        "operation_gate_type"
+      ],
+      "properties": {
+        "subject_alias": {"type": "string", "minLength": 1},
+        "source_revision": {"type": "string", "minLength": 1},
+        "task_class": {"type": "string", "minLength": 1},
+        "difficulty": {"type": "string", "minLength": 1},
+        "evaluation_protocol": {"type": "string", "minLength": 1},
+        "task_stage": {"type": "string", "minLength": 1},
+        "tool_environment_class": {"type": "string", "minLength": 1},
+        "operation_gate_type": {"type": "string", "minLength": 1}
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "model", "basis", "compared_models", "shared_exact_cohort_count"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "insufficient_comparable_evidence",
+            "strongest_on_exact_matched_evidence"
+          ]
+        },
+        "model": {"type": ["string", "null"], "minLength": 1},
+        "basis": {"type": "string", "minLength": 1},
+        "compared_models": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "shared_exact_cohort_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "observedRate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observed_count", "rate"],
+      "properties": {
+        "observed_count": {"type": "integer", "minimum": 0},
+        "rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "accepted_count": {"type": "integer", "minimum": 0},
+        "required_count": {"type": "integer", "minimum": 0}
+      },
+      "oneOf": [
+        {"required": ["accepted_count"]},
+        {"required": ["required_count"]}
+      ]
+    },
+    "scoreEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "mean", "minimum", "maximum"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 0},
+        "mean": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
+        "minimum": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
+        "maximum": {"type": ["number", "null"], "minimum": 0, "maximum": 5}
+      }
+    },
+    "undersampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "under_sampled",
+        "missing_task_classes",
+        "missing_difficulties",
+        "missing_independent_subject_count",
+        "missing_cross_model_matched_cohort",
+        "additional_independent_observations_required"
+      ],
+      "properties": {
+        "under_sampled": {"type": "boolean"},
+        "missing_task_classes": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "missing_difficulties": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "missing_independent_subject_count": {"type": "integer", "minimum": 0},
+        "missing_cross_model_matched_cohort": {"type": "boolean"},
+        "additional_independent_observations_required": {"type": "integer", "minimum": 0}
+      }
+    },
+    "modelStatistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recorded_count",
+        "queued_count",
+        "available_count",
+        "raw_comparable_run_count",
+        "independent_subject_count",
+        "exact_matched_cohort_count",
+        "similar_matched_cohort_count",
+        "exact_cohort_eligible_recorded_count",
+        "exact_cohort_unknown_recorded_count",
+        "exact_cohort_unknown_dimensions",
+        "overall_average_score_5",
+        "like_for_like_score_5",
+        "verdict_distribution",
+        "first_pass_acceptance",
+        "controller_intervention",
+        "score_evidence",
+        "recurring_defect_patterns",
+        "material_limitations",
+        "undersampling",
+        "cited_recorded_run_ids",
+        "cited_queued_run_ids"
+      ],
+      "properties": {
+        "recorded_count": {"type": "integer", "minimum": 0},
+        "queued_count": {"type": "integer", "minimum": 0},
+        "available_count": {"type": "integer", "minimum": 0},
+        "raw_comparable_run_count": {"type": "integer", "minimum": 0},
+        "independent_subject_count": {"type": "integer", "minimum": 0},
+        "exact_matched_cohort_count": {"type": "integer", "minimum": 0},
+        "similar_matched_cohort_count": {"type": "integer", "minimum": 0},
+        "exact_cohort_eligible_recorded_count": {"type": "integer", "minimum": 0},
+        "exact_cohort_unknown_recorded_count": {"type": "integer", "minimum": 0},
+        "exact_cohort_unknown_dimensions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "subject_alias",
+              "source_revision",
+              "task_class",
+              "difficulty",
+              "evaluation_protocol",
+              "task_stage",
+              "tool_environment_class",
+              "operation_gate_type"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "overall_average_score_5": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
+        "like_for_like_score_5": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
+        "verdict_distribution": {
+          "type": "object",
+          "propertyNames": {"type": "string", "minLength": 1},
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        },
+        "first_pass_acceptance": {"$ref": "#/$defs/observedRate"},
+        "controller_intervention": {"$ref": "#/$defs/observedRate"},
+        "score_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["safety_and_scope_control", "evidence_quality", "efficiency"],
+          "properties": {
+            "safety_and_scope_control": {"$ref": "#/$defs/scoreEvidence"},
+            "evidence_quality": {"$ref": "#/$defs/scoreEvidence"},
+            "efficiency": {"$ref": "#/$defs/scoreEvidence"}
+          }
+        },
+        "recurring_defect_patterns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["pattern", "count"],
+            "properties": {
+              "pattern": {"type": "string", "minLength": 1},
+              "count": {"type": "integer", "minimum": 2}
+            }
+          }
+        },
+        "material_limitations": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "undersampling": {"$ref": "#/$defs/undersampling"},
+        "cited_recorded_run_ids": {"$ref": "#/$defs/runIds"},
+        "cited_queued_run_ids": {"$ref": "#/$defs/runIds"}
+      }
+    }
+  }
+}

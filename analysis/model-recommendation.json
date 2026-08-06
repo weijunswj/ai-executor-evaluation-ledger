@@ -1,0 +1,634 @@
+{
+  "cohort_identities": {
+    "2026-07-24-mimo-2-5-pro-project-a-diagnosis-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-revision-reported-and-project-state-partially-verified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "incident-diagnosis",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-24-mimo-2-5-pro-project-a-stage-a-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-revision-asserted-by-executor-not-independently-proven",
+      "subject_alias": "public-web-app-a",
+      "task_class": "production-deployment",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-24-mimo-2-5-pro-project-b-config-001": {
+      "difficulty": "low",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-base-and-head-verified-privately",
+      "subject_alias": "public-python-service-b",
+      "task_class": "routine-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-24-mimo-2-5-pro-public-web-app-a-provenance-repair-003": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-base-and-head-controller-verified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-claude-opus-5-business-automation-a-amendment-004": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-controller-verified",
+      "subject_alias": "business-automation-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-claude-opus-5-business-automation-a-amendment-005": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-controller-verified",
+      "subject_alias": "business-automation-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-claude-opus-5-business-automation-a-amendment-006": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-controller-verified",
+      "subject_alias": "business-automation-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-deepseek-v4-pro-evaluation-ledger-scheduled-review-architecture-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-main-and-authoritative-issue-controller-verified",
+      "subject_alias": "evaluation-ledger-scheduled-review-a",
+      "task_class": "architecture-proposal",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-governance-design-gate-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified",
+      "subject_alias": "governance-design-gate-a",
+      "task_class": "architecture-proposal",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-previous-head-and-amendment-head-controller-verified",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-governance-tooling-a-amendment-003": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-previous-head-and-gate3-head-controller-verified",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-governance-tooling-a-implementation-001": {
+      "difficulty": "medium",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-005": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-current-revision-controller-verified; provider evidence executor-reported and partially cross-checked",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "provider-operation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-private-quote-service-a-configuration-admission-amendment-006": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-current-revision-controller-verified; provider evidence executor-reported and selectively cross-checked against versioned upstream source",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "provider-operation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-private-quote-service-a-env-migration-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-controller-verified; provider state executor-and-owner-reported",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "provider-operation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-private-quote-service-a-evidence-recovery-004": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-current-revision-controller-verified; provider evidence executor-reported and tracker-controller-reconciled",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "incident-diagnosis",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-private-quote-service-a-hosting-diagnosis-003": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-current-revision-controller-verified; provider state executor-reported",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "incident-diagnosis",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-private-quote-service-a-provider-preflight-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-reported-and-tracker-controller-inspected",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "provider-operation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-004": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-base-and-head-controller-verified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-005": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-base-and-head-controller-verified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-006": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-base-and-head-controller-verified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-public-web-app-a-provenance-amendment-007": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-base-head-and-squash-tree-controller-verified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-25-mimo-2-5-pro-public-web-app-a-provider-preflight-008": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-current-revision-controller-verified; provider state unavailable and unverified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "provider-operation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-claude-opus-5-business-automation-a-amendment-007": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-controller-verified",
+      "subject_alias": "business-automation-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-claude-opus-5-business-automation-a-amendment-008": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-controller-verified",
+      "subject_alias": "business-automation-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-claude-opus-5-business-automation-a-architecture-reset-008": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-head-and-draft-state-controller-verified; strict no-mutation architecture run",
+      "subject_alias": "business-automation-a",
+      "task_class": "architecture-proposal",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified; no-mutation architecture packet",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified; revised no-mutation architecture packet",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-003": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified; final no-mutation architecture correction",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-004": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified; consolidated no-mutation architecture packet",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-005": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-head-and-current-main-controller-verified; strict no-mutation architecture reset",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-006": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-head-and-current-main-controller-verified; strict no-mutation architecture correction",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-governance-tooling-a-dl-299-310-002-implementation-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified; draft implementation of controller design lock DL-299-310-002",
+      "subject_alias": "governance-tooling-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-private-quote-service-a-role-audit-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-and-read-only-database-state-controller-reviewed",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "security-architecture-audit",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-private-quote-service-a-role-design-amendment-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact private main asserted and read-only database inventory reported; no mutation authorised",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "security-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-private-quote-service-a-role-design-amendment-003": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact private main and disposable database design evidence controller-reviewed; no live mutation authorised",
+      "subject_alias": "private-quote-service-a",
+      "task_class": "security-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-public-web-app-a-browser-capability-003": {
+      "difficulty": "medium",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision and hosted provenance controller-reviewed; browser-capability admission only",
+      "subject_alias": "public-web-app-a",
+      "task_class": "hosted-product-uat",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-public-web-app-a-build-root-cause-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-and-hosted-failure-controller-verified",
+      "subject_alias": "public-web-app-a",
+      "task_class": "incident-diagnosis",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-public-web-app-a-http-walkthrough-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision and public hosted HTTP/provenance packet controller-reviewed",
+      "subject_alias": "public-web-app-a",
+      "task_class": "hosted-product-uat",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-public-web-app-a-source-commit-deployment-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision, accepted source-head CI and hosted deployment packet controller-reviewed",
+      "subject_alias": "public-web-app-a",
+      "task_class": "production-deployment",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-shared-platform-a-canonical-operator-source-003": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-and-merged-ci-controller-verified; canonical local operator-source admission",
+      "subject_alias": "shared-platform-a",
+      "task_class": "production-operations",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-shared-platform-a-hostname-contract-amendment-006": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact amended change head, green continuous integration and squash-merged tree controller-verified",
+      "subject_alias": "shared-platform-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-shared-platform-a-hostname-contract-repair-005": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "actual public pull-request head independently verified and differs from the executor packet by one hexadecimal character",
+      "subject_alias": "shared-platform-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-shared-platform-a-operator-source-admission-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-and-merged-ci-controller-verified; local credential-source admission only",
+      "subject_alias": "shared-platform-a",
+      "task_class": "production-operations",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-shared-platform-a-provider-hostname-admission-004": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-and-merged-ci-controller-verified; provider hostname admission only",
+      "subject_alias": "shared-platform-a",
+      "task_class": "production-operations",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-deepseek-v4-pro-shared-platform-a-runtime-activation-preflight-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-private-revision-and-merged-ci-controller-verified",
+      "subject_alias": "shared-platform-a",
+      "task_class": "production-operations",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-external-control-plane-a-amendment-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified",
+      "subject_alias": "external-control-plane-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-external-control-plane-gate1-amendment-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-head-and-current-main-controller-verified; strict no-mutation Gate 1 amendment",
+      "subject_alias": "external-control-plane-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-external-control-plane-gate1-reset-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-head-and-current-main-controller-verified",
+      "subject_alias": "external-control-plane-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-public-web-app-a-production-dependency-audit-005": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact public main, production dependency lock and authoritative audit tracker controller-verified; read-only audit with no package or deployment mutation",
+      "subject_alias": "public-web-app-a",
+      "task_class": "security-audit",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-public-web-app-a-rendered-walkthrough-004": {
+      "difficulty": "medium",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact private revision and hosted deployment identity supported; visual artefacts remained local-only",
+      "subject_alias": "public-web-app-a",
+      "task_class": "hosted-product-uat",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-repository-security-gate-a-amendment-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified; sealed bootstrap artefact independently inspected",
+      "subject_alias": "repository-security-gate-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-amendment-002": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-head-current-main-and-bootstrap-authority-controller-verified; strict no-mutation Gate 1 amendment",
+      "subject_alias": "repository-security-gate-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-reset-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-head-current-main-and-bootstrap-authority-controller-verified",
+      "subject_alias": "repository-security-gate-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-workflow-compatibility-a-amendment-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified",
+      "subject_alias": "workflow-compatibility-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-amendment-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-head-and-current-main-controller-verified; strict no-mutation Gate 1 amendment",
+      "subject_alias": "workflow-compatibility-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-reset-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-head-and-current-main-controller-verified",
+      "subject_alias": "workflow-compatibility-a",
+      "task_class": "research",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-07-26-gpt-5-6-sol-workflow-transport-a-amendment-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "protocol_unknown",
+      "operation_gate_type": "unknown",
+      "source_revision": "exact-public-base-and-head-controller-verified; accepted source head and squash result verified",
+      "subject_alias": "workflow-transport-a",
+      "task_class": "complex-repository-change",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    }
+  },
+  "comparison_contract": {
+    "exact_match_fields": [
+      "subject_alias",
+      "source_revision",
+      "task_class",
+      "difficulty",
+      "evaluation_protocol",
+      "task_stage",
+      "tool_environment_class",
+      "operation_gate_type"
+    ],
+    "minimum_independent_observations": 3,
+    "protocol": "gated_v1",
+    "similar_match_fields": [
+      "task_class",
+      "difficulty",
+      "evaluation_protocol"
+    ]
+  },
+  "generated_at": "2026-07-26T23:40:00+08:00",
+  "material_limitations": [
+    "Official comparison uses recorded gated_v1 evidence only.",
+    "Queued evidence is reported separately and cannot affect official eligibility, independent-subject thresholds, scores, or winner selection.",
+    "Overall averages are secondary context and never select the recommended model.",
+    "Amendment-chain runs sharing subject, source revision, and task lineage count as one independent subject.",
+    "Unknown exact-cohort dimensions are explicit and excluded from exact matching."
+  ],
+  "model_statistics": {},
+  "populations": {
+    "available": {
+      "count": 0,
+      "run_ids": []
+    },
+    "queued": {
+      "count": 0,
+      "run_ids": []
+    },
+    "recorded": {
+      "count": 0,
+      "run_ids": []
+    }
+  },
+  "recommendation": {
+    "basis": "No strongest model is declared unless exact matched coverage and task mix meet the published threshold.",
+    "compared_models": [],
+    "model": null,
+    "shared_exact_cohort_count": 0,
+    "status": "insufficient_comparable_evidence"
+  },
+  "schema_version": 2
+}

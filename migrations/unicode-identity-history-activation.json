@@ -1,0 +1,10 @@
+{
+  "canonical_main_base": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "generic_history_baseline": "c644a6032dec6709ff08b10f8bfb4fe53de28b69",
+  "identity_rule_set_sha256": "4cc6435fbc0a07e808872a68e4e6d6d02b91bfa0f97885af437c02deb1aa143d",
+  "manifest_type": "unicode_identity_history_activation",
+  "pr_activation_head": "10f40ea2f820f4a6230355502639bd7a238b2c45",
+  "pre_activation_inventory_sha256": "f4335377abc3c16e9fcfd064a514161d2e21c4516eff4c957f8493e0221ec898",
+  "pre_activation_occurrence_count": 571,
+  "schema_version": 1
+}

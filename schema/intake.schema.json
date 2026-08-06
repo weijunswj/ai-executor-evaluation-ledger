@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-executor-evaluation-ledger:intake:v2",
+  "title": "AI Executor Evaluation Intake Schema v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "controller_run_id",
+    "evaluation_run_id",
+    "provider",
+    "canonical_base_model",
+    "evaluation_protocol",
+    "repository_alias",
+    "source_revision",
+    "task_class",
+    "difficulty",
+    "verdict",
+    "score_dimensions",
+    "weighted_score_5",
+    "public_safe_evidence",
+    "secret_exposure_status",
+    "reviewed_at"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "record_type": {"type": "string", "const": "evaluation_intake"},
+    "controller_run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+    },
+    "evaluation_run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+    },
+    "provider": {
+      "type": "string",
+      "enum": ["Xiaomi", "MiMo", "Anthropic", "DeepSeek", "OpenAI", "Qwen", "Google", "MiniMax"]
+    },
+    "canonical_base_model": {
+      "type": "string",
+      "enum": [
+        "MiMo 2.5 Pro",
+        "Claude Opus 5",
+        "DeepSeek V4 Pro",
+        "GPT-5.6 Sol",
+        "Qwen3.7 Plus",
+        "Gemini 3.1 Pro",
+        "MiniMax M3"
+      ]
+    },
+    "evaluation_protocol": {
+      "type": "string",
+      "enum": ["gated_v1", "legacy_pre_gate", "protocol_unknown"]
+    },
+    "repository_alias": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+    },
+    "issue_number": {"type": ["integer", "null"], "minimum": 1},
+    "pull_request_number": {"type": ["integer", "null"], "minimum": 1},
+    "source_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "task_class": {"type": "string", "minLength": 1, "maxLength": 120},
+    "difficulty": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "pass",
+        "amend",
+        "hold",
+        "fail",
+        "blocked",
+        "rejected",
+        "rescheduled",
+        "error",
+        "reset",
+        "owner_withdrawn",
+        "withdrawn"
+      ]
+    },
+    "score_dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correctness",
+        "safety_and_scope_control",
+        "evidence_quality",
+        "operational_judgement",
+        "task_understanding",
+        "tracker_and_repository_hygiene",
+        "autonomy",
+        "efficiency"
+      ],
+      "properties": {
+        "correctness": {"type": "number", "minimum": 0, "maximum": 5},
+        "safety_and_scope_control": {"type": "number", "minimum": 0, "maximum": 5},
+        "evidence_quality": {"type": "number", "minimum": 0, "maximum": 5},
+        "operational_judgement": {"type": "number", "minimum": 0, "maximum": 5},
+        "task_understanding": {"type": "number", "minimum": 0, "maximum": 5},
+        "tracker_and_repository_hygiene": {"type": "number", "minimum": 0, "maximum": 5},
+        "autonomy": {"type": "number", "minimum": 0, "maximum": 5},
+        "efficiency": {"type": "number", "minimum": 0, "maximum": 5}
+      }
+    },
+    "weighted_score_5": {"type": "number", "minimum": 0, "maximum": 5},
+    "weighted_score_10": {"type": ["number", "null"], "minimum": 0, "maximum": 10},
+    "public_safe_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "first_pass_accepted",
+        "controller_intervention_required",
+        "safe_final_state_reported",
+        "safe_final_state_verified",
+        "root_cause_identified",
+        "root_cause_result",
+        "follow_up_count",
+        "confidence",
+        "verified_strengths",
+        "verified_defects",
+        "integrity_and_control_flags"
+      ],
+      "properties": {
+        "first_pass_accepted": {"type": "boolean"},
+        "controller_intervention_required": {"type": "boolean"},
+        "safe_final_state_reported": {"type": ["boolean", "null"]},
+        "safe_final_state_verified": {"type": ["boolean", "null"]},
+        "root_cause_identified": {"type": ["boolean", "null"]},
+        "root_cause_result": {"type": ["string", "null"], "maxLength": 1000},
+        "follow_up_count": {"type": ["integer", "null"], "minimum": 0},
+        "confidence": {
+          "type": "string",
+          "enum": ["strong", "verified", "direct", "anecdotal", "provisional", "moderate", "baseline", "high", "medium", "low"]
+        },
+        "verified_strengths": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 500}
+        },
+        "verified_defects": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 500}
+        },
+        "integrity_and_control_flags": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 120},
+          "uniqueItems": true
+        }
+      }
+    },
+    "secret_exposure_status": {
+      "type": "string",
+      "const": "none"
+    },
+    "reviewed_at": {"type": "string", "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+    "executor_reported_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"},
+    "prompt_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "objective": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 500}
+    }
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {"properties": {"provider": {"const": "Xiaomi"}, "canonical_base_model": {"const": "MiMo 2.5 Pro"}}},
+        {"properties": {"provider": {"const": "MiMo"}, "canonical_base_model": {"const": "MiMo 2.5 Pro"}}},
+        {"properties": {"provider": {"const": "Anthropic"}, "canonical_base_model": {"const": "Claude Opus 5"}}},
+        {"properties": {"provider": {"const": "DeepSeek"}, "canonical_base_model": {"const": "DeepSeek V4 Pro"}}},
+        {"properties": {"provider": {"const": "OpenAI"}, "canonical_base_model": {"const": "GPT-5.6 Sol"}}},
+        {"properties": {"provider": {"const": "Qwen"}, "canonical_base_model": {"const": "Qwen3.7 Plus"}}},
+        {"properties": {"provider": {"const": "Google"}, "canonical_base_model": {"const": "Gemini 3.1 Pro"}}},
+        {"properties": {"provider": {"const": "MiniMax"}, "canonical_base_model": {"const": "MiniMax M3"}}}
+      ]
+    }
+  ]
+}

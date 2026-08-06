@@ -13,11 +13,11 @@ For every prompt check:
 3. Determine the operational verdict.
 4. Grade the run using `SCORING_RUBRIC.md`.
 5. Append exactly one new evaluation record to `evaluations.jsonl`, or an explicit correction record when correcting a prior non-privacy fact.
-6. Record the exact model label and observed reasoning level when the provider exposes one. Use `not-exposed` rather than guessing when it does not.
+6. Record the exact provider and canonical base model.
 7. Recalculate the README summary table and `scorecard.md`.
 8. Update `model-policy.md` when evidence changes the model's safe task boundary.
 9. Reconcile the relevant private project issue body and dated evidence comment.
-10. Tell the user exactly which model and reasoning level were appended, together with the run ID, verdict and score.
+10. Tell the user exactly which model was appended, together with the run ID, verdict and score.
 11. Produce the next executor prompt only after steps 1-10 are complete.
 
 The user must not need to separately request grading or ledger maintenance after presenting an executor result.
@@ -52,7 +52,7 @@ The controller must check this gate without waiting for the user to notice a sta
 After each accepted ledger update, state this information plainly:
 
 ```text
-Ledger appended: <model> | reasoning: <level-or-not-exposed> | <run-id> | <verdict> | <score>/5
+Ledger appended: <provider> | <canonical-base-model> | <run-id> | <verdict> | <score>/5
 ```
 
 When one pull request appends multiple evaluations, state one line per appended run.
@@ -75,16 +75,11 @@ When a 31st formal evaluation is added:
 - continue including the complete ledger history in aggregate scores, confidence calculations and regression analysis;
 - do not count correction records as additional formal runs.
 
-Every displayed formal run must show the exact model label and observed reasoning level when available.
+Every displayed formal run must show the exact provider and canonical base-model label.
 
 ## Model naming
 
-Use these exact controller labels for the OpenAI Sol variants:
-
-- `GPT-5.6 Sol Medium`
-- `GPT-5.6 Sol High`
-
-Do not shorten them to `Sol Medium` or `Sol High` in scorecards, policies or user-facing ledger confirmations.
+Use exact provider plus canonical base model for every ledger identity. Execution settings are not public model identity and must not split, group or rank ledger evidence.
 
 ## Editor boundary
 
@@ -105,7 +100,7 @@ Missing evidence lowers the evidence score even when the final state appears saf
 Allowed:
 
 - opaque project or subject aliases;
-- model/provider labels and reasoning modes;
+- exact provider and canonical base-model labels;
 - sanitised task descriptions;
 - scores, verified strengths, defects and controller effort;
 - non-sensitive tool and workflow versions;
@@ -149,8 +144,7 @@ Non-privacy corrections require a new record with:
 
 For new runs, preserve privately:
 
-- exact model/provider label;
-- requested and observed reasoning level;
+- exact provider and canonical base-model label;
 - prompt SHA-256 where the exact prompt text is available;
 - task class, difficulty and exact private revision binding;
 - tool availability and material constraints.

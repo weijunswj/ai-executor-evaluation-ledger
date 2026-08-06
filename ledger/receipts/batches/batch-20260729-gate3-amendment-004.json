@@ -1,0 +1,1959 @@
+{
+  "accepted_record_proofs": {},
+  "admitted_run_ids": [],
+  "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "batch_id": "batch-20260729-gate3-amendment-004",
+  "batch_mode": "initial",
+  "candidate_content_commit_sha": "c3c9996e1e37c611a7e3bb9f29ad4491b2b4b3c7",
+  "canonical_hashes": {
+    "dispositions_jsonl": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
+    "evaluations_jsonl": "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
+    "model_recommendation_json": "8408f47f19176fd14b38beeab8d1e524137bf5e2aeecb545b016d0da4fba63a8",
+    "readme_md": "c2564c634a1709dcbc7712473c420ac679aa654e242a8dc1ccf693768fa8e8ba",
+    "scorecard_md": "7db9da098abdd88335fbcf8b7ca8193f8e0476f0a8530687878d49b6529cbcbb"
+  },
+  "canonical_main_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
+  "canonical_record_hashes": {},
+  "comment_bindings": [
+    {
+      "body_sha256": "680a84585519be6c645738d6446ad29fd524c12754abaa04e5ec47b54b18a9fd",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084152024,
+      "created_at": "2026-07-26T15:33:39Z",
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker",
+      "updated_at": "2026-07-26T15:33:39Z"
+    },
+    {
+      "body_sha256": "934dc08077fab2cc74c26af92ae87db176e79d243f5195b727cb5f2f2a2a37e6",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084273959,
+      "created_at": "2026-07-26T16:06:05Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T16:06:05Z"
+    },
+    {
+      "body_sha256": "0a73d7f02a7cb897517ccc84e0e42ddbb34fd4c58a153a363dd1d8c07163a22f",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084371265,
+      "created_at": "2026-07-26T16:31:34Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T16:31:34Z"
+    },
+    {
+      "body_sha256": "85cef2c42f1b89f6669c3c9f8f70f55f2bb37494cf1937c9ff62bd38067a627b",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084371842,
+      "created_at": "2026-07-26T16:31:43Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T16:31:43Z"
+    },
+    {
+      "body_sha256": "b3cad7d8cfde9e0540eaf5827e352d069ba3c80b4c81faba52a035d8129e61d2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084513198,
+      "created_at": "2026-07-26T17:06:56Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T17:06:56Z"
+    },
+    {
+      "body_sha256": "ae8d854f1a4ed22776557cfa646c38056dff66ae160ae6a81dd24cd5755f3069",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084615360,
+      "created_at": "2026-07-26T17:34:25Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T17:34:25Z"
+    },
+    {
+      "body_sha256": "43977de4d74e42b249555bd47d2bfc4029bbe3cfb6ea46f754ededb438a9c0cd",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084618903,
+      "created_at": "2026-07-26T17:35:25Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T17:35:25Z"
+    },
+    {
+      "body_sha256": "3c170d8add02bd181f3d592ded601ed4983d027da20637fc0bee899d3408ff4c",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5084631726,
+      "created_at": "2026-07-26T17:39:00Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T17:39:00Z"
+    },
+    {
+      "body_sha256": "744f658a4be2b64cc5020e64b3df7b48374782dfc0eb35ebf7113aa82e6f7e94",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086001616,
+      "created_at": "2026-07-26T23:55:11Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-26T23:55:11Z"
+    },
+    {
+      "body_sha256": "bd58381dac471818efd7cff35286050fd01d50623bccc45645a8f6aada5f6983",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086578921,
+      "created_at": "2026-07-27T02:06:32Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:06:32Z"
+    },
+    {
+      "body_sha256": "1c963a48a4f76c1c8015b6d4a3bd6aafb47449eccdd38a4f4385199588f687d2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086581050,
+      "created_at": "2026-07-27T02:06:59Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:06:59Z"
+    },
+    {
+      "body_sha256": "9a1835c8ee93eafd7bed34145e0e924d91f1520e7586bac4ce4c191257b36f42",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086585134,
+      "created_at": "2026-07-27T02:07:50Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:07:50Z"
+    },
+    {
+      "body_sha256": "14598e3c1e38044ffcb4277b23141698cc9d3c14b206f577be2437e050603fe6",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086589429,
+      "created_at": "2026-07-27T02:08:42Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-27T03:06:33Z"
+    },
+    {
+      "body_sha256": "2205142bd0862ed0a9b281e615bc4d3d86f839c03cef1ca84a91fc26a8ceeae2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086624137,
+      "created_at": "2026-07-27T02:15:43Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-27T02:15:43Z"
+    },
+    {
+      "body_sha256": "aee7818177cdb4d117705b24e72bbbe7edbd711fe55059d1b066ac9be724c37c",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086673654,
+      "created_at": "2026-07-27T02:25:11Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-27T02:45:23Z"
+    },
+    {
+      "body_sha256": "b6bf6cf04f8e13ecca19833372fc042391b49764e8c89303ef049cfa1073802c",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086705192,
+      "created_at": "2026-07-27T02:32:08Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:32:08Z"
+    },
+    {
+      "body_sha256": "1b2326c6818afd880f31a37b75049df397d2f0b3e4b52f0093db9af53f2e5e62",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086739477,
+      "created_at": "2026-07-27T02:39:51Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:39:51Z"
+    },
+    {
+      "body_sha256": "cb9740bf0748ec81f7232cf9a83ff8f9b53508b71896baa526a3d2762aa04b0b",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086776533,
+      "created_at": "2026-07-27T02:48:05Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T02:48:05Z"
+    },
+    {
+      "body_sha256": "8e423891bdf0211ab5caf9e13f12a03c89e80cff43af33f15e470909bba2b5bf",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086781596,
+      "created_at": "2026-07-27T02:49:17Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-27T02:49:17Z"
+    },
+    {
+      "body_sha256": "417b1175d3d478fd1f239e7cb5942d76090518551050a509001bfc232bfbcd4e",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5086782072,
+      "created_at": "2026-07-27T02:49:24Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T04:14:41Z"
+    },
+    {
+      "body_sha256": "2cd345d0332207ac58ed62d1448fb6bfe2d8b604d166bf2256747315426c75f3",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087003873,
+      "created_at": "2026-07-27T03:35:51Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T03:35:51Z"
+    },
+    {
+      "body_sha256": "763906db9ebd981b1dbe4edc4c0af8a3225c792bbcd661b217926c715efa7223",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087015504,
+      "created_at": "2026-07-27T03:38:09Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T03:38:09Z"
+    },
+    {
+      "body_sha256": "baf889fe162e1ee1865dd5625cc4881ff9903dc56bc55b014aacce09b4a2f5bb",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087016408,
+      "created_at": "2026-07-27T03:38:20Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T03:38:20Z"
+    },
+    {
+      "body_sha256": "56e169a502ed2db7e2b114896a3488536aa652f4ccca56592fffc02ca9eb3647",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087030694,
+      "created_at": "2026-07-27T03:41:36Z",
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker",
+      "updated_at": "2026-07-27T04:14:28Z"
+    },
+    {
+      "body_sha256": "1faa09dec7132de1ac20cd0d11b7a258e965e05593d775673f98e2bd75111e49",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087203227,
+      "created_at": "2026-07-27T04:18:02Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T04:18:02Z"
+    },
+    {
+      "body_sha256": "8317f078d28c65f82640734def386ef2ba3844d1dc73eaae66290fda8dea5d40",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087215771,
+      "created_at": "2026-07-27T04:20:01Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T04:20:01Z"
+    },
+    {
+      "body_sha256": "0722d4ee875d02997aa521a3d86cca4709d95b9ba9f8acab44e450fbe83e157c",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087404562,
+      "created_at": "2026-07-27T04:53:34Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T04:53:34Z"
+    },
+    {
+      "body_sha256": "4b562b94daf2d8ab7e549decd6360b4a4bc773bf7247d6f4a9d8bf5bf222f8b0",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087456754,
+      "created_at": "2026-07-27T05:03:47Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-27T05:03:47Z"
+    },
+    {
+      "body_sha256": "ce0a5f4147d60a09ff036c6ff026b68fd62f6833d63a19aef5a2b05e18781eb7",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087518655,
+      "created_at": "2026-07-27T05:14:28Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T05:14:28Z"
+    },
+    {
+      "body_sha256": "72ae9287cc1c5f07c9ac9bc0747d65b7da84138e36b89b262860dc86fd253825",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087613135,
+      "created_at": "2026-07-27T05:30:59Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-27T05:30:59Z"
+    },
+    {
+      "body_sha256": "9711d8b29577fa4fc78f096cd794869fffb7a4e5523d8b914f68e411316a7220",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087810146,
+      "created_at": "2026-07-27T06:01:54Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:01:54Z"
+    },
+    {
+      "body_sha256": "b5d427ef2fa2dfc7ff9fcf84f1f9b9d920c753112d2b7af94b791eb1f3dbcd2d",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087811634,
+      "created_at": "2026-07-27T06:02:09Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:02:09Z"
+    },
+    {
+      "body_sha256": "035c6f3b2a38dfd7a0252bad9edee6b4bb5ebea7aa9bfc455dc2221b9bb8afe7",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087813069,
+      "created_at": "2026-07-27T06:02:23Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:02:23Z"
+    },
+    {
+      "body_sha256": "2ba11e9b04463c1274475e673fc92f2b82542378db25402146884ac972ed95ff",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087820732,
+      "created_at": "2026-07-27T06:03:31Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:03:31Z"
+    },
+    {
+      "body_sha256": "4b30e7b4c54ed0ad1170f1171d5ee85e8cae3b07abfb29a20a49c2f8772b9fbb",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087822478,
+      "created_at": "2026-07-27T06:03:45Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:03:45Z"
+    },
+    {
+      "body_sha256": "e647e0e25112743c33b14d6204924058eafbf45c323e7daabbabe9a8c52bc3eb",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5087826613,
+      "created_at": "2026-07-27T06:04:13Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-27T06:04:13Z"
+    },
+    {
+      "body_sha256": "b7b0e884518daf431bf7dca7af6ff0d34d3d93cd7f36cd56df760b62cdb16d92",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088140090,
+      "created_at": "2026-07-27T06:45:07Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T06:45:07Z"
+    },
+    {
+      "body_sha256": "b60d1cfe572c80c05e6dd5f0d333b8dbda1d73c62f2205e21c1c08f52191fffd",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088187239,
+      "created_at": "2026-07-27T06:51:52Z",
+      "evaluation_run_id": null,
+      "outcome_code": "withdrawn_identity",
+      "updated_at": "2026-07-27T06:51:52Z"
+    },
+    {
+      "body_sha256": "4e4e9cae77d3849968b03788269db94bc83f70d2139373a3220248707b545bcc",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088271091,
+      "created_at": "2026-07-27T07:02:54Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T07:02:54Z"
+    },
+    {
+      "body_sha256": "a4eec64854200618fcf6838f0cf019a40abf8ff22536820cfe0134979c8e2cc2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088331426,
+      "created_at": "2026-07-27T07:09:31Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T07:09:31Z"
+    },
+    {
+      "body_sha256": "cd9516b7ebab8d4ddfa31676a4308fb75978f237ae04b989138396fb9a235b18",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5088919064,
+      "created_at": "2026-07-27T08:14:51Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T08:14:51Z"
+    },
+    {
+      "body_sha256": "ad645b8911b37674a0a675815cd389acdddfe8c19c9bb91e2704b278501b766d",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5089028662,
+      "created_at": "2026-07-27T08:26:31Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T08:26:31Z"
+    },
+    {
+      "body_sha256": "a857c135de6f0594706ff53cc74b1d49ee5e8cc75ebc01559540c172e4042003",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5090571993,
+      "created_at": "2026-07-27T11:09:33Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T11:09:33Z"
+    },
+    {
+      "body_sha256": "95caf93730fc75fe77b3b4e0229fc20f98cdf6b042bc3b4d1870b1f78e63089b",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5090573860,
+      "created_at": "2026-07-27T11:09:45Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T11:09:45Z"
+    },
+    {
+      "body_sha256": "e296576501a535b06e266bba8067ec4b3a0b965653c9068f33026b6173042e61",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5090577133,
+      "created_at": "2026-07-27T11:10:05Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T11:10:05Z"
+    },
+    {
+      "body_sha256": "cb2222c7e435a9cb5c092c886036afc78a809b4f7ebdffd39417feed61f69799",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5090585819,
+      "created_at": "2026-07-27T11:11:01Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T11:11:01Z"
+    },
+    {
+      "body_sha256": "bb96fec210f82c5805928300a99809d026e3eb0791a6165741bdcc1a0bc72ad7",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5090737316,
+      "created_at": "2026-07-27T11:28:44Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T11:28:44Z"
+    },
+    {
+      "body_sha256": "d91e96b4c19d5e23e16a16a0ded66ff3f11df337eba4cf433df9cf7c9c521572",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5091296179,
+      "created_at": "2026-07-27T12:29:13Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T12:29:13Z"
+    },
+    {
+      "body_sha256": "8feb78e65a7fc9f3a1622b70cab268880098c775cba73e17397e619c1c0c1c0a",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5091298564,
+      "created_at": "2026-07-27T12:29:28Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T12:29:28Z"
+    },
+    {
+      "body_sha256": "93635e37e23a1d4e6063f38665222aa7778754058da5fd1858e7388b8ea147a1",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5091616990,
+      "created_at": "2026-07-27T13:01:27Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T13:01:27Z"
+    },
+    {
+      "body_sha256": "509a5a529bb7bcea4d6c95ba9e3857941e0c7c75f63c9526182797988cc5322d",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5091741767,
+      "created_at": "2026-07-27T13:12:39Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T13:12:39Z"
+    },
+    {
+      "body_sha256": "0def7a7f627b59736da2af6417ce525445630dd97040603052c6fd0221a61910",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092077646,
+      "created_at": "2026-07-27T13:40:47Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T13:40:47Z"
+    },
+    {
+      "body_sha256": "a50c566cb54cee2207d99a4088b6954137bdda7bddefe63a98e034a8a1bdb938",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092124832,
+      "created_at": "2026-07-27T13:44:59Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T13:44:59Z"
+    },
+    {
+      "body_sha256": "0bd6682c026524d75d33a2cde564c10d6f1de81a72bfa951bb746b98d9583301",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092283173,
+      "created_at": "2026-07-27T13:59:30Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T13:59:30Z"
+    },
+    {
+      "body_sha256": "cfaf0cc993b9faca329fc5c14e070b612b8624fe339633350df5bda804c66396",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092416182,
+      "created_at": "2026-07-27T14:11:25Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T14:11:25Z"
+    },
+    {
+      "body_sha256": "a19d3b4fdd94d57f85ec4a77a55e4df6ad94546e693ee5b7730bc1534217ae1a",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092513574,
+      "created_at": "2026-07-27T14:20:11Z",
+      "evaluation_run_id": null,
+      "outcome_code": "invalid_schema",
+      "updated_at": "2026-07-27T14:20:11Z"
+    },
+    {
+      "body_sha256": "0e260c10d061b935f17530d3b41ad22535275ddb9c276f021a6ce7a104a98f9f",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092534822,
+      "created_at": "2026-07-27T14:22:07Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T14:22:07Z"
+    },
+    {
+      "body_sha256": "28e4b0eb1d0418f1aac5ebff5a606b33e9b15e20d34ce03bb0173b1e38f4902b",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5092939596,
+      "created_at": "2026-07-27T14:58:15Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T15:04:36Z"
+    },
+    {
+      "body_sha256": "8e8ffdf82fcf4e0e9e0107a48575f5d02cca9116bfdb7d246f35e6e90076f975",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5093354729,
+      "created_at": "2026-07-27T15:32:53Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T15:32:53Z"
+    },
+    {
+      "body_sha256": "fc6ee9726aced61ed3d0af65202e80c7a22309786ef5b25d2bece5d87533be1a",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5093443275,
+      "created_at": "2026-07-27T15:40:57Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T15:40:57Z"
+    },
+    {
+      "body_sha256": "afa31e15bbd5de4399f1d24bc45953e2e080fe3578ae3130e8a5b0c3c078b6ba",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5093570562,
+      "created_at": "2026-07-27T15:52:02Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T15:52:02Z"
+    },
+    {
+      "body_sha256": "81470490b30bade2f848d99c0417c07c94820678829b0a1ee3b24511c746df5e",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5093573986,
+      "created_at": "2026-07-27T15:52:19Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T15:52:19Z"
+    },
+    {
+      "body_sha256": "29c711cac268d01e9a45222a1a61d66ba4dfc630fa5128445deaad4bed4948cb",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5093721405,
+      "created_at": "2026-07-27T16:06:35Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T16:06:35Z"
+    },
+    {
+      "body_sha256": "1fd95f71d526af691f825ce4fee697e9a3be2add8e0531f07177793dfdf416e6",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5094470896,
+      "created_at": "2026-07-27T17:17:37Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T17:21:21Z"
+    },
+    {
+      "body_sha256": "5d746be97dbb6c61316216b53e0b0524f069cb6c7e5232834a7adecb39db9977",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5094473607,
+      "created_at": "2026-07-27T17:17:54Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T02:22:30Z"
+    },
+    {
+      "body_sha256": "c9027cd51f8e3949dbc066824a05e8f0beb071240d98ba751c35378a5c3286ee",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5094475350,
+      "created_at": "2026-07-27T17:18:06Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-27T17:21:47Z"
+    },
+    {
+      "body_sha256": "dcaa63fac36b624e0e9f3d6f9aa8428fbcd7b80d11d2728f2010ead03ccd01b9",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5098280170,
+      "created_at": "2026-07-28T00:11:27Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-28T00:11:27Z"
+    },
+    {
+      "body_sha256": "fb0c443807fc3093b298822d7259506b0963eae5c7e951add914366a3eb28999",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5098924212,
+      "created_at": "2026-07-28T01:42:57Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T01:42:57Z"
+    },
+    {
+      "body_sha256": "e4d8d7ab27ee0394fdb4149f2d9e9984cde128fc4cfa7515484c373ae56788d1",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5099204973,
+      "created_at": "2026-07-28T02:22:04Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T02:22:04Z"
+    },
+    {
+      "body_sha256": "a075406ed35e7af2a28bc8efdf67a2ad8c21f08ee209cb5643d987376c8b9c96",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5099206215,
+      "created_at": "2026-07-28T02:22:17Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T02:22:17Z"
+    },
+    {
+      "body_sha256": "51a70aa29576b37ede4985c220bdc3d31680c6582f9ae031457939193b2aa10a",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5099222599,
+      "created_at": "2026-07-28T02:25:07Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T02:25:07Z"
+    },
+    {
+      "body_sha256": "21579e62034c953db0e1670e691e0e009e5d57c27b8e781ddb6af8fa5c419f68",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5101322347,
+      "created_at": "2026-07-28T07:39:43Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T07:39:43Z"
+    },
+    {
+      "body_sha256": "ad85cce05447d3b9029644cf1638d5f98939c14c05e11657675358691d461f97",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5102209956,
+      "created_at": "2026-07-28T09:14:00Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T09:14:00Z"
+    },
+    {
+      "body_sha256": "7a7f039d5c7c3ef7858d151f01f5e3170c17e4a8fd04cc21e9bae6ce1c3a3fa0",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5102212360,
+      "created_at": "2026-07-28T09:14:15Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T09:14:15Z"
+    },
+    {
+      "body_sha256": "515b81bfe6626d75106f9da7e806226cafcd263f4bd2bfa34cb0459acef5a607",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5102214604,
+      "created_at": "2026-07-28T09:14:29Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T09:14:29Z"
+    },
+    {
+      "body_sha256": "e2206bbc7e4b81d3d79d2a040072d9a50c3b07310f46cb7327737fb23cc593e2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5102373384,
+      "created_at": "2026-07-28T09:30:05Z",
+      "evaluation_run_id": null,
+      "outcome_code": "invalid_schema",
+      "updated_at": "2026-07-28T09:30:05Z"
+    },
+    {
+      "body_sha256": "18ba99b6511436c2802cb4706dd180f66110ba68732b9454a2857abf91a478de",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5103241826,
+      "created_at": "2026-07-28T10:58:25Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T10:58:25Z"
+    },
+    {
+      "body_sha256": "50f6eef3687657c99eaf175535ad940a34c2578c2f5e2c733fbf79f4f956a1cc",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5103243521,
+      "created_at": "2026-07-28T10:58:37Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T10:58:37Z"
+    },
+    {
+      "body_sha256": "69a2b00a4093f0ff76550d7a03c89cacf10829acaa47ddbae345cc92cb21c5cf",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5103264920,
+      "created_at": "2026-07-28T11:00:55Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T11:00:55Z"
+    },
+    {
+      "body_sha256": "25f0b285b8ecf454b2dc43b6eda9fa02f9ab16d406e28386995b36aad6c1bb04",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5103766640,
+      "created_at": "2026-07-28T11:51:05Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T11:51:05Z"
+    },
+    {
+      "body_sha256": "d89c7d001e5890e1f2b741f8735dde4db18a5d0c94b7e59dba18879af32bd69d",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5103841186,
+      "created_at": "2026-07-28T11:58:35Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T11:58:35Z"
+    },
+    {
+      "body_sha256": "57174e3e08770371bbb484f355e6844a72c683458fdb5e14f6975a24005602ea",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5104294737,
+      "created_at": "2026-07-28T12:43:59Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T12:45:34Z"
+    },
+    {
+      "body_sha256": "6d89a1c0283bb9a7becb172d62bb0348eca39b1507a25578c59279ef8139a947",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5104654751,
+      "created_at": "2026-07-28T13:18:37Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T13:18:37Z"
+    },
+    {
+      "body_sha256": "b04d211affd43d750675424b3915f0ca0c07eb2599e7be57a9810aaf767a2bfa",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5104670197,
+      "created_at": "2026-07-28T13:20:02Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T13:20:02Z"
+    },
+    {
+      "body_sha256": "25761cbb9d34ce5bbb21fed4beb49401e6cbad4d37c10030745fa9010fb7912d",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5105554288,
+      "created_at": "2026-07-28T14:36:29Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T14:36:29Z"
+    },
+    {
+      "body_sha256": "a997b0fa3b587629be159930f25ac38924186efb38c129a45aa48234c0088169",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5105579627,
+      "created_at": "2026-07-28T14:38:41Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T14:38:41Z"
+    },
+    {
+      "body_sha256": "2973873b70676ac23b19e478094d5ac2c7e405b2f5aed7a03147e16d37fc520d",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106087155,
+      "created_at": "2026-07-28T15:21:58Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T15:21:58Z"
+    },
+    {
+      "body_sha256": "8c61fa1e5e4f2e47f1864e2944c6d75e6b67369dd499b0b38ba694b03197d89c",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106089599,
+      "created_at": "2026-07-28T15:22:11Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T15:22:11Z"
+    },
+    {
+      "body_sha256": "8ed3379c2bd47a3f8a6f483d20e4082fa554510eb15171fe377d5bbd1a510364",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106093400,
+      "created_at": "2026-07-28T15:22:28Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T15:22:28Z"
+    },
+    {
+      "body_sha256": "88aff922f91803e50f656b60b19f62da3f4062b710c16b14e37e74ef86260966",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106096425,
+      "created_at": "2026-07-28T15:22:42Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T15:22:42Z"
+    },
+    {
+      "body_sha256": "e7050aeaf1158fb246f101ab957a41e0114c9fd0f33d1221a62b633b3e2ed9d4",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106388964,
+      "created_at": "2026-07-28T15:47:25Z",
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content",
+      "updated_at": "2026-07-28T15:47:25Z"
+    },
+    {
+      "body_sha256": "2bdbd0f6ca4806a35d1cd849dd5d86a9b229736c2cf0d704e0634991e7f4eac0",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106397902,
+      "created_at": "2026-07-28T15:48:14Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T15:48:14Z"
+    },
+    {
+      "body_sha256": "1e5c7a0810bace03ec4db9545af6ac12d9d6378627a8e842967318436c2dd6f7",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106846261,
+      "created_at": "2026-07-28T16:23:25Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T16:23:25Z"
+    },
+    {
+      "body_sha256": "951ca3e4f7324900b81e5d3547ce065b2690399b0f8f7829d315ddfa81d6465f",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106848617,
+      "created_at": "2026-07-28T16:23:38Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T16:23:38Z"
+    },
+    {
+      "body_sha256": "9a9613703adadf3d2dcbb38a1387f256fccac5f3d55a25f2d1de4c764e2d4212",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5106850616,
+      "created_at": "2026-07-28T16:23:49Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T16:23:49Z"
+    },
+    {
+      "body_sha256": "cc4774d545977542cb0c88d34dd53b99c3940526fb3d65999628f9650467bad3",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5107261113,
+      "created_at": "2026-07-28T17:03:44Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-28T17:03:44Z"
+    },
+    {
+      "body_sha256": "3109f54b409e905ffc65cf8dfef476d361c6229fc089430bbabd2d6c4784d1df",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5111845296,
+      "created_at": "2026-07-29T01:51:20Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-29T01:51:20Z"
+    },
+    {
+      "body_sha256": "eb6cb75f32dd5ed6bc3a68ee14dec760820eeeb8973aa892e904471a1bc41469",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5111917457,
+      "created_at": "2026-07-29T01:59:55Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-29T01:59:55Z"
+    },
+    {
+      "body_sha256": "548350ae191389b8936962cd3c3b28c28266e686cb17f4a983d770760445d740",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5113149091,
+      "created_at": "2026-07-29T04:29:44Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-29T04:29:44Z"
+    },
+    {
+      "body_sha256": "82980d269d920e4ac2950a4012948c158fe2df5c9d63001dba2573e329f049e2",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5113152127,
+      "created_at": "2026-07-29T04:29:56Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-29T04:29:56Z"
+    },
+    {
+      "body_sha256": "1cbeaca388183384e64ea2b6c964d793ae800b337881770743060e41855ef229",
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "comment_id": 5115014307,
+      "created_at": "2026-07-29T08:23:28Z",
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing",
+      "updated_at": "2026-07-29T08:23:28Z"
+    }
+  ],
+  "controller_run_id": "2026-07-29-ledger-integrated-processor-gate3-amendment-004",
+  "full_queue_count": 101,
+  "latest_observed_comment_id": 5115014307,
+  "latest_observed_update_time": "2026-07-29T08:23:28Z",
+  "pr_number": 151,
+  "queue_snapshot_sha256": "ef85282e1bcbbd930db3264b9bda1345998e74d8bdbb89ab6ee47b3709b76300",
+  "receipt_issue_number": 143,
+  "receipt_type": "batch",
+  "schema_version": 2,
+  "selected_comment_count": 101,
+  "selected_comment_ids": [
+    5084152024,
+    5084273959,
+    5084371265,
+    5084371842,
+    5084513198,
+    5084615360,
+    5084618903,
+    5084631726,
+    5086001616,
+    5086578921,
+    5086581050,
+    5086585134,
+    5086589429,
+    5086624137,
+    5086673654,
+    5086705192,
+    5086739477,
+    5086776533,
+    5086781596,
+    5086782072,
+    5087003873,
+    5087015504,
+    5087016408,
+    5087030694,
+    5087203227,
+    5087215771,
+    5087404562,
+    5087456754,
+    5087518655,
+    5087613135,
+    5087810146,
+    5087811634,
+    5087813069,
+    5087820732,
+    5087822478,
+    5087826613,
+    5088140090,
+    5088187239,
+    5088271091,
+    5088331426,
+    5088919064,
+    5089028662,
+    5090571993,
+    5090573860,
+    5090577133,
+    5090585819,
+    5090737316,
+    5091296179,
+    5091298564,
+    5091616990,
+    5091741767,
+    5092077646,
+    5092124832,
+    5092283173,
+    5092416182,
+    5092513574,
+    5092534822,
+    5092939596,
+    5093354729,
+    5093443275,
+    5093570562,
+    5093573986,
+    5093721405,
+    5094470896,
+    5094473607,
+    5094475350,
+    5098280170,
+    5098924212,
+    5099204973,
+    5099206215,
+    5099222599,
+    5101322347,
+    5102209956,
+    5102212360,
+    5102214604,
+    5102373384,
+    5103241826,
+    5103243521,
+    5103264920,
+    5103766640,
+    5103841186,
+    5104294737,
+    5104654751,
+    5104670197,
+    5105554288,
+    5105579627,
+    5106087155,
+    5106089599,
+    5106093400,
+    5106096425,
+    5106388964,
+    5106397902,
+    5106846261,
+    5106848617,
+    5106850616,
+    5107261113,
+    5111845296,
+    5111917457,
+    5113149091,
+    5113152127,
+    5115014307
+  ],
+  "source_body_sha256": {
+    "5084152024": "680a84585519be6c645738d6446ad29fd524c12754abaa04e5ec47b54b18a9fd",
+    "5084273959": "934dc08077fab2cc74c26af92ae87db176e79d243f5195b727cb5f2f2a2a37e6",
+    "5084371265": "0a73d7f02a7cb897517ccc84e0e42ddbb34fd4c58a153a363dd1d8c07163a22f",
+    "5084371842": "85cef2c42f1b89f6669c3c9f8f70f55f2bb37494cf1937c9ff62bd38067a627b",
+    "5084513198": "b3cad7d8cfde9e0540eaf5827e352d069ba3c80b4c81faba52a035d8129e61d2",
+    "5084615360": "ae8d854f1a4ed22776557cfa646c38056dff66ae160ae6a81dd24cd5755f3069",
+    "5084618903": "43977de4d74e42b249555bd47d2bfc4029bbe3cfb6ea46f754ededb438a9c0cd",
+    "5084631726": "3c170d8add02bd181f3d592ded601ed4983d027da20637fc0bee899d3408ff4c",
+    "5086001616": "744f658a4be2b64cc5020e64b3df7b48374782dfc0eb35ebf7113aa82e6f7e94",
+    "5086578921": "bd58381dac471818efd7cff35286050fd01d50623bccc45645a8f6aada5f6983",
+    "5086581050": "1c963a48a4f76c1c8015b6d4a3bd6aafb47449eccdd38a4f4385199588f687d2",
+    "5086585134": "9a1835c8ee93eafd7bed34145e0e924d91f1520e7586bac4ce4c191257b36f42",
+    "5086589429": "14598e3c1e38044ffcb4277b23141698cc9d3c14b206f577be2437e050603fe6",
+    "5086624137": "2205142bd0862ed0a9b281e615bc4d3d86f839c03cef1ca84a91fc26a8ceeae2",
+    "5086673654": "aee7818177cdb4d117705b24e72bbbe7edbd711fe55059d1b066ac9be724c37c",
+    "5086705192": "b6bf6cf04f8e13ecca19833372fc042391b49764e8c89303ef049cfa1073802c",
+    "5086739477": "1b2326c6818afd880f31a37b75049df397d2f0b3e4b52f0093db9af53f2e5e62",
+    "5086776533": "cb9740bf0748ec81f7232cf9a83ff8f9b53508b71896baa526a3d2762aa04b0b",
+    "5086781596": "8e423891bdf0211ab5caf9e13f12a03c89e80cff43af33f15e470909bba2b5bf",
+    "5086782072": "417b1175d3d478fd1f239e7cb5942d76090518551050a509001bfc232bfbcd4e",
+    "5087003873": "2cd345d0332207ac58ed62d1448fb6bfe2d8b604d166bf2256747315426c75f3",
+    "5087015504": "763906db9ebd981b1dbe4edc4c0af8a3225c792bbcd661b217926c715efa7223",
+    "5087016408": "baf889fe162e1ee1865dd5625cc4881ff9903dc56bc55b014aacce09b4a2f5bb",
+    "5087030694": "56e169a502ed2db7e2b114896a3488536aa652f4ccca56592fffc02ca9eb3647",
+    "5087203227": "1faa09dec7132de1ac20cd0d11b7a258e965e05593d775673f98e2bd75111e49",
+    "5087215771": "8317f078d28c65f82640734def386ef2ba3844d1dc73eaae66290fda8dea5d40",
+    "5087404562": "0722d4ee875d02997aa521a3d86cca4709d95b9ba9f8acab44e450fbe83e157c",
+    "5087456754": "4b562b94daf2d8ab7e549decd6360b4a4bc773bf7247d6f4a9d8bf5bf222f8b0",
+    "5087518655": "ce0a5f4147d60a09ff036c6ff026b68fd62f6833d63a19aef5a2b05e18781eb7",
+    "5087613135": "72ae9287cc1c5f07c9ac9bc0747d65b7da84138e36b89b262860dc86fd253825",
+    "5087810146": "9711d8b29577fa4fc78f096cd794869fffb7a4e5523d8b914f68e411316a7220",
+    "5087811634": "b5d427ef2fa2dfc7ff9fcf84f1f9b9d920c753112d2b7af94b791eb1f3dbcd2d",
+    "5087813069": "035c6f3b2a38dfd7a0252bad9edee6b4bb5ebea7aa9bfc455dc2221b9bb8afe7",
+    "5087820732": "2ba11e9b04463c1274475e673fc92f2b82542378db25402146884ac972ed95ff",
+    "5087822478": "4b30e7b4c54ed0ad1170f1171d5ee85e8cae3b07abfb29a20a49c2f8772b9fbb",
+    "5087826613": "e647e0e25112743c33b14d6204924058eafbf45c323e7daabbabe9a8c52bc3eb",
+    "5088140090": "b7b0e884518daf431bf7dca7af6ff0d34d3d93cd7f36cd56df760b62cdb16d92",
+    "5088187239": "b60d1cfe572c80c05e6dd5f0d333b8dbda1d73c62f2205e21c1c08f52191fffd",
+    "5088271091": "4e4e9cae77d3849968b03788269db94bc83f70d2139373a3220248707b545bcc",
+    "5088331426": "a4eec64854200618fcf6838f0cf019a40abf8ff22536820cfe0134979c8e2cc2",
+    "5088919064": "cd9516b7ebab8d4ddfa31676a4308fb75978f237ae04b989138396fb9a235b18",
+    "5089028662": "ad645b8911b37674a0a675815cd389acdddfe8c19c9bb91e2704b278501b766d",
+    "5090571993": "a857c135de6f0594706ff53cc74b1d49ee5e8cc75ebc01559540c172e4042003",
+    "5090573860": "95caf93730fc75fe77b3b4e0229fc20f98cdf6b042bc3b4d1870b1f78e63089b",
+    "5090577133": "e296576501a535b06e266bba8067ec4b3a0b965653c9068f33026b6173042e61",
+    "5090585819": "cb2222c7e435a9cb5c092c886036afc78a809b4f7ebdffd39417feed61f69799",
+    "5090737316": "bb96fec210f82c5805928300a99809d026e3eb0791a6165741bdcc1a0bc72ad7",
+    "5091296179": "d91e96b4c19d5e23e16a16a0ded66ff3f11df337eba4cf433df9cf7c9c521572",
+    "5091298564": "8feb78e65a7fc9f3a1622b70cab268880098c775cba73e17397e619c1c0c1c0a",
+    "5091616990": "93635e37e23a1d4e6063f38665222aa7778754058da5fd1858e7388b8ea147a1",
+    "5091741767": "509a5a529bb7bcea4d6c95ba9e3857941e0c7c75f63c9526182797988cc5322d",
+    "5092077646": "0def7a7f627b59736da2af6417ce525445630dd97040603052c6fd0221a61910",
+    "5092124832": "a50c566cb54cee2207d99a4088b6954137bdda7bddefe63a98e034a8a1bdb938",
+    "5092283173": "0bd6682c026524d75d33a2cde564c10d6f1de81a72bfa951bb746b98d9583301",
+    "5092416182": "cfaf0cc993b9faca329fc5c14e070b612b8624fe339633350df5bda804c66396",
+    "5092513574": "a19d3b4fdd94d57f85ec4a77a55e4df6ad94546e693ee5b7730bc1534217ae1a",
+    "5092534822": "0e260c10d061b935f17530d3b41ad22535275ddb9c276f021a6ce7a104a98f9f",
+    "5092939596": "28e4b0eb1d0418f1aac5ebff5a606b33e9b15e20d34ce03bb0173b1e38f4902b",
+    "5093354729": "8e8ffdf82fcf4e0e9e0107a48575f5d02cca9116bfdb7d246f35e6e90076f975",
+    "5093443275": "fc6ee9726aced61ed3d0af65202e80c7a22309786ef5b25d2bece5d87533be1a",
+    "5093570562": "afa31e15bbd5de4399f1d24bc45953e2e080fe3578ae3130e8a5b0c3c078b6ba",
+    "5093573986": "81470490b30bade2f848d99c0417c07c94820678829b0a1ee3b24511c746df5e",
+    "5093721405": "29c711cac268d01e9a45222a1a61d66ba4dfc630fa5128445deaad4bed4948cb",
+    "5094470896": "1fd95f71d526af691f825ce4fee697e9a3be2add8e0531f07177793dfdf416e6",
+    "5094473607": "5d746be97dbb6c61316216b53e0b0524f069cb6c7e5232834a7adecb39db9977",
+    "5094475350": "c9027cd51f8e3949dbc066824a05e8f0beb071240d98ba751c35378a5c3286ee",
+    "5098280170": "dcaa63fac36b624e0e9f3d6f9aa8428fbcd7b80d11d2728f2010ead03ccd01b9",
+    "5098924212": "fb0c443807fc3093b298822d7259506b0963eae5c7e951add914366a3eb28999",
+    "5099204973": "e4d8d7ab27ee0394fdb4149f2d9e9984cde128fc4cfa7515484c373ae56788d1",
+    "5099206215": "a075406ed35e7af2a28bc8efdf67a2ad8c21f08ee209cb5643d987376c8b9c96",
+    "5099222599": "51a70aa29576b37ede4985c220bdc3d31680c6582f9ae031457939193b2aa10a",
+    "5101322347": "21579e62034c953db0e1670e691e0e009e5d57c27b8e781ddb6af8fa5c419f68",
+    "5102209956": "ad85cce05447d3b9029644cf1638d5f98939c14c05e11657675358691d461f97",
+    "5102212360": "7a7f039d5c7c3ef7858d151f01f5e3170c17e4a8fd04cc21e9bae6ce1c3a3fa0",
+    "5102214604": "515b81bfe6626d75106f9da7e806226cafcd263f4bd2bfa34cb0459acef5a607",
+    "5102373384": "e2206bbc7e4b81d3d79d2a040072d9a50c3b07310f46cb7327737fb23cc593e2",
+    "5103241826": "18ba99b6511436c2802cb4706dd180f66110ba68732b9454a2857abf91a478de",
+    "5103243521": "50f6eef3687657c99eaf175535ad940a34c2578c2f5e2c733fbf79f4f956a1cc",
+    "5103264920": "69a2b00a4093f0ff76550d7a03c89cacf10829acaa47ddbae345cc92cb21c5cf",
+    "5103766640": "25f0b285b8ecf454b2dc43b6eda9fa02f9ab16d406e28386995b36aad6c1bb04",
+    "5103841186": "d89c7d001e5890e1f2b741f8735dde4db18a5d0c94b7e59dba18879af32bd69d",
+    "5104294737": "57174e3e08770371bbb484f355e6844a72c683458fdb5e14f6975a24005602ea",
+    "5104654751": "6d89a1c0283bb9a7becb172d62bb0348eca39b1507a25578c59279ef8139a947",
+    "5104670197": "b04d211affd43d750675424b3915f0ca0c07eb2599e7be57a9810aaf767a2bfa",
+    "5105554288": "25761cbb9d34ce5bbb21fed4beb49401e6cbad4d37c10030745fa9010fb7912d",
+    "5105579627": "a997b0fa3b587629be159930f25ac38924186efb38c129a45aa48234c0088169",
+    "5106087155": "2973873b70676ac23b19e478094d5ac2c7e405b2f5aed7a03147e16d37fc520d",
+    "5106089599": "8c61fa1e5e4f2e47f1864e2944c6d75e6b67369dd499b0b38ba694b03197d89c",
+    "5106093400": "8ed3379c2bd47a3f8a6f483d20e4082fa554510eb15171fe377d5bbd1a510364",
+    "5106096425": "88aff922f91803e50f656b60b19f62da3f4062b710c16b14e37e74ef86260966",
+    "5106388964": "e7050aeaf1158fb246f101ab957a41e0114c9fd0f33d1221a62b633b3e2ed9d4",
+    "5106397902": "2bdbd0f6ca4806a35d1cd849dd5d86a9b229736c2cf0d704e0634991e7f4eac0",
+    "5106846261": "1e5c7a0810bace03ec4db9545af6ac12d9d6378627a8e842967318436c2dd6f7",
+    "5106848617": "951ca3e4f7324900b81e5d3547ce065b2690399b0f8f7829d315ddfa81d6465f",
+    "5106850616": "9a9613703adadf3d2dcbb38a1387f256fccac5f3d55a25f2d1de4c764e2d4212",
+    "5107261113": "cc4774d545977542cb0c88d34dd53b99c3940526fb3d65999628f9650467bad3",
+    "5111845296": "3109f54b409e905ffc65cf8dfef476d361c6229fc089430bbabd2d6c4784d1df",
+    "5111917457": "eb6cb75f32dd5ed6bc3a68ee14dec760820eeeb8973aa892e904471a1bc41469",
+    "5113149091": "548350ae191389b8936962cd3c3b28c28266e686cb17f4a983d770760445d740",
+    "5113152127": "82980d269d920e4ac2950a4012948c158fe2df5c9d63001dba2573e329f049e2",
+    "5115014307": "1cbeaca388183384e64ea2b6c964d793ae800b337881770743060e41855ef229"
+  },
+  "source_comment_ids": [
+    5084152024,
+    5084273959,
+    5084371265,
+    5084371842,
+    5084513198,
+    5084615360,
+    5084618903,
+    5084631726,
+    5086001616,
+    5086578921,
+    5086581050,
+    5086585134,
+    5086589429,
+    5086624137,
+    5086673654,
+    5086705192,
+    5086739477,
+    5086776533,
+    5086781596,
+    5086782072,
+    5087003873,
+    5087015504,
+    5087016408,
+    5087030694,
+    5087203227,
+    5087215771,
+    5087404562,
+    5087456754,
+    5087518655,
+    5087613135,
+    5087810146,
+    5087811634,
+    5087813069,
+    5087820732,
+    5087822478,
+    5087826613,
+    5088140090,
+    5088187239,
+    5088271091,
+    5088331426,
+    5088919064,
+    5089028662,
+    5090571993,
+    5090573860,
+    5090577133,
+    5090585819,
+    5090737316,
+    5091296179,
+    5091298564,
+    5091616990,
+    5091741767,
+    5092077646,
+    5092124832,
+    5092283173,
+    5092416182,
+    5092513574,
+    5092534822,
+    5092939596,
+    5093354729,
+    5093443275,
+    5093570562,
+    5093573986,
+    5093721405,
+    5094470896,
+    5094473607,
+    5094475350,
+    5098280170,
+    5098924212,
+    5099204973,
+    5099206215,
+    5099222599,
+    5101322347,
+    5102209956,
+    5102212360,
+    5102214604,
+    5102373384,
+    5103241826,
+    5103243521,
+    5103264920,
+    5103766640,
+    5103841186,
+    5104294737,
+    5104654751,
+    5104670197,
+    5105554288,
+    5105579627,
+    5106087155,
+    5106089599,
+    5106093400,
+    5106096425,
+    5106388964,
+    5106397902,
+    5106846261,
+    5106848617,
+    5106850616,
+    5107261113,
+    5111845296,
+    5111917457,
+    5113149091,
+    5113152127,
+    5115014307
+  ],
+  "source_comment_watermark": 5115014307,
+  "source_issue_number": 142,
+  "terminal_outcome_count": 101,
+  "terminal_outcomes": {
+    "5084152024": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker"
+    },
+    "5084273959": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5084371265": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5084371842": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5084513198": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5084615360": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5084618903": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5084631726": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086001616": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086578921": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086581050": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086585134": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086589429": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5086624137": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5086673654": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5086705192": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086739477": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086776533": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5086781596": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5086782072": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087003873": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087015504": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087016408": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087030694": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "no_marker"
+    },
+    "5087203227": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087215771": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087404562": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087456754": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5087518655": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087613135": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5087810146": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087811634": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087813069": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087820732": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087822478": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5087826613": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5088140090": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5088187239": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "withdrawn_identity"
+    },
+    "5088271091": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5088331426": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5088919064": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5089028662": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5090571993": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5090573860": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5090577133": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5090585819": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5090737316": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5091296179": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5091298564": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5091616990": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5091741767": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5092077646": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5092124832": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5092283173": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5092416182": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5092513574": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "invalid_schema"
+    },
+    "5092534822": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5092939596": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5093354729": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5093443275": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5093570562": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5093573986": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5093721405": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5094470896": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5094473607": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5094475350": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5098280170": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5098924212": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5099204973": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5099206215": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5099222599": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5101322347": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5102209956": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5102212360": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5102214604": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5102373384": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "invalid_schema"
+    },
+    "5103241826": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5103243521": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5103264920": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5103766640": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5103841186": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5104294737": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5104654751": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5104670197": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5105554288": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5105579627": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106087155": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106089599": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106093400": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106096425": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106388964": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "unsafe_content"
+    },
+    "5106397902": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106846261": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106848617": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5106850616": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5107261113": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5111845296": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5111917457": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5113149091": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5113152127": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    },
+    "5115014307": {
+      "canonical_record_sha256": null,
+      "cleanup_eligible": false,
+      "evaluation_run_id": null,
+      "outcome_code": "authority_missing"
+    }
+  }
+}

@@ -133,7 +133,7 @@ A model enters `suspected_regression` when, across at least three comparable rec
 - controller intervention or amendment cycles increase materially;
 - unsupported claims materially increase.
 
-A model enters `probable_regression` only when both comparable real-work results and the stable benchmark suite degrade under materially unchanged prompts, reasoning settings and tools.
+A model enters `probable_regression` only when both comparable real-work results and the stable benchmark suite degrade under materially unchanged prompts and tools.
 
 ## Efficiency fields
 

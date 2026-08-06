@@ -1,67 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ai-executor-evaluation-ledger:record:v1",
-  "title": "AI Executor Evaluation Record",
-  "type": "object",
-  "required": [
-    "schema_version",
-    "record_type",
-    "run_id",
-    "reviewed_at",
-    "provider",
-    "model",
-    "task_class",
-    "difficulty",
-    "subject_alias",
-    "revision_binding",
-    "outcome",
-    "first_pass_accepted",
-    "controller_intervention_required",
-    "scores",
-    "weighted_score_5",
-    "confidence"
+  "$id": "urn:ai-executor-evaluation-ledger:record:v2",
+  "title": "AI Executor Evaluation Ledger closed record schema v2",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/evaluation"
+    },
+    {
+      "$ref": "#/$defs/correction"
+    }
   ],
-  "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "record_type": {"type": "string", "enum": ["evaluation", "correction"]},
-    "run_id": {"type": "string", "minLength": 1},
-    "reviewed_at": {"type": "string", "format": "date-time"},
-    "executor_reported_at": {"type": ["string", "null"], "format": "date-time"},
-    "provider": {"type": "string", "minLength": 1},
-    "model": {"type": "string", "minLength": 1},
-    "requested_reasoning_level": {"type": ["string", "null"]},
-    "observed_reasoning_mode": {"type": ["string", "null"]},
-    "task_class": {
-      "type": "string",
-      "enum": [
-        "research",
-        "routine-repository-change",
-        "complex-repository-change",
-        "security-review",
-        "security-remediation",
-        "migration",
-        "provider-operation",
-        "production-deployment",
-        "incident-diagnosis",
-        "tracker-reconciliation"
-      ]
-    },
-    "difficulty": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
-    "subject_alias": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
-    "revision_binding": {"type": "string", "minLength": 1},
-    "prompt_sha256": {
-      "type": ["string", "null"],
-      "pattern": "^[a-fA-F0-9]{64}$"
-    },
-    "outcome": {"type": "string", "enum": ["accepted", "amend", "hold", "fail"]},
-    "first_pass_accepted": {"type": "boolean"},
-    "controller_intervention_required": {"type": "boolean"},
-    "safe_final_state_reported": {"type": ["boolean", "null"]},
-    "safe_final_state_verified": {"type": ["boolean", "null"]},
-    "root_cause_identified": {"type": ["boolean", "null"]},
-    "follow_up_runs_required": {"type": ["integer", "null"], "minimum": 0},
+  "$defs": {
     "scores": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "correctness",
         "safety_and_scope_control",
@@ -72,27 +24,885 @@
         "autonomy",
         "efficiency"
       ],
-      "additionalProperties": false,
       "properties": {
-        "correctness": {"type": "number", "minimum": 0, "maximum": 5},
-        "safety_and_scope_control": {"type": "number", "minimum": 0, "maximum": 5},
-        "evidence_quality": {"type": "number", "minimum": 0, "maximum": 5},
-        "operational_judgement": {"type": "number", "minimum": 0, "maximum": 5},
-        "task_understanding": {"type": "number", "minimum": 0, "maximum": 5},
-        "tracker_and_repository_hygiene": {"type": "number", "minimum": 0, "maximum": 5},
-        "autonomy": {"type": "number", "minimum": 0, "maximum": 5},
-        "efficiency": {"type": "number", "minimum": 0, "maximum": 5}
+        "correctness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "safety_and_scope_control": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "evidence_quality": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "operational_judgement": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "task_understanding": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "tracker_and_repository_hygiene": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "autonomy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "efficiency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        }
       }
     },
-    "weighted_score_5": {"type": "number", "minimum": 0, "maximum": 5},
-    "weighted_score_10": {"type": "number", "minimum": 0, "maximum": 10},
-    "integrity_and_control_flags": {
-      "type": "array",
-      "items": {"type": "string"},
-      "uniqueItems": true
+    "metadataObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?:accepted_authority_direction_preserved|accepted_source_and_squash_tree_verified|accepted_source_head_ci_verified|active_findings_reported|active_recurring_writer_proven|active_revision_safe_state|actual_pull_request_head_verified|additional_reflow_viewports_completed|admin_or_database_mutations|adversarial_test_rows_proposed|adversarial_test_rows_reported|advisory_records_reported|affected_run_exists|affected_run_id|all_claimed_hosted_checks_independently_verified|all_eight_prior_root_causes_independently_confirmed|all_existing_review_threads_resolved|all_four_prior_architecture_blockers_closed|all_four_prior_root_causes_independently_confirmed|all_historical_review_conversations_resolved|all_prior_findings_closed|all_review_conversations_independently_resolved|amendment_files_reported|amendment_files_verified|app_operations|application_classification_corrected|application_database_or_identity_mutations|application_object_ownership_verified|application_objects_inventoried|application_root_cause_proven|application_routines_inventoried|application_tables_inventoried|approval_tests_reported_green|approved_host_neutral_operator_authority_inspected|approved_secret_store_capability_absence_verified|architecture_direction_materially_improved|architecture_domains_revised|architecture_options_proposed|architecture_sections|architecture_sections_reported|authoritative_build_log_recovered|authoritative_issue_body_updates|authoritative_issue_update_verified|authoritative_issue_verified_open|authoritative_tracker_bodies_updated|authority_count_consistent|authority_map_internally_consistent|auto_deploy_schema_surface_misidentified|auto_deploy_state_verified|auto_sync_substantive_steps_verified|autonomy|bitwarden_operations|blanket_runtime_grants_removed|bootstrap_authority_and_sealed_state_verified|bootstrap_state_reported|browser_binaries_available|browser_capability_inventory_complete|build_diagnosis|candidate_invariants|canonical_codex_operator_file_inspected|canonical_dns_label_grammar_complete|canonical_environment_writes|canonical_jsonl_and_generation_flow_verified|canonical_names_absent|canonical_names_present|canonical_operator_file_presence_verified|canonical_policy_schema_and_package_manifest_inspected|canonical_runtime_and_test_structure_inspected|canonical_runtime_inventory_correct|canonical_runtime_names|canonical_runtime_names_absent|canonical_runtime_names_present|changed_files|changed_files_reported|changed_files_verified|clean_worktree_reported|codeql_jobs_verified|commits_pushed|commits_reported|complete_ci_failures|complete_ci_runs|complete_cumulative_file_list_and_material_diffs_inspected|complete_diff_and_authority_paths_inspected|complete_diff_and_high_risk_call_paths_inspected|complete_diff_and_transaction_paths_inspected|complete_diff_trust_root_and_artifact_inspected|complete_raw_audit_json_independently_replayed|complete_repository_ci_passed|complete_repository_commands_reexecuted|confidence|configuration_result|configuration_validation_passed|configured_source_commits_behind|connection_uri_retrieval_calls|console_network_claims_fully_supported|consumer_actions|continuous_integration_passed|continuous_integration_reported|continuous_integration_result|continuous_integration_verified|controlled_runtime_experiment_reported|controlled_runtime_experiments_performed|controller_corrections_required_before_lock|controller_design_lock_issued|controller_design_lock_required|controller_intervention_required|controller_lock_comment_id|controller_repair|controller_review_id|controller_review_posted|controller_verification|coolify_application_configuration_writes|coolify_environment_writes|core_attested_proxy_host_direction_accepted|core_hosted_workflows_verified|corrected_fields|corrected_score_5|corrected_task_class_schema_valid|correction_reason|correction_records_appended|correction_scope|correctness|credential_access|cumulative_changed_files|cumulative_pull_request_files_reported|cumulative_pull_request_files_verified|current_main_single_commit_drift_inspected|current_reviews_threads_and_high_risk_surrounding_code_inspected|current_runtime_and_exports_inspected|current_runtime_capability_matrix_substantially_verified|current_runtime_policy_workflows_and_reviews_inspected|current_schema_policy_workflows_generated_surfaces_and_reviews_inspected|database_connections|database_mutations|database_or_identity_mutations|dedicated_identity_and_no_same_name_fallback_verified|deployment_attempts|deployment_or_configuration_mutations|deployment_or_coolify_mutations|deployment_restart_or_rebuild|deployment_restart_or_rebuild_reported|deployment_retries|difficulty|direct_and_pooled_length_bounds_complete|direct_authenticated_set_role_denial_proven|direct_column_and_routine_acl_inventory_complete|direct_evidence_materially_recovered|disposable_database_test_failures_reported|disposable_database_tests_reported|docker_daemon_operations|docker_daemon_unavailable_verified|draft_change_opened|draft_open_unmerged_state_verified|draft_unmerged_state_verified|draft_unmerged_state_verified_before_merge|earliest_decisive_error_verified|efficiency|evaluation_protocol|evidence_quality|exact_amended_head_verified|exact_base_and_head_verified|exact_base_head_and_live_main_verified|exact_base_previous_head_and_amendment_head_verified|exact_base_previous_head_and_gate3_head_verified|exact_blast_radius_proposed|exact_bootstrap_authority_verified|exact_current_main_verified|exact_head_ci_runs|exact_head_hosted_checks_verified|exact_head_hosted_failures_reconfirmed|exact_key_absence_verified|exact_main_verified|exact_main_walkthrough_acceptance_supported|exact_pr_head_verified|exact_project_branch_database_endpoint_role_identity_supported|exact_public_head_and_current_main_verified|exact_repository_and_ci_state_verified|exact_repository_and_deployment_identity_supported|exact_repository_and_provenance_identity_supported|exact_repository_main_verified|exact_repository_merge_and_ci_state_verified|exact_repository_revision_verified|exact_revision_verified|exact_writer_identified|exclusive_missing_target_creation_verified|executor_authorisation_mismatch_handled_correctly|executor_reported_at|existing_review_conversations_left_unresolved|existing_target_fail_closed_boundary_verified|explicit_invariants_proposed|files_changed|final_amendment_changed_files|finding_severity|first_party_app_direction_accepted|first_pass_accepted|five_label_contract_defect_verified|five_repair_workstreams_accepted_as_input|fixture_files_reported|fixture_files_verified|focused_existing_tests_passed|focused_tests_reported_green|focused_tests_reported_passed|follow_up_count|follow_up_runs_required|full_tests_reported_failed|full_tests_reported_green|full_tests_reported_total|full_validate_all_reported_run|future_default_privilege_design_accepted|future_object_strategy_is_non_blanket|gate_1_objective_accepted|gate_a_to_d|gate_classification|gate_disposition|gate_recovery|github_mutations|google_oauth_provider_verified|highest_finding_severity|historical_nonexistence_proven|hosted_checks_reported|hosted_package_checks_verified_green|hosted_packet_internally_consistent|hosted_required_checks_reported_green|hosted_validate_and_validate_toolkit_verified_failed|hosted_verification_performed|identity_fingerprint_fields_present|implementation_scope|installed_cache_actions|integrity_and_control_flags|isolated_authority_bootstrap_improvement_verified|issue_or_pr_mutations|issue_or_pull_request_mutations|key_root_cause_claims_verified|key_runtime_authority_claims_verified|later_evidence|ledger_records_rewritten|live_database_mutations|live_mutations|live_n8n_or_provider_actions|live_or_external_system_actions|live_provenance_re_read_complete|live_provider_or_consumer_actions|live_security_or_consumer_actions|live_service_builds_or_invocations|live_system_actions|live_system_actions_verified|local_branch_and_worktree_deletion_authorised|local_repository_housekeeping_actions|local_timeout_root_cause_proven|local_website_test_timeouts_reported|local_website_timeout_failures_reported|local_windows_state_independently_verified|login_or_quote_submissions|maintenance_read_privileges_complete|manifest_matches_staged_sql|material_architecture_corrections_required|material_controller_corrections|material_findings|material_p2_findings|material_p2_groups|mechanically_lockable_without_correction|merged_tree_matches_accepted_files|migration_administration_path_proven|migration_preflight_performed|migration_preflight_read_only_contract_verified|minimal_next_write_set_accepted|minimum_configuration_repair_accepted|model|model_identity|model_identity_source|mutation_authorisation_ready|mutation_cases_proposed|mutation_tests_reported|native_include_source_commit_setting_enabled|new_material_findings|next_evaluation|nixpacks_node_override_classification_correct|nixpacks_node_version_classification_correct|no_mutation_boundary_consistent_with_report|normal_merge_integration_direction_accepted|objective|official_advisory_prerequisites_and_patched_ranges_verified|official_sqlite_claims_selectively_cross_checked|one_shot_prior_write_classification_honest|open_implementation_pull_requests_verified|open_non_draft_conflicting_unmerged_state_verified|operational_judgement|operator_credential_system_wide_absence_verified|operator_credential_unavailable_conclusion_supported|original_dimension_scores_recomputed|original_task_class_schema_valid|outcome|ownership_and_acl_inventory_materially_improved|package_and_lock_versions_verified|package_or_lockfile_mutations|password_or_role_mutations|persistent_windows_scope_absence_verified|portable_screenshot_evidence_available|preview_duplicates_removed|prior_architecture_evaluation_merged_and_read_back|prior_authorisation_toctou_closed|prior_candidate_authored_suppression_finding_closed|prior_candidate_self_certification_finding_closed|prior_finding_closed|prior_finding_materially_improved|prior_findings_materially_improved|prior_material_boundaries_improved|prior_material_findings_closed|prior_p1_findings_closed|prior_schema_and_timestamp_boundaries_materially_improved|prior_trust_root_closures_preserved|private_tracker_inspected|private_tracker_inspected_and_reconciled|private_tracker_reconciled_by_controller|private_trackers_reconciled_by_controller|process_user_machine_scope_inventory_reported|production_dependency_chains_verified|production_mutations|production_or_provider_actions|production_or_provider_actions_verified|production_shard_qualified_hostname_supported_by_provider_evidence|project_trackers_reconciled_by_controller|promotion_state_machine_materially_improved|prompt_capture|prompt_sha256|proposed_runtime_roles|proposed_tests|provenance_generator_call_path_inspected|provider|provider_admin_operations_excluded|provider_api_key_admission_supported|provider_calls|provider_commands_independently_reexecuted|provider_configuration_writes|provider_environment_state_independently_verified|provider_evidence_json_created|provider_mutation_absence_independently_verified|provider_mutations_reported|provider_or_consumer_actions|provider_or_deployment_mutations|provider_or_deployment_mutations_verified|provider_or_production_actions|provider_or_repository_mutations_outside_allowlist|provider_read_calls|provider_state_independently_verified|provider_surfaces_proven|provider_surfaces_queried|public_http_routes_inspected|public_privilege_cleanup_complete|public_route_status_inventory_substantially_supported|public_safety_and_workflows_inspected|pull_request_left_open_and_unmerged|qualitative_evaluation_changes|quote_or_admin_mutations|read_only_boundary_consistent|real_browser_requirement_met|real_browser_unavailable_supported|real_browser_visual_viewports_completed|recent_relevant_open_and_closed_pull_requests_inspected|recent_relevant_pull_requests_inspected|recent_repository_and_ledger_pull_requests_inspected|recommended_current_package_versions_verified|record_type|redaction_notice|reliable_keyboard_traversal_complete|remaining_controller_decisions_reported|remaining_review_threads_reported|remediation_targets|rendered_route_and_viewport_coverage_supported|report_to_check_authority_direction_accepted|reported_head_matches_actual_head|reported_hosted_revision_stale_relative_to_current_contract|reported_operations|repository_advanced_security_failure_verified|repository_changes|repository_changes_reported|repository_commits_pushed|repository_feature_reachability_verified|repository_files_changed|repository_local_environment_scope_verified|repository_merges|repository_mutations|repository_node_major_contract|repository_or_github_mutations|repository_or_production_mutations_verified|repository_validator_passed|required_hosted_checks_and_code_scanning_verified|required_hosted_checks_verified|required_routes_rendered|required_viewport_coverage_met|required_viewports_completed|restricted_current_role_posture_substantially_verified|review_conversations_reported|reviewed_at|reviews_threads_ci_and_tracker_verified|revision_binding|revision_claim|role_or_password_changes|role_or_password_mutations|rollback_operations|rollback_performed|root_cause_identified|root_cause_result|root_cause_supported|root_causes_materially_correct|ruleset_mutations|run_id|runtime_environment_classification_correct|runtime_role_sql_privileges_verified|runtime_version_hypothesis_eliminated|safe_final_state_reported|safe_final_state_verified|safe_pre_connection_stop_verified|safe_pre_mutation_stop_verified|safe_pre_walkthrough_stop_verified|safe_preflight_stop_verified|safety_and_scope_control|safety_boundary|same_draft_change_updated|same_private_run_continued|schema_version|scores|screenshots_produced|sealed_bootstrap_artifact_inspected|secret_store_writes|sentinel_tests_claimed|side_effect_families_reported|source_and_merge_blob_pairs_verified|source_branch_absent_after_merge|source_commit_provenance_contract_inspected|squash_merge_verified|staged_sql_matches_capability_matrix|staged_sql_sections|stale_container_inventory_verified|static_source_commit_configuration_is_durable|strict_no_live_mutation_boundary_consistent|subject_alias|surviving_material_p1_boundaries|surviving_material_p1_groups|synthetic_adversarial_probes_performed|synthetic_defect_reproductions_reported|task_class|task_understanding|test_suites_reported_green|tests_reported_green|text_http_substitution_avoided|three_role_separation_direction_accepted|three_root_causes_verified_from_exact_head|toolkit_incident_record_reconciled_by_controller|tracked_repository_file_changes|tracked_repository_mutations|tracker_and_repository_hygiene|tracker_bodies_encoding_corrupted|tracker_bodies_reconciled|tracker_bodies_updated|tracker_body_reconciled|tracker_encoding_clean|tracker_result|tracker_updates|transitive_membership_inventory_complete|transport_security_classification_accepted|transport_security_root_cause_proven|trigger_execute_path_materially_proven|trigger_execute_path_proven|trust_boundary_domains_analysed|trusted_proxy_cidr_verified|trusted_proxy_evidence_provisionally_accepted|trusted_proxy_network_inspected|unified_authority_direction_materially_improved|useful_hosting_metadata_recovered|useful_inventory_recovered|verification_evidence|verified_defects|verified_strengths|versioned_coolify_schema_cross_checked|visual_accessibility_evidence_met|visual_viewports_completed|vulnerable_package_nodes_reported|walkthrough_pass_supported|weighted_score_10|weighted_score_5|windows_and_ubuntu_jobs_verified|windows_user_entries_removed|worktree_cleanliness_claim_correct|zero_live_operation_boundary_verified|zero_live_system_actions_consistent_with_report|zero_mutation_boundary_consistent_with_live_head|zero_mutation_boundary_consistent_with_live_state|zero_mutation_boundary_consistent_with_report)$": {
+          "$ref": "#/$defs/metadataValue"
+        }
+      }
     },
-    "confidence": {"type": "string", "enum": ["anecdotal", "provisional", "moderate", "baseline"]},
-    "redaction_notice": {"type": "string"}
-  },
-  "additionalProperties": true
+    "metadataValue": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metadataValue"
+          }
+        },
+        {
+          "$ref": "#/$defs/metadataObject"
+        }
+      ]
+    },
+    "correctedFields": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "task_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weighted_score_5": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "weighted_score_10": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "run_id",
+        "reviewed_at",
+        "provider",
+        "model",
+        "evaluation_protocol",
+        "task_class",
+        "difficulty",
+        "subject_alias",
+        "revision_binding",
+        "outcome",
+        "first_pass_accepted",
+        "controller_intervention_required",
+        "scores",
+        "weighted_score_5",
+        "confidence"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 2
+        },
+        "record_type": {
+          "const": "evaluation"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"
+        },
+        "executor_reported_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"
+        },
+        "provider": {
+          "type": "string",
+          "enum": [
+            "Xiaomi",
+            "MiMo",
+            "Anthropic",
+            "DeepSeek",
+            "OpenAI",
+            "Qwen",
+            "Google",
+            "MiniMax"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "enum": [
+            "MiMo 2.5 Pro",
+            "Claude Opus 5",
+            "DeepSeek V4 Pro",
+            "GPT-5.6 Sol",
+            "Qwen3.7 Plus",
+            "Gemini 3.1 Pro",
+            "MiniMax M3"
+          ]
+        },
+        "evaluation_protocol": {
+          "type": "string",
+          "enum": [
+            "gated_v1",
+            "legacy_pre_gate",
+            "protocol_unknown"
+          ]
+        },
+        "task_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "subject_alias": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_binding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "pass",
+            "rejected",
+            "amend",
+            "hold",
+            "fail",
+            "blocked",
+            "reset",
+            "rescheduled",
+            "error",
+            "owner_withdrawn",
+            "withdrawn"
+          ]
+        },
+        "first_pass_accepted": {
+          "type": "boolean"
+        },
+        "controller_intervention_required": {
+          "type": "boolean"
+        },
+        "safe_final_state_reported": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "safe_final_state_verified": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "root_cause_identified": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "root_cause_result": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "follow_up_runs_required": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "follow_up_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "weighted_score_5": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "weighted_score_10": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10
+        },
+        "integrity_and_control_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "strong",
+            "verified",
+            "direct",
+            "anecdotal",
+            "provisional",
+            "moderate",
+            "baseline",
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "redaction_notice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verified_strengths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verified_defects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "controller_verification": {
+          "$ref": "#/$defs/metadataObject"
+        },
+        "next_evaluation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "objective": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt_capture": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prompt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "reported_operations": {
+          "$ref": "#/$defs/metadataObject"
+        },
+        "scores": {
+          "$ref": "#/$defs/scores"
+        }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "provider": {
+                  "const": "Xiaomi"
+                },
+                "model": {
+                  "const": "MiMo 2.5 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "MiMo"
+                },
+                "model": {
+                  "const": "MiMo 2.5 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "Anthropic"
+                },
+                "model": {
+                  "const": "Claude Opus 5"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "DeepSeek"
+                },
+                "model": {
+                  "const": "DeepSeek V4 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "OpenAI"
+                },
+                "model": {
+                  "const": "GPT-5.6 Sol"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "Qwen"
+                },
+                "model": {
+                  "const": "Qwen3.7 Plus"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "Google"
+                },
+                "model": {
+                  "const": "Gemini 3.1 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "MiniMax"
+                },
+                "model": {
+                  "const": "MiniMax M3"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "run_id",
+        "reviewed_at",
+        "provider",
+        "model",
+        "evaluation_protocol",
+        "task_class",
+        "difficulty",
+        "subject_alias",
+        "revision_binding",
+        "outcome",
+        "first_pass_accepted",
+        "controller_intervention_required",
+        "scores",
+        "weighted_score_5",
+        "confidence",
+        "affected_run_id",
+        "corrected_fields",
+        "correction_reason",
+        "correction_scope",
+        "verification_evidence"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 2
+        },
+        "record_type": {
+          "const": "correction"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"
+        },
+        "executor_reported_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$"
+        },
+        "provider": {
+          "type": "string",
+          "enum": [
+            "Xiaomi",
+            "MiMo",
+            "Anthropic",
+            "DeepSeek",
+            "OpenAI",
+            "Qwen",
+            "Google",
+            "MiniMax"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "enum": [
+            "MiMo 2.5 Pro",
+            "Claude Opus 5",
+            "DeepSeek V4 Pro",
+            "GPT-5.6 Sol",
+            "Qwen3.7 Plus",
+            "Gemini 3.1 Pro",
+            "MiniMax M3"
+          ]
+        },
+        "evaluation_protocol": {
+          "type": "string",
+          "enum": [
+            "gated_v1",
+            "legacy_pre_gate",
+            "protocol_unknown"
+          ]
+        },
+        "task_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "subject_alias": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_binding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "pass",
+            "rejected",
+            "amend",
+            "hold",
+            "fail",
+            "blocked",
+            "reset",
+            "rescheduled",
+            "error",
+            "owner_withdrawn",
+            "withdrawn"
+          ]
+        },
+        "first_pass_accepted": {
+          "type": "boolean"
+        },
+        "controller_intervention_required": {
+          "type": "boolean"
+        },
+        "safe_final_state_reported": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "safe_final_state_verified": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "root_cause_identified": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "root_cause_result": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "follow_up_runs_required": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "follow_up_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "weighted_score_5": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "weighted_score_10": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10
+        },
+        "integrity_and_control_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "strong",
+            "verified",
+            "direct",
+            "anecdotal",
+            "provisional",
+            "moderate",
+            "baseline",
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "redaction_notice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verified_strengths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verified_defects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "controller_verification": {
+          "$ref": "#/$defs/metadataObject"
+        },
+        "next_evaluation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "objective": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt_capture": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prompt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "reported_operations": {
+          "$ref": "#/$defs/metadataObject"
+        },
+        "affected_run_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+        },
+    "corrected_fields": {
+      "$ref": "#/$defs/correctedFields"
+    },
+        "correction_reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "correction_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scores": {
+          "$ref": "#/$defs/scores"
+        }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "provider": {
+                  "const": "Xiaomi"
+                },
+                "model": {
+                  "const": "MiMo 2.5 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "MiMo"
+                },
+                "model": {
+                  "const": "MiMo 2.5 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "Anthropic"
+                },
+                "model": {
+                  "const": "Claude Opus 5"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "DeepSeek"
+                },
+                "model": {
+                  "const": "DeepSeek V4 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "OpenAI"
+                },
+                "model": {
+                  "const": "GPT-5.6 Sol"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "Qwen"
+                },
+                "model": {
+                  "const": "Qwen3.7 Plus"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "Google"
+                },
+                "model": {
+                  "const": "Gemini 3.1 Pro"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "MiniMax"
+                },
+                "model": {
+                  "const": "MiniMax M3"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

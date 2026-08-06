@@ -7,93 +7,76 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 <!-- GENERATED:SCORECARD-RUNS:START -->
 ## Summary score table
 
-| Model | Reasoning level | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Integrity/control flags | Evidence level |
-|---|---|---:|---:|---:|---:|---:|---|
-| Claude Opus 4.8 High | High | 3 | 3.41 | 0% | 3/3 applicable | 5 | Provisional |
-| Claude Opus 4.8 Ultra High | ultra-high | 1 | 3.23 | 0% | 1/1 applicable | 2 | Anecdotal |
-| Claude Opus 5 | Max | 1 | 3.90 | 0% | 1/1 applicable | 5 | Anecdotal |
-| Claude Opus 5 | not-exposed | 2 | 4.20 | 50% | 2/2 applicable | 10 | Anecdotal |
-| Claude Opus 5 Max | Max | 3 | 3.39 | 0% | 3/3 applicable | 12 | Provisional |
-| DeepSeek V4 Pro | High | 1 | 4.14 | 100% | 1/1 applicable | 7 | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | 18 | 3.99 | 39% | 18/18 applicable | 78 | Useful operating baseline |
-| DeepSeek V4 Pro | not-exposed | 1 | 3.49 | 0% | 1/1 applicable | 6 | Anecdotal |
-| DeepSeek V4 Pro | standard-thinking | 1 | 4.34 | 0% | 1/1 applicable | 3 | Anecdotal |
-| GPT-5.6 Sol | Not exposed | 12 | 4.26 | 25% | 12/12 applicable | 42 | Useful operating baseline |
-| MiMo 2.5 Pro | Default | 19 | 3.51 | 5% | 9/18 applicable | 102 | Useful operating baseline |
+| Model | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Integrity/control flags | Evidence level |
+|---|---:|---:|---:|---:|---:|---|
 
 ## Formal evaluated runs
 
 Newest first. This table displays at most 30 formal evaluation runs.
 
-| Reviewed | Model | Reasoning level | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
-|---|---|---|---|---|---|---:|---:|---|
-| 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | standard-thinking | Security Remediation | High | ACCEPTED | 4.34 | No | Verified |
-| 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | not-exposed | Security Review | High | AMEND | 3.49 | No | Verified |
-| 26 Jul 2026 23:20 SGT | GPT-5.6 Sol | Not exposed | Security Audit | High | ACCEPTED | 4.70 | Yes | Verified |
-| 26 Jul 2026 22:19 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.32 | No | Verified |
-| 26 Jul 2026 21:46 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.09 | No | Verified |
-| 26 Jul 2026 21:45 SGT | GPT-5.6 Sol | Not exposed | Research | High | ACCEPTED | 4.73 | Yes | Verified |
-| 26 Jul 2026 21:42 SGT | GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | AMEND | 4.20 | No | Verified |
-| 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Not exposed | Security Review | High | AMEND | 3.48 | No | Verified |
-| 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Not exposed | Security Remediation | High | AMEND | 3.49 | No | Verified |
-| 26 Jul 2026 21:38 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.80 | Yes | Verified |
-| 26 Jul 2026 21:25 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.38 | No | Verified |
-| 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | Medium | ACCEPTED | 4.85 | Yes | Verified |
-| 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | AMEND | 3.15 | No | Verified |
-| 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.65 | Yes | Verified |
-| 26 Jul 2026 20:47 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.19 | No | Verified |
-| 26 Jul 2026 20:46 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.13 | No | Verified |
-| 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Not exposed | Research | High | AMEND | 4.28 | No | Verified |
-| 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Not exposed | Production Deployment | High | ACCEPTED | 4.55 | Yes | Verified |
-| 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | AMEND | 3.84 | No | Verified |
-| 26 Jul 2026 20:12 SGT | DeepSeek V4 Pro | Not exposed | Research | High | AMEND | 3.58 | No | Verified |
-| 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Not exposed | Production Operations | High | ACCEPTED | 4.10 | Yes | Verified |
-| 26 Jul 2026 20:04 SGT | DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | AMEND | 3.85 | No | Verified |
-| 26 Jul 2026 20:03 SGT | DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | ACCEPTED | 4.80 | Yes | Verified |
-| 26 Jul 2026 19:54 SGT | DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | AMEND | 2.75 | No | Verified |
-| 26 Jul 2026 19:22 SGT | GPT-5.6 Sol | Not exposed | Security Remediation | High | AMEND | 3.93 | No | Verified |
-| 26 Jul 2026 19:18 SGT | GPT-5.6 Sol | Not exposed | Security Remediation | High | AMEND | 3.67 | No | Verified |
-| 26 Jul 2026 19:12 SGT | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | ACCEPTED | 4.77 | Yes | Verified |
-| 26 Jul 2026 19:05 SGT | GPT-5.6 Sol | Not exposed | Complex Repository Change | High | AMEND | 4.11 | No | Verified |
-| 26 Jul 2026 18:20 SGT | DeepSeek V4 Pro | Not exposed | Research | High | PASS | 4.42 | Yes | Verified |
-| 26 Jul 2026 15:32 SGT | Claude Opus 5 | not-exposed | Complex Repository Change | High | AMEND | 4.05 | No | Verified |
+| Reviewed | Model | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
+|---|---|---|---|---|---:|---:|---|
+| 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | Security Remediation | High | ACCEPTED | 4.34 | No | Verified |
+| 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | Security Review | High | AMEND | 3.49 | No | Verified |
+| 26 Jul 2026 23:20 SGT | GPT-5.6 Sol | Security Audit | High | ACCEPTED | 4.74 | Yes | Verified |
+| 26 Jul 2026 22:19 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.32 | No | Verified |
+| 26 Jul 2026 21:46 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.09 | No | Verified |
+| 26 Jul 2026 21:45 SGT | GPT-5.6 Sol | Research | High | ACCEPTED | 4.73 | Yes | Verified |
+| 26 Jul 2026 21:42 SGT | GPT-5.6 Sol | Hosted Product Uat | Medium | AMEND | 4.20 | No | Verified |
+| 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Security Review | High | AMEND | 3.48 | No | Verified |
+| 26 Jul 2026 21:42 SGT | DeepSeek V4 Pro | Security Remediation | High | AMEND | 3.49 | No | Verified |
+| 26 Jul 2026 21:38 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.85 | Yes | Verified |
+| 26 Jul 2026 21:25 SGT | DeepSeek V4 Pro | Research | High | AMEND | 3.38 | No | Verified |
+| 26 Jul 2026 21:18 SGT | DeepSeek V4 Pro | Hosted Product Uat | Medium | ACCEPTED | 4.89 | Yes | Verified |
+| 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Hosted Product Uat | High | AMEND | 3.50 | No | Verified |
+| 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.72 | Yes | Verified |
+| 26 Jul 2026 20:47 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.19 | No | Verified |
+| 26 Jul 2026 20:46 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.13 | No | Verified |
+| 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.28 | No | Verified |
+| 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Production Deployment | High | ACCEPTED | 4.59 | Yes | Verified |
+| 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Production Operations | High | AMEND | 3.84 | No | Verified |
+| 26 Jul 2026 20:12 SGT | DeepSeek V4 Pro | Research | High | AMEND | 3.83 | No | Verified |
+| 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.23 | Yes | Verified |
+| 26 Jul 2026 20:04 SGT | DeepSeek V4 Pro | Security Architecture Audit | High | AMEND | 4.01 | No | Verified |
+| 26 Jul 2026 20:03 SGT | DeepSeek V4 Pro | Incident Diagnosis | High | ACCEPTED | 4.87 | Yes | Verified |
+| 26 Jul 2026 19:54 SGT | DeepSeek V4 Pro | Complex Repository Change | High | AMEND | 2.75 | No | Verified |
+| 26 Jul 2026 19:22 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.93 | No | Verified |
+| 26 Jul 2026 19:18 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.67 | No | Verified |
+| 26 Jul 2026 19:12 SGT | GPT-5.6 Sol | Complex Repository Change | High | ACCEPTED | 4.77 | Yes | Verified |
+| 26 Jul 2026 19:05 SGT | GPT-5.6 Sol | Complex Repository Change | High | AMEND | 4.11 | No | Verified |
+| 26 Jul 2026 18:20 SGT | DeepSeek V4 Pro | Research | High | PASS | 4.42 | Yes | Verified |
+| 26 Jul 2026 15:32 SGT | Claude Opus 5 | Complex Repository Change | High | AMEND | 4.24 | No | Verified |
 
 ## Task-class aggregates
 
-| Model | Reasoning level | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
-|---|---|---|---|---:|---:|---:|---|
-| Claude Opus 4.8 High | High | Complex Repository Change | High | 3 | 3.41 | 0% | Provisional |
-| Claude Opus 4.8 Ultra High | ultra-high | Complex Repository Change | High | 1 | 3.23 | 0% | Anecdotal |
-| Claude Opus 5 | Max | Complex Repository Change | High | 1 | 3.90 | 0% | Anecdotal |
-| Claude Opus 5 | not-exposed | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
-| Claude Opus 5 | not-exposed | Complex Repository Change | High | 1 | 4.05 | 0% | Anecdotal |
-| Claude Opus 5 Max | Max | Complex Repository Change | High | 3 | 3.39 | 0% | Provisional |
-| DeepSeek V4 Pro | High | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Hosted Product Uat | High | 1 | 3.15 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Hosted Product Uat | Medium | 1 | 4.85 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Incident Diagnosis | High | 1 | 4.80 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Production Deployment | High | 1 | 4.55 | 100% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Production Operations | High | 4 | 4.35 | 75% | Provisional |
-| DeepSeek V4 Pro | Not exposed | Research | High | 6 | 3.91 | 17% | Moderate |
-| DeepSeek V4 Pro | Not exposed | Security Architecture Audit | High | 1 | 3.85 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Security Remediation | High | 1 | 3.49 | 0% | Anecdotal |
-| DeepSeek V4 Pro | Not exposed | Security Review | High | 1 | 3.48 | 0% | Anecdotal |
-| DeepSeek V4 Pro | not-exposed | Security Review | High | 1 | 3.49 | 0% | Anecdotal |
-| DeepSeek V4 Pro | standard-thinking | Security Remediation | High | 1 | 4.34 | 0% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Research | High | 6 | 4.29 | 17% | Moderate |
-| GPT-5.6 Sol | Not exposed | Security Audit | High | 1 | 4.70 | 100% | Anecdotal |
-| GPT-5.6 Sol | Not exposed | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Architecture Proposal | High | 1 | 4.40 | 100% | Anecdotal |
-| MiMo 2.5 Pro | Default | Complex Repository Change | High | 2 | 3.23 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
-| MiMo 2.5 Pro | Default | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Provider Operation | High | 5 | 3.55 | 0% | Provisional |
-| MiMo 2.5 Pro | Default | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
-| MiMo 2.5 Pro | Default | Security Remediation | High | 5 | 3.50 | 0% | Provisional |
+| Model | Task class | Difficulty | Runs | Average /5 | First-pass acceptance | Confidence |
+|---|---|---|---:|---:|---:|---|
+| Claude Opus 5 | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
+| Claude Opus 5 | Complex Repository Change | High | 5 | 3.66 | 0% | Provisional |
+| DeepSeek V4 Pro | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Hosted Product Uat | High | 1 | 3.50 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Hosted Product Uat | Medium | 1 | 4.89 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Incident Diagnosis | High | 1 | 4.87 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Production Deployment | High | 1 | 4.59 | 100% | Anecdotal |
+| DeepSeek V4 Pro | Production Operations | High | 4 | 4.41 | 75% | Provisional |
+| DeepSeek V4 Pro | Research | High | 6 | 3.97 | 17% | Moderate |
+| DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
+| DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
+| GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
+| GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
+| GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
+| GPT-5.6 Sol | Security Audit | High | 1 | 4.74 | 100% | Anecdotal |
+| GPT-5.6 Sol | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Architecture Proposal | High | 1 | 4.53 | 100% | Anecdotal |
+| MiMo 2.5 Pro | Complex Repository Change | High | 2 | 3.38 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Incident Diagnosis | High | 3 | 3.47 | 0% | Provisional |
+| MiMo 2.5 Pro | Production Deployment | High | 1 | 2.25 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Provider Operation | High | 5 | 3.56 | 0% | Provisional |
+| MiMo 2.5 Pro | Routine Repository Change | Low | 1 | 4.60 | 0% | Anecdotal |
+| MiMo 2.5 Pro | Security Remediation | High | 5 | 3.52 | 0% | Provisional |
 
 ## Latest formal evaluations
 
@@ -101,7 +84,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Security Remediation
 
-- Reasoning level: **standard-thinking**
 - Reviewed: **26 Jul 2026 23:40 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-hostname-contract-amendment-006`
 - Subject alias: `shared-platform-a`
@@ -121,7 +103,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Security Review
 
-- Reasoning level: **not-exposed**
 - Reviewed: **26 Jul 2026 23:40 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-design-amendment-003`
 - Subject alias: `private-quote-service-a`
@@ -144,12 +125,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Security Audit
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 23:20 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-public-web-app-a-production-dependency-audit-005`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.70/5**
+- Weighted score: **4.74/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -163,7 +143,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 22:19 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-amendment-002`
 - Subject alias: `repository-security-gate-a`
@@ -183,7 +162,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:46 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-gate1-amendment-001`
 - Subject alias: `external-control-plane-a`
@@ -208,7 +186,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:45 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-amendment-001`
 - Subject alias: `workflow-compatibility-a`
@@ -228,7 +205,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Hosted Product Uat
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:42 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-public-web-app-a-rendered-walkthrough-004`
 - Subject alias: `public-web-app-a`
@@ -249,7 +225,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Security Review
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:42 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-design-amendment-002`
 - Subject alias: `private-quote-service-a`
@@ -271,7 +246,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Security Remediation
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:42 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-hostname-contract-repair-005`
 - Subject alias: `shared-platform-a`
@@ -292,12 +266,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Production Operations
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:38 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-provider-hostname-admission-004`
 - Subject alias: `shared-platform-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.80/5**
+- Weighted score: **4.85/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -311,7 +284,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:25 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-006`
 - Subject alias: `governance-tooling-a`
@@ -336,12 +308,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Hosted Product Uat
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 21:18 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-browser-capability-003`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.85/5**
+- Weighted score: **4.89/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -355,12 +326,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Hosted Product Uat
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:56 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-http-walkthrough-002`
 - Subject alias: `public-web-app-a`
 - Result: **AMEND**
-- Weighted score: **3.15/5**
+- Weighted score: **3.50/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -378,12 +348,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Production Operations
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:55 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-canonical-operator-source-003`
 - Subject alias: `shared-platform-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.65/5**
+- Weighted score: **4.72/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -397,7 +366,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:47 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-repository-security-gate-gate1-reset-001`
 - Subject alias: `repository-security-gate-a`
@@ -421,7 +389,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:46 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-gate1-reset-001`
 - Subject alias: `external-control-plane-a`
@@ -444,7 +411,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:31 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-reset-001`
 - Subject alias: `workflow-compatibility-a`
@@ -466,12 +432,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Production Deployment
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:24 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-source-commit-deployment-001`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.55/5**
+- Weighted score: **4.59/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -486,7 +451,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Production Operations
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:22 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-operator-source-admission-002`
 - Subject alias: `shared-platform-a`
@@ -506,12 +470,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:12 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-005`
 - Subject alias: `governance-tooling-a`
 - Result: **AMEND**
-- Weighted score: **3.58/5**
+- Weighted score: **3.83/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -530,12 +493,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Production Operations
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:05 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-runtime-activation-preflight-001`
 - Subject alias: `shared-platform-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.10/5**
+- Weighted score: **4.23/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -551,12 +513,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Security Architecture Audit
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:04 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-audit-001`
 - Subject alias: `private-quote-service-a`
 - Result: **AMEND**
-- Weighted score: **3.85/5**
+- Weighted score: **4.01/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -575,12 +536,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Incident Diagnosis
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 20:03 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-build-root-cause-001`
 - Subject alias: `public-web-app-a`
 - Result: **ACCEPTED**
-- Weighted score: **4.80/5**
+- Weighted score: **4.87/5**
 - First-pass accepted: **Yes**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -593,7 +553,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Complex Repository Change
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 19:54 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-dl-299-310-002-implementation-001`
 - Subject alias: `governance-tooling-a`
@@ -616,7 +575,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Security Remediation
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 19:22 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-repository-security-gate-a-amendment-001`
 - Subject alias: `repository-security-gate-a`
@@ -637,7 +595,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Security Remediation
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 19:18 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-a-amendment-001`
 - Subject alias: `external-control-plane-a`
@@ -662,7 +619,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Complex Repository Change
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 19:12 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-workflow-transport-a-amendment-001`
 - Subject alias: `workflow-transport-a`
@@ -681,7 +637,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### GPT-5.6 Sol - Complex Repository Change
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 19:05 SGT**
 - Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-a-amendment-001`
 - Subject alias: `workflow-compatibility-a`
@@ -702,7 +657,6 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### DeepSeek V4 Pro - Research
 
-- Reasoning level: **Not exposed**
 - Reviewed: **26 Jul 2026 18:20 SGT**
 - Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-004`
 - Subject alias: `governance-tooling-a`
@@ -728,12 +682,11 @@ Newest first. This section displays at most 30 formal evaluation runs.
 
 ### Claude Opus 5 - Complex Repository Change
 
-- Reasoning level: **not-exposed**
 - Reviewed: **26 Jul 2026 15:32 SGT**
 - Run ID: `2026-07-26-claude-opus-5-business-automation-a-amendment-008`
 - Subject alias: `business-automation-a`
 - Result: **AMEND**
-- Weighted score: **4.05/5**
+- Weighted score: **4.24/5**
 - First-pass accepted: **No**
 - Safe final state: **Verified**
 - Principal strengths:
@@ -747,42 +700,3 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - first-use creation recursively creates the authority-state parent before proving a stable pre-existing operator-controlled directory and does not validate redirected intermediate path components
   - the completion report claimed cleanup failures were never suppressed although the lost-race helper and its test deliberately preserve silent suppression
 <!-- GENERATED:SCORECARD-RUNS:END -->
-
-## Current interpretation
-
-### Xiaomi MiMo 2.5 Pro
-
-MiMo currently appears:
-
-- strong for narrow mechanical repository configuration;
-- reasonably safe at respecting explicit mutation prohibitions;
-- inconsistent in tracker-body quality;
-- less reliable when exact operational diagnosis requires unavailable logs;
-- unsuitable for autonomous production mutation at present.
-
-### Claude Opus 4.8 High
-
-Across three comparable high-difficulty runs, Claude Opus 4.8 High has consistently produced substantial implementation progress, exact revision/test evidence and a verified safe draft state. It has also required three controller amendment cycles on the same package-publication and cleanup boundary.
-
-The third score is not evidence of a model regression: there is no stable earlier comparable window, and the score is broadly consistent with the first two. The repeated same-root defect is nevertheless a material convergence concern and now supports a provisional restriction on autonomous acceptance for atomicity, cleanup and durable-state work.
-
-## Historical backfill status
-
-GPT-5.6 Sol Medium, GPT-5.6 Sol High and other prior executor work have not yet been converted into formal per-run records. Earlier conversational estimates are excluded because exact prompts, task boundaries and controller evidence have not yet been normalised.
-
-Backfill should use only verifiable historical runs. Public records must use opaque aliases and non-identifying revision assertions.
-
-## Regression status
-
-No model currently has enough stable-window evidence for a regression determination.
-
-- Xiaomi MiMo 2.5 Pro: 3 mixed-task runs - provisional task-fit evidence, but one run per task class.
-- Claude Opus 4.8 High: 3 comparable high-difficulty complex-repository-change runs - provisional evidence; repeated same-root durability defects recorded, but no regression classification.
-- GPT-5.6 Sol Medium: formal backfill pending.
-- GPT-5.6 Sol High: formal backfill pending.
-
-## Next decision points
-
-MiMo may perform bounded repository repair under exact scope and independent review. It remains prohibited from deploying or changing provider settings until the repair is accepted and all admission gates are independently re-established.
-
-Claude Opus 4.8 High must repair the fail-open temporary-cleanup contract at a stronger reasoning level, prove unlink-failure behaviour on success and failure paths, and pass another exact-head review before the draft change may be accepted or merged.

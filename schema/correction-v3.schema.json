@@ -1,0 +1,773 @@
+{
+  "$defs": {
+    "authority": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_state": {
+          "enum": [
+            "source_proven",
+            "locked_owner_controller_authority",
+            "authority_gap"
+          ]
+        },
+        "authority_type": {
+          "enum": [
+            "rubric",
+            "controller_disposition",
+            "github_chronology",
+            "checked_in_source",
+            "owner_authorization",
+            "none_available"
+          ]
+        },
+        "controller_run_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "decision_status": {
+          "enum": [
+            "adjudicated",
+            "terminal_authority_gap"
+          ]
+        },
+        "owner_authorized": {
+          "type": "boolean"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "authority_state",
+        "authority_type",
+        "source_ids",
+        "controller_run_id",
+        "owner_authorized",
+        "decision_status"
+      ],
+      "type": "object"
+    },
+    "authorityGap": {
+      "additionalProperties": false,
+      "properties": {
+        "fabricated_value": {
+          "const": false
+        },
+        "missing_authority": {
+          "items": {
+            "enum": [
+              "prompt_hash",
+              "provenance_hash",
+              "source_revision",
+              "timestamp",
+              "outcome_verdict",
+              "review_authority",
+              "successor_code_proof"
+            ]
+          },
+          "type": "array"
+        },
+        "preserve_original_public_safe_fact": {
+          "const": true
+        },
+        "terminal": {
+          "const": true
+        }
+      },
+      "required": [
+        "missing_authority",
+        "terminal",
+        "preserve_original_public_safe_fact",
+        "fabricated_value"
+      ],
+      "type": "object"
+    },
+    "bytes": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "canonicalization": {
+          "const": "sorted-key JSON, compact separators, terminal LF"
+        },
+        "encoding": {
+          "const": "UTF-8"
+        },
+        "newline": {
+          "const": "LF"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "unsafe_bytes_repeated": {
+          "const": false
+        }
+      },
+      "required": [
+        "encoding",
+        "newline",
+        "canonicalization",
+        "sha256",
+        "byte_length",
+        "unsafe_bytes_repeated"
+      ],
+      "type": "object"
+    },
+    "calculation": {
+      "additionalProperties": false,
+      "properties": {
+        "dimension_source": {
+          "enum": [
+            "none",
+            "checked_in_dimensions_and_controlling_rubric"
+          ]
+        },
+        "method": {
+          "enum": [
+            "none",
+            "weighted_score_recomputation"
+          ]
+        },
+        "missing_dimension_policy": {
+          "const": "do_not_guess"
+        },
+        "rounding": {
+          "enum": [
+            "none",
+            "half_up"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "rounding",
+        "missing_dimension_policy",
+        "dimension_source"
+      ],
+      "type": "object"
+    },
+    "correction": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "redaction"
+                ]
+              },
+              {
+                "required": [
+                  "authority_gap"
+                ]
+              }
+            ]
+          },
+          "properties": {
+            "kind": {
+              "const": "factual_correction"
+            }
+          },
+          "required": [
+            "field_changes",
+            "calculation"
+          ]
+        },
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "calculation"
+                ]
+              },
+              {
+                "required": [
+                  "authority_gap"
+                ]
+              }
+            ]
+          },
+          "properties": {
+            "kind": {
+              "const": "public_safe_redaction"
+            }
+          },
+          "required": [
+            "field_changes",
+            "redaction"
+          ]
+        },
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "field_changes"
+                ]
+              },
+              {
+                "required": [
+                  "calculation"
+                ]
+              },
+              {
+                "required": [
+                  "redaction"
+                ]
+              }
+            ]
+          },
+          "properties": {
+            "kind": {
+              "const": "authority_gap"
+            }
+          },
+          "required": [
+            "authority_gap"
+          ]
+        }
+      ],
+      "properties": {
+        "authority_gap": {
+          "$ref": "#/$defs/authorityGap"
+        },
+        "calculation": {
+          "$ref": "#/$defs/calculation"
+        },
+        "field_changes": {
+          "items": {
+            "$ref": "#/$defs/fieldChange"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "factual_correction",
+            "public_safe_redaction",
+            "authority_gap"
+          ]
+        },
+        "redaction": {
+          "$ref": "#/$defs/redaction"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "fieldChange": {
+      "additionalProperties": false,
+      "properties": {
+        "after_public_safe": {},
+        "before_public_safe": {},
+        "path": {
+          "pattern": "^selector-sha256-[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "value_basis": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "before_public_safe",
+        "after_public_safe",
+        "value_basis"
+      ],
+      "type": "object"
+    },
+    "generatedSurfaces": {
+      "additionalProperties": false,
+      "properties": {
+        "included_in_views": {
+          "type": "boolean"
+        },
+        "manifest_path": {
+          "type": "string"
+        },
+        "receipt_binding": {
+          "enum": [
+            "candidate_manifest_only",
+            "terminal_seal_only",
+            "none"
+          ]
+        },
+        "view_paths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "included_in_views",
+        "view_paths",
+        "manifest_path",
+        "receipt_binding"
+      ],
+      "type": "object"
+    },
+    "lifecycle": {
+      "additionalProperties": false,
+      "properties": {
+        "preserve_after_seal": {
+          "const": true
+        },
+        "rollback_allowed_before_seal": {
+          "const": true
+        },
+        "state": {
+          "enum": [
+            "candidate",
+            "sealed"
+          ]
+        },
+        "terminal_seal_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "state",
+        "rollback_allowed_before_seal",
+        "preserve_after_seal",
+        "terminal_seal_commit"
+      ],
+      "type": "object"
+    },
+    "lineage": {
+      "additionalProperties": false,
+      "properties": {
+        "chain_scope": {
+          "const": "target.run_id"
+        },
+        "correction_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "prior_correction_sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sequence": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sequence",
+        "prior_correction_sha256",
+        "correction_sha256",
+        "chain_scope"
+      ],
+      "type": "object"
+    },
+    "opaqueSubject": {
+      "pattern": "^subject-[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "originalIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "identity_basis": {
+          "const": "immutable_original_record_sha256"
+        },
+        "identity_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "immutable": {
+          "const": true
+        }
+      },
+      "required": [
+        "immutable",
+        "identity_basis",
+        "identity_sha256"
+      ],
+      "type": "object"
+    },
+    "redaction": {
+      "additionalProperties": false,
+      "properties": {
+        "classes": {
+          "items": {
+            "enum": [
+              "reasoning_metadata",
+              "repository_identity",
+              "organisation_identity",
+              "person_identity",
+              "customer_identity",
+              "host_identity",
+              "branch_identity",
+              "path_identity",
+              "provider_resource_identity",
+              "private_url",
+              "infrastructure_identity",
+              "secret_class"
+            ]
+          },
+          "type": "array"
+        },
+        "history_rewrite": {
+          "const": false
+        },
+        "replacement_rule": {
+          "const": "remove_or_public_safe_placeholder_without_repeating_unsafe_value"
+        },
+        "unsafe_value_repeated": {
+          "const": false
+        }
+      },
+      "required": [
+        "classes",
+        "replacement_rule",
+        "history_rewrite",
+        "unsafe_value_repeated"
+      ],
+      "type": "object"
+    },
+    "replacement": {
+      "additionalProperties": false,
+      "properties": {
+        "history_rewrite": {
+          "const": false
+        },
+        "identity_change": {
+          "const": "base_model_identity_only"
+        },
+        "owner_authorized": {
+          "const": true
+        },
+        "removed_run_id": {
+          "$ref": "#/$defs/opaqueSubject"
+        },
+        "replacement_run_id": {
+          "$ref": "#/$defs/opaqueSubject"
+        }
+      },
+      "required": [
+        "removed_run_id",
+        "replacement_run_id",
+        "identity_change",
+        "owner_authorized",
+        "history_rewrite"
+      ],
+      "type": "object"
+    },
+    "replacementLink": {
+      "additionalProperties": false,
+      "properties": {
+        "identity_change": {
+          "const": "base_model_identity_only"
+        },
+        "replacement_run_id": {
+          "$ref": "#/$defs/opaqueSubject"
+        },
+        "unaffected_fields_preserved": {
+          "const": true
+        }
+      },
+      "required": [
+        "replacement_run_id",
+        "identity_change",
+        "unaffected_fields_preserved"
+      ],
+      "type": "object"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "target": {
+      "additionalProperties": false,
+      "properties": {
+        "original_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "record_type": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "run_id": {
+          "$ref": "#/$defs/opaqueSubject"
+        },
+        "schema_version": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "run_id",
+        "record_type",
+        "schema_version",
+        "original_record_sha256"
+      ],
+      "type": "object"
+    },
+    "withdrawal": {
+      "additionalProperties": false,
+      "properties": {
+        "controller_issue": {
+          "const": 150
+        },
+        "history_rewrite": {
+          "const": false
+        },
+        "reason": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "replacement_link": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/replacementLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "withdrawn_run_id": {
+          "$ref": "#/$defs/opaqueSubject"
+        }
+      },
+      "required": [
+        "withdrawn_run_id",
+        "reason",
+        "controller_issue",
+        "history_rewrite",
+        "replacement_link"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "schema/correction-v3.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Append-only correction lineage. Historical record bytes are never rewritten and unsafe bytes are never repeated.",
+  "oneOf": [
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "withdrawal"
+            ]
+          },
+          {
+            "required": [
+              "replacement"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "correction": {
+          "properties": {
+            "kind": {
+              "const": "factual_correction"
+            }
+          }
+        },
+        "record_type": {
+          "const": "factual_correction"
+        }
+      },
+      "required": [
+        "correction"
+      ]
+    },
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "withdrawal"
+            ]
+          },
+          {
+            "required": [
+              "replacement"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "correction": {
+          "properties": {
+            "kind": {
+              "const": "public_safe_redaction"
+            }
+          }
+        },
+        "record_type": {
+          "const": "public_safe_redaction"
+        }
+      },
+      "required": [
+        "correction"
+      ]
+    },
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "withdrawal"
+            ]
+          },
+          {
+            "required": [
+              "replacement"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "correction": {
+          "properties": {
+            "kind": {
+              "const": "authority_gap"
+            }
+          }
+        },
+        "record_type": {
+          "const": "authority_gap"
+        }
+      },
+      "required": [
+        "correction"
+      ]
+    },
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "correction"
+            ]
+          },
+          {
+            "required": [
+              "replacement"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "record_type": {
+          "const": "withdrawal"
+        }
+      },
+      "required": [
+        "withdrawal"
+      ]
+    },
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "correction"
+            ]
+          },
+          {
+            "required": [
+              "withdrawal"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "record_type": {
+          "const": "base_model_replacement"
+        }
+      },
+      "required": [
+        "replacement"
+      ]
+    }
+  ],
+  "properties": {
+    "after": {
+      "$ref": "#/$defs/bytes"
+    },
+    "authority": {
+      "$ref": "#/$defs/authority"
+    },
+    "before": {
+      "$ref": "#/$defs/bytes"
+    },
+    "correction": {
+      "$ref": "#/$defs/correction"
+    },
+    "correction_id": {
+      "pattern": "^corr-v3-subject-[0-9a-f]{64}-[0-9]{4}$",
+      "type": "string"
+    },
+    "generated_surfaces": {
+      "$ref": "#/$defs/generatedSurfaces"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/lifecycle"
+    },
+    "lineage": {
+      "$ref": "#/$defs/lineage"
+    },
+    "original_identity": {
+      "$ref": "#/$defs/originalIdentity"
+    },
+    "record_type": {
+      "enum": [
+        "factual_correction",
+        "public_safe_redaction",
+        "authority_gap",
+        "withdrawal",
+        "base_model_replacement"
+      ]
+    },
+    "replacement": {
+      "$ref": "#/$defs/replacement"
+    },
+    "schema_version": {
+      "const": 3
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "withdrawal": {
+      "$ref": "#/$defs/withdrawal"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "correction_id",
+    "target",
+    "original_identity",
+    "authority",
+    "lineage",
+    "before",
+    "after",
+    "lifecycle",
+    "generated_surfaces"
+  ],
+  "title": "AI Executor Evaluation Ledger correction and redaction record v3",
+  "type": "object"
+}
