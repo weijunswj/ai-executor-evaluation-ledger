@@ -922,12 +922,16 @@ def tree_failures(root: Path) -> list[str]:
     """Return privacy-safe failures for a complete isolated candidate tree."""
     failures: list[str] = []
     for path in sorted(root.rglob("*")):
-        if not path.is_file() or ".git" in path.parts:
+        try:
+            relative = path.relative_to(root)
+        except ValueError:
+            continue
+        if not path.is_file() or ".git" in relative.parts:
             continue
         text = decode_text(path)
         if text is None:
             continue
-        label = path.relative_to(root).as_posix()
+        label = relative.as_posix()
         prepared, policy_failures = prepare_tracked_text(label, text)
         failures.extend(
             scan_public_text(

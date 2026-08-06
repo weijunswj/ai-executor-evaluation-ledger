@@ -369,6 +369,7 @@ class TestF3Issue142EvidenceBoundary(unittest.TestCase):
             "body": "fixture",
             "created_at": "2026-08-04T00:00:00Z",
             "updated_at": "2026-08-04T00:00:00Z",
+            "issue_url": batch_processor.ISSUE_142_API_URL,
         }
 
     def fetch(self, value):

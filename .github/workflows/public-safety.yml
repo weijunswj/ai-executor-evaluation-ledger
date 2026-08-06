@@ -83,15 +83,16 @@ jobs:
       - name: Validate immutable batch receipt seals
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
-          GH_TOKEN: ${{ github.token }}
+         EVENT_NAME: ${{ github.event_name }}
+         HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
+         GH_TOKEN: ${{ github.token }}
         run: |
           mode=pr
           if [[ "$EVENT_NAME" == "push" ]]; then
             mode=canonical-main
           fi
-          args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --validation-level source-replay)
+          args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
           "${args[@]}"
 
       - name: Verify append-only source and generated views

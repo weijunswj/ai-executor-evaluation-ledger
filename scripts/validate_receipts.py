@@ -19,14 +19,18 @@ if str(ROOT) not in sys.path:
 from scripts.processor.common import (
     FROZEN_BATCH_ID,
     ProcessorError,
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
+    valid_sha256,
     sha256_bytes,
     validate_batch_receipt_closure,
     valid_git_sha,
 )
 from scripts.processor.batch_processor import (
+    ISSUE_142_API_URL,
     ProcessBatchConfig,
     build_batch_candidate,
-    fetch_single_comment,
+    fetch_live_142_comments,
 )
 from scripts.processor.frozen_replay import replay_frozen_from_receipt
 from scripts.processor.frozen_source import refetch_frozen_source
@@ -98,10 +102,106 @@ def resolve_commit(root: Path, revision: str) -> str:
     return value
 
 
+def _try_resolve_commit(root: Path, revision: Any) -> Optional[str]:
+    if not valid_git_sha(revision):
+        return None
+    try:
+        return resolve_commit(root, revision)
+    except ReceiptValidationError:
+        return None
+
+
 def git_object_bytes(root: Path, revision: str, relative_path: str) -> bytes:
     if relative_path.startswith(("/", "\\")) or ".." in Path(relative_path).parts:
         raise ReceiptValidationError("receipt_invalid_path")
     return bytes(_git(root, "show", f"{revision}:{relative_path}"))
+
+
+def _validate_candidate_manifest(
+    root: Path,
+    *,
+    receipt: Mapping[str, Any],
+    receipt_path: str,
+    candidate_sha: Optional[str],
+    seal_sha: Optional[str] = None,
+    required: bool = True,
+) -> None:
+    manifest = receipt.get("candidate_content_manifest")
+    manifest_sha = receipt.get("candidate_content_manifest_sha256")
+    if manifest is None or manifest_sha is None:
+        if not required and receipt.get("batch_id") == FROZEN_BATCH_ID:
+            return
+        raise ReceiptValidationError("receipt_candidate_manifest_missing")
+    valid_entries = True
+    for item in manifest if isinstance(manifest, list) else ():
+        if not isinstance(item, dict) or set(item) != {
+            "path",
+            "mode",
+            "blob_sha",
+            "content_sha256",
+        }:
+            valid_entries = False
+            break
+        path = item["path"]
+        mode = item["mode"]
+        if (
+            not isinstance(path, str)
+            or not path
+            or path.startswith(("/", "\\"))
+            or "\\" in path
+            or ".." in Path(path).parts
+            or path == receipt_path
+            or not isinstance(mode, str)
+            or len(mode) != 6
+            or any(character not in "01234567" for character in mode)
+            or not valid_git_sha(item["blob_sha"])
+            or not valid_sha256(item["content_sha256"])
+        ):
+            valid_entries = False
+            break
+    if (
+        not isinstance(manifest, list)
+        or not valid_entries
+        or not valid_sha256(manifest_sha)
+        or manifest != sorted(
+            manifest,
+            key=lambda item: item.get("path", "")
+            if isinstance(item, dict)
+            else "",
+        )
+        or len(
+            {
+                item.get("path")
+                for item in manifest
+                if isinstance(item, dict)
+            }
+        )
+        != len(manifest)
+    ):
+        raise ReceiptValidationError("receipt_candidate_manifest_invalid")
+    try:
+        manifest_hash = git_tree_manifest_sha256(manifest)
+    except ProcessorError as error:
+        raise ReceiptValidationError("receipt_candidate_manifest_invalid") from error
+    if manifest_hash != manifest_sha:
+        raise ReceiptValidationError("receipt_candidate_manifest_invalid")
+
+    for revision, error_code in (
+        (candidate_sha, "receipt_candidate_manifest_mismatch"),
+        (seal_sha, "receipt_terminal_manifest_mismatch"),
+    ):
+        if revision is None:
+            continue
+        try:
+            actual = git_tree_file_bindings(
+                root,
+                revision,
+                excluded_paths=(receipt_path,),
+            )
+        except ProcessorError as error:
+            raise ReceiptValidationError(error_code) from error
+        if actual != manifest:
+            raise ReceiptValidationError(error_code)
 
 
 def tracked_batch_receipts(root: Path, revision: str) -> list[str]:
@@ -123,15 +223,21 @@ def tracked_batch_receipts(root: Path, revision: str) -> list[str]:
     return paths
 
 
-def _walk_forbidden_keys(value: Any) -> None:
+def _walk_forbidden_keys(value: Any, *, allow_manifest_path: bool = False) -> None:
     if isinstance(value, dict):
         for key, child in value.items():
-            if key in FORBIDDEN_BATCH_KEYS:
+            if key in FORBIDDEN_BATCH_KEYS and not (
+                allow_manifest_path and key == "path"
+            ):
                 raise ReceiptValidationError("receipt_forbidden_field")
-            _walk_forbidden_keys(child)
+            _walk_forbidden_keys(
+                child,
+                allow_manifest_path=allow_manifest_path
+                or key == "candidate_content_manifest",
+            )
     elif isinstance(value, list):
         for child in value:
-            _walk_forbidden_keys(child)
+            _walk_forbidden_keys(child, allow_manifest_path=allow_manifest_path)
 
 
 def _load_schema(root: Path) -> dict[str, Any]:
@@ -249,6 +355,14 @@ def validate_batch_receipt_object(
         raise ReceiptValidationError("receipt_candidate_commit_invalid")
     candidate_sha = resolve_commit(root, candidate_sha)
     _validate_content_at_commit(root, candidate_sha, receipt)
+    if receipt.get("candidate_content_manifest") is not None:
+        _validate_candidate_manifest(
+            root,
+            receipt=receipt,
+            receipt_path=f"{RECEIPT_PREFIX}{receipt['batch_id']}.json",
+            candidate_sha=candidate_sha,
+            required=False,
+        )
 
 
 def validate_all_tracked_batch_receipts(
@@ -256,8 +370,17 @@ def validate_all_tracked_batch_receipts(
     *,
     authority_sha: str,
     mode: str,
+    canonical_base_sha: Optional[str] = None,
 ) -> dict[str, Any]:
     authority_sha = resolve_commit(root, authority_sha)
+    if mode not in {"pr", "canonical-main"}:
+        raise ReceiptValidationError("receipt_invalid_mode")
+    canonical_base = (
+        resolve_commit(root, canonical_base_sha)
+        if mode == "canonical-main" and canonical_base_sha is not None
+        else None
+    )
+    canonical_base_requested = canonical_base_sha is not None
     schema = _load_schema(root)
     paths = tracked_batch_receipts(root, authority_sha)
     if not paths:
@@ -273,38 +396,52 @@ def validate_all_tracked_batch_receipts(
         if batch_id in batch_ids:
             raise ReceiptValidationError("receipt_duplicate_batch_id")
         batch_ids.add(batch_id)
-        validate_batch_receipt_object(root, receipt, authority_sha=authority_sha)
+        if mode == "pr":
+            validate_batch_receipt_object(
+                root,
+                receipt,
+                authority_sha=authority_sha,
+            )
         parsed[path] = receipt
 
     changed_path: Optional[str] = None
     parent_sha: Optional[str] = None
     if mode == "pr":
-        parent_line = str(
-            _git(root, "rev-list", "--parents", "-n", "1", authority_sha, text=True)
-        ).strip().split()
-        if len(parent_line) != 2:
-            raise ReceiptValidationError("receipt_final_head_parent_count")
-        parent_sha = parent_line[1]
-        changed = str(
-            _git(
-                root,
-                "diff-tree",
-                "--no-commit-id",
-                "--name-only",
-                "-r",
-                parent_sha,
-                authority_sha,
-                text=True,
-            )
-        ).splitlines()
-        if len(changed) != 1 or changed[0] not in parsed:
-            raise ReceiptValidationError("receipt_final_commit_scope")
-        changed_path = changed[0]
-        if parsed[changed_path]["candidate_content_commit_sha"] != parent_sha:
-            raise ReceiptValidationError("receipt_candidate_parent_mismatch")
-    elif mode != "canonical-main":
-        raise ReceiptValidationError("receipt_invalid_mode")
-
+        frozen_only = all(
+            receipt["batch_id"] == FROZEN_BATCH_ID for receipt in parsed.values()
+        ) and not canonical_base_requested
+        if not frozen_only:
+            parent_line = str(
+                _git(
+                    root,
+                    "rev-list",
+                    "--parents",
+                    "-n",
+                    "1",
+                    authority_sha,
+                    text=True,
+                )
+            ).strip().split()
+            if len(parent_line) != 2:
+                raise ReceiptValidationError("receipt_final_head_parent_count")
+            parent_sha = parent_line[1]
+            changed = str(
+                _git(
+                    root,
+                    "diff-tree",
+                    "--no-commit-id",
+                    "--name-only",
+                    "-r",
+                    parent_sha,
+                    authority_sha,
+                    text=True,
+                )
+            ).splitlines()
+            if len(changed) != 1 or changed[0] not in parsed:
+                raise ReceiptValidationError("receipt_final_commit_scope")
+            changed_path = changed[0]
+            if parsed[changed_path]["candidate_content_commit_sha"] != parent_sha:
+                raise ReceiptValidationError("receipt_candidate_parent_mismatch")
     seals: dict[str, str] = {}
     for path, receipt in parsed.items():
         seal_sha = _terminal_seal_commit(
@@ -313,13 +450,52 @@ def validate_all_tracked_batch_receipts(
             mode=mode,
             receipt_path=path,
         )
-        candidate_sha = resolve_commit(root, receipt["candidate_content_commit_sha"])
-        _validate_terminal_seal_scope(
+        candidate_sha = _try_resolve_commit(
             root,
-            seal_sha=seal_sha,
-            receipt_path=path,
-            candidate_sha=candidate_sha,
+            receipt.get("candidate_content_commit_sha"),
         )
+        if mode == "pr" and candidate_sha is None:
+            raise ReceiptValidationError("receipt_candidate_commit_invalid")
+        if mode == "canonical-main" and receipt.get("source_replay") == {
+            "adapter": "github-intake-v1"
+        }:
+            _validate_candidate_manifest(
+                root,
+                receipt=receipt,
+                receipt_path=path,
+                candidate_sha=candidate_sha,
+                required=True,
+            )
+        elif mode == "canonical-main" and receipt.get(
+            "candidate_content_manifest"
+        ) is not None:
+            _validate_candidate_manifest(
+                root,
+                receipt=receipt,
+                receipt_path=path,
+                candidate_sha=candidate_sha,
+                required=False,
+            )
+        if mode == "canonical-main":
+            _validate_content_at_commit(root, seal_sha, receipt)
+        if not (
+            receipt["batch_id"] == FROZEN_BATCH_ID
+            and not canonical_base_requested
+        ):
+            _validate_terminal_seal_scope(
+                root,
+                seal_sha=seal_sha,
+                receipt_path=path,
+                mode=mode,
+                base_sha=receipt["base_sha"],
+                candidate_sha=candidate_sha,
+                receipt=receipt,
+                canonical_base_sha=(
+                    canonical_base
+                    if mode == "canonical-main" and seal_sha == authority_sha
+                    else None
+                ),
+            )
         ancestor = subprocess.run(
             ["git", "merge-base", "--is-ancestor", seal_sha, authority_sha],
             cwd=root,
@@ -376,13 +552,35 @@ def _validate_terminal_seal_scope(
     *,
     seal_sha: str,
     receipt_path: str,
-    candidate_sha: str,
+    mode: str = "legacy",
+    base_sha: str = "",
+    candidate_sha: Optional[str],
+    receipt: Optional[Mapping[str, Any]] = None,
+    canonical_base_sha: Optional[str] = None,
 ) -> None:
     parent_line = str(
         _git(root, "rev-list", "--parents", "-n", "1", seal_sha, text=True)
     ).strip().split()
-    if len(parent_line) != 2 or parent_line[1] != candidate_sha:
-        raise ReceiptValidationError("receipt_candidate_parent_mismatch")
+    if candidate_sha is None and mode != "canonical-main":
+        raise ReceiptValidationError("receipt_candidate_commit_invalid")
+    if mode == "pr":
+        expected_parent = candidate_sha
+    elif mode == "canonical-main":
+        if canonical_base_sha is not None:
+            expected_parent = canonical_base_sha
+        elif receipt is not None and receipt.get("batch_mode") == "incremental":
+            expected_parent = candidate_sha
+        else:
+            expected_parent = resolve_commit(root, base_sha)
+    else:
+        expected_parent = candidate_sha
+    if len(parent_line) != 2 or parent_line[1] != expected_parent:
+        raise ReceiptValidationError(
+            "receipt_candidate_parent_mismatch"
+            if mode == "pr"
+            else "receipt_terminal_parent_mismatch"
+        )
+    diff_parent = expected_parent
     changed = str(
         _git(
             root,
@@ -390,20 +588,36 @@ def _validate_terminal_seal_scope(
             "--no-commit-id",
             "--name-only",
             "-r",
-            candidate_sha,
+            diff_parent,
             seal_sha,
             text=True,
         )
     ).splitlines()
-    if changed != [receipt_path]:
+    if (
+        mode == "canonical-main"
+        and receipt is not None
+        and receipt.get("candidate_content_manifest") is not None
+    ):
+        if receipt_path not in changed:
+            raise ReceiptValidationError("receipt_final_commit_scope")
+    elif changed != [receipt_path]:
         raise ReceiptValidationError("receipt_final_commit_scope")
+    if receipt is not None:
+        _validate_candidate_manifest(
+            root,
+            receipt=receipt,
+            receipt_path=receipt_path,
+            candidate_sha=candidate_sha,
+            seal_sha=seal_sha,
+            required=receipt.get("source_replay") == {"adapter": "github-intake-v1"},
+        )
 
 
 def _validate_frozen_source_replay(
     root: Path,
     *,
     receipt: Mapping[str, Any],
-    candidate_sha: str,
+    candidate_sha: Optional[str],
     seal_sha: str,
 ) -> dict[str, int]:
     try:
@@ -430,7 +644,10 @@ def _validate_frozen_source_replay(
         if receipt.get(field) != expected:
             raise ReceiptValidationError(f"receipt_source_replay_mismatch:{field}")
     for relative_path, expected in replay.candidate_files.items():
-        if git_object_bytes(root, candidate_sha, relative_path) != expected:
+        if (
+            candidate_sha is not None
+            and git_object_bytes(root, candidate_sha, relative_path) != expected
+        ):
             raise ReceiptValidationError("receipt_candidate_replay_mismatch")
         if git_object_bytes(root, seal_sha, relative_path) != expected:
             raise ReceiptValidationError("receipt_terminal_content_mismatch")
@@ -447,17 +664,43 @@ def _validate_github_intake_source_replay(
     authority_sha: str,
     receipt_path: str,
     receipt: Mapping[str, Any],
-    candidate_sha: str,
+    candidate_sha: Optional[str],
     seal_sha: str,
 ) -> dict[str, int]:
     try:
-        comments = [
-            fetch_single_comment(comment_id, root)
-            for comment_id in receipt["source_comment_ids"]
-        ]
-        by_id = {int(item["id"]): item for item in comments}
-        if len(by_id) != len(comments):
+        complete_comments = fetch_live_142_comments(root)
+        complete_ids = [int(item["id"]) for item in complete_comments]
+        watermark = receipt["source_comment_watermark"]
+        if (
+            not isinstance(watermark, int)
+            or isinstance(watermark, bool)
+            or watermark < 0
+            or any(item > watermark for item in receipt["source_comment_ids"])
+            or (
+                watermark != 0
+                and (
+                    not complete_ids
+                    or max(complete_ids) < watermark
+                )
+            )
+        ):
             raise ProcessorError("source_changed")
+        comments = [
+            item for item in complete_comments if int(item["id"]) <= watermark
+        ]
+        later_comments = [
+            item for item in complete_comments if int(item["id"]) > watermark
+        ]
+        bounded_ids = [int(item["id"]) for item in comments]
+        if bounded_ids != list(receipt["source_comment_ids"]):
+            raise ProcessorError("source_changed")
+        if (
+            receipt["latest_observed_comment_id"]
+            != (max(bounded_ids) if bounded_ids else None)
+            or watermark != (max(bounded_ids) if bounded_ids else 0)
+        ):
+            raise ProcessorError("source_changed")
+        by_id = {int(item["id"]): item for item in complete_comments}
         owner: dict[str, Any] = {}
         owner_identity: Optional[tuple[int, str]] = None
         bindings = {item["comment_id"]: item for item in receipt["comment_bindings"]}
@@ -520,16 +763,26 @@ def _validate_github_intake_source_replay(
         raise ReceiptValidationError("receipt_source_replay_unavailable") from error
 
     replayed_receipt = candidate_files.get(receipt_path)
-    if replayed_receipt != git_object_bytes(root, seal_sha, receipt_path):
+    if (
+        replayed_receipt is not None
+        and replayed_receipt != git_object_bytes(root, seal_sha, receipt_path)
+    ):
         raise ReceiptValidationError("receipt_source_replay_mismatch:receipt")
     for relative_path in CANONICAL_PATHS.values():
         expected = candidate_files.get(relative_path)
-        if expected is None or git_object_bytes(root, candidate_sha, relative_path) != expected:
+        if expected is None:
             raise ReceiptValidationError("receipt_candidate_replay_mismatch")
+        if (
+            candidate_sha is not None
+            and git_object_bytes(root, candidate_sha, relative_path) != expected
+        ):
+            raise ReceiptValidationError("receipt_candidate_replay_mismatch")
+        if git_object_bytes(root, seal_sha, relative_path) != expected:
+            raise ReceiptValidationError("receipt_terminal_content_mismatch")
     return {
         "outcomes": int(evidence["terminal_count"]),
         "admissions": int(evidence["admitted_count"]),
-        "later_comments": 0,
+        "later_comments": len(later_comments),
     }
 
 
@@ -538,6 +791,7 @@ def validate_source_replay(
     *,
     authority_sha: str,
     mode: str,
+    canonical_base_sha: Optional[str] = None,
 ) -> dict[str, Any]:
     """Validate every receipt using its declared immutable source adapter."""
 
@@ -545,6 +799,7 @@ def validate_source_replay(
         root,
         authority_sha=authority_sha,
         mode=mode,
+        canonical_base_sha=canonical_base_sha,
     )
     authority_sha = structural["authority_sha"]
     schema = _load_schema(root)
@@ -557,7 +812,12 @@ def validate_source_replay(
             git_object_bytes(root, authority_sha, receipt_path),
             schema,
         )
-        candidate_sha = resolve_commit(root, receipt["candidate_content_commit_sha"])
+        candidate_sha = _try_resolve_commit(
+            root,
+            receipt.get("candidate_content_commit_sha"),
+        )
+        if mode == "pr" and candidate_sha is None:
+            raise ReceiptValidationError("receipt_candidate_commit_invalid")
         seal_sha = structural["receipt_seals"][receipt_path]
         if receipt["batch_id"] == FROZEN_BATCH_ID:
             evidence = _validate_frozen_source_replay(
@@ -601,6 +861,7 @@ def parse_cli(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser.add_argument("--repository-root", type=Path, default=ROOT)
     parser.add_argument("--mode", choices=["pr", "canonical-main"], default="pr")
     parser.add_argument("--authority-sha", default="HEAD")
+    parser.add_argument("--canonical-base-sha")
     parser.add_argument(
         "--validation-level",
         choices=["structural", "source-replay"],
@@ -617,12 +878,14 @@ def main(argv: Optional[list[str]] = None) -> int:
                 args.repository_root,
                 authority_sha=args.authority_sha,
                 mode=args.mode,
+                canonical_base_sha=args.canonical_base_sha,
             )
         else:
             evidence = validate_all_tracked_batch_receipts(
                 args.repository_root,
                 authority_sha=args.authority_sha,
                 mode=args.mode,
+                canonical_base_sha=args.canonical_base_sha,
             )
     except ReceiptValidationError:
         print("Batch receipt validation failed.", file=sys.stderr)

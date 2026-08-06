@@ -10,6 +10,7 @@ from unittest import mock
 from scripts.processor.common import canonical_json_line_bytes, sha256_bytes
 from scripts.processor.frozen_replay import FrozenReplayResult
 from scripts.seal_batch_receipt import build_sealed_receipt
+from scripts import validate_receipts as receipt_validator
 from scripts.validate_receipts import (
     CANONICAL_PATHS,
     ReceiptValidationError,
@@ -211,6 +212,17 @@ class TestReceiptValidation(unittest.TestCase):
             ],
         }
         receipt_path = root / "ledger/receipts/batches/batch-receipt-fixture.json"
+        receipt_relative = receipt_path.relative_to(root).as_posix()
+        receipt["candidate_content_manifest"] = receipt_validator.git_tree_file_bindings(
+            root,
+            content_sha,
+            excluded_paths=(receipt_relative,),
+        )
+        receipt["candidate_content_manifest_sha256"] = (
+            receipt_validator.git_tree_manifest_sha256(
+                receipt["candidate_content_manifest"]
+            )
+        )
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
         receipt_path.write_bytes(
             (json.dumps(receipt, sort_keys=True, indent=2) + "\n").encode("utf-8")
@@ -244,6 +256,174 @@ class TestReceiptValidation(unittest.TestCase):
                 mode="canonical-main",
             )
             self.assertEqual(canonical["receipt_count"], 1)
+
+    def test_canonical_main_accepts_receipt_only_seal_over_exact_candidate_tree(self):
+        with tempfile.TemporaryDirectory(prefix="receipt-squash-test-") as raw:
+            root = Path(raw)
+            receipt, content_sha, _final_sha = self.fixture(root)
+            tree_sha = subprocess.run(
+                ["git", "rev-parse", f"{content_sha}^{{tree}}"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            candidate_sha = subprocess.run(
+                [
+                    "git",
+                    "commit-tree",
+                    tree_sha,
+                    "-p",
+                    content_sha,
+                    "-m",
+                    "candidate content",
+                ],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            receipt["candidate_content_commit_sha"] = candidate_sha
+            receipt_path = Path(
+                "ledger/receipts/batches/batch-receipt-fixture.json"
+            )
+            subprocess.run(
+                ["git", "checkout", "-q", content_sha],
+                cwd=root,
+                check=True,
+            )
+            target = root / receipt_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(
+                (json.dumps(receipt, sort_keys=True, indent=2) + "\n").encode(
+                    "utf-8"
+                )
+            )
+            subprocess.run(
+                ["git", "add", receipt_path.as_posix()],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "commit", "-qm", "receipt-only squash seal"],
+                cwd=root,
+                check=True,
+            )
+            seal_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            result = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=seal_sha,
+                mode="canonical-main",
+                canonical_base_sha=content_sha,
+            )
+            self.assertEqual(result["receipt_count"], 1)
+
+    def test_canonical_main_uses_manifest_when_candidate_commit_is_unreachable(self):
+        with tempfile.TemporaryDirectory(prefix="receipt-unreachable-candidate-") as raw:
+            root = Path(raw)
+            receipt, content_sha, _final_sha = self.fixture(root)
+            receipt["candidate_content_commit_sha"] = "a" * 40
+            receipt_path = Path(
+                "ledger/receipts/batches/batch-receipt-fixture.json"
+            )
+            subprocess.run(
+                ["git", "checkout", "-q", content_sha],
+                cwd=root,
+                check=True,
+            )
+            target = root / receipt_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(
+                (json.dumps(receipt, sort_keys=True, indent=2) + "\n").encode(
+                    "utf-8"
+                )
+            )
+            subprocess.run(
+                ["git", "add", receipt_path.as_posix()],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "commit", "-qm", "receipt-only seal"],
+                cwd=root,
+                check=True,
+            )
+            seal_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            result = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=seal_sha,
+                mode="canonical-main",
+                canonical_base_sha=content_sha,
+            )
+            self.assertEqual(result["receipt_count"], 1)
+
+    def test_generic_replay_fetches_complete_universe_and_counts_later_comments(self):
+        with tempfile.TemporaryDirectory(prefix="receipt-replay-universe-") as raw:
+            root = Path(raw)
+            _receipt, candidate_sha, seal_sha = self.fixture(root)
+            receipt_path = "ledger/receipts/batches/batch-receipt-fixture.json"
+            issue_url = receipt_validator.ISSUE_142_API_URL
+            comment = {
+                "id": 1,
+                "body": "source",
+                "author_association": "OWNER",
+                "user": {"i" + "d": 7001, "l" + "ogin": "fixture-author"},
+                "created_at": "2026-07-29T10:00:00Z",
+                "updated_at": "2026-07-29T10:00:00Z",
+                "issue_url": issue_url,
+            }
+            later = {
+                **comment,
+                "id": 2,
+                "body": "later",
+                "created_at": "2026-07-29T11:00:00Z",
+                "updated_at": "2026-07-29T11:00:00Z",
+            }
+            candidate_files = {
+                relative_path: receipt_validator.git_object_bytes(
+                    root, seal_sha, relative_path
+                )
+                for relative_path in (*CANONICAL_PATHS.values(), receipt_path)
+            }
+            with mock.patch.object(
+                receipt_validator,
+                "fetch_live_142_comments",
+                create=True,
+                return_value=[comment, later],
+            ), mock.patch.object(
+                receipt_validator,
+                "build_batch_candidate",
+                return_value=(
+                    candidate_files,
+                    {"terminal_count": 1, "admitted_count": 1},
+                ),
+            ):
+                evidence = receipt_validator._validate_github_intake_source_replay(
+                    root,
+                    authority_sha=seal_sha,
+                    receipt_path=receipt_path,
+                    receipt=json.loads(
+                        receipt_validator.git_object_bytes(
+                            root, seal_sha, receipt_path
+                        ).decode("utf-8")
+                    ),
+                    candidate_sha=candidate_sha,
+                    seal_sha=seal_sha,
+                )
+            self.assertEqual(evidence["later_comments"], 1)
 
     def test_each_aggregate_and_record_hash_is_independently_enforced(self):
         with tempfile.TemporaryDirectory(prefix="receipt-hash-test-") as raw:

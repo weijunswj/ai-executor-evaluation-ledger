@@ -13,7 +13,7 @@
     "canonical_base_model",
     "evaluation_protocol",
     "repository_alias",
-    "source_revision",
+    "revision_assertion",
     "task_class",
     "difficulty",
     "verdict",
@@ -24,7 +24,7 @@
     "reviewed_at"
   ],
   "properties": {
-    "schema_version": {"type": "integer", "const": 1},
+    "schema_version": {"type": "integer", "const": 2},
     "record_type": {"type": "string", "const": "evaluation_intake"},
     "controller_run_id": {
       "type": "string",
@@ -60,9 +60,9 @@
     },
     "issue_number": {"type": ["integer", "null"], "minimum": 1},
     "pull_request_number": {"type": ["integer", "null"], "minimum": 1},
-    "source_revision": {
+    "revision_assertion": {
       "type": "string",
-      "pattern": "^[0-9a-f]{40}$"
+      "enum": ["private_revision_verified"]
     },
     "task_class": {"type": "string", "minLength": 1, "maxLength": 120},
     "difficulty": {

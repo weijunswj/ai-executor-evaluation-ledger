@@ -13,7 +13,13 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.processor import cleanup_workflow
-from scripts.processor.common import ProcessorError, canonical_json_line_bytes, sha256_bytes
+from scripts.processor.common import (
+    ProcessorError,
+    canonical_json_line_bytes,
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
+    sha256_bytes,
+)
 from scripts.validate_receipts import (
     CANONICAL_PATHS,
     ReceiptValidationError,
@@ -309,6 +315,15 @@ class ReceiptHistoryFixture(unittest.TestCase):
         }
         path_id = path_batch_id or batch_id
         receipt_path = self.root / "ledger" / "receipts" / "batches" / f"{path_id}.json"
+        receipt_relative = receipt_path.relative_to(self.root).as_posix()
+        receipt["candidate_content_manifest"] = git_tree_file_bindings(
+            self.root,
+            candidate,
+            excluded_paths=(receipt_relative,),
+        )
+        receipt["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+            receipt["candidate_content_manifest"]
+        )
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
         receipt_path.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
         if extra_seal_file:
