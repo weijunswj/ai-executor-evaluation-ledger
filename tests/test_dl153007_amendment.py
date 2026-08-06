@@ -574,5 +574,394 @@ class TestA7DerivedWeightedScores(unittest.TestCase):
         self.assertEqual(before, {path: path.read_bytes() for path in paths})
 
 
+class TestA8ReceiptCommentEvidenceBoundary(unittest.TestCase):
+    ISSUE_URL = cleanup_workflow.RECEIPT_ISSUE_ENDPOINT
+
+    @staticmethod
+    def config(recorded_receipt_status: str) -> cleanup_workflow.CleanupConfig:
+        return cleanup_workflow.CleanupConfig(
+            batch_id="batch-cleanup-live-a005",
+            canonical_merge_sha="a" * 40,
+            canonical_main_sha="a" * 40,
+            expected_head_sha="b" * 40,
+            pr_number=151,
+            source_issue_number=142,
+            receipt_issue_number=143,
+            activation_mode="dry-run",
+            operator_intent="unreviewed",
+            pr_state="closed",
+            merge_state="merged",
+            checks_state="passed",
+            review_state="clear",
+            recorded_receipt_status=recorded_receipt_status,
+            repository_root=Path(tempfile.gettempdir()),
+        )
+
+    def matching_value(self) -> dict:
+        config = self.config("present_matching")
+        return {
+            "receipt_type": "cleanup",
+            "cleanup_status": "verified",
+            "batch_id": config.batch_id,
+            "canonical_merge_sha": config.canonical_merge_sha,
+            "canonical_main_sha": config.canonical_main_sha,
+            "expected_head_sha": config.expected_head_sha,
+            "pr_number": config.pr_number,
+            "source_issue_number": config.source_issue_number,
+            "receipt_issue_number": config.receipt_issue_number,
+            "source_retention_verified": True,
+        }
+
+    def matching_comment(self, comment_id: int = 81) -> dict:
+        return {
+            "id": comment_id,
+            "issue_url": self.ISSUE_URL,
+            "body": cleanup_workflow.RECORDED_MARKER + "\nfixture",
+        }
+
+    def status(self, comments: list[dict]) -> str:
+        with mock.patch.object(
+            cleanup_workflow,
+            "_parse_recorded_receipt_body",
+            return_value=self.matching_value(),
+        ):
+            return cleanup_workflow._recorded_receipt_status(
+                self.config("absent"), comments
+            )
+
+    def prepare(self, comments: list[dict]) -> dict:
+        status = self.status(comments)
+        config = self.config(status)
+        canonical_hashes = {
+            key: "1" * 64 for key in cleanup_workflow.CANONICAL_PATHS
+        }
+        batch = {
+            "admitted_run_ids": [],
+            "canonical_hashes": canonical_hashes,
+            "canonical_record_hashes": {},
+            "accepted_record_proofs": {},
+            "source_comment_ids": [],
+            "source_body_sha256": {},
+        }
+        authority = {
+            field: getattr(config, field)
+            for field in (
+                "pr_state",
+                "merge_state",
+                "checks_state",
+                "review_state",
+                "canonical_merge_sha",
+                "expected_head_sha",
+                "canonical_main_sha",
+                "recorded_receipt_status",
+            )
+        }
+        with (
+            mock.patch.object(cleanup_workflow, "_verify_local_canonical_checkout"),
+            mock.patch.object(
+                cleanup_workflow,
+                "_load_batch",
+                return_value=(batch, b"{}", "2" * 64),
+            ),
+            mock.patch.object(cleanup_workflow, "validate_batch_receipt_object"),
+            mock.patch.object(cleanup_workflow, "_verify_raw_head_receipt_seal"),
+            mock.patch.object(cleanup_workflow, "_git_object_bytes", return_value=b""),
+            mock.patch.object(
+                cleanup_workflow, "_current_hashes", return_value=canonical_hashes
+            ),
+            mock.patch.object(cleanup_workflow, "_record_hashes", return_value={}),
+            mock.patch.object(
+                cleanup_workflow, "_record_identity_proofs", return_value={}
+            ),
+            mock.patch.object(
+                cleanup_workflow,
+                "_retained_comment_evidence",
+                return_value=([], True),
+            ),
+        ):
+            return cleanup_workflow.prepare_cleanup_receipt(
+                config, authority_reader=lambda _config: authority
+            )
+
+    def publish(self, direct_issue_url: str, comments_factory) -> dict:
+        receipt = {
+            "cleanup_status": "verified",
+            "recorded_receipt_status": "absent",
+            "receipt_issue_number": 143,
+        }
+        bodies: list[str] = []
+
+        def publisher(body: str) -> int:
+            bodies.append(body)
+            return 81
+
+        def readback(locator: int) -> dict:
+            return {
+                "id": locator,
+                "issue_url": direct_issue_url,
+                "body": bodies[0],
+            }
+
+        with mock.patch.object(
+            cleanup_workflow,
+            "_parse_recorded_receipt_body",
+            return_value=dict(receipt),
+        ):
+            return cleanup_workflow.publish_cleanup_receipt(
+                receipt,
+                activation_mode="reviewed-live",
+                operator_intent="reviewed",
+                publisher=publisher,
+                readback=readback,
+                comments_reader=lambda: comments_factory(bodies[0]),
+                authority_verifier=lambda value: value == receipt,
+            )
+
+    def test_generic_pagination_still_flattens_dictionary_only_pages(self):
+        with mock.patch.object(cleanup_workflow, "gh_json", return_value=[[{}]]):
+            self.assertEqual(
+                cleanup_workflow._gh_get_paginated("fixture", ROOT),
+                [{}],
+            )
+
+    def test_valid_status_universes_remain_supported(self):
+        independently_built_endpoint = "".join(
+            (
+                "https://api.",
+                "github.com/repos/",
+                "weijunswj/",
+                "ai-executor-evaluation-ledger/",
+                "issues/143",
+            )
+        )
+        self.assertEqual(self.ISSUE_URL, independently_built_endpoint)
+        self.assertEqual(self.status([]), "absent")
+        for body in ("", "ordinary non-marker comment"):
+            with self.subTest(body=body):
+                self.assertEqual(
+                    self.status(
+                        [{"id": 80, "issue_url": self.ISSUE_URL, "body": body}]
+                    ),
+                    "absent",
+                )
+        self.assertEqual(self.status([self.matching_comment()]), "present_matching")
+        conflicting = self.matching_value() | {"canonical_main_sha": "c" * 40}
+        with mock.patch.object(
+            cleanup_workflow,
+            "_parse_recorded_receipt_body",
+            return_value=conflicting,
+        ):
+            self.assertEqual(
+                cleanup_workflow._recorded_receipt_status(
+                    self.config("absent"), [self.matching_comment()]
+                ),
+                "conflicting",
+            )
+
+    def test_missing_and_invalid_stable_ids_fail_closed(self):
+        invalid_ids = (None, True, False, 0, -1, "81", 81.0, {}, [])
+        missing = {"issue_url": self.ISSUE_URL, "body": "ordinary"}
+        with self.subTest(value="missing"), self.assertRaises(ProcessorError):
+            self.status([missing])
+        for value in invalid_ids:
+            with self.subTest(value=value), self.assertRaises(ProcessorError):
+                self.status(
+                    [{"id": value, "issue_url": self.ISSUE_URL, "body": "ordinary"}]
+                )
+
+    def test_duplicate_ids_within_and_across_pages_fail_closed(self):
+        first = {"id": 81, "issue_url": self.ISSUE_URL, "body": "first"}
+        second = {"id": 81, "issue_url": self.ISSUE_URL, "body": "second"}
+        with self.assertRaises(ProcessorError):
+            self.status([first, second])
+        with mock.patch.object(
+            cleanup_workflow, "gh_json", return_value=[[first], [second]]
+        ):
+            comments = cleanup_workflow._gh_get_paginated("fixture", ROOT)
+        with self.assertRaises(ProcessorError):
+            self.status(comments)
+
+    def test_missing_malformed_and_lookalike_issue_urls_fail_closed(self):
+        invalid_urls = (
+            None,
+            True,
+            143,
+            {},
+            [],
+            self.ISSUE_URL.replace("weijunswj/", "other/"),
+            self.ISSUE_URL.replace("ai-executor-evaluation-ledger/", "other/"),
+            self.ISSUE_URL[:-3] + "142",
+            self.ISSUE_URL.replace("api.github.com", "example.test"),
+            self.ISSUE_URL.replace("https://", "http://", 1),
+            self.ISSUE_URL + "/extra",
+            self.ISSUE_URL + "?issue=143",
+            self.ISSUE_URL + "#fragment",
+            "prefix-" + self.ISSUE_URL,
+            self.ISSUE_URL + "-suffix",
+            self.ISSUE_URL.replace("api.github.com", "API.github.com"),
+            self.ISSUE_URL[:-3] + "%31%34%33",
+        )
+        missing = {"id": 81, "body": "ordinary"}
+        with self.subTest(value="missing"), self.assertRaises(ProcessorError):
+            self.status([missing])
+        for value in invalid_urls:
+            with self.subTest(value=value), self.assertRaises(ProcessorError):
+                self.status([{"id": 81, "issue_url": value, "body": "ordinary"}])
+
+    def test_missing_null_and_non_string_bodies_fail_closed(self):
+        missing = {"id": 81, "issue_url": self.ISSUE_URL}
+        with self.subTest(value="missing"), self.assertRaises(ProcessorError):
+            self.status([missing])
+        for value in (None, True, False, 0, 1.5, {}, []):
+            with self.subTest(value=value), self.assertRaises(ProcessorError):
+                self.status([{"id": 81, "issue_url": self.ISSUE_URL, "body": value}])
+
+    def test_malformed_comment_cannot_become_absent(self):
+        with self.assertRaises(ProcessorError):
+            self.status([{}])
+
+    def test_malformed_comment_cannot_preserve_verified_preparation(self):
+        with self.assertRaises(ProcessorError):
+            self.prepare([{}])
+
+    def test_malformed_comment_cannot_preserve_branch_eligibility(self):
+        with self.assertRaises(ProcessorError):
+            self.prepare([{}, self.matching_comment()])
+
+    def test_live_authority_rejects_malformed_receipt_comment_universe(self):
+        config = self.config("absent")
+        pr = {
+            "state": "closed",
+            "merged_at": "2026-08-05T00:00:00Z",
+            "merge_commit_sha": config.canonical_main_sha,
+            "head": {"sha": config.expected_head_sha},
+        }
+        main = {"object": {"sha": config.canonical_main_sha}}
+        raw_commit = {"parents": [], "files": []}
+        raw_receipt = {
+            "type": "file",
+            "encoding": "base64",
+            "content": "e30=",
+        }
+        with (
+            mock.patch.object(
+                cleanup_workflow,
+                "_gh_get_json",
+                side_effect=[pr, main, raw_commit, raw_receipt, {"workflow_runs": []}],
+            ),
+            mock.patch.object(
+                cleanup_workflow,
+                "_gh_get_paginated",
+                side_effect=[[], [{}]],
+            ),
+            mock.patch.object(cleanup_workflow, "_gh_get_threads", return_value=[]),
+            self.assertRaises(ProcessorError),
+        ):
+            cleanup_workflow._readback_live_authority(config)
+
+    def test_malformed_universe_cannot_publish(self):
+        result = self.publish(
+            self.ISSUE_URL,
+            lambda body: [
+                {"id": 81, "issue_url": self.ISSUE_URL, "body": body},
+                {},
+            ],
+        )
+        self.assertEqual(result["status"], "PENDING_OPERATOR_PUBLICATION")
+
+    def test_duplicate_ids_cannot_hide_behind_body_filtering(self):
+        result = self.publish(
+            self.ISSUE_URL,
+            lambda body: [
+                {"id": 81, "issue_url": self.ISSUE_URL, "body": body},
+                {"id": 81, "issue_url": self.ISSUE_URL, "body": "ordinary"},
+            ],
+        )
+        self.assertEqual(result["status"], "PENDING_OPERATOR_PUBLICATION")
+
+    def test_duplicate_matching_bodies_with_distinct_ids_cannot_publish(self):
+        result = self.publish(
+            self.ISSUE_URL,
+            lambda body: [
+                {"id": 81, "issue_url": self.ISSUE_URL, "body": body},
+                {"id": 82, "issue_url": self.ISSUE_URL, "body": body},
+            ],
+        )
+        self.assertEqual(result["status"], "PENDING_OPERATOR_PUBLICATION")
+
+    def test_valid_canonical_publication_readback_succeeds(self):
+        result = self.publish(
+            self.ISSUE_URL,
+            lambda body: [
+                {"id": 81, "issue_url": self.ISSUE_URL, "body": body}
+            ],
+        )
+        self.assertEqual(result["status"], "published")
+        self.assertEqual(result["comment_id"], 81)
+
+    def test_pending_operator_behaviour_without_complete_adapters_is_unchanged(self):
+        receipt = {
+            "cleanup_status": "verified",
+            "recorded_receipt_status": "absent",
+            "receipt_issue_number": 143,
+        }
+        without_publisher = cleanup_workflow.publish_cleanup_receipt(
+            receipt,
+            activation_mode="reviewed-live",
+            operator_intent="reviewed",
+        )
+        self.assertEqual(
+            without_publisher["platform_limitation_code"],
+            "web_orchestrator_publication_required",
+        )
+        without_readback = cleanup_workflow.publish_cleanup_receipt(
+            receipt,
+            activation_mode="reviewed-live",
+            operator_intent="reviewed",
+            publisher=lambda _body: 81,
+        )
+        self.assertEqual(
+            without_readback["platform_limitation_code"],
+            "publication_readback_required",
+        )
+
+    def test_wrong_repository_or_issue_cannot_enter_publication_universe(self):
+        for issue_url in (
+            self.ISSUE_URL.replace("weijunswj/", "example/").replace(
+                "ai-executor-evaluation-ledger/", "ledger/"
+            ),
+            self.ISSUE_URL[:-3] + "142",
+        ):
+            with self.subTest(issue_url=issue_url):
+                result = self.publish(
+                    self.ISSUE_URL,
+                    lambda body, value=issue_url: [
+                        {"id": 81, "issue_url": self.ISSUE_URL, "body": body},
+                        {"id": 82, "issue_url": value, "body": "ordinary"},
+                    ],
+                )
+                self.assertEqual(
+                    result["status"], "PENDING_OPERATOR_PUBLICATION"
+                )
+
+    def test_suffix_only_direct_readback_is_not_canonical(self):
+        lookalike = self.ISSUE_URL.replace(
+            "api.github.com", "api.github.test"
+        ).replace("weijunswj/", "example/").replace(
+            "ai-executor-evaluation-ledger/", "ledger/"
+        )
+        result = self.publish(
+            lookalike,
+            lambda body: [
+                {
+                    "id": 81,
+                    "issue_url": lookalike,
+                    "body": body,
+                }
+            ],
+        )
+        self.assertEqual(result["status"], "PENDING_OPERATOR_PUBLICATION")
+
+
 if __name__ == "__main__":
     unittest.main()

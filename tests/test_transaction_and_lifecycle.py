@@ -10,6 +10,7 @@ from unittest import mock
 
 from scripts.processor.cleanup_workflow import (
     CleanupConfig,
+    RECEIPT_ISSUE_ENDPOINT,
     _readback_live_authority,
     prepare_cleanup_receipt,
     publish_cleanup_receipt,
@@ -336,7 +337,7 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                 return {
                     "id": locator,
                     "body": calls[0],
-                    "issue_url": "https://api.github.test/repos/example/ledger/issues/143",
+                    "issue_url": RECEIPT_ISSUE_ENDPOINT,
                 }
 
             published = publish_cleanup_receipt(

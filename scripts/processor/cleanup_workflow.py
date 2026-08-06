@@ -48,6 +48,15 @@ RECEIPT_VALIDATOR = jsonschema.Draft202012Validator(
     format_checker=jsonschema.FormatChecker(),
 )
 RECORDED_MARKER = "<!-- ledger-recorded:v1 -->"
+RECEIPT_ISSUE_ENDPOINT = "".join(
+    (
+        "https://api.",
+        "github.com/repos/",
+        "weijunswj/",
+        "ai-executor-evaluation-ledger/",
+        "issues/143",
+    )
+)
 REQUIRED_CHECK_PRODUCERS = (
     {
         "producer": "ci_push",
@@ -504,7 +513,42 @@ def _receipt_matches_authority(value: Mapping[str, Any], config: CleanupConfig) 
     return all(value.get(field) == wanted for field, wanted in expected.items())
 
 
+def _validate_receipt_comment_evidence(
+    comments: Any,
+    receipt_issue_number: int,
+) -> list[dict[str, Any]]:
+    if (
+        not isinstance(receipt_issue_number, int)
+        or isinstance(receipt_issue_number, bool)
+        or receipt_issue_number != 143
+        or not isinstance(comments, list)
+    ):
+        raise _safe_failure("processor_cleanup_receipt_invalid")
+    validated: list[dict[str, Any]] = []
+    comment_ids: set[int] = set()
+    for comment in comments:
+        if not isinstance(comment, dict):
+            raise _safe_failure("processor_cleanup_receipt_invalid")
+        comment_id = comment.get("id")
+        if (
+            not isinstance(comment_id, int)
+            or isinstance(comment_id, bool)
+            or comment_id <= 0
+            or comment_id in comment_ids
+            or comment.get("issue_url") != RECEIPT_ISSUE_ENDPOINT
+            or not isinstance(comment.get("body"), str)
+        ):
+            raise _safe_failure("processor_cleanup_receipt_invalid")
+        comment_ids.add(comment_id)
+        validated.append(comment)
+    return validated
+
+
 def _recorded_receipt_status(config: CleanupConfig, comments: list[dict[str, Any]]) -> str:
+    comments = _validate_receipt_comment_evidence(
+        comments,
+        config.receipt_issue_number,
+    )
     matches = 0
     for comment in comments:
         body = comment.get("body")
@@ -975,21 +1019,25 @@ def publish_cleanup_receipt(
         comment = readback(locator)
         if not isinstance(comment, Mapping):
             raise ValueError("invalid_readback")
-        issue_url = comment.get("issue_url")
+        validated_comment = _validate_receipt_comment_evidence(
+            [dict(comment)],
+            receipt.get("receipt_issue_number"),
+        )[0]
         if (
-            comment.get("id") != locator
-            or comment.get("body") != intended_body
-            or not isinstance(issue_url, str)
-            or not issue_url.endswith("/issues/143")
+            validated_comment["id"] != locator
+            or validated_comment["body"] != intended_body
         ):
             raise ValueError("mismatched_readback")
-        parsed = _parse_recorded_receipt_body(comment.get("body"))
+        parsed = _parse_recorded_receipt_body(validated_comment["body"])
         if parsed != dict(receipt):
             raise ValueError("mismatched_receipt")
-        comments = comments_reader()
+        comments = _validate_receipt_comment_evidence(
+            comments_reader(),
+            receipt.get("receipt_issue_number"),
+        )
         matching = [
             item for item in comments
-            if isinstance(item, dict) and item.get("body") == intended_body
+            if item["body"] == intended_body
         ]
         if len(matching) != 1 or matching[0].get("id") != locator:
             raise ValueError("ambiguous_readback")
