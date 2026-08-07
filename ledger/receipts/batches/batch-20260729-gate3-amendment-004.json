@@ -4,7 +4,7 @@
   "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "batch_id": "batch-20260729-gate3-amendment-004",
   "batch_mode": "initial",
-  "candidate_content_commit_sha": "62e17abd8164fee051332012fb249c747ec4f056",
+  "candidate_content_commit_sha": "533ec5c253207797f75cd42bb0d859d966745e42",
   "candidate_content_manifest": [
     {
       "blob_sha": "2480662b3ff7587f0df58727f525d081778850e2",
@@ -19,8 +19,8 @@
       "path": ".github/dependabot.yml"
     },
     {
-      "blob_sha": "3ce382b0e5ba8456d1f6b4071fedbed3fc23c5c1",
-      "content_sha256": "0a78d4cfe9e4352310738f3120d44d69f6b9bb47efeb7ecffac717839c219459",
+      "blob_sha": "dc50ad95becb1a159abbc94c4f1bc8f61c5ba3f9",
+      "content_sha256": "a1a29c4c2f768713d12a571de438c515d1581c43b6fa406bc28b4230fa9a9016",
       "mode": "100644",
       "path": ".github/workflows/ci.yml"
     },
@@ -31,8 +31,8 @@
       "path": ".github/workflows/post-merge-cleanup.yml"
     },
     {
-      "blob_sha": "7b0137c96d58e5cac2539236dd60ea1e0edb4bcb",
-      "content_sha256": "20f4894f49097d606b27ae5cf698c0d35e1d1c8ec1b242835656a6a735a32a6e",
+      "blob_sha": "c55813ccada0ff56b3ce728beb8641cc224a3574",
+      "content_sha256": "cf44093f61deee2ee54a1fc872c31bfce8c9c74e322223c957e47d7e9d9076aa",
       "mode": "100644",
       "path": ".github/workflows/public-safety.yml"
     },
@@ -439,14 +439,14 @@
       "path": "tests/test_dl153007_amendment.py"
     },
     {
-      "blob_sha": "567eff83474ed25265925e59ee08e1e8512e2ca5",
-      "content_sha256": "0e4ec81ff2d560736e866469a7c11f8ba7d00067446509e14cde0f8b76ab9cea",
+      "blob_sha": "90efdb4015b9a0d140e92934e768f86b03766bed",
+      "content_sha256": "b3875f0f2a0df74259e7b69f916c22d9402a1b9dcdc97c0b9426ae8a9a561047",
       "mode": "100644",
       "path": "tests/test_dl153008_amendment.py"
     },
     {
-      "blob_sha": "0a5fbe010c8aef424a82914b6f1aeaeb5712ea81",
-      "content_sha256": "6f87060d9247b764f8e237d1be2ec93f247c0f0f30b654b88d8ed73ba708fe3f",
+      "blob_sha": "9683f881bdb534d6ec431bce03f2f0ee183d5881",
+      "content_sha256": "9a8f110f62c122c4f7679cc87d7660ef684e60dba3ede6fc53969cd3f0df4167",
       "mode": "100644",
       "path": "tests/test_dl153009_amendment.py"
     },
@@ -511,7 +511,7 @@
       "path": "tests/test_transaction_and_lifecycle.py"
     }
   ],
-  "candidate_content_manifest_sha256": "b2657faa1701d4f6b2f7cf97baec2d2c6b5e537633d7903e46b7fdaa910239b6",
+  "candidate_content_manifest_sha256": "08e4a4544b41be118698b77ef23fdb78374182c4336717cf427e4c5987911e41",
   "canonical_hashes": {
     "dispositions_jsonl": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
     "evaluations_jsonl": "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
