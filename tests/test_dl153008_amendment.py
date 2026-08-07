@@ -21,6 +21,182 @@ STARTING_HEAD = "180e3c1ea57ccd45ca2c71a76ebe4c3d609e2c0b"
 NUMERIC_KEY = "i" + "d"
 LOGIN_KEY = "l" + "ogin"
 
+HISTORICAL_AUTHORITY_STEP = "Fetch immutable PR 151 historical authority"
+HISTORICAL_AUTHORITY_REF = "refs/pull/151/head"
+HISTORICAL_AUTHORITY_SHA = "2d4ec54c4a922ee37d0ae53a52a9c97732fb76d8"
+HISTORICAL_AUTHORITY_TARGET = "refs/remotes/origin/ledger-pr-151-authority"
+HISTORICAL_AUTHORITY_COMMITS = (
+    "90c75c00192fbb759a5c756b697cb3d7cfc7dab1",
+    "45990433a0f8199f056d1ad71a51f934b3bae7aa",
+    "223e6ecc24c84421a4bab60fcf87472b1d620744",
+    "d54fb99da162f49ccb616a8756725b9aea83ac1d",
+    "180e3c1ea57ccd45ca2c71a76ebe4c3d609e2c0b",
+)
+
+
+class TestHistoricalAuthorityFetchGate(unittest.TestCase):
+    WORKFLOWS = (
+        (
+            ".github/workflows/ci.yml",
+            "Checkout immutable workflow authority",
+            "Run complete unit test suite",
+            (
+                "Verify deterministic append-only view rebuild twice",
+                "Run Public Safety Scan",
+                "Validate closed migration manifests",
+                "Validate immutable batch receipt seals",
+            ),
+        ),
+        (
+            ".github/workflows/public-safety.yml",
+            "Check out immutable workflow authority with full history",
+            "Run public-safety regression tests",
+            (
+                "Scan tracked content and added history",
+                "Validate closed migration manifests",
+                "Validate immutable batch receipt seals",
+                "Verify append-only source and generated views",
+            ),
+        ),
+    )
+
+    @staticmethod
+    def step_block(workflow: str, name: str) -> tuple[str, int, int]:
+        match = re.search(
+            rf"(?ms)^      - name: {re.escape(name)}\n.*?(?=^      - name: |\Z)",
+            workflow,
+        )
+        if match is None:
+            raise AssertionError(f"workflow step missing: {name}")
+        return match.group(0), match.start(), match.end()
+
+    def assert_gate(
+        self,
+        relative: str,
+        workflow: str,
+        checkout: str,
+        first_test: str,
+        later_steps: tuple[str, ...],
+    ) -> None:
+        del relative
+        gate, gate_start, _ = self.step_block(workflow, HISTORICAL_AUTHORITY_STEP)
+        _, checkout_start, _ = self.step_block(workflow, checkout)
+        _, authority_start, _ = self.step_block(
+            workflow, "Verify immutable checkout and base authority"
+        )
+        self.assertLess(checkout_start, authority_start)
+        self.assertLess(authority_start, gate_start)
+        self.assertLess(gate_start, self.step_block(workflow, first_test)[1])
+
+        for name in later_steps:
+            self.assertLess(gate_start, self.step_block(workflow, name)[1])
+
+        self.assertIn(f"- name: {HISTORICAL_AUTHORITY_STEP}", gate)
+        self.assertIn(f"HISTORICAL_AUTHORITY_REF: {HISTORICAL_AUTHORITY_REF}", gate)
+        self.assertIn(f"HISTORICAL_AUTHORITY_SHA: {HISTORICAL_AUTHORITY_SHA}", gate)
+        self.assertIn(
+            f"HISTORICAL_AUTHORITY_TARGET: {HISTORICAL_AUTHORITY_TARGET}",
+            gate,
+        )
+        self.assertIn("git fetch", gate)
+        self.assertIn("--no-tags", gate)
+        self.assertIn("--no-recurse-submodules", gate)
+        self.assertIn(
+            '"${HISTORICAL_AUTHORITY_REF}:${HISTORICAL_AUTHORITY_TARGET}"',
+            gate,
+        )
+        self.assertIn(
+            'actual=$(git rev-parse --verify "${HISTORICAL_AUTHORITY_TARGET}^{commit}")',
+            gate,
+        )
+        self.assertIn('test "$actual" = "$HISTORICAL_AUTHORITY_SHA"', gate)
+        self.assertIn('head_before=$(git rev-parse --verify HEAD)', gate)
+        self.assertIn(
+            'test "$(git rev-parse --verify HEAD)" = "$head_before"',
+            gate,
+        )
+        self.assertIn('test -z "$(git status --porcelain)"', gate)
+        self.assertIn('git cat-file -e "${sha}^{commit}"', gate)
+        self.assertIn('git merge-base --is-ancestor "$sha" "$actual"', gate)
+        for sha in HISTORICAL_AUTHORITY_COMMITS:
+            self.assertIn(sha, gate)
+        self.assertNotIn("refs/pull/*", gate)
+        self.assertNotIn("continue-on-error", workflow)
+
+    def test_both_workflows_retain_fail_closed_historical_authority_gate_and_reject_weakening(self):
+        for relative, checkout, first_test, later_steps in self.WORKFLOWS:
+            with self.subTest(relative=relative):
+                original = (ROOT / relative).read_text(encoding="utf-8")
+                self.assert_gate(relative, original, checkout, first_test, later_steps)
+                gate, gate_start, gate_end = self.step_block(
+                    original, HISTORICAL_AUTHORITY_STEP
+                )
+
+                without_gate = original[:gate_start] + original[gate_end:]
+                _, first_test_start, first_test_end = self.step_block(
+                    without_gate, first_test
+                )
+                del first_test_start
+                step_after_tests = (
+                    without_gate[:first_test_end]
+                    + gate
+                    + without_gate[first_test_end:]
+                )
+                gate_with_continue = gate.replace(
+                    "        shell: bash\n",
+                    "        continue-on-error: true\n        shell: bash\n",
+                    1,
+                )
+
+                mutations = {
+                    "source ref changed to branch": original.replace(
+                        f"HISTORICAL_AUTHORITY_REF: {HISTORICAL_AUTHORITY_REF}",
+                        "HISTORICAL_AUTHORITY_REF: refs/heads/main",
+                        1,
+                    ),
+                    "exact head altered": original.replace(
+                        HISTORICAL_AUTHORITY_SHA,
+                        "0" * 40,
+                        1,
+                    ),
+                    "historical commit omitted": original.replace(
+                        HISTORICAL_AUTHORITY_COMMITS[0],
+                        "",
+                        1,
+                    ),
+                    "ancestry check removed": original.replace(
+                        '      git merge-base --is-ancestor "$sha" "$actual"\n',
+                        "",
+                        1,
+                    ),
+                    "step placed after tests": step_after_tests,
+                    "failure ignored": (
+                        original[:gate_start]
+                        + gate_with_continue
+                        + original[gate_end:]
+                    ),
+                    "wildcard PR ref": original.replace(
+                        HISTORICAL_AUTHORITY_REF,
+                        "refs/pull/*/head",
+                        1,
+                    ),
+                    "ordinary branch destination": original.replace(
+                        HISTORICAL_AUTHORITY_TARGET,
+                        "refs/heads/ledger-pr-151-authority",
+                        1,
+                    ),
+                }
+                for label, mutated in mutations.items():
+                    with self.subTest(mutation=label):
+                        with self.assertRaises(AssertionError):
+                            self.assert_gate(
+                                relative,
+                                mutated,
+                                checkout,
+                                first_test,
+                                later_steps,
+                            )
+
 
 class ProductionChainFixture(unittest.TestCase):
     @classmethod
