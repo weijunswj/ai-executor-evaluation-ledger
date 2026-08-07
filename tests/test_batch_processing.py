@@ -263,6 +263,14 @@ class TestBatchProcessing(unittest.TestCase):
             index_path = Path(temp_raw) / "index"
             git_env = os.environ.copy()
             git_env["GIT_INDEX_FILE"] = str(index_path)
+            git_env.update(
+                {
+                    "GIT_AUTHOR_NAME": "ledger-fixture",
+                    ("GIT_AUTHOR_" + "EMAIL"): "fixture" + "@" + "example.invalid",
+                    "GIT_COMMITTER_NAME": "ledger-fixture",
+                    ("GIT_COMMITTER_" + "EMAIL"): "fixture" + "@" + "example.invalid",
+                }
+            )
             subprocess.run(
                 ["git", "read-tree", BASE_AUTHORITY_SHA],
                 cwd=ROOT,
