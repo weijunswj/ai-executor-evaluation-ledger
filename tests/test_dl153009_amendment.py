@@ -13,7 +13,13 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.processor import cleanup_workflow
-from scripts.processor.common import ProcessorError, canonical_json_line_bytes, sha256_bytes
+from scripts.processor.common import (
+    ProcessorError,
+    canonical_json_line_bytes,
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
+    sha256_bytes,
+)
 from scripts.validate_receipts import (
     CANONICAL_PATHS,
     ReceiptValidationError,
@@ -112,7 +118,75 @@ class TestA1A2WorkflowAuthority(WorkflowAuthorityFixture):
                     workflow.index("scripts/resolve_workflow_authority.py"),
                     workflow.index("python -m unittest"),
                 )
-                self.assertNotIn("refs/pull/", workflow)
+                checkout_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
+                self.assertEqual(1, workflow.count(checkout_ref))
+                checkout_uses_start = workflow.index("uses: actions/checkout@v4")
+                checkout_start = workflow.rfind("- name:", 0, checkout_uses_start)
+                checkout_end = workflow.find("\n      - name:", checkout_start + 1)
+                if checkout_end == -1:
+                    checkout_end = len(workflow)
+                checkout_step = workflow[checkout_start:checkout_end]
+                self.assertNotIn("refs/pull/", checkout_step)
+
+                historical_label = "- name: Fetch immutable PR 151 historical authority"
+                historical_start = workflow.index(historical_label)
+                historical_end = workflow.find("\n      - name:", historical_start + 1)
+                if historical_end == -1:
+                    historical_end = len(workflow)
+                historical_step = workflow[historical_start:historical_end]
+                outside_historical_step = (
+                    workflow[:historical_start] + workflow[historical_end:]
+                )
+                historical_ref = "refs/pull/151/head"
+                historical_sha = "2d4ec54c4a922ee37d0ae53a52a9c97732fb76d8"
+                historical_target = "refs/remotes/origin/ledger-pr-151-authority"
+                self.assertEqual(1, workflow.count(historical_ref))
+                self.assertLess(
+                    workflow.index("- name: Verify immutable checkout and base authority"),
+                    historical_start,
+                )
+                self.assertLess(historical_start, workflow.index("python -m unittest"))
+                self.assertIn(
+                    f"HISTORICAL_AUTHORITY_REF: {historical_ref}",
+                    historical_step,
+                )
+                self.assertIn(
+                    f"HISTORICAL_AUTHORITY_SHA: {historical_sha}",
+                    historical_step,
+                )
+                self.assertIn(
+                    f"HISTORICAL_AUTHORITY_TARGET: {historical_target}",
+                    historical_step,
+                )
+                self.assertIn("git fetch", historical_step)
+                self.assertIn(
+                    'test "$actual" = "$HISTORICAL_AUTHORITY_SHA"',
+                    historical_step,
+                )
+                self.assertNotIn("refs/pull/", outside_historical_step)
+                self.assertNotIn("HISTORICAL_AUTHORITY_REF", outside_historical_step)
+                for wildcard in ("refs/pull/*", "+refs/pull/*", "refs/pull/**/*"):
+                    self.assertNotIn(wildcard, workflow)
+                for authority_arg in (
+                    "--github-sha",
+                    "--checkout-sha",
+                    "--pr-head-sha",
+                    "--pr-base-sha",
+                    "--dispatch-base-sha",
+                ):
+                    self.assertNotIn(authority_arg, historical_step)
+                for forbidden in (
+                    "git branch",
+                    "git checkout",
+                    "git push",
+                    "git switch",
+                    "refs/heads/",
+                    "set +e",
+                    "|| true",
+                    "|| :",
+                ):
+                    self.assertNotIn(forbidden, workflow)
+                self.assertNotIn("continue-on-error", workflow)
 
     def test_pull_request_uses_literal_head_not_synthetic_merge(self):
         result = self.resolve(
@@ -309,6 +383,15 @@ class ReceiptHistoryFixture(unittest.TestCase):
         }
         path_id = path_batch_id or batch_id
         receipt_path = self.root / "ledger" / "receipts" / "batches" / f"{path_id}.json"
+        receipt_relative = receipt_path.relative_to(self.root).as_posix()
+        receipt["candidate_content_manifest"] = git_tree_file_bindings(
+            self.root,
+            candidate,
+            excluded_paths=(receipt_relative,),
+        )
+        receipt["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+            receipt["candidate_content_manifest"]
+        )
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
         receipt_path.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
         if extra_seal_file:

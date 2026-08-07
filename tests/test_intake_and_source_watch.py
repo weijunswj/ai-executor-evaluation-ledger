@@ -29,7 +29,7 @@ from scripts.processor.source_watch import (
 class TestIntakeAndSourceWatch(unittest.TestCase):
     def setUp(self):
         self.valid_payload = {
-            "schema_version": 1,
+            "schema_version": 2,
             "record_type": "evaluation_intake",
             "controller_run_id": "controller-a005-001",
             "evaluation_run_id": "run-a005-001",
@@ -37,7 +37,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             "canonical_base_model": "GPT-5.6 Sol",
             "evaluation_protocol": "gated_v1",
             "repository_alias": "ledger-public",
-            "source_revision": "a" * 40,
+            "revision_assertion": "private_revision_verified",
             "task_class": "repository-repair",
             "difficulty": "high",
             "verdict": "accepted",
@@ -70,7 +70,15 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         }
 
     def body(self, payload=None):
-        return "<!-- ledger-intake:v1 -->\n" + json.dumps(payload or self.valid_payload)
+        return "<!-- ledger-intake:v2 -->\n" + json.dumps(payload or self.valid_payload)
+
+    def historical_body(self, payload=None, *, include_source_revision=True):
+        value = copy.deepcopy(payload or self.valid_payload)
+        value["schema_version"] = 1
+        value.pop("revision_assertion", None)
+        if include_source_revision:
+            value["source_revision"] = "a" * 40
+        return "<!-- ledger-intake:v1 -->\n" + json.dumps(value)
 
     def parse(self, payload=None, *, comment_id=1001, recorded=None, seen=None):
         return parse_intake_comment(
@@ -112,8 +120,23 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual((disposition, reason), ("admitted", "admitted"))
         self.assertNotIn("weighted_score_10", parsed)
         record = canonical_record_from_payload(parsed)
-        self.assertEqual(record["revision_binding"], "a" * 40)
+        self.assertEqual(record["revision_binding"], "private_revision_verified")
         self.assertEqual(record["model"], "GPT-5.6 Sol")
+
+    def test_forward_intake_uses_closed_revision_assertion(self):
+        payload = copy.deepcopy(self.valid_payload)
+        payload["schema_version"] = 2
+        payload["revision_assertion"] = "private_revision_verified"
+        disposition, parsed, reason = parse_intake_comment(
+            1002,
+            "<!-- ledger-intake:v2 -->\n" + json.dumps(payload),
+            set(),
+            set(),
+        )
+        self.assertEqual((disposition, reason), ("admitted", "admitted"))
+        record = canonical_record_from_payload(parsed)
+        self.assertEqual(record["revision_binding"], "private_revision_verified")
+        self.assertNotIn("source_revision", record)
 
     def test_all_current_authorised_pairs_are_explicit(self):
         self.assertEqual(
@@ -133,7 +156,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         )
 
     def test_missing_required_authority_is_generic_and_non_mutating(self):
-        for field in ("controller_run_id", "evaluation_run_id", "source_revision", "weighted_score_5", "reviewed_at"):
+        for field in ("controller_run_id", "evaluation_run_id", "revision_assertion", "weighted_score_5", "reviewed_at"):
             payload = copy.deepcopy(self.valid_payload)
             payload.pop(field)
             disposition, parsed, reason = self.parse(payload)
@@ -153,7 +176,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         created_at = "2026-07-29T10:00:00Z"
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         body_hash = safe_comment_body_hash(body)
         authority = HistoricalReviewTimestampAuthority(
             batch_id=FROZEN_BATCH_ID,
@@ -178,11 +201,10 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(adapted["reviewed_at"], created_at)
 
         missing_other = copy.deepcopy(payload)
-        missing_other.pop("source_revision")
         self.assertEqual(
             parse_intake_comment(
                 comment_id,
-                self.body(missing_other),
+                self.historical_body(missing_other, include_source_revision=False),
                 set(),
                 set(),
                 historical_review_authority=authority,
@@ -213,7 +235,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
         comment_id = receipt["source_comment_ids"][0]
-        body = self.body()
+        body = self.historical_body()
         body_hash = safe_comment_body_hash(body)
         authority = HistoricalReviewTimestampAuthority(
             batch_id=FROZEN_BATCH_ID,
@@ -243,7 +265,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
     def test_historical_timestamp_authority_rejects_frozen_scope_mismatches(self):
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         receipt = json.loads(
             Path(
                 "ledger/receipts/batches/"
@@ -290,7 +312,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
     def test_historical_timestamp_authority_uses_created_at_only(self):
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         authority = self._frozen_authority(
             body,
             source_created_at="2026-07-29T12:00:00Z",
@@ -311,7 +333,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
     def test_historical_timestamp_parser_does_not_consult_clock_or_local_artifacts(self):
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         authority = self._frozen_authority(body)
 
         class FailIfAccessed:
@@ -464,7 +486,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             with self.subTest(label=label):
                 result = parse_intake_comment(
                     1001,
-                    "<!-- ledger-intake:v1 -->\n" + raw,
+                    "<!-- ledger-intake:v2 -->\n" + raw,
                     set(),
                     set(),
                 )

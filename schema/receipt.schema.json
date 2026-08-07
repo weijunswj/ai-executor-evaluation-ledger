@@ -56,6 +56,15 @@
         "candidate_content_commit_sha": {
           "$ref": "#/$defs/gitSha"
         },
+        "candidate_content_manifest": {
+          "items": {
+            "$ref": "#/$defs/candidateTreeBinding"
+          },
+          "type": "array"
+        },
+        "candidate_content_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "canonical_hashes": {
           "$ref": "#/$defs/canonicalHashes"
         },
@@ -235,6 +244,32 @@
         "evaluation_run_id",
         "canonical_record_sha256",
         "cleanup_eligible"
+      ],
+      "type": "object"
+    },
+    "candidateTreeBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "blob_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mode": {
+          "pattern": "^[0-7]{6}$",
+          "type": "string"
+        },
+        "path": {
+          "pattern": "^[^\\\\/][^\\\\]*$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "mode",
+        "blob_sha",
+        "content_sha256"
       ],
       "type": "object"
     },

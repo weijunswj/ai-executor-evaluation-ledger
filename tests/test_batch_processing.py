@@ -1,7 +1,9 @@
 import copy
 import json
 import hashlib
+import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -79,7 +81,7 @@ class TestBatchProcessing(unittest.TestCase):
 
     def valid_payload(self, run_id="run-batch-a005"):
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "record_type": "evaluation_intake",
             "controller_run_id": "controller-a005-test",
             "evaluation_run_id": run_id,
@@ -87,7 +89,7 @@ class TestBatchProcessing(unittest.TestCase):
             "canonical_base_model": "GPT-5.6 Sol",
             "evaluation_protocol": "gated_v1",
             "repository_alias": "ledger-public",
-            "source_revision": "d" * 40,
+            "revision_assertion": "private_revision_verified",
             "task_class": "fixture-processing",
             "difficulty": "medium",
             "verdict": "accepted",
@@ -124,7 +126,7 @@ class TestBatchProcessing(unittest.TestCase):
         return [
             {
                 "id": 9001,
-                "body": "<!-- ledger-intake:v1 -->\n" + json.dumps(payload),
+                "body": "<!-- ledger-intake:v2 -->\n" + json.dumps(payload),
                 "author_association": "OWNER",
                 "user": {"id": 7001, "l" + "ogin": "fixture-author"},
                 "created_at": "2026-07-29T10:01:00Z",
@@ -218,18 +220,162 @@ class TestBatchProcessing(unittest.TestCase):
                 self.assertEqual(raised.exception.code, "processor_schema_failure")
                 self.assertNotIn("DUPLICATE_FIXTURE", str(raised.exception))
 
+    def test_already_recorded_binds_existing_canonical_line_without_new_admission(self):
+        raw = subprocess.run(
+            ["git", "show", f"{BASE_AUTHORITY_SHA}:evaluations.jsonl"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        line = next(item for item in raw.splitlines(keepends=True) if item.strip())
+        existing = json.loads(line)
+        comment = {
+            "id": 9901,
+            "body": "<!-- ledger-intake:v2 -->\n{}",
+            "author_association": "OWNER",
+            "user": {"i" + "d": 7001, "l" + "ogin": "fixture-author"},
+            "created_at": "2026-07-29T10:01:00Z",
+            "updated_at": "2026-07-29T10:01:00Z",
+        }
+        base_config = self.config("batch-already-recorded-a010")
+        with mock.patch(
+            "scripts.processor.batch_processor._parse_authorized_intake_comment",
+            return_value=(
+                "already_recorded",
+                {"evaluation_run_id": existing["run_id"]},
+                "already_recorded",
+            ),
+        ):
+            expected_files, _ = build_batch_candidate(
+                base_config,
+                comments=[comment],
+                queue_fetcher=self.queue([comment]),
+                comment_fetcher=self.fetcher([comment]),
+            )
+        canonical_paths = (
+            "evaluations.jsonl",
+            "ledger/dispositions.jsonl",
+            "README.md",
+            "scorecard.md",
+            "analysis/model-recommendation.json",
+        )
+        with tempfile.TemporaryDirectory(prefix="batch-existing-record-candidate-") as temp_raw:
+            index_path = Path(temp_raw) / "index"
+            git_env = os.environ.copy()
+            git_env["GIT_INDEX_FILE"] = str(index_path)
+            git_env.update(
+                {
+                    "GIT_AUTHOR_NAME": "ledger-fixture",
+                    ("GIT_AUTHOR_" + "EMAIL"): "fixture" + "@" + "example.invalid",
+                    "GIT_COMMITTER_NAME": "ledger-fixture",
+                    ("GIT_COMMITTER_" + "EMAIL"): "fixture" + "@" + "example.invalid",
+                }
+            )
+            subprocess.run(
+                ["git", "read-tree", BASE_AUTHORITY_SHA],
+                cwd=ROOT,
+                env=git_env,
+                check=True,
+            )
+            for relative_path in canonical_paths:
+                blob_sha = subprocess.run(
+                    ["git", "hash-object", "-w", "--stdin"],
+                    cwd=ROOT,
+                    env=git_env,
+                    input=expected_files[relative_path],
+                    capture_output=True,
+                    check=True,
+                ).stdout.decode("ascii").strip()
+                subprocess.run(
+                    [
+                        "git",
+                        "update-index",
+                        "--add",
+                        "--cacheinfo",
+                        "100644",
+                        blob_sha,
+                        relative_path,
+                    ],
+                    cwd=ROOT,
+                    env=git_env,
+                    check=True,
+                )
+            tree_sha = subprocess.run(
+                ["git", "write-tree"],
+                cwd=ROOT,
+                env=git_env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            candidate_sha = subprocess.run(
+                [
+                    "git",
+                    "commit-tree",
+                    tree_sha,
+                    "-p",
+                    BASE_AUTHORITY_SHA,
+                    "-m",
+                    "candidate content",
+                ],
+                cwd=ROOT,
+                env=git_env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+        with mock.patch(
+            "scripts.processor.batch_processor._parse_authorized_intake_comment",
+            return_value=(
+                "already_recorded",
+                {"evaluation_run_id": existing["run_id"]},
+                "already_recorded",
+            ),
+        ):
+            candidate_files, evidence = build_batch_candidate(
+                ProcessBatchConfig(
+                    **{
+                        **base_config.__dict__,
+                        "candidate_content_commit_sha": candidate_sha,
+                    }
+                ),
+                comments=[comment],
+                queue_fetcher=self.queue([comment]),
+                comment_fetcher=self.fetcher([comment]),
+            )
+        receipt = json.loads(
+            candidate_files[
+                "ledger/receipts/batches/batch-already-recorded-a010.json"
+            ].decode("utf-8")
+        )
+        self.assertEqual(evidence["admitted_count"], 0)
+        self.assertEqual(receipt["admitted_run_ids"], [])
+        self.assertEqual(
+            receipt["canonical_record_hashes"][existing["run_id"]],
+            sha256_bytes(line),
+        )
+        self.assertEqual(
+            receipt["terminal_outcomes"]["9901"]["canonical_record_sha256"],
+            sha256_bytes(line),
+        )
+
         with self.assertRaises(ProcessorError) as raised:
             _validate_json_lines(b"\xff\xfe\n")
         self.assertEqual(raised.exception.code, "processor_schema_failure")
         self.assertNotIn("\\xff", str(raised.exception))
 
-        self.assertEqual(_validate_json_lines(raw.encode("utf-8")), [record])
-        second = copy.deepcopy(record)
-        second["run_id"] = record["run_id"][:-1] + ("x" if record["run_id"][-1] != "x" else "y")
-        multiple = (raw + "\n" + json.dumps(second, ensure_ascii=False, separators=(",", ":")) + "\n").encode(
-            "utf-8"
+        self.assertEqual(_validate_json_lines(raw)[0], existing)
+        second = copy.deepcopy(existing)
+        second["run_id"] = existing["run_id"][:-1] + (
+            "x" if existing["run_id"][-1] != "x" else "y"
         )
-        self.assertEqual(_validate_json_lines(multiple), [record, second])
+        multiple = raw + (
+            json.dumps(second, ensure_ascii=False, separators=(",", ":")) + "\n"
+        ).encode("utf-8")
+        validated = _validate_json_lines(multiple)
+        self.assertEqual(validated[0], existing)
+        self.assertEqual(validated[-1], second)
 
     def test_frozen_replay_jsonl_boundary_rejects_duplicates_and_malformed_input(self):
         cases = {

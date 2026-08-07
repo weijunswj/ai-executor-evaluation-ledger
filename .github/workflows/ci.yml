@@ -64,6 +64,38 @@ jobs:
           )
           "${args[@]}"
 
+      - name: Fetch immutable PR 151 historical authority
+        shell: bash
+        env:
+          HISTORICAL_AUTHORITY_REF: refs/pull/151/head
+          HISTORICAL_AUTHORITY_SHA: 2d4ec54c4a922ee37d0ae53a52a9c97732fb76d8
+          HISTORICAL_AUTHORITY_TARGET: refs/remotes/origin/ledger-pr-151-authority
+        run: |
+          head_before=$(git rev-parse --verify HEAD)
+
+          git fetch \
+            --no-tags \
+            --no-recurse-submodules \
+            origin \
+            "${HISTORICAL_AUTHORITY_REF}:${HISTORICAL_AUTHORITY_TARGET}"
+
+          actual=$(git rev-parse --verify "${HISTORICAL_AUTHORITY_TARGET}^{commit}")
+          test "$actual" = "$HISTORICAL_AUTHORITY_SHA"
+
+          for sha in \
+            90c75c00192fbb759a5c756b697cb3d7cfc7dab1 \
+            45990433a0f8199f056d1ad71a51f934b3bae7aa \
+            223e6ecc24c84421a4bab60fcf87472b1d620744 \
+            d54fb99da162f49ccb616a8756725b9aea83ac1d \
+            180e3c1ea57ccd45ca2c71a76ebe4c3d609e2c0b
+          do
+            git cat-file -e "${sha}^{commit}"
+            git merge-base --is-ancestor "$sha" "$actual"
+          done
+
+          test "$(git rev-parse --verify HEAD)" = "$head_before"
+          test -z "$(git status --porcelain)"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -93,13 +125,14 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
           HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           mode=pr
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
             mode=canonical-main
           fi
-          args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --validation-level source-replay)
+          args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
           "${args[@]}"
 
       - name: Git diff whitespace check
