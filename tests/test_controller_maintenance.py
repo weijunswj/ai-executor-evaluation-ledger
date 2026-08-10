@@ -121,7 +121,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
 
         with tempfile.TemporaryDirectory(prefix="ledger-main-context-") as temp_raw:
             root = Path(temp_raw)
-            git(root, "init", "-q", "main")
+            git(root, "init", "-q", "-b", "main")
             git(root, "config", "user.name", "ledger-fixture")
             git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
             (root / "file.txt").write_text("one\n", encoding="utf-8")
