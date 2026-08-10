@@ -78,7 +78,6 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         self.assertIn("python scripts/rebuild_views.py --check --base-ref", workflow)
         self.assertIn("python scripts/validate_manifests.py --base-ref", workflow)
         self.assertIn("python scripts/check_public_safety.py", workflow)
-        self.assertIn("GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest", workflow)
         self.assertIn("git push origin HEAD:${TARGET_BRANCH}", workflow)
 
     def test_transport_requires_exact_one_file_intake_and_exact_four_file_result(self):
@@ -95,6 +94,27 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             self.assertIn(path, workflow)
         self.assertIn("intake_path.unlink()", workflow)
 
+    def test_data_only_evaluation_delta_has_context_specific_test_gate(self):
+        for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+            with self.subTest(workflow=relative):
+                workflow = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("data_only_evaluation=false", workflow)
+                self.assertIn('"$HEAD_REF" == controller/evaluation-*', workflow)
+                self.assertIn('"$EVENT_NAME" == "push" && "$REF_NAME" == "main"', workflow)
+                self.assertIn("python -m unittest tests.test_controller_maintenance", workflow)
+                expected = "printf '%s\\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort"
+                self.assertIn(expected, workflow)
+
+    def test_transport_commits_before_final_receipt_validation_and_push(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        commit_index = workflow.index("git commit -m 'Append controller evaluation'")
+        receipt_index = workflow.rindex("python scripts/validate_receipts.py --mode pr --authority-sha HEAD")
+        clean_index = workflow.index('test -z "$(git status --porcelain)"')
+        push_index = workflow.index("git push origin HEAD:${TARGET_BRANCH}")
+        self.assertLess(commit_index, receipt_index)
+        self.assertLess(receipt_index, clean_index)
+        self.assertLess(clean_index, push_index)
+
     def test_main_push_requires_frozen_receipt_bytes_unchanged(self):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             workflow = (ROOT / relative).read_text(encoding="utf-8")
@@ -103,11 +123,10 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 workflow,
             )
 
-    def test_controller_lanes_run_suite_under_bounded_legacy_context(self):
+    def test_maintenance_lane_still_runs_complete_suite(self):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             workflow = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest", workflow)
-            self.assertIn("controller/evaluation-*", workflow)
+            self.assertIn("GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover", workflow)
             self.assertIn("controller/ledger-maintenance-*", workflow)
 
     def test_main_context_never_leaks_into_fixture_repositories(self):
