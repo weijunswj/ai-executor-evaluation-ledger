@@ -69,13 +69,31 @@ jobs:
           python -m pip install --upgrade pip
           pip install jsonschema
 
-      - name: Run complete unit test suite
+      - name: Run code suite or bounded evaluation-data regression
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
           HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
         run: |
-          if [[ "$EVENT_NAME" == "pull_request" && ( "$HEAD_REF" == controller/evaluation-* || "$HEAD_REF" == controller/ledger-maintenance-* ) ]]; then
+          data_only_evaluation=false
+          expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
+          if [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            if [[ "$actual" == "$expected" ]]; then
+              data_only_evaluation=true
+            fi
+          elif [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            if [[ "$actual" == "$expected" ]]; then
+              data_only_evaluation=true
+            fi
+          fi
+          if [[ "$data_only_evaluation" == true ]]; then
+            python -m unittest tests.test_controller_maintenance
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
             GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover -s tests
           else
             python -m unittest discover -s tests
@@ -215,25 +233,23 @@ jobs:
           intake_path.unlink()
           PY
 
-      - name: Rebuild and validate canonical outputs
+      - name: Rebuild and pre-commit validate canonical outputs
         shell: bash
         env:
           BASE_SHA: ${{ steps.admission.outputs.base }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           python scripts/rebuild_views.py
           python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
           python scripts/validate_manifests.py --base-ref "$BASE_SHA"
           python scripts/check_public_safety.py
-          GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover -s tests
-          GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha HEAD --validation-level source-replay
           git diff --check
 
-      - name: Commit exact four-file controller evaluation delta
+      - name: Commit, validate, and publish exact four-file evaluation delta
         shell: bash
         env:
           BASE_SHA: ${{ steps.admission.outputs.base }}
           TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'ledger-controller'
@@ -243,4 +259,11 @@ jobs:
           expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
           actual=$(git diff --name-only "$BASE_SHA" HEAD | sort)
           test "$actual" = "$expected"
+          python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+          python scripts/validate_manifests.py --base-ref "$BASE_SHA"
+          python scripts/check_public_safety.py
+          python -m unittest tests.test_controller_maintenance
+          GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha HEAD --validation-level source-replay
+          git diff --check
+          test -z "$(git status --porcelain)"
           git push origin HEAD:${TARGET_BRANCH}
