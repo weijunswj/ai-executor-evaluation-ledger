@@ -131,7 +131,7 @@ jobs:
         run: git diff --check
 
   append-controller-evaluation:
-    if: github.event_name == 'push' && startsWith(github.ref_name, 'controller/evaluation-') && github.actor != 'github-actions[bot]'
+    if: ${{ ((github.event_name == 'push' && startsWith(github.ref_name, 'controller/evaluation-')) || (github.event_name == 'pull_request' && github.event.action == 'opened' && startsWith(github.head_ref, 'controller/evaluation-'))) && github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -142,7 +142,7 @@ jobs:
       - name: Check out controller evaluation branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -233,6 +233,7 @@ jobs:
         shell: bash
         env:
           BASE_SHA: ${{ steps.admission.outputs.base }}
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'ledger-controller'
@@ -242,4 +243,4 @@ jobs:
           expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
           actual=$(git diff --name-only "$BASE_SHA" HEAD | sort)
           test "$actual" = "$expected"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:${TARGET_BRANCH}
