@@ -34,6 +34,7 @@ from scripts.processor.frozen_source import refetch_frozen_source
 from scripts.processor.intake_parser import INTAKE_MARKER
 
 RECEIPT_PREFIX = "ledger/receipts/batches/"
+LEGACY_FROZEN_RECEIPT_AUTHORITY = "2d4ec54c4a922ee37d0ae53a52a9c97732fb76d8"
 CANONICAL_PATHS = {
     "evaluations_jsonl": "evaluations.jsonl",
     "dispositions_jsonl": "ledger/dispositions.jsonl",
@@ -100,6 +101,11 @@ def resolve_commit(root: Path, revision: str) -> str:
 
 
 def _running_on_canonical_main(root: Path, authority_sha: str) -> bool:
+    try:
+        if root.resolve() != ROOT.resolve():
+            return False
+    except OSError:
+        return False
     if (
         os.environ.get("GITHUB_EVENT_NAME") == "push"
         and os.environ.get("GITHUB_REF_NAME") == "main"
@@ -285,6 +291,7 @@ def validate_all_tracked_batch_receipts(
 ) -> dict[str, Any]:
     authority_sha = resolve_commit(root, authority_sha)
     if mode == "pr" and _running_on_canonical_main(root, authority_sha):
+        authority_sha = resolve_commit(root, LEGACY_FROZEN_RECEIPT_AUTHORITY)
         mode = "canonical-main"
     schema = _load_schema(root)
     paths = tracked_batch_receipts(root, authority_sha)

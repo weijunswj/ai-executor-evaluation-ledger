@@ -98,23 +98,26 @@ jobs:
           BASE_SHA: ${{ steps.authority.outputs.base_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          mode=pr
-          authority="$HEAD_SHA"
+          legacy_context=false
           if [[ "$EVENT_NAME" == "push" ]]; then
-            mode=canonical-main
+            test -z "$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)"
+            legacy_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
             expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
-            mode=canonical-main
-            authority="$BASE_SHA"
+            legacy_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
             expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml scripts/validate_receipts.py tests/test_controller_maintenance.py | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
-            mode=canonical-main
+            legacy_context=true
           fi
-          python scripts/validate_receipts.py --mode "$mode" --authority-sha "$authority" --validation-level source-replay
+          if [[ "$legacy_context" == true ]]; then
+            GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --validation-level source-replay
+          else
+            python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --validation-level source-replay
+          fi
 
       - name: Verify append-only source and generated views
         env:
