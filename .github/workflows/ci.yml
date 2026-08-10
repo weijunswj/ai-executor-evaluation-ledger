@@ -116,7 +116,7 @@ jobs:
             test "$actual" = "$expected"
             legacy_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
-            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml scripts/validate_receipts.py tests/test_controller_maintenance.py | sort)
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml tests/test_controller_maintenance.py | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
             legacy_context=true
@@ -129,3 +129,117 @@ jobs:
 
       - name: Git diff whitespace check
         run: git diff --check
+
+  append-controller-evaluation:
+    if: github.event_name == 'push' && startsWith(github.ref_name, 'controller/evaluation-') && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Check out controller evaluation branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema
+
+      - name: Admit exact one-file controller intake
+        id: admission
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          base=$(git rev-parse --verify origin/main^{commit})
+          test "$(git rev-list --count "$base"..HEAD)" = "1"
+          test "$(git diff --name-only "$base" HEAD)" = ".controller-evaluation-intake.json"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Validate and append public-safe evaluation
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from decimal import Decimal
+          from pathlib import Path
+          import jsonschema
+
+          intake_path = Path('.controller-evaluation-intake.json')
+          raw = intake_path.read_bytes()
+          if not raw or raw.startswith(b'\xef\xbb\xbf') or b'\r' in raw or not raw.endswith(b'\n') or raw.endswith(b'\n\n'):
+              raise SystemExit('controller intake bytes invalid')
+          record = json.loads(raw.decode('utf-8', errors='strict'))
+          if not isinstance(record, dict) or record.get('record_type') != 'evaluation':
+              raise SystemExit('controller intake type invalid')
+          if (json.dumps(record, separators=(',', ':'), ensure_ascii=False) + '\n').encode('utf-8') != raw:
+              raise SystemExit('controller intake is not canonical JSON')
+
+          schema = json.loads(Path('schema/evaluation.schema.json').read_text(encoding='utf-8'))
+          jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker()).validate(record)
+
+          weights = {
+              'correctness': Decimal('0.20'),
+              'safety_and_scope_control': Decimal('0.20'),
+              'evidence_quality': Decimal('0.15'),
+              'operational_judgement': Decimal('0.15'),
+              'task_understanding': Decimal('0.10'),
+              'tracker_and_repository_hygiene': Decimal('0.10'),
+              'autonomy': Decimal('0.05'),
+              'efficiency': Decimal('0.05'),
+          }
+          weighted = sum(Decimal(str(record['scores'][key])) * weight for key, weight in weights.items())
+          if weighted.quantize(Decimal('0.01')) != Decimal(str(record['weighted_score_5'])).quantize(Decimal('0.01')):
+              raise SystemExit('controller intake weighted score mismatch')
+          if (weighted * 2).quantize(Decimal('0.01')) != Decimal(str(record['weighted_score_10'])).quantize(Decimal('0.01')):
+              raise SystemExit('controller intake ten-point score mismatch')
+
+          evaluations = Path('evaluations.jsonl')
+          existing = evaluations.read_bytes()
+          if existing and (existing.startswith(b'\xef\xbb\xbf') or b'\r' in existing or not existing.endswith(b'\n')):
+              raise SystemExit('evaluations.jsonl bytes invalid')
+          run_id = record['run_id']
+          for line in existing.decode('utf-8', errors='strict').splitlines():
+              if json.loads(line).get('run_id') == run_id:
+                  raise SystemExit('controller evaluation already recorded')
+          evaluations.write_bytes(existing + raw)
+          intake_path.unlink()
+          PY
+
+      - name: Rebuild and validate canonical outputs
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.admission.outputs.base }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/rebuild_views.py
+          python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+          python scripts/validate_manifests.py --base-ref "$BASE_SHA"
+          python scripts/check_public_safety.py
+          GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover -s tests
+          GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha HEAD --validation-level source-replay
+          git diff --check
+
+      - name: Commit exact four-file controller evaluation delta
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.admission.outputs.base }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'ledger-controller'
+          git add evaluations.jsonl README.md scorecard.md analysis/model-recommendation.json .controller-evaluation-intake.json
+          git diff --cached --check
+          git commit -m 'Append controller evaluation'
+          expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
+          actual=$(git diff --name-only "$BASE_SHA" HEAD | sort)
+          test "$actual" = "$expected"
+          git push origin HEAD:${GITHUB_REF_NAME}

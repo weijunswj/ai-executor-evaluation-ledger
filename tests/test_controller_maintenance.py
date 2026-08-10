@@ -45,13 +45,13 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 for path in required:
                     self.assertIn(path, workflow)
 
-    def test_controller_maintenance_scope_is_exact_four_files(self):
+    def test_controller_maintenance_scope_is_exact_three_files(self):
         required = {
             ".github/workflows/ci.yml",
             ".github/workflows/public-safety.yml",
-            "scripts/validate_receipts.py",
             "tests/test_controller_maintenance.py",
         }
+        forbidden = {"scripts/validate_receipts.py"}
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             with self.subTest(workflow=relative):
                 workflow = (ROOT / relative).read_text(encoding="utf-8")
@@ -60,6 +60,36 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 self.assertIn("legacy_context=true", workflow)
                 for path in required:
                     self.assertIn(path, workflow)
+                for path in forbidden:
+                    self.assertNotIn(f"{path} | sort)", workflow)
+
+    def test_ci_contains_durable_controller_evaluation_transport(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("append-controller-evaluation:", workflow)
+        self.assertIn("startsWith(github.ref_name, 'controller/evaluation-')", workflow)
+        self.assertIn("github.actor != 'github-actions[bot]'", workflow)
+        self.assertIn(".controller-evaluation-intake.json", workflow)
+        self.assertIn("controller intake weighted score mismatch", workflow)
+        self.assertIn("controller evaluation already recorded", workflow)
+        self.assertIn("python scripts/rebuild_views.py --check --base-ref", workflow)
+        self.assertIn("python scripts/validate_manifests.py --base-ref", workflow)
+        self.assertIn("python scripts/check_public_safety.py", workflow)
+        self.assertIn("GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest", workflow)
+        self.assertIn("git push origin HEAD:${GITHUB_REF_NAME}", workflow)
+
+    def test_transport_requires_exact_one_file_intake_and_exact_four_file_result(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn('git rev-list --count "$base"..HEAD', workflow)
+        self.assertIn('git diff --name-only "$base" HEAD', workflow)
+        self.assertIn('= ".controller-evaluation-intake.json"', workflow)
+        for path in (
+            "README.md",
+            "analysis/model-recommendation.json",
+            "evaluations.jsonl",
+            "scorecard.md",
+        ):
+            self.assertIn(path, workflow)
+        self.assertIn("intake_path.unlink()", workflow)
 
     def test_main_push_requires_frozen_receipt_bytes_unchanged(self):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
