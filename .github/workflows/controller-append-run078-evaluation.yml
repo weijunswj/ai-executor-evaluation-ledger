@@ -4,20 +4,23 @@ on:
   push:
     branches:
       - controller/ledger-run078-evaluation-079
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   append:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || github.head_ref == 'controller/ledger-run078-evaluation-079')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Check out controller branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: controller/ledger-run078-evaluation-079
           fetch-depth: 0
 
       - name: Set up Python
@@ -138,7 +141,7 @@ jobs:
               if existing.get('run_id') == run_id:
                   raise SystemExit('Run 078 already exists')
 
-          encoded = (json.dumps(record, sort_keys=False, separators=(',', ':'), ensure_ascii=False) + '\n').encode('utf-8')
+          encoded = (json.dumps(record, separators=(',', ':'), ensure_ascii=False) + '\n').encode('utf-8')
           path.write_bytes(raw + encoded)
           PY
 
@@ -146,6 +149,24 @@ jobs:
         run: |
           python scripts/rebuild_views.py
           python scripts/rebuild_views.py --check
+
+      - name: Hydrate immutable historical test authority
+        shell: bash
+        run: |
+          target=refs/remotes/origin/ledger-pr-151-authority
+          expected=2d4ec54c4a922ee37d0ae53a52a9c97732fb76d8
+          git fetch --no-tags --no-recurse-submodules origin "refs/pull/151/head:${target}"
+          test "$(git rev-parse --verify "${target}^{commit}")" = "$expected"
+          for sha in \
+            90c75c00192fbb759a5c756b697cb3d7cfc7dab1 \
+            45990433a0f8199f056d1ad71a51f934b3bae7aa \
+            223e6ecc24c84421a4bab60fcf87472b1d620744 \
+            d54fb99da162f49ccb616a8756725b9aea83ac1d \
+            180e3c1ea57ccd45ca2c71a76ebe4c3d609e2c0b
+          do
+            git cat-file -e "${sha}^{commit}"
+            git merge-base --is-ancestor "$sha" "$expected"
+          done
 
       - name: Validate public safety and tests
         run: |
@@ -162,4 +183,4 @@ jobs:
           git rm .github/workflows/controller-append-run078-evaluation.yml
           git diff --cached --check
           git commit -m 'Append Run 078 controller evaluation'
-          git push
+          git push origin HEAD:controller/ledger-run078-evaluation-079
