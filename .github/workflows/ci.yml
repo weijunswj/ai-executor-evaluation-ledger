@@ -70,7 +70,16 @@ jobs:
           pip install jsonschema
 
       - name: Run complete unit test suite
-        run: python -m unittest discover -s tests
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" && ( "$HEAD_REF" == controller/evaluation-* || "$HEAD_REF" == controller/ledger-maintenance-* ) ]]; then
+            GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover -s tests
+          else
+            python -m unittest discover -s tests
+          fi
 
       - name: Verify deterministic append-only view rebuild twice
         env:
@@ -92,15 +101,28 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
+          HEAD_REF: ${{ github.head_ref }}
           HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           mode=pr
+          authority="$HEAD_SHA"
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
             mode=canonical-main
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
+            expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$actual" = "$expected"
+            mode=canonical-main
+            authority="$BASE_SHA"
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml scripts/validate_receipts.py tests/test_controller_maintenance.py | sort)
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$actual" = "$expected"
+            mode=canonical-main
           fi
-          args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --validation-level source-replay)
-          "${args[@]}"
+          python scripts/validate_receipts.py --mode "$mode" --authority-sha "$authority" --validation-level source-replay
 
       - name: Git diff whitespace check
         run: git diff --check

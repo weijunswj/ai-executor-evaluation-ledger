@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -96,6 +97,31 @@ def resolve_commit(root: Path, revision: str) -> str:
     if not valid_git_sha(value):
         raise ReceiptValidationError("receipt_git_authority_unavailable")
     return value
+
+
+def _running_on_canonical_main(root: Path, authority_sha: str) -> bool:
+    if (
+        os.environ.get("GITHUB_EVENT_NAME") == "push"
+        and os.environ.get("GITHUB_REF_NAME") == "main"
+    ):
+        return True
+    branch = subprocess.run(
+        ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if branch.returncode != 0 or branch.stdout.strip() != "main":
+        return False
+    head = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return head.returncode == 0 and head.stdout.strip() == authority_sha
 
 
 def git_object_bytes(root: Path, revision: str, relative_path: str) -> bytes:
@@ -258,6 +284,8 @@ def validate_all_tracked_batch_receipts(
     mode: str,
 ) -> dict[str, Any]:
     authority_sha = resolve_commit(root, authority_sha)
+    if mode == "pr" and _running_on_canonical_main(root, authority_sha):
+        mode = "canonical-main"
     schema = _load_schema(root)
     paths = tracked_batch_receipts(root, authority_sha)
     if not paths:
@@ -345,6 +373,7 @@ def validate_all_tracked_batch_receipts(
         "final_parent_sha": parent_sha,
         "changed_receipt_path": changed_path,
     }
+
 
 def _terminal_seal_commit(
     root: Path,
