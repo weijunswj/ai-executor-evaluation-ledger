@@ -1,5 +1,7 @@
 name: Public safety
 
+# Controller evaluation intake is transformed only by the CI transport on its initial same-repository PR opening; this workflow validates the resulting canonical four-file head.
+
 on:
   pull_request:
   push:

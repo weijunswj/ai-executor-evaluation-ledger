@@ -67,7 +67,11 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         self.assertIn("append-controller-evaluation:", workflow)
         self.assertIn("startsWith(github.ref_name, 'controller/evaluation-')", workflow)
+        self.assertIn("startsWith(github.head_ref, 'controller/evaluation-')", workflow)
+        self.assertIn("github.event.action == 'opened'", workflow)
         self.assertIn("github.actor != 'github-actions[bot]'", workflow)
+        self.assertIn("github.event.pull_request.head.sha || github.sha", workflow)
+        self.assertIn("github.head_ref || github.ref_name", workflow)
         self.assertIn(".controller-evaluation-intake.json", workflow)
         self.assertIn("controller intake weighted score mismatch", workflow)
         self.assertIn("controller evaluation already recorded", workflow)
@@ -75,7 +79,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         self.assertIn("python scripts/validate_manifests.py --base-ref", workflow)
         self.assertIn("python scripts/check_public_safety.py", workflow)
         self.assertIn("GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest", workflow)
-        self.assertIn("git push origin HEAD:${GITHUB_REF_NAME}", workflow)
+        self.assertIn("git push origin HEAD:${TARGET_BRANCH}", workflow)
 
     def test_transport_requires_exact_one_file_intake_and_exact_four_file_result(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
