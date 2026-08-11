@@ -85,8 +85,8 @@ class TestMigrationAndPreservation(unittest.TestCase):
             "Gemini 3.6 Flash",
             "MiniMax M3"
         }
-        for r in self.records:
-            model = r.get("model")
+        observed_and_future_models = [r.get("model") for r in self.records] + ["GPT-5.6 Luna"]
+        for model in observed_and_future_models:
             self.assertIn(model, allowed_models, f"Model '{model}' not in allowed canonical models")
 
     def test_manifests_exist(self):
