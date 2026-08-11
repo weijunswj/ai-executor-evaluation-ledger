@@ -231,9 +231,22 @@ LUNA_EXECUTION_SETTING_WORDS = (
     (*LUNA_MODEL_WORDS, HIGH_SETTING_WORD),
     (*LUNA_MODEL_WORDS, MAX_SETTING_WORD),
 )
-LUNA_EXECUTION_SETTING_PATTERNS = tuple(
-    _identity_pattern(*words) for words in LUNA_EXECUTION_SETTING_WORDS
+LUNA_EXECUTION_SETTING_SEQUENCES = tuple(
+    tuple(unicodedata.normalize("NFKC", word).casefold() for word in words)
+    for words in LUNA_EXECUTION_SETTING_WORDS
 )
+LUNA_EXECUTION_SETTING_RULES = tuple(
+    (f"luna_execution_setting_{index:03d}", sequence)
+    for index, sequence in enumerate(LUNA_EXECUTION_SETTING_SEQUENCES, start=1)
+)
+LUNA_SEQUENCES_BY_FIRST_TOKEN = {
+    first: tuple(
+        (rule_id, sequence)
+        for rule_id, sequence in LUNA_EXECUTION_SETTING_RULES
+        if sequence[0] == first
+    )
+    for first in {sequence[0] for sequence in LUNA_EXECUTION_SETTING_SEQUENCES}
+}
 
 FORBIDDEN_LEDGER_IDENTITY_PATTERNS = tuple(
     _identity_pattern(*words) for words in FORBIDDEN_LEDGER_IDENTITY_WORDS
@@ -411,17 +424,15 @@ def identity_rule_set_sha256() -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
-def iter_ledger_identity_matches(text: str) -> list[IdentityMatch]:
-    """Return privacy-safe match metadata for the normalized identity rules."""
-
+def _iter_normalized_identity_matches(
+    text: str,
+    rules_by_first_token: Mapping[str, tuple[tuple[str, tuple[str, ...]], ...]],
+) -> list[IdentityMatch]:
     normalized, runs = _unicode_alphanumeric_runs(text)
     run_values = tuple(value for value, _offset in runs)
     matches: list[IdentityMatch] = []
     for index, (first, offset) in enumerate(runs):
-        for rule_id, sequence in FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN.get(
-            first,
-            (),
-        ):
+        for rule_id, sequence in rules_by_first_token.get(first, ()):
             width = len(sequence)
             if run_values[index : index + width] == sequence:
                 matches.append(
@@ -432,6 +443,12 @@ def iter_ledger_identity_matches(text: str) -> list[IdentityMatch]:
                     )
                 )
     return matches
+
+
+def iter_ledger_identity_matches(text: str) -> list[IdentityMatch]:
+    """Return privacy-safe match metadata for the normalized identity rules."""
+
+    return _iter_normalized_identity_matches(text, FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN)
 
 
 def scan_ledger_identity(label: str, text: str) -> list[str]:
@@ -445,15 +462,14 @@ def scan_ledger_identity(label: str, text: str) -> list[str]:
 
 
 def scan_luna_execution_settings(label: str, text: str) -> list[str]:
-    failures: list[str] = []
-    for index, pattern in enumerate(LUNA_EXECUTION_SETTING_PATTERNS, start=1):
-        for match in pattern.finditer(text):
-            line = text.count("\n", 0, match.start()) + 1
-            failures.append(
-                f"{label}:{line}: forbidden ledger identity token "
-                f"[luna_execution_setting_{index:03d}]"
-            )
-    return failures
+    return [
+        f"{label}:{match.line_number}: forbidden ledger identity token "
+        f"[{match.rule_id}]"
+        for match in _iter_normalized_identity_matches(
+            text,
+            LUNA_SEQUENCES_BY_FIRST_TOKEN,
+        )
+    ]
 
 
 def scan_public_text(
@@ -929,6 +945,27 @@ def unicode_history_start(root: Path, manifest: Mapping[str, Any]) -> tuple[str,
     return canonical, "canonical-main-squash"
 
 
+def luna_history_start(
+    root: Path,
+    manifest: Mapping[str, Any],
+) -> tuple[str, str]:
+    """Select prospective Luna history in PR, squash-main, or isolated fixtures."""
+
+    _require_complete_history(root)
+    if _git_commit_exists(root, LUNA_RED_PROOF_COMMIT) and _is_ancestor(
+        root,
+        LUNA_RED_PROOF_COMMIT,
+    ):
+        return LUNA_RED_PROOF_COMMIT, "pr-descendant"
+    if _git_commit_exists(root, LUNA_HISTORY_BASE) and _is_ancestor(
+        root,
+        LUNA_HISTORY_BASE,
+    ):
+        return LUNA_HISTORY_BASE, "canonical-main-squash"
+    start, _mode = unicode_history_start(root, manifest)
+    return start, "isolated-authority-fallback"
+
+
 def uuid_history_start(root: Path) -> tuple[str, str]:
     """Select the prospective UUID-rule history without rewriting legacy history."""
 
@@ -1006,17 +1043,11 @@ def history_failures(root: Path = ROOT) -> list[str]:
             )
         )
 
+    luna_start, _mode = luna_history_start(root, manifest)
     for commit, label, line_number, addition in added_lines_in_range(
-        LUNA_HISTORY_BASE,
+        luna_start,
         root=root,
     ):
-        # This exact commit/path is the reviewed TDD RED proof that demonstrated
-        # the pre-fix leak. The exception cannot match any later commit or path.
-        if (
-            commit == LUNA_RED_PROOF_COMMIT
-            and label == "tests/test_controller_maintenance.py"
-        ):
-            continue
         failures.extend(
             scan_luna_execution_settings(
                 f"commit:{commit[:12]}:{label}:added-line-{line_number}",
