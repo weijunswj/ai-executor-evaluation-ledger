@@ -550,7 +550,7 @@ def walk_json(value: object, label: str, path: str = "$") -> list[str]:
         for index, item in enumerate(value):
             failures.extend(walk_json(item, label, f"{path}[{index}]"))
     elif isinstance(value, str):
-        failures.extend(scan_text(f"{label}:{path}", value))
+        failures.extend(scan_public_text(f"{label}:{path}", value))
     return failures
 
 
@@ -771,48 +771,123 @@ def _git_blob(root: Path, revision: str, relative_path: str) -> bytes:
     return result.stdout
 
 
+def _git_blob_or_empty(root: Path, revision: str | None, relative_path: str) -> bytes:
+    if revision is None:
+        return b""
+    result = subprocess.run(
+        ["git", "show", f"{revision}:{relative_path}"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return result.stdout
+    if not _git_commit_exists(root, revision):
+        raise RuntimeError("history authority commit is unavailable")
+    return b""
+
+
+def _decode_luna_history_blob(raw: bytes) -> str:
+    if len(raw) > MAX_TEXT_BYTES:
+        raise RuntimeError("Luna history authority exceeds text limit")
+    if b"\0" in raw:
+        raise RuntimeError("Luna history authority is not text")
+    try:
+        return raw.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as error:
+        raise RuntimeError("Luna history authority blob is not strict UTF-8") from error
+
+
+def _luna_match_lines_by_rule(text: str) -> dict[str, list[int]]:
+    matches: dict[str, list[int]] = {}
+    for rule_id, start_line, _end_line in _iter_normalized_identity_line_spans(
+        text,
+        LUNA_SEQUENCES_BY_FIRST_TOKEN,
+    ):
+        matches.setdefault(rule_id, []).append(start_line)
+    return matches
+
+
+def _first_parent(root: Path, commit: str) -> str | None:
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{commit}^"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    parent = result.stdout.strip()
+    if re.fullmatch(r"[0-9a-f]{40}", parent) is None:
+        raise RuntimeError("history parent authority is malformed")
+    return parent
+
+
 def luna_history_failures_in_range(
     start: str,
     *,
+    end: str = "HEAD",
     root: Path = ROOT,
 ) -> list[str]:
-    """Scan commit-result text, but bind each Luna match to a new added line."""
+    """Reject Luna matches newly introduced by any changed commit result."""
 
-    added_lines_by_file: dict[tuple[str, str], set[int]] = {}
-    for commit, label, line_number, _addition in added_lines_in_range(
-        start,
-        root=root,
-    ):
-        added_lines_by_file.setdefault((commit, label), set()).add(line_number)
+    _require_complete_history(root)
+    if not _git_commit_exists(root, start) or not _git_commit_exists(root, end):
+        raise RuntimeError("Luna history range authority is unavailable")
+    if not _is_ancestor(root, start, end):
+        raise RuntimeError("Luna history range authority is not an ancestor")
+    commits = subprocess.run(
+        ["git", "rev-list", "--reverse", f"{start}..{end}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
 
     failures: list[str] = []
-    for (commit, label), added_lines in sorted(added_lines_by_file.items()):
-        raw = _git_blob(root, commit, label)
-        if len(raw) > MAX_TEXT_BYTES or b"\0" in raw:
-            continue
-        try:
-            text = raw.decode("utf-8", errors="strict")
-        except UnicodeDecodeError as error:
-            raise RuntimeError("history authority blob is not strict UTF-8") from error
-
-        for rule_id, start_line, end_line in _iter_normalized_identity_line_spans(
-            text,
-            LUNA_SEQUENCES_BY_FIRST_TOKEN,
-        ):
-            overlap = sorted(
-                line_number
-                for line_number in added_lines
-                if start_line <= line_number <= end_line
+    for commit in commits:
+        if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+            raise RuntimeError("Luna history commit authority is malformed")
+        parent = _first_parent(root, commit)
+        for label in changed_files_in_commit(commit, root=root):
+            before = _decode_luna_history_blob(
+                _git_blob_or_empty(root, parent, label)
             )
-            if not overlap:
-                continue
-            binding = (commit, label, overlap[0], rule_id)
-            if binding in LUNA_TDD_HISTORY_ALLOWED_MATCHES:
-                continue
-            failures.append(
-                f"commit:{commit[:12]}:{label}:added-line-{overlap[0]}: "
-                f"forbidden ledger identity token [{rule_id}]"
+            after = _decode_luna_history_blob(
+                _git_blob_or_empty(root, commit, label)
             )
+            before_matches = _luna_match_lines_by_rule(before)
+            after_matches = _luna_match_lines_by_rule(after)
+            for rule_id, after_lines in sorted(after_matches.items()):
+                surplus = len(after_lines) - len(before_matches.get(rule_id, ()))
+                if surplus <= 0:
+                    continue
+                allowed_lines = [
+                    line_number
+                    for line_number in after_lines
+                    if (commit, label, line_number, rule_id)
+                    in LUNA_TDD_HISTORY_ALLOWED_MATCHES
+                ]
+                remaining = max(0, surplus - min(surplus, len(allowed_lines)))
+                if remaining == 0:
+                    continue
+                report_lines = [
+                    line_number
+                    for line_number in after_lines
+                    if (commit, label, line_number, rule_id)
+                    not in LUNA_TDD_HISTORY_ALLOWED_MATCHES
+                ]
+                for ordinal in range(remaining):
+                    line_number = (
+                        report_lines[ordinal]
+                        if ordinal < len(report_lines)
+                        else after_lines[0]
+                    )
+                    failures.append(
+                        f"commit:{commit[:12]}:{label}:line-{line_number}: "
+                        f"forbidden ledger identity token [{rule_id}]"
+                    )
     return failures
 
 
