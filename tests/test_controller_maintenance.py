@@ -264,6 +264,58 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             failures,
         )
 
+    def test_luna_history_rejects_added_line_with_unchanged_neighbor_context(self):
+        commit = "b" * 40
+        resulting_text = "\n".join(
+            [*["safe"] * 9, "GPT-5.6", "Luna Max", "safe"]
+        ) + "\n"
+
+        def additions(start: str, **_kwargs):
+            if start == "luna-start":
+                return iter(((commit, "history.txt", 10, "GPT-5.6"),))
+            return iter(())
+
+        with (
+            mock.patch.object(public_safety, "validate_activation_manifest", return_value={}),
+            mock.patch.object(public_safety, "added_lines_since_baseline", return_value=iter(())),
+            mock.patch.object(public_safety, "unicode_history_start", return_value=("unicode-start", "fixture")),
+            mock.patch.object(public_safety, "luna_history_start", return_value=("luna-start", "fixture")),
+            mock.patch.object(public_safety, "uuid_history_start", return_value=("uuid-start", "fixture")),
+            mock.patch.object(public_safety, "added_lines_in_range", side_effect=additions),
+            mock.patch.object(public_safety, "_git_blob", return_value=resulting_text.encode("utf-8")),
+        ):
+            failures = public_safety.history_failures(ROOT)
+
+        self.assertTrue(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
+    def test_luna_history_ignores_unrelated_preexisting_identity(self):
+        commit = "c" * 40
+        resulting_text = "GPT-5.6\nLuna Max\n" + "\n".join(["safe"] * 8) + "\n"
+
+        def additions(start: str, **_kwargs):
+            if start == "luna-start":
+                return iter(((commit, "history.txt", 10, "safe"),))
+            return iter(())
+
+        with (
+            mock.patch.object(public_safety, "validate_activation_manifest", return_value={}),
+            mock.patch.object(public_safety, "added_lines_since_baseline", return_value=iter(())),
+            mock.patch.object(public_safety, "unicode_history_start", return_value=("unicode-start", "fixture")),
+            mock.patch.object(public_safety, "luna_history_start", return_value=("luna-start", "fixture")),
+            mock.patch.object(public_safety, "uuid_history_start", return_value=("uuid-start", "fixture")),
+            mock.patch.object(public_safety, "added_lines_in_range", side_effect=additions),
+            mock.patch.object(public_safety, "_git_blob", return_value=resulting_text.encode("utf-8")),
+        ):
+            failures = public_safety.history_failures(ROOT)
+
+        self.assertFalse(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
         with mock.patch.dict(
