@@ -347,6 +347,64 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             failures,
         )
 
+    def test_luna_history_detects_deletion_only_introduction(self):
+        model_line = "-".join(("GPT", "5")) + "." + "6"
+        setting_line = " ".join(("Luna", "Max"))
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-delete-history-") as temp_raw:
+            root = Path(temp_raw)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            history = root / "history.txt"
+            history.write_text(
+                model_line + "\nseparator\n" + setting_line + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed separated fragments")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(model_line + "\n" + setting_line + "\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "delete separator only")
+            introduced = git(root, "rev-parse", "HEAD")
+
+            history.write_text("safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "remove introduced identity")
+
+            failures = public_safety.luna_history_failures_in_range(start, root=root)
+
+        self.assertTrue(
+            any(
+                introduced[:12] in failure and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_oversized_jsonl_still_rejects_luna_execution_setting(self):
+        model_line = "-".join(("GPT", "5")) + "." + "6"
+        setting = " ".join(("Luna", "Max"))
+        identity = model_line + " " + setting
+        with tempfile.TemporaryDirectory(prefix="ledger-large-jsonl-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "evaluations.jsonl"
+            record = {
+                "note": "x" * (public_safety.MAX_TEXT_BYTES + 64) + " " + identity,
+            }
+            path.write_text(
+                json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+            )
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            failures = public_safety.tree_failures(root)
+
+        self.assertTrue(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
         with mock.patch.dict(
