@@ -23,6 +23,22 @@ PR_ACTIVATION_HEAD = "10f40ea2f820f4a6230355502639bd7a238b2c45"
 CANONICAL_MAIN_BASE = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 LUNA_HISTORY_BASE = "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898"
 LUNA_RED_PROOF_COMMIT = "d3624f0782329b2bd46ce56daf784e6a3c0d6fbb"
+LUNA_TDD_HISTORY_ALLOWED_MATCHES = frozenset(
+    {
+        (
+            "ba224fb72dd9e10fd65d36fdbd33f2974679f8ce",
+            "tests/test_controller_maintenance.py",
+            270,
+            "luna_execution_setting_003",
+        ),
+        (
+            "6e0ec65979831e720680d0c7633ec9c427e2cceb",
+            "tests/test_controller_maintenance.py",
+            242,
+            "luna_execution_setting_003",
+        ),
+    }
+)
 PRE_ACTIVATION_OCCURRENCE_COUNT = 571
 ACTIVATION_MANIFEST_RELATIVE_PATH = Path(
     "migrations/unicode-identity-history-activation.json"
@@ -789,6 +805,9 @@ def luna_history_failures_in_range(
                 if start_line <= line_number <= end_line
             )
             if not overlap:
+                continue
+            binding = (commit, label, overlap[0], rule_id)
+            if binding in LUNA_TDD_HISTORY_ALLOWED_MATCHES:
                 continue
             failures.append(
                 f"commit:{commit[:12]}:{label}:added-line-{overlap[0]}: "
