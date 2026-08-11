@@ -247,6 +247,7 @@ LUNA_SEQUENCES_BY_FIRST_TOKEN = {
     )
     for first in {sequence[0] for sequence in LUNA_EXECUTION_SETTING_SEQUENCES}
 }
+
 FORBIDDEN_LEDGER_IDENTITY_PATTERNS = tuple(
     _identity_pattern(*words) for words in FORBIDDEN_LEDGER_IDENTITY_WORDS
 )
@@ -442,6 +443,32 @@ def _iter_normalized_identity_matches(
                     )
                 )
     return matches
+
+
+def _iter_normalized_identity_line_spans(
+    text: str,
+    rules_by_first_token: Mapping[str, tuple[tuple[str, tuple[str, ...]], ...]],
+) -> list[tuple[str, int, int]]:
+    """Return privacy-safe normalized rule IDs with inclusive line spans."""
+
+    normalized, runs = _unicode_alphanumeric_runs(text)
+    run_values = tuple(value for value, _offset in runs)
+    spans: list[tuple[str, int, int]] = []
+    for index, (first, offset) in enumerate(runs):
+        for rule_id, sequence in rules_by_first_token.get(first, ()):
+            width = len(sequence)
+            if run_values[index : index + width] != sequence:
+                continue
+            last_value, last_offset = runs[index + width - 1]
+            end_offset = last_offset + len(last_value)
+            spans.append(
+                (
+                    rule_id,
+                    normalized.count("\n", 0, offset) + 1,
+                    normalized.count("\n", 0, end_offset) + 1,
+                )
+            )
+    return spans
 
 
 def iter_ledger_identity_matches(text: str) -> list[IdentityMatch]:
@@ -716,51 +743,6 @@ def added_lines_in_range(
                 yield commit, label, line_number, addition
 
 
-def contiguous_added_blocks_in_range(
-    start: str,
-    *,
-    end: str = "HEAD",
-    root: Path = ROOT,
-) -> Iterable[tuple[str, str, int, str]]:
-    """Preserve only truly adjacent added lines for cross-line identity scans."""
-
-    current_commit: str | None = None
-    current_label: str | None = None
-    first_line: int | None = None
-    previous_line: int | None = None
-    lines: list[str] = []
-
-    for commit, label, line_number, addition in added_lines_in_range(
-        start,
-        end=end,
-        root=root,
-    ):
-        contiguous = (
-            commit == current_commit
-            and label == current_label
-            and previous_line is not None
-            and line_number == previous_line + 1
-        )
-        if not contiguous and current_commit is not None:
-            assert current_label is not None
-            assert first_line is not None
-            yield current_commit, current_label, first_line, "\n".join(lines)
-            lines = []
-
-        if not contiguous:
-            current_commit = commit
-            current_label = label
-            first_line = line_number
-
-        lines.append(addition)
-        previous_line = line_number
-
-    if current_commit is not None:
-        assert current_label is not None
-        assert first_line is not None
-        yield current_commit, current_label, first_line, "\n".join(lines)
-
-
 def _git_blob(root: Path, revision: str, relative_path: str) -> bytes:
     result = subprocess.run(
         ["git", "show", f"{revision}:{relative_path}"],
@@ -771,6 +753,48 @@ def _git_blob(root: Path, revision: str, relative_path: str) -> bytes:
     if result.returncode != 0:
         raise RuntimeError("history authority blob is unavailable")
     return result.stdout
+
+
+def luna_history_failures_in_range(
+    start: str,
+    *,
+    root: Path = ROOT,
+) -> list[str]:
+    """Scan commit-result text, but bind each Luna match to a new added line."""
+
+    added_lines_by_file: dict[tuple[str, str], set[int]] = {}
+    for commit, label, line_number, _addition in added_lines_in_range(
+        start,
+        root=root,
+    ):
+        added_lines_by_file.setdefault((commit, label), set()).add(line_number)
+
+    failures: list[str] = []
+    for (commit, label), added_lines in sorted(added_lines_by_file.items()):
+        raw = _git_blob(root, commit, label)
+        if len(raw) > MAX_TEXT_BYTES or b"\0" in raw:
+            continue
+        try:
+            text = raw.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as error:
+            raise RuntimeError("history authority blob is not strict UTF-8") from error
+
+        for rule_id, start_line, end_line in _iter_normalized_identity_line_spans(
+            text,
+            LUNA_SEQUENCES_BY_FIRST_TOKEN,
+        ):
+            overlap = sorted(
+                line_number
+                for line_number in added_lines
+                if start_line <= line_number <= end_line
+            )
+            if not overlap:
+                continue
+            failures.append(
+                f"commit:{commit[:12]}:{label}:added-line-{overlap[0]}: "
+                f"forbidden ledger identity token [{rule_id}]"
+            )
+    return failures
 
 
 def _baseline_blob_is_unchanged(root: Path) -> None:
@@ -1088,16 +1112,7 @@ def history_failures(root: Path = ROOT) -> list[str]:
         )
 
     luna_start, _mode = luna_history_start(root, manifest)
-    for commit, label, line_number, addition in contiguous_added_blocks_in_range(
-        luna_start,
-        root=root,
-    ):
-        failures.extend(
-            scan_luna_execution_settings(
-                f"commit:{commit[:12]}:{label}:added-line-{line_number}",
-                addition,
-            )
-        )
+    failures.extend(luna_history_failures_in_range(luna_start, root=root))
 
     uuid_start, _mode = uuid_history_start(root)
     for commit, label, line_number, addition in added_lines_in_range(
