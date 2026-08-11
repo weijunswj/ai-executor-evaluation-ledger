@@ -19,7 +19,8 @@ MIGRATION_EVALUATIONS_SHA256 = "387dfc1347189555ef91eabf767e62738f777b2e80b79f53
 class TestMigrationAndPreservation(unittest.TestCase):
     def setUp(self):
         self.jsonl_path = "evaluations.jsonl"
-        raw = open(self.jsonl_path, "rb").read()
+        with open(self.jsonl_path, "rb") as source:
+            raw = source.read()
         lines = raw.splitlines(keepends=True)
         self.assertGreaterEqual(len(lines), MIGRATION_RECORD_COUNT)
         migration_lines = lines[:MIGRATION_RECORD_COUNT]
