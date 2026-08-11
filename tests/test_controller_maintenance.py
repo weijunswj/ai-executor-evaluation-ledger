@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import rebuild_views
+from scripts.check_public_safety import scan_public_text
 from scripts.validate_receipts import (
     LEGACY_FROZEN_RECEIPT_AUTHORITY,
     _running_on_canonical_main,
@@ -152,6 +153,10 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         self.assertIn("GPT-5.6 Luna", readme)
         self.assertIn("GPT-5.6 Luna", scorecard)
         self.assertIn("GPT-5.6 Luna", json.dumps(recommendation, sort_keys=True))
+
+    def test_luna_execution_setting_identity_is_rejected_by_public_safety(self):
+        failures = scan_public_text("probe", "GPT-5.6 Luna Max")
+        self.assertTrue(failures, "Luna execution-setting identity must fail closed")
 
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
