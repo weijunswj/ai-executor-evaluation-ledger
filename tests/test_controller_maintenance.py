@@ -155,10 +155,19 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         self.assertIn("GPT-5.6 Luna", json.dumps(recommendation, sort_keys=True))
 
     def test_luna_execution_setting_identity_is_rejected_by_public_safety(self):
-        model = "-".join(("GPT", "5")) + "." + "6" + " " + "Luna"
-        execution_identity = model + " " + "Max"
-        failures = scan_public_text("probe", execution_identity)
-        self.assertTrue(failures, "Luna execution-setting identity must fail closed")
+        words = ("GPT", "5", "6", "Luna", "Max")
+        ordinary = "-".join(words[:2]) + "." + words[2] + " " + words[3] + " " + words[4]
+        fullwidth = "".join(
+            chr(ord(character) + 0xFEE0)
+            if "!" <= character <= "~"
+            else character
+            for character in ordinary
+        )
+        em_dash = chr(0x2014).join(words)
+        for identity in (ordinary, fullwidth, em_dash):
+            with self.subTest(identity=repr(identity)):
+                failures = scan_public_text("probe", identity)
+                self.assertTrue(failures, "Luna execution-setting identity must fail closed")
 
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
