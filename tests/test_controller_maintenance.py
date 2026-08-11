@@ -227,7 +227,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         )
         self.assertEqual(manifest["rule_count"], 3)
         self.assertEqual(len(public_safety.LUNA_EXECUTION_SETTING_RULES), 3)
-        expected_hash = "50cf6f4f0d41f4097016139cdf3252394680676415022b16c3a9d4b241a68bb5"
+        expected_hash = "50cf6f4f49f8b43876ef07fa88bda745d9c0b2cbcf1359a60eead3baa8a68bb5"
         self.assertEqual(manifest["rule_set_sha256"], expected_hash)
         self.assertEqual(
             luna_rule_set_sha256(public_safety.LUNA_EXECUTION_SETTING_RULES),
