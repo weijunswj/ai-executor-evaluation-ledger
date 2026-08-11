@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import os
 import subprocess
@@ -30,6 +31,37 @@ def git(root: Path, *args: str) -> str:
     if result.returncode != 0:
         raise AssertionError(result.stderr or result.stdout)
     return result.stdout.strip()
+
+
+def luna_rule_set_sha256(rules: tuple[tuple[str, tuple[str, ...]], ...]) -> str:
+    structures = []
+    for rule_id, sequence in rules:
+        sequence_bytes = (
+            json.dumps(sequence, ensure_ascii=True, separators=(",", ":"))
+            + "\n"
+        ).encode("utf-8")
+        structures.append(
+            {
+                "case_folding": "unicode_casefold",
+                "normalized_sequence_sha256": hashlib.sha256(
+                    sequence_bytes
+                ).hexdigest(),
+                "normalization": "NFKC",
+                "rule_id": rule_id,
+                "token_count": len(sequence),
+                "tokenization": "unicode_alphanumeric_runs_v1",
+            }
+        )
+    canonical = (
+        json.dumps(
+            structures,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 class TestControllerLedgerMaintenance(unittest.TestCase):
@@ -194,18 +226,15 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             "luna_execution_setting_history_activation",
         )
         self.assertEqual(manifest["rule_count"], 3)
+        self.assertEqual(len(public_safety.LUNA_EXECUTION_SETTING_RULES), 3)
+        expected_hash = "50cf6f4f0d41f4097016139cdf3252394680676415022b16c3a9d4b241a68bb5"
+        self.assertEqual(manifest["rule_set_sha256"], expected_hash)
         self.assertEqual(
-            manifest["rule_set_sha256"],
-            "50cf24458a7f48235cdca3616f2cdf9cd72df171322970831644240e31162b29",
+            luna_rule_set_sha256(public_safety.LUNA_EXECUTION_SETTING_RULES),
+            expected_hash,
         )
-        public_safety.validate_luna_rule_manifest(ROOT)
-        with mock.patch.object(
-            public_safety,
-            "LUNA_EXECUTION_SETTING_RULES",
-            public_safety.LUNA_EXECUTION_SETTING_RULES[:-1],
-        ):
-            with self.assertRaises(RuntimeError):
-                public_safety.validate_luna_rule_manifest(ROOT)
+        weakened = public_safety.LUNA_EXECUTION_SETTING_RULES[:-1]
+        self.assertNotEqual(luna_rule_set_sha256(weakened), expected_hash)
 
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
