@@ -97,7 +97,7 @@ jobs:
             schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
             schema_actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$schema_actual" = "$schema_expected"
-            python -m unittest tests.test_controller_maintenance tests.test_migration
+            python -m unittest tests.test_controller_maintenance tests.test_migration tests.test_check_public_safety
             python - <<'PY'
           import copy
           import json
