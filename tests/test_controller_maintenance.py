@@ -258,94 +258,98 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         )
 
     def test_luna_history_rejects_identity_split_across_contiguous_added_lines(self):
-        commit = "a" * 40
         model_line = "-".join(("GPT", "5")) + "." + "6"
         setting_line = " ".join(("Luna", "Max"))
-        resulting_text = "\n".join(
-            [*["safe"] * 9, model_line, setting_line, "safe"]
-        ) + "\n"
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-added-history-") as temp_raw:
+            root = Path(temp_raw)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            history = root / "history.txt"
+            history.write_text("safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed safe history")
+            start = git(root, "rev-parse", "HEAD")
 
-        def additions(start: str, **_kwargs):
-            if start == "luna-start":
-                return iter(
-                    (
-                        (commit, "history.txt", 10, model_line),
-                        (commit, "history.txt", 11, setting_line),
-                    )
-                )
-            return iter(())
+            history.write_text(model_line + "\n" + setting_line + "\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "add split identity")
+            introduced = git(root, "rev-parse", "HEAD")
 
-        with (
-            mock.patch.object(public_safety, "validate_activation_manifest", return_value={}),
-            mock.patch.object(public_safety, "added_lines_since_baseline", return_value=iter(())),
-            mock.patch.object(public_safety, "unicode_history_start", return_value=("unicode-start", "fixture")),
-            mock.patch.object(public_safety, "luna_history_start", return_value=("luna-start", "fixture")),
-            mock.patch.object(public_safety, "uuid_history_start", return_value=("uuid-start", "fixture")),
-            mock.patch.object(public_safety, "added_lines_in_range", side_effect=additions),
-            mock.patch.object(public_safety, "_git_blob", return_value=resulting_text.encode("utf-8")),
-        ):
-            failures = public_safety.history_failures(ROOT)
+            history.write_text("safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "remove introduced identity")
+
+            failures = public_safety.luna_history_failures_in_range(start, root=root)
 
         self.assertTrue(
-            any("luna_execution_setting" in failure for failure in failures),
+            any(
+                introduced[:12] in failure and "luna_execution_setting" in failure
+                for failure in failures
+            ),
             failures,
         )
 
     def test_luna_history_rejects_added_line_with_unchanged_neighbor_context(self):
-        commit = "b" * 40
         model_line = "-".join(("GPT", "5")) + "." + "6"
         setting_line = " ".join(("Luna", "Max"))
-        resulting_text = "\n".join(
-            [*["safe"] * 9, model_line, setting_line, "safe"]
-        ) + "\n"
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-context-history-") as temp_raw:
+            root = Path(temp_raw)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            history = root / "history.txt"
+            history.write_text(setting_line + "\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed setting fragment")
+            start = git(root, "rev-parse", "HEAD")
 
-        def additions(start: str, **_kwargs):
-            if start == "luna-start":
-                return iter(((commit, "history.txt", 10, model_line),))
-            return iter(())
+            history.write_text(model_line + "\n" + setting_line + "\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "add neighbouring model fragment")
+            introduced = git(root, "rev-parse", "HEAD")
 
-        with (
-            mock.patch.object(public_safety, "validate_activation_manifest", return_value={}),
-            mock.patch.object(public_safety, "added_lines_since_baseline", return_value=iter(())),
-            mock.patch.object(public_safety, "unicode_history_start", return_value=("unicode-start", "fixture")),
-            mock.patch.object(public_safety, "luna_history_start", return_value=("luna-start", "fixture")),
-            mock.patch.object(public_safety, "uuid_history_start", return_value=("uuid-start", "fixture")),
-            mock.patch.object(public_safety, "added_lines_in_range", side_effect=additions),
-            mock.patch.object(public_safety, "_git_blob", return_value=resulting_text.encode("utf-8")),
-        ):
-            failures = public_safety.history_failures(ROOT)
+            history.write_text("safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "remove introduced identity")
+
+            failures = public_safety.luna_history_failures_in_range(start, root=root)
 
         self.assertTrue(
-            any("luna_execution_setting" in failure for failure in failures),
+            any(
+                introduced[:12] in failure and "luna_execution_setting" in failure
+                for failure in failures
+            ),
             failures,
         )
 
     def test_luna_history_ignores_unrelated_preexisting_identity(self):
-        commit = "c" * 40
         model_line = "-".join(("GPT", "5")) + "." + "6"
         setting_line = " ".join(("Luna", "Max"))
-        resulting_text = model_line + "\n" + setting_line + "\n" + "\n".join(["safe"] * 8) + "\n"
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-existing-history-") as temp_raw:
+            root = Path(temp_raw)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            history = root / "history.txt"
+            history.write_text(
+                model_line + "\n" + setting_line + "\nsafe\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed existing identity")
+            start = git(root, "rev-parse", "HEAD")
 
-        def additions(start: str, **_kwargs):
-            if start == "luna-start":
-                return iter(((commit, "history.txt", 10, "safe"),))
-            return iter(())
+            history.write_text(
+                model_line + "\n" + setting_line + "\nsafe changed\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "change unrelated context")
 
-        with (
-            mock.patch.object(public_safety, "validate_activation_manifest", return_value={}),
-            mock.patch.object(public_safety, "added_lines_since_baseline", return_value=iter(())),
-            mock.patch.object(public_safety, "unicode_history_start", return_value=("unicode-start", "fixture")),
-            mock.patch.object(public_safety, "luna_history_start", return_value=("luna-start", "fixture")),
-            mock.patch.object(public_safety, "uuid_history_start", return_value=("uuid-start", "fixture")),
-            mock.patch.object(public_safety, "added_lines_in_range", side_effect=additions),
-            mock.patch.object(public_safety, "_git_blob", return_value=resulting_text.encode("utf-8")),
-        ):
-            failures = public_safety.history_failures(ROOT)
+            failures = public_safety.luna_history_failures_in_range(start, root=root)
 
-        self.assertFalse(
-            any("luna_execution_setting" in failure for failure in failures),
-            failures,
-        )
+        self.assertEqual([], failures)
 
     def test_luna_history_detects_deletion_only_introduction(self):
         model_line = "-".join(("GPT", "5")) + "." + "6"
