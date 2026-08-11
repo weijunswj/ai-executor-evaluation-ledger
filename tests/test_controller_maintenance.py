@@ -155,15 +155,24 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         self.assertIn("GPT-5.6 Luna", json.dumps(recommendation, sort_keys=True))
 
     def test_luna_execution_setting_identity_is_rejected_by_public_safety(self):
-        words = ("GPT", "5", "6", "Luna", "Max")
-        ordinary = "-".join(words[:2]) + "." + words[2] + " " + words[3] + " " + words[4]
+        model_words = ("GPT", "5", "6", "Luna")
+        execution_setting = "Max"
+        ordinary = (
+            "-".join(model_words[:2])
+            + "."
+            + model_words[2]
+            + " "
+            + model_words[3]
+            + " "
+            + execution_setting
+        )
         fullwidth = "".join(
             chr(ord(character) + 0xFEE0)
             if "!" <= character <= "~"
             else character
             for character in ordinary
         )
-        em_dash = chr(0x2014).join(words)
+        em_dash = chr(0x2014).join((*model_words, execution_setting))
         for identity in (ordinary, fullwidth, em_dash):
             with self.subTest(identity=repr(identity)):
                 failures = scan_public_text("probe", identity)
