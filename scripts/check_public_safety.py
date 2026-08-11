@@ -21,6 +21,7 @@ GENERIC_HISTORY_BASELINE = "c644a6032dec6709ff08b10f8bfb4fe53de28b69"
 UUID_HISTORY_ACTIVATION_HEAD = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 PR_ACTIVATION_HEAD = "10f40ea2f820f4a6230355502639bd7a238b2c45"
 CANONICAL_MAIN_BASE = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
+LUNA_HISTORY_BASE = "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898"
 PRE_ACTIVATION_OCCURRENCE_COUNT = 571
 ACTIVATION_MANIFEST_RELATIVE_PATH = Path(
     "migrations/unicode-identity-history-activation.json"
@@ -165,6 +166,7 @@ INFERENCE_IDENTITY_WORD = "reason" + "ing"
 COGNITIVE_SETTING_PARTS = ("think" + "ing", "setting")
 NATIVE_CLASSIFICATION_WORDS = ("native", INFERENCE_IDENTITY_WORD, "classification")
 GPT_MODEL_WORDS = ("GPT", "5", "6", "Sol")
+LUNA_MODEL_WORDS = ("GPT", "5", "6", "Luna")
 CLAUDE_48_MODEL_WORDS = ("Claude", "Opus", "4", "8")
 CLAUDE_5_MODEL_WORDS = ("Claude", "Opus", "5")
 MEDIUM_SETTING_WORD = "Medium"
@@ -222,6 +224,15 @@ def _identity_pattern(*words: str) -> re.Pattern[str]:
         re.IGNORECASE,
     )
 
+
+LUNA_EXECUTION_SETTING_WORDS = (
+    (*LUNA_MODEL_WORDS, MEDIUM_SETTING_WORD),
+    (*LUNA_MODEL_WORDS, HIGH_SETTING_WORD),
+    (*LUNA_MODEL_WORDS, MAX_SETTING_WORD),
+)
+LUNA_EXECUTION_SETTING_PATTERNS = tuple(
+    _identity_pattern(*words) for words in LUNA_EXECUTION_SETTING_WORDS
+)
 
 FORBIDDEN_LEDGER_IDENTITY_PATTERNS = tuple(
     _identity_pattern(*words) for words in FORBIDDEN_LEDGER_IDENTITY_WORDS
@@ -432,6 +443,18 @@ def scan_ledger_identity(label: str, text: str) -> list[str]:
     ]
 
 
+def scan_luna_execution_settings(label: str, text: str) -> list[str]:
+    failures: list[str] = []
+    for index, pattern in enumerate(LUNA_EXECUTION_SETTING_PATTERNS, start=1):
+        for match in pattern.finditer(text):
+            line = text.count("\n", 0, match.start()) + 1
+            failures.append(
+                f"{label}:{line}: forbidden ledger identity token "
+                f"[luna_execution_setting_{index:03d}]"
+            )
+    return failures
+
+
 def scan_public_text(
     label: str,
     text: str,
@@ -439,6 +462,7 @@ def scan_public_text(
     generic_text: str | None = None,
     policy_failures: Iterable[str] = (),
     generic_rules: Iterable[tuple[str, re.Pattern[str]]] = RULES,
+    include_luna_execution_settings: bool = True,
 ) -> list[str]:
     """Apply the one generic and normalized-identity scanning pipeline."""
 
@@ -451,6 +475,8 @@ def scan_public_text(
         )
     )
     failures.extend(scan_ledger_identity(label, text))
+    if include_luna_execution_settings:
+        failures.extend(scan_luna_execution_settings(label, text))
     return failures
 
 
@@ -975,6 +1001,18 @@ def history_failures(root: Path = ROOT) -> list[str]:
                 addition,
                 generic_text=prepared,
                 generic_rules=HISTORICAL_RULES,
+                include_luna_execution_settings=False,
+            )
+        )
+
+    for commit, label, line_number, addition in added_lines_in_range(
+        LUNA_HISTORY_BASE,
+        root=root,
+    ):
+        failures.extend(
+            scan_luna_execution_settings(
+                f"commit:{commit[:12]}:{label}:added-line-{line_number}",
+                addition,
             )
         )
 
