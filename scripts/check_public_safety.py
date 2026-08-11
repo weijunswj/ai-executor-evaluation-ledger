@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import io
 import re
 import subprocess
 import sys
@@ -554,19 +555,118 @@ def walk_json(value: object, label: str, path: str = "$") -> list[str]:
     return failures
 
 
-def scan_jsonl(path: Path, *, root: Path = ROOT) -> list[str]:
+def _collect_json_record_strings(
+    value: object,
+    label: str,
+    path: str = "$",
+) -> tuple[list[str], list[str]]:
+    """Validate JSON keys while retaining record-level string context."""
+
     failures: list[str] = []
-    text = path.read_text(encoding="utf-8")
-    for number, line in enumerate(text.splitlines(), start=1):
-        if not line.strip():
+    string_values: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key.lower() in SENSITIVE_JSON_KEYS:
+                failures.append(f"{label}: forbidden JSON key at {path}.{key}")
+            child_failures, child_strings = _collect_json_record_strings(
+                item,
+                label,
+                f"{path}.{key}",
+            )
+            failures.extend(child_failures)
+            string_values.extend(child_strings)
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            child_failures, child_strings = _collect_json_record_strings(
+                item,
+                label,
+                f"{path}[{index}]",
+            )
+            failures.extend(child_failures)
+            string_values.extend(child_strings)
+    elif isinstance(value, str):
+        string_values.append(value)
+    return failures, string_values
+
+
+def _scan_json_record(value: object, label: str) -> tuple[list[str], str]:
+    """Scan one parsed JSON record, including adjacent string-value context."""
+
+    failures, string_values = _collect_json_record_strings(value, label)
+    context = " ".join(string_values)
+    if context:
+        failures.extend(scan_public_text(label, context))
+    return failures, context
+
+
+def _parse_jsonl_record(raw_line: bytes) -> object:
+    if b"\0" in raw_line:
+        raise ValueError("JSONL record contains a NUL byte")
+    return json.loads(raw_line.decode("utf-8", errors="strict"))
+
+
+def _iter_jsonl_blob_records(raw: bytes) -> Iterable[tuple[int, object]]:
+    """Yield strict, parsed JSONL records without decoding the whole blob."""
+
+    for number, raw_line in enumerate(io.BytesIO(raw), start=1):
+        if not raw_line.strip():
             continue
         try:
-            record = json.loads(line)
-        except json.JSONDecodeError as exc:
-            failures.append(f"{path.relative_to(root)}:{number}: invalid JSON: {exc.msg}")
-            continue
-        failures.extend(walk_json(record, f"{path.relative_to(root)}:{number}"))
+            record = _parse_jsonl_record(raw_line)
+        except UnicodeDecodeError as error:
+            raise RuntimeError(
+                "Luna history JSONL is not strict UTF-8"
+            ) from error
+        except json.JSONDecodeError as error:
+            raise RuntimeError("Luna history JSONL contains invalid JSON") from error
+        except ValueError as error:
+            raise RuntimeError("Luna history JSONL contains invalid text") from error
+        yield number, record
+
+
+def scan_jsonl(path: Path, *, root: Path = ROOT) -> list[str]:
+    failures: list[str] = []
+    label = path.relative_to(root).as_posix()
+    with path.open("rb") as handle:
+        for number, raw_line in enumerate(handle, start=1):
+            if not raw_line.strip():
+                continue
+            try:
+                record = _parse_jsonl_record(raw_line)
+            except UnicodeDecodeError:
+                failures.append(f"{label}:{number}: invalid UTF-8")
+                continue
+            except json.JSONDecodeError as exc:
+                failures.append(f"{label}:{number}: invalid JSON: {exc.msg}")
+                continue
+            except ValueError as exc:
+                failures.append(f"{label}:{number}: invalid text: {exc}")
+                continue
+            record_failures, _context = _scan_json_record(
+                record,
+                f"{label}:{number}",
+            )
+            failures.extend(record_failures)
     return failures
+
+
+def _commit_parents(root: Path, commit: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "rev-list", "--parents", "-n", "1", commit],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("history parent authority is unavailable")
+    fields = result.stdout.split()
+    if not fields or re.fullmatch(r"[0-9a-f]{40}", fields[0]) is None:
+        raise RuntimeError("history parent authority is malformed")
+    parents = fields[1:]
+    if any(re.fullmatch(r"[0-9a-f]{40}", parent) is None for parent in parents):
+        raise RuntimeError("history parent authority is malformed")
+    return parents
 
 
 def changed_files_in_commit(commit: str, *, root: Path = ROOT) -> list[str]:
@@ -578,6 +678,7 @@ def changed_files_in_commit(commit: str, *, root: Path = ROOT) -> list[str]:
             "--no-commit-id",
             "--name-only",
             "-r",
+            "-m",
             "-z",
             commit,
         ],
@@ -585,11 +686,145 @@ def changed_files_in_commit(commit: str, *, root: Path = ROOT) -> list[str]:
         check=True,
         capture_output=True,
     )
-    return [
-        item.decode("utf-8")
-        for item in result.stdout.split(b"\0")
-        if item
-    ]
+    return sorted(
+        {
+            item.decode("utf-8")
+            for item in result.stdout.split(b"\0")
+            if item
+        }
+    )
+
+
+def _jsonl_finding_signature(failure: str) -> str:
+    return failure.rsplit(": ", 1)[-1]
+
+
+def _jsonl_finding_surplus(
+    after: Iterable[str],
+    parents: Iterable[Iterable[str]],
+) -> list[str]:
+    available: dict[str, int] = {}
+    for parent_findings in parents:
+        for failure in parent_findings:
+            signature = _jsonl_finding_signature(failure)
+            available[signature] = available.get(signature, 0) + 1
+
+    surplus: list[str] = []
+    for failure in after:
+        signature = _jsonl_finding_signature(failure)
+        remaining = available.get(signature, 0)
+        if remaining:
+            available[signature] = remaining - 1
+        else:
+            surplus.append(failure)
+    return surplus
+
+
+def _luna_history_blob_scan(
+    raw: bytes,
+    label: str,
+) -> tuple[dict[str, list[int]], list[str]]:
+    if not label.casefold().endswith(".jsonl"):
+        return _luna_match_lines_by_rule(_decode_luna_history_blob(raw)), []
+
+    matches: dict[str, list[int]] = {}
+    non_luna_failures: list[str] = []
+    for number, record in _iter_jsonl_blob_records(raw):
+        record_failures, context = _scan_json_record(
+            record,
+            f"{label}:{number}",
+        )
+        non_luna_failures.extend(
+            failure
+            for failure in record_failures
+            if "luna_execution_setting_" not in failure
+        )
+        for rule_id, line_numbers in _luna_match_lines_by_rule(context).items():
+            matches.setdefault(rule_id, []).extend(
+                number for _line_number in line_numbers
+            )
+    return matches, non_luna_failures
+
+
+def luna_history_failures_in_range(
+    start: str,
+    *,
+    end: str = "HEAD",
+    root: Path = ROOT,
+) -> list[str]:
+    """Reject Luna matches newly introduced by any changed commit result."""
+
+    _require_complete_history(root)
+    if not _git_commit_exists(root, start) or not _git_commit_exists(root, end):
+        raise RuntimeError("Luna history range authority is unavailable")
+    if not _is_ancestor(root, start, end):
+        raise RuntimeError("Luna history range authority is not an ancestor")
+    commits = subprocess.run(
+        ["git", "rev-list", "--reverse", f"{start}..{end}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+
+    failures: list[str] = []
+    for commit in commits:
+        if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+            raise RuntimeError("Luna history commit authority is malformed")
+        parents = _commit_parents(root, commit)
+        for label in changed_files_in_commit(commit, root=root):
+            after_matches, after_jsonl_findings = _luna_history_blob_scan(
+                _git_blob_or_empty(root, commit, label),
+                label,
+            )
+            parent_scans = [
+                _luna_history_blob_scan(
+                    _git_blob_or_empty(root, parent, label),
+                    label,
+                )
+                for parent in parents
+            ]
+            before_matches = [scan[0] for scan in parent_scans]
+            for rule_id, after_lines in sorted(after_matches.items()):
+                parent_count = sum(
+                    len(parent.get(rule_id, ())) for parent in before_matches
+                )
+                surplus = len(after_lines) - parent_count
+                if surplus <= 0:
+                    continue
+                allowed_lines = [
+                    line_number
+                    for line_number in after_lines
+                    if (commit, label, line_number, rule_id)
+                    in LUNA_TDD_HISTORY_ALLOWED_MATCHES
+                ]
+                remaining = max(0, surplus - min(surplus, len(allowed_lines)))
+                if remaining == 0:
+                    continue
+                report_lines = [
+                    line_number
+                    for line_number in after_lines
+                    if (commit, label, line_number, rule_id)
+                    not in LUNA_TDD_HISTORY_ALLOWED_MATCHES
+                ]
+                for ordinal in range(remaining):
+                    line_number = (
+                        report_lines[ordinal]
+                        if ordinal < len(report_lines)
+                        else after_lines[0]
+                    )
+                    failures.append(
+                        f"commit:{commit[:12]}:{label}:line-{line_number}: "
+                        f"forbidden ledger identity token [{rule_id}]"
+                    )
+            if label.casefold().endswith(".jsonl"):
+                failures.extend(
+                    _jsonl_finding_surplus(
+                        after_jsonl_findings,
+                        (scan[1] for scan in parent_scans),
+                    )
+                )
+    return failures
 
 
 def added_line_byte_records_for_path(
@@ -806,89 +1041,6 @@ def _luna_match_lines_by_rule(text: str) -> dict[str, list[int]]:
     ):
         matches.setdefault(rule_id, []).append(start_line)
     return matches
-
-
-def _first_parent(root: Path, commit: str) -> str | None:
-    result = subprocess.run(
-        ["git", "rev-parse", "--verify", f"{commit}^"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        return None
-    parent = result.stdout.strip()
-    if re.fullmatch(r"[0-9a-f]{40}", parent) is None:
-        raise RuntimeError("history parent authority is malformed")
-    return parent
-
-
-def luna_history_failures_in_range(
-    start: str,
-    *,
-    end: str = "HEAD",
-    root: Path = ROOT,
-) -> list[str]:
-    """Reject Luna matches newly introduced by any changed commit result."""
-
-    _require_complete_history(root)
-    if not _git_commit_exists(root, start) or not _git_commit_exists(root, end):
-        raise RuntimeError("Luna history range authority is unavailable")
-    if not _is_ancestor(root, start, end):
-        raise RuntimeError("Luna history range authority is not an ancestor")
-    commits = subprocess.run(
-        ["git", "rev-list", "--reverse", f"{start}..{end}"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.splitlines()
-
-    failures: list[str] = []
-    for commit in commits:
-        if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
-            raise RuntimeError("Luna history commit authority is malformed")
-        parent = _first_parent(root, commit)
-        for label in changed_files_in_commit(commit, root=root):
-            before = _decode_luna_history_blob(
-                _git_blob_or_empty(root, parent, label)
-            )
-            after = _decode_luna_history_blob(
-                _git_blob_or_empty(root, commit, label)
-            )
-            before_matches = _luna_match_lines_by_rule(before)
-            after_matches = _luna_match_lines_by_rule(after)
-            for rule_id, after_lines in sorted(after_matches.items()):
-                surplus = len(after_lines) - len(before_matches.get(rule_id, ()))
-                if surplus <= 0:
-                    continue
-                allowed_lines = [
-                    line_number
-                    for line_number in after_lines
-                    if (commit, label, line_number, rule_id)
-                    in LUNA_TDD_HISTORY_ALLOWED_MATCHES
-                ]
-                remaining = max(0, surplus - min(surplus, len(allowed_lines)))
-                if remaining == 0:
-                    continue
-                report_lines = [
-                    line_number
-                    for line_number in after_lines
-                    if (commit, label, line_number, rule_id)
-                    not in LUNA_TDD_HISTORY_ALLOWED_MATCHES
-                ]
-                for ordinal in range(remaining):
-                    line_number = (
-                        report_lines[ordinal]
-                        if ordinal < len(report_lines)
-                        else after_lines[0]
-                    )
-                    failures.append(
-                        f"commit:{commit[:12]}:{label}:line-{line_number}: "
-                        f"forbidden ledger identity token [{rule_id}]"
-                    )
-    return failures
 
 
 def _baseline_blob_is_unchanged(root: Path) -> None:

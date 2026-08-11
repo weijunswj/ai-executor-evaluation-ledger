@@ -451,5 +451,142 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             self.assertNotIn("continue-on-error", workflow)
 
 
+    def test_red_oversized_jsonl_preserves_cross_value_luna_context(self):
+        model_fragment = "-".join(("GPT", "5")) + "." + "6"
+        setting_fragment = " ".join(("Luna", "Max"))
+        record = {
+            "padding": "x" * (public_safety.MAX_TEXT_BYTES + 64),
+            "parts": [model_fragment, setting_fragment],
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            jsonl = root / "evaluations.jsonl"
+            jsonl.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            self.assertGreater(jsonl.stat().st_size, public_safety.MAX_TEXT_BYTES)
+
+            failures = public_safety.tree_failures(root)
+
+        self.assertTrue(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
+    def test_red_luna_history_merge_only_introduction_is_not_missed(self):
+        model_fragment = "-".join(("GPT", "5")) + "." + "6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.email", "test" + "@" + "example.invalid")
+            git(root, "config", "user.name", "Amendment Test")
+
+            history = root / "history.txt"
+            history.write_text("base-safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "base")
+            start = git(root, "rev-parse", "HEAD").strip()
+
+            git(root, "checkout", "-qb", "feature")
+            history.write_text("feature-safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "feature")
+
+            git(root, "checkout", "-q", "main")
+            history.write_text("main-safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "main divergence")
+
+            merge_result = subprocess.run(
+                ["git", "merge", "--no-ff", "--no-commit", "feature"],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(merge_result.returncode, 0)
+            history.write_text(
+                model_fragment + "\n" + setting_fragment + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "merge resolution")
+            introduced = git(root, "rev-parse", "HEAD").strip()
+            parents = git(root, "show", "-s", "--format=%P", introduced).split()
+            self.assertEqual(len(parents), 2)
+
+            history.write_text("safe-after-delete\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "delete transient identity")
+            end = git(root, "rev-parse", "HEAD").strip()
+
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+
+        self.assertTrue(
+            any(introduced[:12] in failure and "luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
+    def test_red_safe_oversized_jsonl_history_is_processed_incrementally(self):
+        safe_record = {"note": "x" * (public_safety.MAX_TEXT_BYTES + 64)}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.email", "test" + "@" + "example.invalid")
+            git(root, "config", "user.name", "Amendment Test")
+
+            jsonl = root / "evaluations.jsonl"
+            jsonl.write_text('{"note":"base-safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "base")
+            start = git(root, "rev-parse", "HEAD").strip()
+
+            with jsonl.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(safe_record) + "\n")
+            self.assertGreater(jsonl.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "safe oversized append")
+            end = git(root, "rev-parse", "HEAD").strip()
+
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+
+        self.assertEqual([], failures)
+
+    def test_red_unsafe_oversized_jsonl_history_remains_detectable(self):
+        model_fragment = "-".join(("GPT", "5")) + "." + "6"
+        setting_fragment = " ".join(("Luna", "Max"))
+        unsafe_record = {
+            "padding": "x" * (public_safety.MAX_TEXT_BYTES + 64),
+            "parts": [model_fragment, setting_fragment],
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.email", "test" + "@" + "example.invalid")
+            git(root, "config", "user.name", "Amendment Test")
+
+            jsonl = root / "evaluations.jsonl"
+            jsonl.write_text('{"note":"base-safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "base")
+            start = git(root, "rev-parse", "HEAD").strip()
+
+            with jsonl.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(unsafe_record) + "\n")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "unsafe oversized append")
+            end = git(root, "rev-parse", "HEAD").strip()
+
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+
+        self.assertTrue(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
