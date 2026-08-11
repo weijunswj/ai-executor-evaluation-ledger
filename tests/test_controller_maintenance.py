@@ -9,8 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from scripts import check_public_safety as public_safety
 from scripts import rebuild_views
-from scripts.check_public_safety import scan_public_text
 from scripts.validate_receipts import (
     LEGACY_FROZEN_RECEIPT_AUTHORITY,
     _running_on_canonical_main,
@@ -154,29 +154,58 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         self.assertIn("GPT-5.6 Luna", scorecard)
         self.assertIn("GPT-5.6 Luna", json.dumps(recommendation, sort_keys=True))
 
-    def test_luna_execution_setting_identity_is_rejected_by_public_safety(self):
+    def test_luna_execution_setting_identities_are_rejected_by_public_safety(self):
         model_words = ("GPT", "5", "6", "Luna")
-        execution_setting = "Max"
-        ordinary = (
-            "-".join(model_words[:2])
-            + "."
-            + model_words[2]
-            + " "
-            + model_words[3]
-            + " "
-            + execution_setting
+        for execution_setting in ("Medium", "High", "Max"):
+            ordinary = (
+                "-".join(model_words[:2])
+                + "."
+                + model_words[2]
+                + " "
+                + model_words[3]
+                + " "
+                + execution_setting
+            )
+            fullwidth = "".join(
+                chr(ord(character) + 0xFEE0)
+                if "!" <= character <= "~"
+                else character
+                for character in ordinary
+            )
+            em_dash = chr(0x2014).join((*model_words, execution_setting))
+            for identity in (ordinary, fullwidth, em_dash):
+                with self.subTest(setting=execution_setting, identity=repr(identity)):
+                    failures = public_safety.scan_public_text("probe", identity)
+                    self.assertTrue(
+                        failures,
+                        "Luna execution-setting identity must fail closed",
+                    )
+
+    def test_luna_rule_manifest_seals_all_prospective_rules(self):
+        manifest_path = ROOT / "migrations" / "luna-execution-setting-history-activation.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            set(manifest),
+            {"schema_version", "manifest_type", "rule_count", "rule_set_sha256"},
         )
-        fullwidth = "".join(
-            chr(ord(character) + 0xFEE0)
-            if "!" <= character <= "~"
-            else character
-            for character in ordinary
+        self.assertEqual(manifest["schema_version"], 1)
+        self.assertEqual(
+            manifest["manifest_type"],
+            "luna_execution_setting_history_activation",
         )
-        em_dash = chr(0x2014).join((*model_words, execution_setting))
-        for identity in (ordinary, fullwidth, em_dash):
-            with self.subTest(identity=repr(identity)):
-                failures = scan_public_text("probe", identity)
-                self.assertTrue(failures, "Luna execution-setting identity must fail closed")
+        self.assertEqual(manifest["rule_count"], 3)
+        self.assertEqual(
+            manifest["rule_set_sha256"],
+            "50cf24458a7f48235cdca3616f2cdf9cd72df171322970831644240e31162b29",
+        )
+        public_safety.validate_luna_rule_manifest(ROOT)
+        with mock.patch.object(
+            public_safety,
+            "LUNA_EXECUTION_SETTING_RULES",
+            public_safety.LUNA_EXECUTION_SETTING_RULES[:-1],
+        ):
+            with self.assertRaises(RuntimeError):
+                public_safety.validate_luna_rule_manifest(ROOT)
 
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
