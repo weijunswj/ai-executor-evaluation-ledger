@@ -133,6 +133,11 @@ jobs:
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
             legacy_context=true
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]]; then
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json | sort)
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$actual" = "$expected"
+            legacy_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
             expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml tests/test_controller_maintenance.py | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
