@@ -189,6 +189,7 @@
             "Claude Opus 5",
             "DeepSeek V4 Pro",
             "GPT-5.6 Sol",
+            "GPT-5.6 Luna",
             "Qwen3.7 Plus",
             "Gemini 3.1 Pro",
             "MiniMax M3"
@@ -458,6 +459,20 @@
             {
               "properties": {
                 "provider": {
+                  "const": "OpenAI"
+                },
+                "model": {
+                  "const": "GPT-5.6 Luna"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
                   "const": "Qwen"
                 },
                 "model": {
@@ -573,6 +588,7 @@
             "Claude Opus 5",
             "DeepSeek V4 Pro",
             "GPT-5.6 Sol",
+            "GPT-5.6 Luna",
             "Qwen3.7 Plus",
             "Gemini 3.1 Pro",
             "MiniMax M3"
@@ -851,6 +867,20 @@
                 },
                 "model": {
                   "const": "GPT-5.6 Sol"
+                }
+              },
+              "required": [
+                "provider",
+                "model"
+              ]
+            },
+            {
+              "properties": {
+                "provider": {
+                  "const": "OpenAI"
+                },
+                "model": {
+                  "const": "GPT-5.6 Luna"
                 }
               },
               "required": [
