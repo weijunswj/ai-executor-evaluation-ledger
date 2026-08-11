@@ -387,6 +387,98 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             failures,
         )
 
+    def test_red_luna_history_rejects_relocated_occurrence_with_equal_count(self):
+        model_line = "-".join(("GPT", "5")) + "." + "6"
+        setting_line = " ".join(("Luna", "Max"))
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-relocation-history-") as temp_raw:
+            root = Path(temp_raw)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            history = root / "history.txt"
+            history.write_text(
+                "header\n" + model_line + "\n" + setting_line + "\nfooter\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed grandfathered occurrence")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(
+                "header\nsafe middle\nfooter\n"
+                + model_line
+                + "\n"
+                + setting_line
+                + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "relocate occurrence without changing count")
+            introduced = git(root, "rev-parse", "HEAD")
+
+            history.write_text("safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "remove relocated occurrence")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertTrue(
+            any(
+                introduced[:12] in failure and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_luna_history_allows_continuously_inherited_line_shifts(self):
+        model_line = "-".join(("GPT", "5")) + "." + "6"
+        setting_line = " ".join(("Luna", "Max"))
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-line-shift-history-") as temp_raw:
+            root = Path(temp_raw)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            history = root / "history.txt"
+            history.write_text(
+                "header\n" + model_line + "\n" + setting_line + "\nfooter\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed inherited occurrence")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(
+                "header\nunrelated insertion\n"
+                + model_line
+                + "\n"
+                + setting_line
+                + "\nfooter\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "shift occurrence down")
+
+            history.write_text(
+                "header\n" + model_line + "\n" + setting_line + "\nfooter\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "remove unrelated insertion")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertEqual([], failures)
+
     def test_oversized_jsonl_still_rejects_luna_execution_setting(self):
         model_line = "-".join(("GPT", "5")) + "." + "6"
         setting = " ".join(("Luna", "Max"))
@@ -406,6 +498,89 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
 
         self.assertTrue(
             any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
+    def test_red_jsonl_object_keys_are_scanned_in_live_and_history(self):
+        model_fragment = "-".join(("GPT", "5")) + "." + "6"
+        setting_fragment = " ".join(("Luna", "Max"))
+        identity = model_fragment + " " + setting_fragment
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-key-context-") as temp_raw:
+            root = Path(temp_raw)
+            complete_key = root / "complete.jsonl"
+            complete_key.write_text(
+                json.dumps({identity: "safe"}) + "\n",
+                encoding="utf-8",
+            )
+            complete_failures = public_safety.scan_jsonl(complete_key, root=root)
+            self.assertTrue(
+                any("luna_execution_setting" in failure for failure in complete_failures),
+                complete_failures,
+            )
+
+            split_context = root / "split.jsonl"
+            split_context.write_text(
+                json.dumps({model_fragment: setting_fragment}) + "\n",
+                encoding="utf-8",
+            )
+            split_failures = public_safety.scan_jsonl(split_context, root=root)
+            self.assertTrue(
+                any("luna_execution_setting" in failure for failure in split_failures),
+                split_failures,
+            )
+
+            safe_keys = root / "safe.jsonl"
+            safe_keys.write_text(
+                json.dumps({"safe-key": "safe-value"}) + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], public_safety.scan_jsonl(safe_keys, root=root))
+
+            sensitive_key = root / "sensitive.jsonl"
+            sensitive_key.write_text(
+                json.dumps({"repository": "safe"}) + "\n",
+                encoding="utf-8",
+            )
+            sensitive_failures = public_safety.scan_jsonl(sensitive_key, root=root)
+            self.assertTrue(
+                any("forbidden JSON key" in failure for failure in sensitive_failures),
+                sensitive_failures,
+            )
+
+            history = root / "evaluations.jsonl"
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "seed safe JSONL")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(
+                json.dumps({identity: "safe"}) + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "introduce transient key identity")
+            introduced = git(root, "rev-parse", "HEAD")
+
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "remove transient key identity")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertTrue(
+            any(
+                introduced[:12] in failure and "luna_execution_setting" in failure
+                for failure in failures
+            ),
             failures,
         )
 
@@ -436,6 +611,76 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 clear=True,
             ):
                 self.assertFalse(_running_on_canonical_main(root, head))
+
+    def test_red_jsonl_duplicate_keys_fail_live_oversized_and_historical(self):
+        model_fragment = "-".join(("GPT", "5")) + "." + "6"
+        setting_fragment = " ".join(("Luna", "Max"))
+        identity = model_fragment + " " + setting_fragment
+        duplicate_record = (
+            '{"note":'
+            + json.dumps(identity)
+            + ',"note":"safe"}\n'
+        ).encode("utf-8")
+        nested_duplicate_record = b'{"outer":{"safe":"one","safe":"two"}}\n'
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-duplicate-keys-") as temp_raw:
+            root = Path(temp_raw)
+            live = root / "live.jsonl"
+            live.write_bytes(duplicate_record + nested_duplicate_record)
+            live_failures = public_safety.scan_jsonl(live, root=root)
+            self.assertEqual(
+                2,
+                sum("duplicate object keys" in failure for failure in live_failures),
+                live_failures,
+            )
+            self.assertTrue(
+                all(identity not in failure for failure in live_failures),
+                live_failures,
+            )
+
+            oversized_root = root / "oversized"
+            oversized_root.mkdir()
+            oversized_record = (
+                '{"padding":"'
+                + ("x" * (public_safety.MAX_TEXT_BYTES + 64))
+                + '","note":'
+                + json.dumps(identity)
+                + ',"note":"safe"}\n'
+            ).encode("utf-8")
+            oversized_path = oversized_root / "evaluations.jsonl"
+            oversized_path.write_bytes(oversized_record)
+            self.assertGreater(oversized_path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            oversized_failures = public_safety.tree_failures(oversized_root)
+            self.assertTrue(
+                any("duplicate object keys" in failure for failure in oversized_failures),
+                oversized_failures,
+            )
+
+            history = root / "historical-evaluations.jsonl"
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "ledger-fixture")
+            git(root, "config", "user.email", "fixture" + "@" + "example.invalid")
+            git(root, "add", "historical-evaluations.jsonl")
+            git(root, "commit", "-qm", "seed historical JSONL")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_bytes(duplicate_record)
+            git(root, "add", "historical-evaluations.jsonl")
+            git(root, "commit", "-qm", "introduce duplicate JSONL key")
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "historical-evaluations.jsonl")
+            git(root, "commit", "-qm", "remove duplicate JSONL key")
+            end = git(root, "rev-parse", "HEAD")
+
+            with self.assertRaisesRegex(RuntimeError, "invalid text") as context:
+                public_safety.luna_history_failures_in_range(
+                    start,
+                    end=end,
+                    root=root,
+                )
+
+        self.assertNotIn(identity, str(context.exception))
 
     def test_legacy_receipt_authority_is_exact_public_pr151_terminal(self):
         self.assertEqual(

@@ -462,6 +462,26 @@ def _iter_normalized_identity_matches(
     return matches
 
 
+def _iter_normalized_identity_run_spans(
+    text: str,
+    rules_by_first_token: Mapping[str, tuple[tuple[str, tuple[str, ...]], ...]],
+) -> list[tuple[str, int, int, int, int]]:
+    normalized, runs = _unicode_alphanumeric_runs(text)
+    run_values = tuple(value for value, _offset in runs)
+    matches: list[tuple[str, int, int, int, int]] = []
+    for index, (first, offset) in enumerate(runs):
+        for rule_id, sequence in rules_by_first_token.get(first, ()):
+            width = len(sequence)
+            if run_values[index : index + width] != sequence:
+                continue
+            last_value, last_offset = runs[index + width - 1]
+            end_offset = last_offset + len(last_value)
+            matches.append(
+                (rule_id, index, index + width - 1, offset, end_offset)
+            )
+    return matches
+
+
 def _iter_normalized_identity_line_spans(
     text: str,
     rules_by_first_token: Mapping[str, tuple[tuple[str, tuple[str, ...]], ...]],
@@ -559,50 +579,123 @@ def _collect_json_record_strings(
     value: object,
     label: str,
     path: str = "$",
-) -> tuple[list[str], list[str]]:
-    """Validate JSON keys while retaining record-level string context."""
+) -> tuple[list[str], list[str], list[tuple[str, bool]]]:
+    """Validate JSON keys while retaining value and key-aware contexts."""
 
     failures: list[str] = []
     string_values: list[str] = []
+    record_strings: list[tuple[str, bool]] = []
     if isinstance(value, dict):
         for key, item in value.items():
             if key.lower() in SENSITIVE_JSON_KEYS:
                 failures.append(f"{label}: forbidden JSON key at {path}.{key}")
-            child_failures, child_strings = _collect_json_record_strings(
+            record_strings.append((key, True))
+            child_failures, child_strings, child_record_strings = _collect_json_record_strings(
                 item,
                 label,
                 f"{path}.{key}",
             )
             failures.extend(child_failures)
             string_values.extend(child_strings)
+            record_strings.extend(child_record_strings)
     elif isinstance(value, list):
         for index, item in enumerate(value):
-            child_failures, child_strings = _collect_json_record_strings(
+            child_failures, child_strings, child_record_strings = _collect_json_record_strings(
                 item,
                 label,
                 f"{path}[{index}]",
             )
             failures.extend(child_failures)
             string_values.extend(child_strings)
+            record_strings.extend(child_record_strings)
     elif isinstance(value, str):
         string_values.append(value)
-    return failures, string_values
+        record_strings.append((value, False))
+    return failures, string_values, record_strings
 
 
-def _scan_json_record(value: object, label: str) -> tuple[list[str], str]:
-    """Scan one parsed JSON record, including adjacent string-value context."""
+def _scan_json_record(
+    value: object,
+    label: str,
+) -> tuple[list[str], tuple[str, list[tuple[str, bool]]]]:
+    """Scan one record in value-only and key-aware deterministic contexts."""
 
-    failures, string_values = _collect_json_record_strings(value, label)
-    context = " ".join(string_values)
-    if context:
-        failures.extend(scan_public_text(label, context))
-    return failures, context
+    failures, string_values, record_strings = _collect_json_record_strings(value, label)
+    value_context = " ".join(string_values)
+    record_context = " ".join(text for text, _is_key in record_strings)
+    if value_context:
+        failures.extend(scan_public_text(label, value_context))
+    seen_failures = set(failures)
+    if record_context:
+        for failure in scan_public_text(label, record_context):
+            if failure not in seen_failures:
+                failures.append(failure)
+                seen_failures.add(failure)
+    return failures, (value_context, record_strings)
+
+
+def _luna_json_record_occurrences(
+    value_context: str,
+    record_strings: list[tuple[str, bool]],
+) -> dict[str, list[tuple[int, int]]]:
+    occurrences = _luna_match_occurrence_spans_by_rule(value_context)
+    record_context = " ".join(text for text, _is_key in record_strings)
+    if not record_context:
+        return occurrences
+
+    normalized, runs = _unicode_alphanumeric_runs(record_context)
+    part_ranges: list[tuple[int, int, bool]] = []
+    part_offset = 0
+    for text, is_key in record_strings:
+        normalized_part = unicodedata.normalize("NFKC", text).casefold()
+        part_ranges.append(
+            (part_offset, part_offset + len(normalized_part), is_key)
+        )
+        part_offset += len(normalized_part) + 1
+
+    for (
+        rule_id,
+        start_index,
+        end_index,
+        start_offset,
+        end_offset,
+    ) in _iter_normalized_identity_run_spans(
+        record_context,
+        LUNA_SEQUENCES_BY_FIRST_TOKEN,
+    ):
+        uses_key = any(
+            is_key
+            for _run_value, run_offset in runs[start_index : end_index + 1]
+            for part_start, part_end, is_key in part_ranges
+            if part_start <= run_offset < part_end
+        )
+        if not uses_key:
+            continue
+        occurrences.setdefault(rule_id, []).append(
+            (
+                normalized.count("\n", 0, start_offset) + 1,
+                normalized.count("\n", 0, end_offset) + 1,
+            )
+        )
+    return occurrences
 
 
 def _parse_jsonl_record(raw_line: bytes) -> object:
     if b"\0" in raw_line:
         raise ValueError("JSONL record contains a NUL byte")
-    return json.loads(raw_line.decode("utf-8", errors="strict"))
+
+    def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        record: dict[str, object] = {}
+        for key, value in pairs:
+            if key in record:
+                raise ValueError("JSONL record contains duplicate object keys")
+            record[key] = value
+        return record
+
+    return json.loads(
+        raw_line.decode("utf-8", errors="strict"),
+        object_pairs_hook=reject_duplicates,
+    )
 
 
 def _iter_jsonl_blob_records(raw: bytes) -> Iterable[tuple[int, object]]:
@@ -723,14 +816,14 @@ def _jsonl_finding_surplus(
 def _luna_history_blob_scan(
     raw: bytes,
     label: str,
-) -> tuple[dict[str, list[int]], list[str]]:
+) -> tuple[dict[str, list[tuple[int, int]]], list[str]]:
     if not label.casefold().endswith(".jsonl"):
-        return _luna_match_lines_by_rule(_decode_luna_history_blob(raw)), []
+        return _luna_match_occurrence_spans_by_rule(_decode_luna_history_blob(raw)), []
 
-    matches: dict[str, list[int]] = {}
+    matches: dict[str, list[tuple[int, int]]] = {}
     non_luna_failures: list[str] = []
     for number, record in _iter_jsonl_blob_records(raw):
-        record_failures, context = _scan_json_record(
+        record_failures, (value_context, record_strings) = _scan_json_record(
             record,
             f"{label}:{number}",
         )
@@ -739,11 +832,197 @@ def _luna_history_blob_scan(
             for failure in record_failures
             if "luna_execution_setting_" not in failure
         )
-        for rule_id, line_numbers in _luna_match_lines_by_rule(context).items():
+        for rule_id, spans in _luna_json_record_occurrences(
+            value_context,
+            record_strings,
+        ).items():
             matches.setdefault(rule_id, []).extend(
-                number for _line_number in line_numbers
+                (number, number) for _start_line, _end_line in spans
             )
     return matches, non_luna_failures
+
+
+def _line_ranges_from_hunks(
+    hunks: list[tuple[int, int, int, int]],
+) -> list[tuple[int, int | None, int]]:
+    if not hunks:
+        return [(1, None, 0)]
+
+    ranges: list[tuple[int, int | None, int]] = []
+    previous_new = 1
+    previous_old = 1
+    for old_start, old_count, new_start, new_count in hunks:
+        before_new_end = new_start - 1 if new_count else new_start
+        before_old_end = old_start - 1 if old_count else old_start
+        if (
+            before_new_end - previous_new
+            != before_old_end - previous_old
+        ):
+            raise RuntimeError("history parent-child mapping is malformed")
+        if before_new_end >= previous_new:
+            ranges.append(
+                (
+                    previous_new,
+                    before_new_end,
+                    previous_old - previous_new,
+                )
+            )
+        previous_new = new_start + new_count if new_count else new_start + 1
+        previous_old = old_start + old_count if old_count else old_start + 1
+    ranges.append((previous_new, None, previous_old - previous_new))
+    return ranges
+
+
+def _unchanged_line_ranges_for_path(
+    parent: str,
+    child: str,
+    label: str,
+    *,
+    root: Path,
+) -> list[tuple[int, int | None, int]]:
+    return _unchanged_line_ranges_for_commit(
+        str(root),
+        parent,
+        child,
+    ).get(label, [(1, None, 0)])
+
+
+@lru_cache(maxsize=256)
+def _unchanged_line_ranges_for_commit(
+    root_text: str,
+    parent: str,
+    child: str,
+) -> dict[str, list[tuple[int, int | None, int]]]:
+    root = Path(root_text)
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--no-renames",
+            "--unified=0",
+            "--format=",
+            "--no-prefix",
+            parent,
+            child,
+            "--",
+        ],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("history parent-child mapping is unavailable")
+
+    hunks_by_path: dict[str, list[tuple[int, int, int, int]]] = {}
+    current_path: str | None = None
+    for raw_line in result.stdout.splitlines():
+        if raw_line.startswith(b"+++ "):
+            path = raw_line[4:].decode("utf-8", errors="strict")
+            if path == "/dev/null":
+                current_path = None
+                continue
+            current_path = path
+            hunks_by_path.setdefault(current_path, [])
+            continue
+        if current_path is None or not raw_line.startswith(b"@@ "):
+            continue
+        match = re.match(
+            br"^@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@",
+            raw_line,
+        )
+        if match is None:
+            raise RuntimeError("history parent-child mapping is malformed")
+        hunks_by_path[current_path].append(
+            (
+                int(match.group(1)),
+                int(match.group(2) or b"1"),
+                int(match.group(3)),
+                int(match.group(4) or b"1"),
+            )
+        )
+    return {
+        path: _line_ranges_from_hunks(hunks)
+        for path, hunks in hunks_by_path.items()
+    }
+
+
+def _map_occurrence_span(
+    occurrence: tuple[int, int],
+    ranges: list[tuple[int, int | None, int]],
+) -> tuple[int, int] | None:
+    mapped: list[int] = []
+    for line_number in range(occurrence[0], occurrence[1] + 1):
+        parent_line: int | None = None
+        for start, end, offset in ranges:
+            if line_number >= start and (end is None or line_number <= end):
+                parent_line = line_number + offset
+                break
+        if parent_line is None:
+            return None
+        mapped.append(parent_line)
+    if not mapped or mapped != list(range(mapped[0], mapped[-1] + 1)):
+        return None
+    return mapped[0], mapped[-1]
+
+
+def _occurrence_range_index(
+    occurrence: tuple[int, int],
+    ranges: list[tuple[int, int | None, int]],
+) -> int | None:
+    for index, (start, end, _offset) in enumerate(ranges):
+        if occurrence[0] >= start and (
+            end is None or occurrence[1] <= end
+        ):
+            return index
+    return None
+
+
+def _inherited_occurrence_indexes(
+    rule_id: str,
+    after_occurrences: list[tuple[int, int]],
+    parent_scans: list[dict[str, list[tuple[int, int]]]],
+    parent_ranges: list[list[tuple[int, int | None, int]]],
+) -> set[int]:
+    used_parent_occurrences = [set() for _ in parent_scans]
+    inherited: set[int] = set()
+    for after_index, occurrence in enumerate(after_occurrences):
+        for parent_index, parent_scan in enumerate(parent_scans):
+            mapped = _map_occurrence_span(occurrence, parent_ranges[parent_index])
+            if mapped is None:
+                continue
+            range_index = _occurrence_range_index(
+                occurrence,
+                parent_ranges[parent_index],
+            )
+            if range_index is None:
+                continue
+            if range_index != len(parent_ranges[parent_index]) - 1:
+                occurrence_offset = mapped[0] - occurrence[0]
+                neighbouring_offsets = {
+                    parent_ranges[parent_index][range_index - 1][2]
+                    if range_index
+                    else None,
+                    parent_ranges[parent_index][range_index + 1][2]
+                    if range_index + 1 < len(parent_ranges[parent_index])
+                    else None,
+                }
+                if occurrence_offset not in neighbouring_offsets:
+                    continue
+            for parent_occurrence_index, parent_occurrence in enumerate(
+                parent_scan.get(rule_id, ())
+            ):
+                if parent_occurrence_index in used_parent_occurrences[parent_index]:
+                    continue
+                if parent_occurrence != mapped:
+                    continue
+                used_parent_occurrences[parent_index].add(parent_occurrence_index)
+                inherited.add(after_index)
+                break
+            if after_index in inherited:
+                break
+    return inherited
 
 
 def luna_history_failures_in_range(
@@ -785,36 +1064,48 @@ def luna_history_failures_in_range(
                 for parent in parents
             ]
             before_matches = [scan[0] for scan in parent_scans]
-            for rule_id, after_lines in sorted(after_matches.items()):
-                parent_count = sum(
-                    len(parent.get(rule_id, ())) for parent in before_matches
-                )
-                surplus = len(after_lines) - parent_count
-                if surplus <= 0:
-                    continue
-                allowed_lines = [
-                    line_number
-                    for line_number in after_lines
-                    if (commit, label, line_number, rule_id)
-                    in LUNA_TDD_HISTORY_ALLOWED_MATCHES
-                ]
-                remaining = max(0, surplus - min(surplus, len(allowed_lines)))
-                if remaining == 0:
-                    continue
-                report_lines = [
-                    line_number
-                    for line_number in after_lines
-                    if (commit, label, line_number, rule_id)
-                    not in LUNA_TDD_HISTORY_ALLOWED_MATCHES
-                ]
-                for ordinal in range(remaining):
-                    line_number = (
-                        report_lines[ordinal]
-                        if ordinal < len(report_lines)
-                        else after_lines[0]
+            parent_ranges = (
+                [
+                    _unchanged_line_ranges_for_path(
+                        parent,
+                        commit,
+                        label,
+                        root=root,
                     )
+                    for parent in parents
+                ]
+                if after_matches
+                else []
+            )
+            for rule_id, after_occurrences in sorted(after_matches.items()):
+                inherited = _inherited_occurrence_indexes(
+                    rule_id,
+                    after_occurrences,
+                    before_matches,
+                    parent_ranges,
+                )
+                new_indexes = [
+                    index
+                    for index in range(len(after_occurrences))
+                    if index not in inherited
+                ]
+                allowed_indexes: set[int] = set()
+                consumed_exceptions: set[tuple[str, str, int, str]] = set()
+                for index in new_indexes:
+                    start_line, _end_line = after_occurrences[index]
+                    exception = (commit, label, start_line, rule_id)
+                    if (
+                        exception in LUNA_TDD_HISTORY_ALLOWED_MATCHES
+                        and exception not in consumed_exceptions
+                    ):
+                        allowed_indexes.add(index)
+                        consumed_exceptions.add(exception)
+                for index in new_indexes:
+                    if index in allowed_indexes:
+                        continue
+                    start_line, _end_line = after_occurrences[index]
                     failures.append(
-                        f"commit:{commit[:12]}:{label}:line-{line_number}: "
+                        f"commit:{commit[:12]}:{label}:line-{start_line}: "
                         f"forbidden ledger identity token [{rule_id}]"
                     )
             if label.casefold().endswith(".jsonl"):
@@ -1034,12 +1325,21 @@ def _decode_luna_history_blob(raw: bytes) -> str:
 
 
 def _luna_match_lines_by_rule(text: str) -> dict[str, list[int]]:
-    matches: dict[str, list[int]] = {}
+    return {
+        rule_id: [start_line for start_line, _end_line in spans]
+        for rule_id, spans in _luna_match_occurrence_spans_by_rule(text).items()
+    }
+
+
+def _luna_match_occurrence_spans_by_rule(
+    text: str,
+) -> dict[str, list[tuple[int, int]]]:
+    matches: dict[str, list[tuple[int, int]]] = {}
     for rule_id, start_line, _end_line in _iter_normalized_identity_line_spans(
         text,
         LUNA_SEQUENCES_BY_FIRST_TOKEN,
     ):
-        matches.setdefault(rule_id, []).append(start_line)
+        matches.setdefault(rule_id, []).append((start_line, _end_line))
     return matches
 
 
