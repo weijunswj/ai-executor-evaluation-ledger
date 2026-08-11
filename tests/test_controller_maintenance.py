@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import json
 import os
 import subprocess
 import tempfile
@@ -7,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from scripts import rebuild_views
 from scripts.validate_receipts import (
     LEGACY_FROZEN_RECEIPT_AUTHORITY,
     _running_on_canonical_main,
@@ -128,6 +131,27 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             workflow = (ROOT / relative).read_text(encoding="utf-8")
             self.assertIn("GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover", workflow)
             self.assertIn("controller/ledger-maintenance-*", workflow)
+
+    def test_luna_controller_evaluation_reaches_generated_views(self):
+        records = rebuild_views.load_records()
+        source = next(
+            copy.deepcopy(record)
+            for record in reversed(records)
+            if record.get("record_type") == "evaluation"
+        )
+        source["run_id"] = "controller-luna-view-generation-probe"
+        source["provider"] = "OpenAI"
+        source["model"] = "GPT-5.6 Luna"
+        source["reviewed_at"] = "2026-08-11T00:00:00Z"
+        source["subject_alias"] = "controller-luna-schema-probe"
+        source["revision_binding"] = "non-identifying-controller-luna-schema-probe"
+
+        evaluations = rebuild_views.resolved_evaluations([*records, source])
+        readme, scorecard, recommendation = rebuild_views.expected_files(evaluations)
+
+        self.assertIn("GPT-5.6 Luna", readme)
+        self.assertIn("GPT-5.6 Luna", scorecard)
+        self.assertIn("GPT-5.6 Luna", json.dumps(recommendation, sort_keys=True))
 
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
