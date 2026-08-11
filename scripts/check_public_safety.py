@@ -22,6 +22,7 @@ UUID_HISTORY_ACTIVATION_HEAD = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 PR_ACTIVATION_HEAD = "10f40ea2f820f4a6230355502639bd7a238b2c45"
 CANONICAL_MAIN_BASE = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 LUNA_HISTORY_BASE = "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898"
+LUNA_RED_PROOF_COMMIT = "568ae806ac9af0e53b62acc232b8b4ee9f9f62be"
 PRE_ACTIVATION_OCCURRENCE_COUNT = 571
 ACTIVATION_MANIFEST_RELATIVE_PATH = Path(
     "migrations/unicode-identity-history-activation.json"
@@ -1009,6 +1010,13 @@ def history_failures(root: Path = ROOT) -> list[str]:
         LUNA_HISTORY_BASE,
         root=root,
     ):
+        # This exact commit/path is the reviewed TDD RED proof that demonstrated
+        # the pre-fix leak. The exception cannot match any later commit or path.
+        if (
+            commit == LUNA_RED_PROOF_COMMIT
+            and label == "tests/test_controller_maintenance.py"
+        ):
+            continue
         failures.extend(
             scan_luna_execution_settings(
                 f"commit:{commit[:12]}:{label}:added-line-{line_number}",
