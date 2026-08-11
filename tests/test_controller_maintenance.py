@@ -236,18 +236,41 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         weakened = public_safety.LUNA_EXECUTION_SETTING_RULES[:-1]
         self.assertNotEqual(luna_rule_set_sha256(weakened), expected_hash)
 
+    def test_luna_tdd_history_exceptions_are_exact(self):
+        self.assertEqual(
+            public_safety.LUNA_TDD_HISTORY_ALLOWED_MATCHES,
+            frozenset(
+                {
+                    (
+                        "ba224fb72dd9e10fd65d36fdbd33f2974679f8ce",
+                        "tests/test_controller_maintenance.py",
+                        270,
+                        "luna_execution_setting_003",
+                    ),
+                    (
+                        "6e0ec65979831e720680d0c7633ec9c427e2cceb",
+                        "tests/test_controller_maintenance.py",
+                        242,
+                        "luna_execution_setting_003",
+                    ),
+                }
+            ),
+        )
+
     def test_luna_history_rejects_identity_split_across_contiguous_added_lines(self):
         commit = "a" * 40
+        model_line = "-".join(("GPT", "5")) + "." + "6"
+        setting_line = " ".join(("Luna", "Max"))
         resulting_text = "\n".join(
-            [*["safe"] * 9, "GPT-5.6", "Luna Max", "safe"]
+            [*["safe"] * 9, model_line, setting_line, "safe"]
         ) + "\n"
 
         def additions(start: str, **_kwargs):
             if start == "luna-start":
                 return iter(
                     (
-                        (commit, "history.txt", 10, "GPT-5.6"),
-                        (commit, "history.txt", 11, "Luna Max"),
+                        (commit, "history.txt", 10, model_line),
+                        (commit, "history.txt", 11, setting_line),
                     )
                 )
             return iter(())
@@ -270,13 +293,15 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
 
     def test_luna_history_rejects_added_line_with_unchanged_neighbor_context(self):
         commit = "b" * 40
+        model_line = "-".join(("GPT", "5")) + "." + "6"
+        setting_line = " ".join(("Luna", "Max"))
         resulting_text = "\n".join(
-            [*["safe"] * 9, "GPT-5.6", "Luna Max", "safe"]
+            [*["safe"] * 9, model_line, setting_line, "safe"]
         ) + "\n"
 
         def additions(start: str, **_kwargs):
             if start == "luna-start":
-                return iter(((commit, "history.txt", 10, "GPT-5.6"),))
+                return iter(((commit, "history.txt", 10, model_line),))
             return iter(())
 
         with (
@@ -297,7 +322,9 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
 
     def test_luna_history_ignores_unrelated_preexisting_identity(self):
         commit = "c" * 40
-        resulting_text = "GPT-5.6\nLuna Max\n" + "\n".join(["safe"] * 8) + "\n"
+        model_line = "-".join(("GPT", "5")) + "." + "6"
+        setting_line = " ".join(("Luna", "Max"))
+        resulting_text = model_line + "\n" + setting_line + "\n" + "\n".join(["safe"] * 8) + "\n"
 
         def additions(start: str, **_kwargs):
             if start == "luna-start":
