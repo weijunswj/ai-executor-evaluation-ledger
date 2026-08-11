@@ -238,6 +238,9 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
 
     def test_luna_history_rejects_identity_split_across_contiguous_added_lines(self):
         commit = "a" * 40
+        resulting_text = "\n".join(
+            [*["safe"] * 9, "GPT-5.6", "Luna Max", "safe"]
+        ) + "\n"
 
         def additions(start: str, **_kwargs):
             if start == "luna-start":
@@ -256,6 +259,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             mock.patch.object(public_safety, "luna_history_start", return_value=("luna-start", "fixture")),
             mock.patch.object(public_safety, "uuid_history_start", return_value=("uuid-start", "fixture")),
             mock.patch.object(public_safety, "added_lines_in_range", side_effect=additions),
+            mock.patch.object(public_safety, "_git_blob", return_value=resulting_text.encode("utf-8")),
         ):
             failures = public_safety.history_failures(ROOT)
 
