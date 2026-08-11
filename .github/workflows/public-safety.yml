@@ -96,7 +96,7 @@ jobs:
           if [[ "$data_only_evaluation" == true ]]; then
             python -m unittest tests.test_controller_maintenance
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]] || [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" && "$BASE_SHA" == "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898" ]]; then
-            schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json | sort)
+            schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json scripts/rebuild_views.py tests/test_controller_maintenance.py | sort)
             schema_actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$schema_actual" = "$schema_expected"
             python -m unittest tests.test_controller_maintenance
@@ -200,7 +200,7 @@ jobs:
             test "$actual" = "$expected"
             legacy_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]]; then
-            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json | sort)
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json scripts/rebuild_views.py tests/test_controller_maintenance.py | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
             legacy_context=true
