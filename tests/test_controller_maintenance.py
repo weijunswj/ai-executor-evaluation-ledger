@@ -236,6 +236,34 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         weakened = public_safety.LUNA_EXECUTION_SETTING_RULES[:-1]
         self.assertNotEqual(luna_rule_set_sha256(weakened), expected_hash)
 
+    def test_luna_history_rejects_identity_split_across_contiguous_added_lines(self):
+        commit = "a" * 40
+
+        def additions(start: str, **_kwargs):
+            if start == "luna-start":
+                return iter(
+                    (
+                        (commit, "history.txt", 10, "GPT-5.6"),
+                        (commit, "history.txt", 11, "Luna Max"),
+                    )
+                )
+            return iter(())
+
+        with (
+            mock.patch.object(public_safety, "validate_activation_manifest", return_value={}),
+            mock.patch.object(public_safety, "added_lines_since_baseline", return_value=iter(())),
+            mock.patch.object(public_safety, "unicode_history_start", return_value=("unicode-start", "fixture")),
+            mock.patch.object(public_safety, "luna_history_start", return_value=("luna-start", "fixture")),
+            mock.patch.object(public_safety, "uuid_history_start", return_value=("uuid-start", "fixture")),
+            mock.patch.object(public_safety, "added_lines_in_range", side_effect=additions),
+        ):
+            failures = public_safety.history_failures(ROOT)
+
+        self.assertTrue(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
         with mock.patch.dict(
