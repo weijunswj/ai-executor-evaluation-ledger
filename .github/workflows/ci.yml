@@ -94,7 +94,7 @@ jobs:
           if [[ "$data_only_evaluation" == true ]]; then
             python -m unittest tests.test_controller_maintenance
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]] || [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" && "$BASE_SHA" == "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898" ]]; then
-            schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
+            schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
             schema_actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$schema_actual" = "$schema_expected"
             python -m unittest tests.test_controller_maintenance tests.test_migration tests.test_check_public_safety
@@ -206,7 +206,7 @@ jobs:
             test "$actual" = "$expected"
             legacy_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]]; then
-            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
             legacy_context=true
