@@ -816,8 +816,13 @@ def _jsonl_finding_surplus(
 def _luna_history_blob_scan(
     raw: bytes,
     label: str,
+    *,
+    root: Path,
+    revision: str | None,
 ) -> tuple[dict[str, list[tuple[int, int]]], list[str]]:
     if not label.casefold().endswith(".jsonl"):
+        if raw and _git_revision_blob_is_binary(root, revision, label):
+            return {}, []
         return _luna_match_occurrence_spans_by_rule(_decode_luna_history_blob(raw)), []
 
     matches: dict[str, list[tuple[int, int]]] = {}
@@ -1055,11 +1060,15 @@ def luna_history_failures_in_range(
             after_matches, after_jsonl_findings = _luna_history_blob_scan(
                 _git_blob_or_empty(root, commit, label),
                 label,
+                root=root,
+                revision=commit,
             )
             parent_scans = [
                 _luna_history_blob_scan(
                     _git_blob_or_empty(root, parent, label),
                     label,
+                    root=root,
+                    revision=parent,
                 )
                 for parent in parents
             ]
@@ -1311,6 +1320,40 @@ def _git_blob_or_empty(root: Path, revision: str | None, relative_path: str) -> 
     if not _git_commit_exists(root, revision):
         raise RuntimeError("history authority commit is unavailable")
     return b""
+
+
+def _git_revision_blob_is_binary(
+    root: Path,
+    revision: str | None,
+    relative_path: str,
+) -> bool:
+    if revision is None:
+        return False
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--numstat",
+            "--no-renames",
+            "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+            revision,
+            "--",
+            relative_path,
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("history authority blob type is unavailable")
+    lines = result.stdout.splitlines()
+    if not lines:
+        return False
+    fields = lines[0].split("\t", 2)
+    if len(fields) != 3:
+        raise RuntimeError("history authority blob type is malformed")
+    return fields[0] == "-" and fields[1] == "-"
 
 
 def _decode_luna_history_blob(raw: bytes) -> str:
@@ -1600,12 +1643,18 @@ def tree_failures(root: Path) -> list[str]:
     """Return privacy-safe failures for a complete isolated candidate tree."""
     failures: list[str] = []
     for path in sorted(root.rglob("*")):
-        if not path.is_file() or ".git" in path.parts:
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        if ".git" in relative.parts:
+            continue
+        label = relative.as_posix()
+        if label.casefold().endswith(".jsonl"):
+            failures.extend(scan_jsonl(path, root=root))
             continue
         text = decode_text(path)
         if text is None:
             continue
-        label = path.relative_to(root).as_posix()
         prepared, policy_failures = prepare_tracked_text(label, text)
         failures.extend(
             scan_public_text(
@@ -1615,10 +1664,6 @@ def tree_failures(root: Path) -> list[str]:
                 policy_failures=policy_failures,
             )
         )
-
-    jsonl = root / "evaluations.jsonl"
-    if jsonl.exists():
-        failures.extend(scan_jsonl(jsonl, root=root))
 
     return failures
 

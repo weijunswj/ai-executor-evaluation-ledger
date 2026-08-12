@@ -33,6 +33,44 @@ def git(root: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def init_fixture_repo(root: Path) -> None:
+    git(root, "init", "-q", "-b", "main")
+    git(root, 'config', 'user.name', 'ledger-fixture')
+    git(root, 'config', 'user.email', 'fixture' + '@' + 'example.invalid')
+
+
+def nested_candidate_tree(base: Path) -> Path:
+    candidate = base / 'repository' / '.git' / 'candidate'
+    candidate.mkdir(parents=True)
+    return candidate
+
+
+def write_candidate_jsonl(candidate: Path, raw: bytes) -> Path:
+    path = candidate / 'ledger' / 'dispositions.jsonl'
+    path.parent.mkdir(parents=True)
+    path.write_bytes(raw)
+    return path
+
+
+def luna_identity() -> str:
+    return '-'.join(('GPT', '5')) + '.6 ' + ' '.join(('Luna', 'Max'))
+
+
+def commit_blob(root: Path, relative: str, data: bytes, message: str) -> str:
+    path = root / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    git(root, 'add', relative)
+    git(root, 'commit', '-qm', message)
+    return git(root, 'rev-parse', 'HEAD')
+
+
+def commit_delete(root: Path, relative: str, message: str) -> str:
+    git(root, 'rm', '-q', relative)
+    git(root, 'commit', '-qm', message)
+    return git(root, 'rev-parse', 'HEAD')
+
+
 def luna_rule_set_sha256(rules: tuple[tuple[str, tuple[str, ...]], ...]) -> str:
     structures = []
     for rule_id, sequence in rules:
@@ -798,6 +836,151 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
 
         self.assertEqual([], failures)
+
+    def test_red_oversized_non_root_jsonl_luna_identity_is_scanned(self):
+        model = '-'.join(('GPT', '5')) + '.6'
+        setting = ' '.join(('Luna', 'Max'))
+        with tempfile.TemporaryDirectory() as temp_raw:
+            candidate = nested_candidate_tree(Path(temp_raw))
+            path = write_candidate_jsonl(candidate, (
+                json.dumps({'padding': 'x' * (public_safety.MAX_TEXT_BYTES + 64),
+                            'note': model + ' ' + setting}, separators=(',', ':'))
+                + '\n'
+            ).encode('utf-8'))
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            failures = public_safety.tree_failures(candidate)
+        self.assertTrue(any('luna_execution_setting' in x for x in failures), failures)
+
+    def test_red_oversized_non_root_jsonl_cross_value_identity_is_scanned(self):
+        model = '-'.join(('GPT', '5')) + '.6'
+        setting = ' '.join(('Luna', 'Max'))
+        with tempfile.TemporaryDirectory() as temp_raw:
+            candidate = nested_candidate_tree(Path(temp_raw))
+            path = write_candidate_jsonl(candidate, (
+                json.dumps({'padding': 'x' * (public_safety.MAX_TEXT_BYTES + 64),
+                            'parts': [model, setting]}, separators=(',', ':'))
+                + '\n'
+            ).encode('utf-8'))
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            failures = public_safety.tree_failures(candidate)
+        self.assertTrue(any('luna_execution_setting' in x for x in failures), failures)
+
+    def test_red_oversized_non_root_jsonl_object_key_is_scanned(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            candidate = nested_candidate_tree(Path(temp_raw))
+            path = write_candidate_jsonl(candidate, (
+                json.dumps({'padding': 'x' * (public_safety.MAX_TEXT_BYTES + 64),
+                            luna_identity(): 'safe'}, separators=(',', ':'))
+                + '\n'
+            ).encode('utf-8'))
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            failures = public_safety.tree_failures(candidate)
+        self.assertTrue(any('luna_execution_setting' in x for x in failures), failures)
+
+    def test_red_oversized_non_root_jsonl_duplicate_key_fails_closed(self):
+        q = chr(34)
+        raw = (
+            '{' + q + 'padding' + q + ':' + q
+            + ('x' * (public_safety.MAX_TEXT_BYTES + 64)) + q + ','
+            + q + 'note' + q + ':' + json.dumps(luna_identity()) + ','
+            + q + 'note' + q + ':' + q + 'safe' + q + '}\n'
+        ).encode('utf-8')
+        with tempfile.TemporaryDirectory() as temp_raw:
+            candidate = nested_candidate_tree(Path(temp_raw))
+            path = write_candidate_jsonl(candidate, raw)
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            failures = public_safety.tree_failures(candidate)
+        self.assertTrue(any('duplicate object keys' in x for x in failures), failures)
+        self.assertTrue(all(luna_identity() not in x for x in failures), failures)
+
+    def test_red_oversized_non_root_jsonl_sensitive_key_is_scanned(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            candidate = nested_candidate_tree(Path(temp_raw))
+            path = write_candidate_jsonl(candidate, (
+                json.dumps({'padding': 'x' * (public_safety.MAX_TEXT_BYTES + 64),
+                            'repository': 'safe'}, separators=(',', ':'))
+                + '\n'
+            ).encode('utf-8'))
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            failures = public_safety.tree_failures(candidate)
+        self.assertTrue(any('forbidden JSON key' in x for x in failures), failures)
+
+    def test_red_safe_oversized_non_root_jsonl_is_accepted(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            candidate = nested_candidate_tree(Path(temp_raw))
+            path = write_candidate_jsonl(candidate, (
+                json.dumps({'padding': 'x' * (public_safety.MAX_TEXT_BYTES + 64),
+                            'note': 'safe'}, separators=(',', ':'))
+                + '\n'
+            ).encode('utf-8'))
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+            failures = public_safety.tree_failures(candidate)
+        self.assertEqual([], failures)
+
+    def test_red_luna_history_allows_binary_addition(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            start = commit_blob(root, 'seed.txt', b'safe\n', 'seed safe history')
+            end = commit_blob(root, 'assets/image.bin', b'asset\x00', 'add binary asset')
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+        self.assertEqual([], failures)
+
+    def test_red_luna_history_allows_binary_modification(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            start = commit_blob(root, 'assets/image.bin', b'asset-v1\x00', 'seed binary asset')
+            end = commit_blob(root, 'assets/image.bin', b'asset-v2\x00', 'modify binary asset')
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+        self.assertEqual([], failures)
+
+    def test_red_luna_history_allows_binary_deletion(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            start = commit_blob(root, 'assets/image.bin', b'asset\x00', 'seed binary asset')
+            end = commit_delete(root, 'assets/image.bin', 'delete binary asset')
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+        self.assertEqual([], failures)
+
+    def test_red_luna_history_detects_binary_to_prohibited_text(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            start = commit_blob(root, 'assets/image.bin', b'asset\x00', 'seed binary asset')
+            end = commit_blob(root, 'assets/image.bin', (luna_identity() + '\n').encode('utf-8'), 'replace binary with prohibited text')
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+        self.assertTrue(any(end[:12] in x and 'luna_execution_setting' in x for x in failures), failures)
+
+    def test_red_luna_history_allows_binary_to_safe_text(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            start = commit_blob(root, 'assets/image.bin', b'asset\x00', 'seed binary asset')
+            end = commit_blob(root, 'assets/image.bin', b'safe text\n', 'replace binary with safe text')
+            failures = public_safety.luna_history_failures_in_range(start, end=end, root=root)
+        self.assertEqual([], failures)
+
+    def test_red_luna_history_rejects_invalid_utf8_non_jsonl_text(self):
+        with tempfile.TemporaryDirectory() as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            start = commit_blob(root, 'assets/text.bin', b'safe\n', 'seed text history')
+            end = commit_blob(root, 'assets/text.bin', b'safe\xff\n', 'introduce invalid utf8')
+            with self.assertRaisesRegex(RuntimeError, 'strict UTF-8'):
+                public_safety.luna_history_failures_in_range(start, end=end, root=root)
+
+    def test_red_luna_history_rejects_nul_containing_jsonl(self):
+        q = bytes([34])
+        nul_jsonl = b'{' + q + b'note' + q + b':' + q + b'bad' + b'\x00' + b'text' + q + b'}\n'
+        with tempfile.TemporaryDirectory() as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            start = commit_blob(root, 'ledger/dispositions.jsonl', b'{' + q + b'note' + q + b':' + q + b'safe' + q + b'}\n', 'seed safe jsonl')
+            end = commit_blob(root, 'ledger/dispositions.jsonl', nul_jsonl, 'introduce nul jsonl')
+            with self.assertRaisesRegex(RuntimeError, 'invalid text'):
+                public_safety.luna_history_failures_in_range(start, end=end, root=root)
 
     def test_red_unsafe_oversized_jsonl_history_remains_detectable(self):
         model_fragment = "-".join(("GPT", "5")) + "." + "6"
