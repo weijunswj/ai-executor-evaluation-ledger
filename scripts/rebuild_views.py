@@ -50,6 +50,7 @@ CANONICAL_MODEL_MAP = {
     "Claude Opus 5": "Claude Opus 5",
     "DeepSeek V4 Pro": "DeepSeek V4 Pro",
     "GPT-5.6 Sol": "GPT-5.6 Sol",
+    "GPT-5.6 Luna": "GPT-5.6 Luna",
     "Qwen3.7 Plus": "Qwen3.7 Plus",
     "Gemini 3.1 Pro": "Gemini 3.1 Pro",
     "Gemini 3.6 Flash": "Gemini 3.6 Flash",

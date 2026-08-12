@@ -93,6 +93,78 @@ jobs:
           fi
           if [[ "$data_only_evaluation" == true ]]; then
             python -m unittest tests.test_controller_maintenance
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]] || [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" && "$BASE_SHA" == "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898" ]]; then
+            schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
+            schema_actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$schema_actual" = "$schema_expected"
+            python -m unittest tests.test_controller_maintenance tests.test_migration tests.test_check_public_safety
+            python - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          import jsonschema
+
+          schema = json.loads(Path('schema/evaluation.schema.json').read_text(encoding='utf-8'))
+          validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+          validator.check_schema(schema)
+          for line in Path('evaluations.jsonl').read_text(encoding='utf-8').splitlines():
+              validator.validate(json.loads(line))
+
+          scores = {
+              'correctness': 4.0,
+              'safety_and_scope_control': 4.0,
+              'evidence_quality': 4.0,
+              'operational_judgement': 4.0,
+              'task_understanding': 4.0,
+              'tracker_and_repository_hygiene': 4.0,
+              'autonomy': 4.0,
+              'efficiency': 4.0,
+          }
+          probe = {
+              'schema_version': 2,
+              'record_type': 'evaluation',
+              'run_id': 'schema-probe-luna-evaluation',
+              'reviewed_at': '2026-08-11T00:00:00Z',
+              'provider': 'OpenAI',
+              'model': 'GPT-5.6 Luna',
+              'evaluation_protocol': 'gated_v1',
+              'task_class': 'research',
+              'difficulty': 'low',
+              'subject_alias': 'schema-probe',
+              'revision_binding': 'non-identifying-schema-probe',
+              'outcome': 'hold',
+              'first_pass_accepted': False,
+              'controller_intervention_required': True,
+              'scores': scores,
+              'weighted_score_5': 4.0,
+              'confidence': 'anecdotal',
+          }
+          validator.validate(probe)
+          sol_probe = copy.deepcopy(probe)
+          sol_probe['run_id'] = 'schema-probe-sol-evaluation'
+          sol_probe['model'] = 'GPT-5.6 Sol'
+          validator.validate(sol_probe)
+          correction_probe = copy.deepcopy(probe)
+          correction_probe.update({
+              'record_type': 'correction',
+              'run_id': 'schema-probe-luna-correction',
+              'affected_run_id': 'schema-probe-luna-evaluation',
+              'corrected_fields': {'weighted_score_5': 4.0},
+              'correction_reason': 'schema probe',
+              'correction_scope': 'schema probe',
+              'verification_evidence': 'schema probe',
+          })
+          validator.validate(correction_probe)
+          bad_probe = copy.deepcopy(probe)
+          bad_probe['run_id'] = 'schema-probe-invalid-provider-pair'
+          bad_probe['provider'] = 'DeepSeek'
+          try:
+              validator.validate(bad_probe)
+          except jsonschema.ValidationError:
+              pass
+          else:
+              raise SystemExit('Luna provider/model pair failed closed-schema isolation')
+          PY
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
             GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover -s tests
           else
@@ -130,6 +202,11 @@ jobs:
             legacy_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
             expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$actual" = "$expected"
+            legacy_context=true
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]]; then
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
             legacy_context=true
