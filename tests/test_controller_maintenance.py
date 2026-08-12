@@ -783,6 +783,285 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             failures,
         )
 
+    def test_red_amendment_103_three_record_current_tree_identity_is_rejected(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-three-record-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "three-record.jsonl"
+            path.write_text(
+                "\n".join(
+                    json.dumps({"note": fragment})
+                    for fragment in (model_fragment, "Luna", "Max")
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertTrue(
+            any(
+                "three-record.jsonl:3" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_amendment_103_three_record_history_identity_is_rejected(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-three-record-history-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            history = root / "evaluations.jsonl"
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "seed safe JSONL")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(
+                "\n".join(
+                    json.dumps({"note": fragment})
+                    for fragment in (model_fragment, "Luna", "Max")
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "introduce three-record identity")
+            introduced = git(root, "rev-parse", "HEAD")
+
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "remove three-record identity")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertTrue(
+            any(
+                introduced[:12] in failure
+                and "evaluations.jsonl" in failure
+                and "line-1" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_amendment_103_intervening_token_blocks_three_record_identity(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-three-record-negative-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "three-record-negative.jsonl"
+            path.write_text(
+                "\n".join(
+                    json.dumps({"note": fragment})
+                    for fragment in (model_fragment, "Luna", "interposed", "Max")
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertFalse(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
+    def test_red_amendment_103_numeric_scalar_current_tree_identity_is_rejected(self):
+        model_fragment = "-".join(("GPT", "5"))
+        setting_fragment = " ".join(("Luna", "Max"))
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-numeric-scalar-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "numeric-scalar.jsonl"
+            path.write_text(
+                json.dumps([model_fragment, 6, setting_fragment]) + "\n",
+                encoding="utf-8",
+            )
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertTrue(
+            any("numeric-scalar.jsonl:1" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures),
+            failures,
+        )
+
+    def test_red_amendment_103_numeric_scalar_history_identity_is_rejected(self):
+        model_fragment = "-".join(("GPT", "5"))
+        setting_fragment = " ".join(("Luna", "Max"))
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-numeric-scalar-history-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            history = root / "evaluations.jsonl"
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "seed safe JSONL")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(
+                json.dumps([model_fragment, 6, setting_fragment]) + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "introduce numeric scalar identity")
+            introduced = git(root, "rev-parse", "HEAD")
+
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "remove numeric scalar identity")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertTrue(
+            any(
+                introduced[:12] in failure
+                and "evaluations.jsonl" in failure
+                and "line-1" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_amendment_103_appended_safe_line_keeps_occurrence_inherited(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-inherited-append-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            history = root / "history.txt"
+            history.write_text(
+                "header\n"
+                + model_fragment
+                + "\n"
+                + setting_fragment
+                + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed grandfathered occurrence")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(
+                "header\n"
+                + model_fragment
+                + "\n"
+                + setting_fragment
+                + "\n"
+                + "safe appended line\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "append unrelated safe line")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertEqual([], failures)
+
+    def test_red_amendment_103_gitattributes_cannot_hide_utf8_identity(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+        identity = model_fragment + " " + setting_fragment
+
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-gitattributes-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            history = root / "history.txt"
+            history.write_text("safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "seed safe history")
+            start = git(root, "rev-parse", "HEAD")
+
+            attributes = root / ".gitattributes"
+            attributes.write_text("history.txt -diff\n", encoding="utf-8")
+            git(root, "add", ".gitattributes")
+            git(root, "commit", "-qm", "mark history path as no-diff")
+
+            history.write_text(identity + "\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "introduce UTF8 identity under no-diff")
+            introduced = git(root, "rev-parse", "HEAD")
+
+            history.write_text("safe\n", encoding="utf-8")
+            git(root, "add", "history.txt")
+            git(root, "commit", "-qm", "remove UTF8 identity")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertTrue(
+            any(
+                introduced[:12] in failure
+                and "history.txt" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_amendment_103_oversized_scalar_boundary_is_streamed(self):
+        model_fragment = "-".join(("GPT", "5"))
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-oversized-scalar-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "oversized-scalar.jsonl"
+            path.write_text(
+                json.dumps(
+                    {
+                        "padding": "x" * (public_safety.MAX_TEXT_BYTES + 64),
+                        "note": model_fragment,
+                    },
+                    separators=(",", ":"),
+                )
+                + "\n"
+                + json.dumps({"value": 6}, separators=(",", ":"))
+                + "\n"
+                + json.dumps({"note": setting_fragment}, separators=(",", ":"))
+                + "\n",
+                encoding="utf-8",
+            )
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertTrue(
+            any(
+                "oversized-scalar.jsonl:3" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
         with mock.patch.dict(

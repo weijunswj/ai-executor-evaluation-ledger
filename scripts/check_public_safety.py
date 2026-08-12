@@ -315,7 +315,11 @@ class IdentityMatch:
     line_number: int
 
 
+class JsonScalarToken(str):
+    """Preserve the original JSON scalar lexeme for context scanning."""
+
 @dataclass(frozen=True)
+
 class NormalizedIdentityContextToken:
     value: str
     line_number: int
@@ -724,6 +728,17 @@ def _collect_json_record_strings(
             failures.extend(child_failures)
             string_values.extend(child_strings)
             record_strings.extend(child_record_strings)
+    elif isinstance(value, JsonScalarToken):
+        scalar = str(value)
+        string_values.append(scalar)
+        record_strings.append((scalar, False))
+    elif isinstance(value, bool):
+        scalar = "true" if value else "false"
+        string_values.append(scalar)
+        record_strings.append((scalar, False))
+    elif value is None:
+        string_values.append("null")
+        record_strings.append(("null", False))
     elif isinstance(value, str):
         string_values.append(value)
         record_strings.append((value, False))
@@ -811,6 +826,9 @@ def _parse_jsonl_record(raw_line: bytes) -> object:
     return json.loads(
         raw_line.decode("utf-8", errors="strict"),
         object_pairs_hook=reject_duplicates,
+        parse_int=JsonScalarToken,
+        parse_float=JsonScalarToken,
+        parse_constant=JsonScalarToken,
     )
 
 
@@ -881,8 +899,12 @@ def scan_jsonl(path: Path, *, root: Path = ROOT) -> list[str]:
                     )
                     if failure not in failures:
                         failures.append(failure)
-            previous_value_context = _bounded_normalized_context(value_tokens)
-            previous_record_context = _bounded_normalized_context(record_tokens)
+            previous_value_context = _bounded_normalized_context(
+                previous_value_context + value_tokens
+            )
+            previous_record_context = _bounded_normalized_context(
+                previous_record_context + record_tokens
+            )
     return failures
 
 
@@ -1011,8 +1033,12 @@ def _luna_history_blob_scan(
                     f"[{match.rule_id}]"
                     for match in cross_matches
                 )
-        previous_value_context = _bounded_normalized_context(value_tokens)
-        previous_record_context = _bounded_normalized_context(record_tokens)
+        previous_value_context = _bounded_normalized_context(
+            previous_value_context + value_tokens
+        )
+        previous_record_context = _bounded_normalized_context(
+            previous_record_context + record_tokens
+        )
     for occurrences in matches.values():
         occurrences.sort()
     return matches, non_luna_failures
@@ -1143,23 +1169,104 @@ def _map_occurrence_span(
     return mapped[0], mapped[-1]
 
 
-def _occurrence_range_index(
+
+def _changed_line_records_for_path(
+    parent: str,
+    child: str,
+    label: str,
+    *,
+    root: Path,
+) -> tuple[list[tuple[int, bytes]], list[tuple[int, bytes]]]:
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--no-renames",
+            "--unified=0",
+            "--format=",
+            parent,
+            child,
+            "--",
+            ":(literal)" + label,
+        ],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("history parent-child mapping is unavailable")
+
+    added: list[tuple[int, bytes]] = []
+    deleted: list[tuple[int, bytes]] = []
+    old_line: int | None = None
+    new_line: int | None = None
+    for raw_line in result.stdout.splitlines():
+        if raw_line.startswith(b"@@ "):
+            match = re.match(
+                br"^@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@",
+                raw_line,
+            )
+            if match is None:
+                raise RuntimeError("history parent-child mapping is malformed")
+            old_line = int(match.group(1))
+            new_line = int(match.group(3))
+            continue
+        if old_line is None or new_line is None:
+            continue
+        if raw_line.startswith(b"+"):
+            added.append((new_line, raw_line[1:]))
+            new_line += 1
+        elif raw_line.startswith(b"-"):
+            deleted.append((old_line, raw_line[1:]))
+            old_line += 1
+        elif raw_line.startswith(b" "):
+            old_line += 1
+            new_line += 1
+    return added, deleted
+
+
+def _occurrence_is_relocated(
     occurrence: tuple[int, int],
-    ranges: list[tuple[int, int | None, int]],
-) -> int | None:
-    for index, (start, end, _offset) in enumerate(ranges):
-        if occurrence[0] >= start and (
-            end is None or occurrence[1] <= end
-        ):
-            return index
-    return None
+    mapped: tuple[int, int],
+    line_edits: tuple[list[tuple[int, bytes]], list[tuple[int, bytes]]],
+) -> bool:
+    added, deleted = line_edits
+    added_before = {
+        line_bytes
+        for line_number, line_bytes in added
+        if line_number < occurrence[0]
+    }
+    added_after = {
+        line_bytes
+        for line_number, line_bytes in added
+        if line_number > occurrence[1]
+    }
+    deleted_before = {
+        line_bytes
+        for line_number, line_bytes in deleted
+        if line_number < mapped[0]
+    }
+    deleted_after = {
+        line_bytes
+        for line_number, line_bytes in deleted
+        if line_number > mapped[1]
+    }
+    return bool(
+        (added_before & deleted_after)
+        or (added_after & deleted_before)
 
 
+    )
 def _inherited_occurrence_indexes(
     rule_id: str,
     after_occurrences: list[tuple[int, int]],
     parent_scans: list[dict[str, list[tuple[int, int]]]],
     parent_ranges: list[list[tuple[int, int | None, int]]],
+    parent_line_edits: list[
+        tuple[list[tuple[int, bytes]], list[tuple[int, bytes]]]
+    ] | None = None,
 ) -> set[int]:
     used_parent_occurrences = [set() for _ in parent_scans]
     inherited: set[int] = set()
@@ -1168,24 +1275,15 @@ def _inherited_occurrence_indexes(
             mapped = _map_occurrence_span(occurrence, parent_ranges[parent_index])
             if mapped is None:
                 continue
-            range_index = _occurrence_range_index(
-                occurrence,
-                parent_ranges[parent_index],
-            )
-            if range_index is None:
+            if (
+                parent_line_edits is not None
+                and _occurrence_is_relocated(
+                    occurrence,
+                    mapped,
+                    parent_line_edits[parent_index],
+                )
+            ):
                 continue
-            if range_index != len(parent_ranges[parent_index]) - 1:
-                occurrence_offset = mapped[0] - occurrence[0]
-                neighbouring_offsets = {
-                    parent_ranges[parent_index][range_index - 1][2]
-                    if range_index
-                    else None,
-                    parent_ranges[parent_index][range_index + 1][2]
-                    if range_index + 1 < len(parent_ranges[parent_index])
-                    else None,
-                }
-                if occurrence_offset not in neighbouring_offsets:
-                    continue
             for parent_occurrence_index, parent_occurrence in enumerate(
                 parent_scan.get(rule_id, ())
             ):
@@ -1257,12 +1355,26 @@ def luna_history_failures_in_range(
                 if after_matches
                 else []
             )
+            parent_line_edits = (
+                [
+                    _changed_line_records_for_path(
+                        parent,
+                        commit,
+                        label,
+                        root=root,
+                    )
+                    for parent in parents
+                ]
+                if after_matches
+                else []
+            )
             for rule_id, after_occurrences in sorted(after_matches.items()):
                 inherited = _inherited_occurrence_indexes(
                     rule_id,
                     after_occurrences,
                     before_matches,
                     parent_ranges,
+                    parent_line_edits,
                 )
                 new_indexes = [
                     index
@@ -1498,33 +1610,11 @@ def _git_revision_blob_is_binary(
     revision: str | None,
     relative_path: str,
 ) -> bool:
+    """Use blob bytes as binary authority, never candidate Git attributes."""
     if revision is None:
         return False
-    result = subprocess.run(
-        [
-            "git",
-            "diff",
-            "--numstat",
-            "--no-renames",
-            "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
-            revision,
-            "--",
-            relative_path,
-        ],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError("history authority blob type is unavailable")
-    lines = result.stdout.splitlines()
-    if not lines:
-        return False
-    fields = lines[0].split("\t", 2)
-    if len(fields) != 3:
-        raise RuntimeError("history authority blob type is malformed")
-    return fields[0] == "-" and fields[1] == "-"
+    raw = _git_blob_or_empty(root, revision, relative_path)
+    return bool(raw and b"\0" in raw)
 
 
 def _decode_luna_history_blob(raw: bytes) -> str:
