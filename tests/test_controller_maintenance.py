@@ -622,6 +622,167 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             failures,
         )
 
+    def test_red_jsonl_cross_record_value_to_value_luna_identity_is_rejected(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-cross-value-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "values.jsonl"
+            path.write_text(
+                json.dumps({"note": model_fragment})
+                + "\n"
+                + json.dumps({"note": setting_fragment})
+                + "\n",
+                encoding="utf-8",
+            )
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertTrue(
+            any(
+                "values.jsonl:2" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_jsonl_cross_record_value_to_object_key_luna_identity_is_rejected(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-cross-key-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "keys.jsonl"
+            path.write_text(
+                json.dumps({"note": model_fragment})
+                + "\n"
+                + json.dumps({setting_fragment: "safe"})
+                + "\n",
+                encoding="utf-8",
+            )
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertTrue(
+            any(
+                "keys.jsonl:2" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_luna_history_rejects_transient_cross_record_identity(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-luna-cross-history-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            history = root / "evaluations.jsonl"
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "seed safe JSONL")
+            start = git(root, "rev-parse", "HEAD")
+
+            history.write_text(
+                json.dumps({"note": model_fragment})
+                + "\n"
+                + json.dumps({"note": setting_fragment})
+                + "\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "introduce transient cross-record identity")
+            introduced = git(root, "rev-parse", "HEAD")
+
+            history.write_text('{"note":"safe"}\n', encoding="utf-8")
+            git(root, "add", "evaluations.jsonl")
+            git(root, "commit", "-qm", "remove transient cross-record identity")
+            end = git(root, "rev-parse", "HEAD")
+
+            failures = public_safety.luna_history_failures_in_range(
+                start,
+                end=end,
+                root=root,
+            )
+
+        self.assertTrue(
+            any(
+                introduced[:12] in failure
+                and "evaluations.jsonl" in failure
+                and "line-1" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_red_jsonl_cross_record_intervening_token_is_not_a_luna_identity(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-cross-negative-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "negative.jsonl"
+            path.write_text(
+                json.dumps({"note": model_fragment})
+                + "\n"
+                + json.dumps({"note": "Luna interposed"})
+                + "\n"
+                + json.dumps({"note": setting_fragment})
+                + "\n",
+                encoding="utf-8",
+            )
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertFalse(
+            any("luna_execution_setting" in failure for failure in failures),
+            failures,
+        )
+
+    def test_red_oversized_jsonl_cross_record_luna_identity_is_streamed(self):
+        model_fragment = "-".join(("GPT", "5")) + ".6"
+        setting_fragment = " ".join(("Luna", "Max"))
+
+        with tempfile.TemporaryDirectory(prefix="ledger-jsonl-cross-oversized-") as temp_raw:
+            root = Path(temp_raw)
+            path = root / "oversized.jsonl"
+            with path.open("wb") as handle:
+                handle.write(
+                    (
+                        json.dumps(
+                            {
+                                "padding": "x" * (public_safety.MAX_TEXT_BYTES + 64),
+                                "note": model_fragment,
+                            },
+                            separators=(",", ":"),
+                        )
+                        + "\n"
+                    ).encode("utf-8")
+                )
+                handle.write(
+                    (
+                        json.dumps({"note": setting_fragment}, separators=(",", ":"))
+                        + "\n"
+                    ).encode("utf-8")
+                )
+            self.assertGreater(path.stat().st_size, public_safety.MAX_TEXT_BYTES)
+
+            failures = public_safety.scan_jsonl(path, root=root)
+
+        self.assertTrue(
+            any(
+                "oversized.jsonl:2" in failure
+                and "luna_execution_setting" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
     def test_main_context_never_leaks_into_fixture_repositories(self):
         actual_head = git(ROOT, "rev-parse", "HEAD")
         with mock.patch.dict(

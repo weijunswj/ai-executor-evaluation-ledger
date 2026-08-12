@@ -295,12 +295,39 @@ FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN = {
     }
 }
 
+NORMALIZED_IDENTITY_RULE_MAPS = (
+    FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN,
+    LUNA_SEQUENCES_BY_FIRST_TOKEN,
+)
+MAX_NORMALIZED_IDENTITY_SEQUENCE_LENGTH = max(
+    len(sequence)
+    for rules_by_first_token in NORMALIZED_IDENTITY_RULE_MAPS
+    for rules in rules_by_first_token.values()
+    for _rule_id, sequence in rules
+)
+NORMALIZED_IDENTITY_CARRY_LENGTH = MAX_NORMALIZED_IDENTITY_SEQUENCE_LENGTH - 1
+
 
 @dataclass(frozen=True)
 class IdentityMatch:
     rule_id: str
     offset: int
     line_number: int
+
+
+@dataclass(frozen=True)
+class NormalizedIdentityContextToken:
+    value: str
+    line_number: int
+    is_key: bool
+
+
+@dataclass(frozen=True)
+class CrossRecordIdentityMatch:
+    rule_id: str
+    start_line: int
+    end_line: int
+    uses_key: bool
 
 
 @dataclass(frozen=True)
@@ -328,6 +355,95 @@ def _unicode_alphanumeric_runs(text: str) -> tuple[str, list[tuple[str, int]]]:
     if start is not None:
         runs.append((normalized[start:], start))
     return normalized, runs
+
+
+def _normalized_context_tokens(
+    parts: Iterable[tuple[str, bool]],
+    line_number: int,
+) -> tuple[NormalizedIdentityContextToken, ...]:
+    tokens: list[NormalizedIdentityContextToken] = []
+    for text, is_key in parts:
+        _normalized, runs = _unicode_alphanumeric_runs(text)
+        tokens.extend(
+            NormalizedIdentityContextToken(
+                value=value,
+                line_number=line_number,
+                is_key=is_key,
+            )
+            for value, _offset in runs
+        )
+    return tuple(tokens)
+
+
+def _bounded_normalized_context(
+    tokens: tuple[NormalizedIdentityContextToken, ...],
+) -> tuple[NormalizedIdentityContextToken, ...]:
+    if NORMALIZED_IDENTITY_CARRY_LENGTH <= 0:
+        return ()
+    return tokens[-NORMALIZED_IDENTITY_CARRY_LENGTH:]
+
+
+def _json_record_normalized_contexts(
+    value_context: str,
+    record_strings: list[tuple[str, bool]],
+    line_number: int,
+) -> tuple[
+    tuple[NormalizedIdentityContextToken, ...],
+    tuple[NormalizedIdentityContextToken, ...],
+]:
+    return (
+        _normalized_context_tokens(((value_context, False),), line_number),
+        _normalized_context_tokens(record_strings, line_number),
+    )
+
+
+def _cross_record_normalized_identity_matches(
+    previous_contexts: Iterable[tuple[NormalizedIdentityContextToken, ...]],
+    current_contexts: Iterable[tuple[NormalizedIdentityContextToken, ...]],
+    rules_by_first_token: Mapping[
+        str,
+        tuple[tuple[str, tuple[str, ...]], ...],
+    ],
+) -> list[CrossRecordIdentityMatch]:
+    aggregated: dict[tuple[str, int, int], bool] = {}
+    for previous in previous_contexts:
+        if not previous:
+            continue
+        for current in current_contexts:
+            if not current:
+                continue
+            combined = previous + current
+            boundary = len(previous)
+            token_values = tuple(token.value for token in combined)
+            for index, first in enumerate(token_values):
+                for rule_id, sequence in rules_by_first_token.get(first, ()):
+                    width = len(sequence)
+                    end_index = index + width
+                    if (
+                        index >= boundary
+                        or end_index <= boundary
+                        or end_index > len(combined)
+                        or token_values[index:end_index] != sequence
+                    ):
+                        continue
+                    key = (
+                        rule_id,
+                        combined[index].line_number,
+                        combined[end_index - 1].line_number,
+                    )
+                    uses_key = any(
+                        token.is_key for token in combined[index:end_index]
+                    )
+                    aggregated[key] = aggregated.get(key, False) or uses_key
+    return [
+        CrossRecordIdentityMatch(
+            rule_id=rule_id,
+            start_line=start_line,
+            end_line=end_line,
+            uses_key=uses_key,
+        )
+        for (rule_id, start_line, end_line), uses_key in aggregated.items()
+    ]
 
 
 def tracked_files(root: Path = ROOT) -> list[Path]:
@@ -720,6 +836,8 @@ def _iter_jsonl_blob_records(raw: bytes) -> Iterable[tuple[int, object]]:
 def scan_jsonl(path: Path, *, root: Path = ROOT) -> list[str]:
     failures: list[str] = []
     label = path.relative_to(root).as_posix()
+    previous_value_context: tuple[NormalizedIdentityContextToken, ...] = ()
+    previous_record_context: tuple[NormalizedIdentityContextToken, ...] = ()
     with path.open("rb") as handle:
         for number, raw_line in enumerate(handle, start=1):
             if not raw_line.strip():
@@ -728,18 +846,43 @@ def scan_jsonl(path: Path, *, root: Path = ROOT) -> list[str]:
                 record = _parse_jsonl_record(raw_line)
             except UnicodeDecodeError:
                 failures.append(f"{label}:{number}: invalid UTF-8")
+                previous_value_context = ()
+                previous_record_context = ()
                 continue
             except json.JSONDecodeError as exc:
                 failures.append(f"{label}:{number}: invalid JSON: {exc.msg}")
+                previous_value_context = ()
+                previous_record_context = ()
                 continue
             except ValueError as exc:
                 failures.append(f"{label}:{number}: invalid text: {exc}")
+                previous_value_context = ()
+                previous_record_context = ()
                 continue
-            record_failures, _context = _scan_json_record(
+            record_failures, (value_context, record_strings) = _scan_json_record(
                 record,
                 f"{label}:{number}",
             )
             failures.extend(record_failures)
+            value_tokens, record_tokens = _json_record_normalized_contexts(
+                value_context,
+                record_strings,
+                number,
+            )
+            for rules_by_first_token in NORMALIZED_IDENTITY_RULE_MAPS:
+                for match in _cross_record_normalized_identity_matches(
+                    (previous_value_context, previous_record_context),
+                    (value_tokens, record_tokens),
+                    rules_by_first_token,
+                ):
+                    failure = (
+                        f"{label}:{match.end_line}: forbidden ledger identity token "
+                        f"[{match.rule_id}]"
+                    )
+                    if failure not in failures:
+                        failures.append(failure)
+            previous_value_context = _bounded_normalized_context(value_tokens)
+            previous_record_context = _bounded_normalized_context(record_tokens)
     return failures
 
 
@@ -827,6 +970,8 @@ def _luna_history_blob_scan(
 
     matches: dict[str, list[tuple[int, int]]] = {}
     non_luna_failures: list[str] = []
+    previous_value_context: tuple[NormalizedIdentityContextToken, ...] = ()
+    previous_record_context: tuple[NormalizedIdentityContextToken, ...] = ()
     for number, record in _iter_jsonl_blob_records(raw):
         record_failures, (value_context, record_strings) = _scan_json_record(
             record,
@@ -844,6 +989,32 @@ def _luna_history_blob_scan(
             matches.setdefault(rule_id, []).extend(
                 (number, number) for _start_line, _end_line in spans
             )
+        value_tokens, record_tokens = _json_record_normalized_contexts(
+            value_context,
+            record_strings,
+            number,
+        )
+        for rules_by_first_token in NORMALIZED_IDENTITY_RULE_MAPS:
+            cross_matches = _cross_record_normalized_identity_matches(
+                (previous_value_context, previous_record_context),
+                (value_tokens, record_tokens),
+                rules_by_first_token,
+            )
+            if rules_by_first_token is LUNA_SEQUENCES_BY_FIRST_TOKEN:
+                for match in cross_matches:
+                    matches.setdefault(match.rule_id, []).append(
+                        (match.start_line, match.end_line)
+                    )
+            else:
+                non_luna_failures.extend(
+                    f"{label}:{match.end_line}: forbidden ledger identity token "
+                    f"[{match.rule_id}]"
+                    for match in cross_matches
+                )
+        previous_value_context = _bounded_normalized_context(value_tokens)
+        previous_record_context = _bounded_normalized_context(record_tokens)
+    for occurrences in matches.values():
+        occurrences.sort()
     return matches, non_luna_failures
 
 
