@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 11 August 2026, 12:49 SGT
+Updated: 13 August 2026, 00:08 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -10,7 +10,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Model | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Integrity/control flags | Evidence level |
 |---|---:|---:|---:|---:|---:|---|
 | GPT-5.6 Sol | 1 | 4.85 | 100% | 1/1 applicable | 0 | Anecdotal |
-| GPT-5.6 Luna | 1 | 4.62 | 0% | 1/1 applicable | 1 | Anecdotal |
+| GPT-5.6 Luna | 2 | 4.66 | 0% | 2/2 applicable | 3 | Anecdotal |
 
 ## Formal evaluated runs
 
@@ -18,6 +18,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---:|---:|---|
+| 13 Aug 2026 00:08 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.70 | No | Verified |
 | 11 Aug 2026 12:49 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.62 | No | Verified |
 | 11 Aug 2026 07:36 SGT | GPT-5.6 Sol | Security Review | Critical | ACCEPTED | 4.85 | Yes | Verified |
 | 26 Jul 2026 23:40 SGT | DeepSeek V4 Pro | Security Remediation | High | ACCEPTED | 4.34 | No | Verified |
@@ -47,7 +48,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 19:22 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.93 | No | Verified |
 | 26 Jul 2026 19:18 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.67 | No | Verified |
 | 26 Jul 2026 19:12 SGT | GPT-5.6 Sol | Complex Repository Change | High | ACCEPTED | 4.77 | Yes | Verified |
-| 26 Jul 2026 19:05 SGT | GPT-5.6 Sol | Complex Repository Change | High | AMEND | 4.11 | No | Verified |
 
 ## Task-class aggregates
 
@@ -66,7 +66,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
-| GPT-5.6 Luna | Security Remediation | Critical | 1 | 4.62 | 0% | Anecdotal |
+| GPT-5.6 Luna | Security Remediation | Critical | 2 | 4.66 | 0% | Anecdotal |
 | GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
@@ -85,6 +85,25 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### GPT-5.6 Luna - Security Remediation
+
+- Reviewed: **13 Aug 2026 00:08 SGT**
+- Run ID: `2026-08-12-ledger-pr156-f1-prefix-final-g3-105`
+- Subject alias: `ledger-remediation-a`
+- Result: **HOLD**
+- Weighted score: **4.70/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - admitted and verified the exact locked repository, main, PR, source-thread and receipt authority
+  - stopped fail-closed before candidate commit, receipt reseal or remote publication when an additional baseline failure appeared
+  - reproduced the controller-maintenance failure after restoring all candidate files to the exact post-merge baseline
+  - preserved the remote PR head and all GitHub tracker, review, receipt and source-thread authority
+  - recovered useful focused F1, parser-boundary and historical-prefix test evidence without exposing sensitive values
+- Principal defects:
+  - uncommitted candidate work began before the complete baseline gate had conclusively finished, contrary to the locked sequencing requirement
+  - complete discovery timed out and temporarily diverged a fixture before the fixture was restored and orphan test processes were cleared
 
 ### GPT-5.6 Luna - Security Remediation
 
@@ -676,24 +695,4 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - kept authoritative, generated Skill and Secure Installer helper copies byte-identical and passed exact-head hosted validation and code scanning
 - Principal defects:
   - none recorded
-
-### GPT-5.6 Sol - Complex Repository Change
-
-- Reviewed: **26 Jul 2026 19:05 SGT**
-- Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-a-amendment-001`
-- Subject alias: `workflow-compatibility-a`
-- Result: **AMEND**
-- Weighted score: **4.11/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - implemented a detailed identity-bound evidence inventory and preserved strict repository-only scope
-  - provided strong exact-head test, source-generated parity and hosted continuous-integration evidence
-  - kept the pull request open and unmerged and performed no live n8n, provider or production operation
-  - materially improved recovery adjudication and replacement detection across the compatibility bridge
-- Principal defects:
-  - phase-30 installed-winner recovery can bypass the required phase-40 verification transition
-  - evidence retirement is not restart-safe and can leave an irrecoverable partially retired authority set
-  - target bytes can change after admission and before displacement without one final exact-byte revalidation
-  - healthy SessionStart repeatedly performs full-tree classification instead of using a bounded valid-state fast path
 <!-- GENERATED:SCORECARD-RUNS:END -->
