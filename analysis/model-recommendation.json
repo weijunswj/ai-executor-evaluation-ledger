@@ -609,6 +609,16 @@
       "task_class": "security-remediation",
       "task_stage": "unknown",
       "tool_environment_class": "unknown"
+    },
+    "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ledger-remediation-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
     }
   },
   "comparison_contract": {
@@ -630,7 +640,7 @@
       "evaluation_protocol"
     ]
   },
-  "generated_at": "2026-08-13T00:08:00+08:00",
+  "generated_at": "2026-08-13T09:11:29+08:00",
   "material_limitations": [
     "Official comparison uses recorded gated_v1 evidence only.",
     "Queued evidence is reported separately and cannot affect official eligibility, independent-subject thresholds, scores, or winner selection.",
@@ -640,16 +650,17 @@
   ],
   "model_statistics": {
     "GPT-5.6 Luna": {
-      "available_count": 2,
+      "available_count": 3,
       "cited_queued_run_ids": [],
       "cited_recorded_run_ids": [
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
-        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105"
+        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
       ],
       "controller_intervention": {
-        "observed_count": 2,
+        "observed_count": 3,
         "rate": 1.0,
-        "required_count": 2
+        "required_count": 3
       },
       "exact_cohort_eligible_recorded_count": 0,
       "exact_cohort_unknown_dimensions": [
@@ -657,11 +668,11 @@
         "task_stage",
         "tool_environment_class"
       ],
-      "exact_cohort_unknown_recorded_count": 2,
+      "exact_cohort_unknown_recorded_count": 3,
       "exact_matched_cohort_count": 0,
       "first_pass_acceptance": {
         "accepted_count": 0,
-        "observed_count": 2,
+        "observed_count": 3,
         "rate": 0.0
       },
       "independent_subject_count": 1,
@@ -672,26 +683,26 @@
         "Multiple recorded runs share a correlated subject chain.",
         "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
       ],
-      "overall_average_score_5": 4.66,
+      "overall_average_score_5": 4.73,
       "queued_count": 0,
       "raw_comparable_run_count": 0,
-      "recorded_count": 2,
+      "recorded_count": 3,
       "recurring_defect_patterns": [],
       "score_evidence": {
         "efficiency": {
-          "count": 2,
+          "count": 3,
           "maximum": 4.5,
-          "mean": 4.25,
+          "mean": 4.3,
           "minimum": 4.0
         },
         "evidence_quality": {
-          "count": 2,
-          "maximum": 4.7,
-          "mean": 4.1,
+          "count": 3,
+          "maximum": 4.8,
+          "mean": 4.33,
           "minimum": 3.5
         },
         "safety_and_scope_control": {
-          "count": 2,
+          "count": 3,
           "maximum": 5.0,
           "mean": 5.0,
           "minimum": 5.0
@@ -709,7 +720,7 @@
         "under_sampled": true
       },
       "verdict_distribution": {
-        "hold": 2
+        "hold": 3
       }
     },
     "GPT-5.6 Sol": {
@@ -786,11 +797,12 @@
   },
   "populations": {
     "available": {
-      "count": 3,
+      "count": 4,
       "run_ids": [
         "2026-08-07-ledger-post-run076-exact-head-g4-078",
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
-        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105"
+        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
       ]
     },
     "queued": {
@@ -798,11 +810,12 @@
       "run_ids": []
     },
     "recorded": {
-      "count": 3,
+      "count": 4,
       "run_ids": [
         "2026-08-07-ledger-post-run076-exact-head-g4-078",
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
-        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105"
+        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
       ]
     }
   },
