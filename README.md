@@ -8,11 +8,11 @@ Used in conjunction with [LLM WEB CUSTOM INSTRUCTIONS SET](https://github.com/we
 <!-- GENERATED:README-SCORES:START -->
 ## AI Model Recommendations & Operational Guidance
 
-**Recorded comparable evidence:** 5 runs | **Queued comparable evidence:** 0 runs | **Available comparable evidence:** 5 runs
+**Recorded comparable evidence:** 6 runs | **Queued comparable evidence:** 0 runs | **Available comparable evidence:** 6 runs
 
 ### Tested Model Summary & Like-for-Like Analysis
 
-- **GPT-5.6 Luna**: 4 recorded, 0 queued, 2 independent subject(s), 0 exact matched cohort(s); 4 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **GPT-5.6 Luna**: 5 recorded, 0 queued, 3 independent subject(s), 0 exact matched cohort(s); 5 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
 - **GPT-5.6 Sol**: 1 recorded, 0 queued, 1 independent subject(s), 0 exact matched cohort(s); 1 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
 
 > [!NOTE]
@@ -25,7 +25,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | Model | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Evidence level |
 |---|---:|---:|---:|---:|---:|
 | GPT-5.6 Sol | 1 | 4.85 | 100% | 1/1 applicable | Anecdotal |
-| GPT-5.6 Luna | 4 | 4.77 | 0% | 4/4 applicable | Provisional |
+| GPT-5.6 Luna | 5 | 4.79 | 0% | 5/5 applicable | Provisional |
 
 ## Task-class scorecard
 
@@ -44,7 +44,7 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
-| GPT-5.6 Luna | Security Remediation | Critical | 4 | 4.77 | 0% | Provisional |
+| GPT-5.6 Luna | Security Remediation | Critical | 5 | 4.79 | 0% | Provisional |
 | GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
