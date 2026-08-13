@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 13 August 2026, 09:11 SGT
+Updated: 13 August 2026, 12:37 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -10,7 +10,7 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 | Model | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Integrity/control flags | Evidence level |
 |---|---:|---:|---:|---:|---:|---|
 | GPT-5.6 Sol | 1 | 4.85 | 100% | 1/1 applicable | 0 | Anecdotal |
-| GPT-5.6 Luna | 3 | 4.73 | 0% | 3/3 applicable | 5 | Provisional |
+| GPT-5.6 Luna | 4 | 4.77 | 0% | 4/4 applicable | 6 | Provisional |
 
 ## Formal evaluated runs
 
@@ -18,6 +18,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---:|---:|---|
+| 13 Aug 2026 12:37 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.88 | No | Verified |
 | 13 Aug 2026 09:11 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.86 | No | Verified |
 | 13 Aug 2026 00:08 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.70 | No | Verified |
 | 11 Aug 2026 12:49 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.62 | No | Verified |
@@ -47,7 +48,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 20:03 SGT | DeepSeek V4 Pro | Incident Diagnosis | High | ACCEPTED | 4.87 | Yes | Verified |
 | 26 Jul 2026 19:54 SGT | DeepSeek V4 Pro | Complex Repository Change | High | AMEND | 2.75 | No | Verified |
 | 26 Jul 2026 19:22 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.93 | No | Verified |
-| 26 Jul 2026 19:18 SGT | GPT-5.6 Sol | Security Remediation | High | AMEND | 3.67 | No | Verified |
 
 ## Task-class aggregates
 
@@ -66,7 +66,7 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
-| GPT-5.6 Luna | Security Remediation | Critical | 3 | 4.73 | 0% | Provisional |
+| GPT-5.6 Luna | Security Remediation | Critical | 4 | 4.77 | 0% | Provisional |
 | GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
 | GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
@@ -85,6 +85,23 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### GPT-5.6 Luna - Security Remediation
+
+- Reviewed: **13 Aug 2026 12:37 SGT**
+- Run ID: `2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107`
+- Subject alias: `ledger-remediation-a`
+- Result: **HOLD**
+- Weighted score: **4.88/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - stopped fail-closed at the receipt-seal boundary instead of forcing a stale 59-record candidate or bypassing validation
+  - preserved the remote remediation head and all issue, review, receipt-publication and merge boundaries with no source push
+  - reported the decisive seal failure and the historical-59-versus-current-canonical mismatch accurately enough for independent controller reproduction
+  - left the reported local worktree clean and made no Commit 3 after the contract failure
+- Principal defects:
+  - the concise terminal packet omitted the exact unpublished local Commit 1 and Commit 2 SHAs, trees and full validation matrix, so Web could not independently inspect or accept those local commits as reusable authority
 
 ### GPT-5.6 Luna - Security Remediation
 
@@ -672,28 +689,4 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - seven required Toolkit invariant tests exit nonzero in the actual unprivileged no-network read-only protected sandbox
   - the proposed protected gate workflow retains an unsuppressed high-severity dangerous-trigger finding against itself
   - no deterministic exact-tree simulation proves the expected post-promotion result after the candidate becomes protected authority
-
-### GPT-5.6 Sol - Security Remediation
-
-- Reviewed: **26 Jul 2026 19:18 SGT**
-- Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-a-amendment-001`
-- Subject alias: `external-control-plane-a`
-- Result: **AMEND**
-- Weighted score: **3.67/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - removed ordinary imported-code access to the production inventory-authority minting path
-  - separated the exact standalone authority session and bound runtime, source, installation and inventory identities
-  - preserved singular parent-bound WeakMap mint sites and rejected reconstructed or cross-copy authority objects
-  - provided strong adversarial evidence and kept every live provider, credential, deployment and consumer boundary untouched
-- Principal defects:
-  - authenticated production aliases and case variants can bypass the generic Tier-2 mutation floor
-  - prefix-based MCP read admission permits compound mutating action names beginning with a read verb
-  - the authenticated receipt session expires after a fixed thirty seconds even when the authorised operation is still running
-  - workflow compiler output containment is lexical and can follow a redirected output or ancestor outside the repository
-  - inventory generation rollback protection is process-local and resets between short-lived authority invocations
-  - the exported default registry paths disagree
-  - target resolution cannot use account or organisation identity to disambiguate otherwise matching targets
-  - top-level and canonical nested approval references are not required to match
 <!-- GENERATED:SCORECARD-RUNS:END -->
