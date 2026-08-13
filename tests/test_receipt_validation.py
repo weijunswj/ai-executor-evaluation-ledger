@@ -4,11 +4,14 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from dataclasses import replace
+from types import SimpleNamespace
 from pathlib import Path
 from unittest import mock
 
 from scripts.processor.common import canonical_json_line_bytes, sha256_bytes
 from scripts.processor.frozen_replay import FrozenReplayResult
+from scripts import seal_batch_receipt
 from scripts.seal_batch_receipt import build_sealed_receipt
 from scripts import validate_receipts as receipt_validator
 from scripts.validate_receipts import (
@@ -21,9 +24,51 @@ from scripts.validate_receipts import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+COMMIT_1 = "91ae4288aa1a64267685daa575c051370e17d9e5"
+FROZEN_RECEIPT_PATH = (
+    "ledger/receipts/batches/batch-20260729-gate3-amendment-004.json"
+)
+FROZEN_EVALUATION_COUNT = 59
+FROZEN_EVALUATIONS_SHA256 = "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64"
 
 
 class TestReceiptValidation(unittest.TestCase):
+    def _current_and_terminal_shas(self):
+        terminal_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        parent_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD^"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        terminal_receipt = json.loads(
+            receipt_validator.git_object_bytes(
+                ROOT,
+                terminal_sha,
+                FROZEN_RECEIPT_PATH,
+            ).decode("utf-8")
+        )
+        receipt_candidate_sha = terminal_receipt["candidate_content_commit_sha"]
+        if receipt_candidate_sha == parent_sha:
+            return receipt_candidate_sha, terminal_sha
+        return terminal_sha, terminal_sha
+
+    def _frozen_historical_receipt(self):
+        return json.loads(
+            receipt_validator.git_object_bytes(
+                ROOT,
+                COMMIT_1,
+                FROZEN_RECEIPT_PATH,
+            ).decode("utf-8")
+        )
+
     def test_frozen_draft_migrates_without_identity_or_rejection_prose(self):
         tracked = json.loads(
             (
@@ -113,6 +158,278 @@ class TestReceiptValidation(unittest.TestCase):
             "owner_withdrawn",
         ):
             self.assertNotIn(forbidden, encoded)
+
+    def test_frozen_current_append_candidate_seals_against_full_current_hashes(self):
+        candidate_sha, terminal_sha = self._current_and_terminal_shas()
+        historical_receipt = self._frozen_historical_receipt()
+        historical_candidate_sha = historical_receipt["candidate_content_commit_sha"]
+        self.assertEqual(historical_receipt["full_queue_count"], 101)
+        self.assertEqual(historical_receipt["selected_comment_count"], 101)
+        self.assertEqual(historical_receipt["terminal_outcome_count"], 101)
+        self.assertEqual(historical_receipt["admitted_run_ids"], [])
+        fingerprints = [
+            {
+                "id": binding["comment_id"],
+                "created_at": binding["created_at"],
+                "updated_at": binding["updated_at"],
+                "body_sha256": binding["body_sha256"],
+            }
+            for binding in historical_receipt["comment_bindings"]
+        ]
+        replay = FrozenReplayResult(
+            candidate_files={
+                relative_path: receipt_validator.git_object_bytes(
+                    ROOT,
+                    historical_candidate_sha,
+                    relative_path,
+                )
+                for relative_path in (
+                    "evaluations.jsonl",
+                    "ledger/dispositions.jsonl",
+                )
+            },
+            artifact_hashes={},
+            canonical_hashes=historical_receipt["canonical_hashes"],
+            terminal_outcomes=historical_receipt["terminal_outcomes"],
+            admitted_run_ids=tuple(historical_receipt["admitted_run_ids"]),
+            accepted_record_proofs=historical_receipt["accepted_record_proofs"],
+            canonical_record_hashes=historical_receipt["canonical_record_hashes"],
+            comment_bindings=tuple(historical_receipt["comment_bindings"]),
+            source_comment_ids=tuple(historical_receipt["source_comment_ids"]),
+            source_body_sha256=historical_receipt["source_body_sha256"],
+            source_snapshot_sha256=historical_receipt["queue_snapshot_sha256"],
+            later_comment_count=0,
+        )
+        live = {
+            "comments": [{} for _item in fingerprints],
+            "fingerprints": fingerprints,
+        }
+        with mock.patch(
+            "scripts.seal_batch_receipt.replay_frozen_from_receipt",
+            return_value=replay,
+        ):
+            sealed = build_sealed_receipt(
+                ROOT,
+                candidate_content_commit_sha=candidate_sha,
+                source_reader=lambda _root, _source: live,
+            )
+
+        frozen_evaluations = receipt_validator.git_object_bytes(
+            ROOT,
+            historical_candidate_sha,
+            "evaluations.jsonl",
+        )
+        current_evaluations = receipt_validator.git_object_bytes(
+            ROOT,
+            candidate_sha,
+            "evaluations.jsonl",
+        )
+        terminal_evaluations = receipt_validator.git_object_bytes(
+            ROOT,
+            terminal_sha,
+            "evaluations.jsonl",
+        )
+        frozen_records = frozen_evaluations.splitlines()
+        current_records = current_evaluations.splitlines()
+        later_records = [
+            json.loads(line.decode("utf-8"))
+            for line in current_records[len(frozen_records) :]
+        ]
+        self.assertEqual(len(frozen_records), FROZEN_EVALUATION_COUNT)
+        self.assertEqual(sha256_bytes(frozen_evaluations), FROZEN_EVALUATIONS_SHA256)
+        self.assertEqual(
+            frozen_evaluations,
+            replay.candidate_files["evaluations.jsonl"],
+        )
+        self.assertTrue(current_evaluations.startswith(frozen_evaluations))
+        self.assertEqual(current_records[: len(frozen_records)], frozen_records)
+        self.assertTrue(later_records)
+        self.assertTrue(
+            all(record.get("record_type") == "evaluation" for record in later_records)
+        )
+        frozen_run_ids = {
+            json.loads(line.decode("utf-8"))["run_id"] for line in frozen_records
+        }
+        self.assertTrue(
+            frozen_run_ids.isdisjoint(record["run_id"] for record in later_records)
+        )
+        current_record_count = len(current_records)
+        frozen_record_count = len(frozen_records)
+        terminal_record_count = len(terminal_evaluations.splitlines())
+        self.assertGreater(current_record_count, frozen_record_count)
+        self.assertEqual(current_evaluations, terminal_evaluations)
+        self.assertEqual(current_record_count, terminal_record_count)
+        self.assertEqual(sealed["candidate_content_commit_sha"], candidate_sha)
+        for hash_name, relative_path in CANONICAL_PATHS.items():
+            current_bytes = receipt_validator.git_object_bytes(
+                ROOT,
+                candidate_sha,
+                relative_path,
+            )
+            terminal_bytes = receipt_validator.git_object_bytes(
+                ROOT,
+                terminal_sha,
+                relative_path,
+            )
+            self.assertEqual(current_bytes, terminal_bytes, hash_name)
+            self.assertEqual(
+                sealed["canonical_hashes"][hash_name],
+                sha256_bytes(current_bytes),
+                hash_name,
+            )
+        if terminal_sha != candidate_sha:
+            terminal_receipt = json.loads(
+                receipt_validator.git_object_bytes(
+                    ROOT,
+                    terminal_sha,
+                    FROZEN_RECEIPT_PATH,
+                ).decode("utf-8")
+            )
+            self.assertEqual(
+                terminal_receipt["candidate_content_commit_sha"],
+                candidate_sha,
+            )
+        self.assertNotEqual(
+            sealed["canonical_hashes"]["evaluations_jsonl"],
+            historical_receipt["canonical_hashes"]["evaluations_jsonl"],
+        )
+        for hash_name in (
+            "readme_md",
+            "scorecard_md",
+            "model_recommendation_json",
+        ):
+            self.assertNotEqual(
+                sealed["canonical_hashes"][hash_name],
+                historical_receipt["canonical_hashes"][hash_name],
+            )
+
+        validate_batch_receipt_object(
+            ROOT,
+            sealed,
+            authority_sha=candidate_sha,
+        )
+        with mock.patch.object(
+            receipt_validator,
+            "refetch_frozen_source",
+            return_value=live,
+        ), mock.patch.object(
+            receipt_validator,
+            "replay_frozen_from_receipt",
+            return_value=replay,
+        ):
+            evidence = receipt_validator._validate_frozen_source_replay(
+                ROOT,
+                receipt=sealed,
+                candidate_sha=candidate_sha,
+                seal_sha=terminal_sha,
+            )
+        self.assertEqual(evidence["outcomes"], 101)
+        self.assertEqual(evidence["admissions"], 0)
+
+        historical_hash_receipt = copy.deepcopy(sealed)
+        historical_hash_receipt["canonical_hashes"] = dict(
+            historical_receipt["canonical_hashes"]
+        )
+        with self.assertRaises(ReceiptValidationError):
+            validate_batch_receipt_object(
+                ROOT,
+                historical_hash_receipt,
+                authority_sha=candidate_sha,
+            )
+
+        wrong_candidate_commit = copy.deepcopy(sealed)
+        wrong_candidate_commit["candidate_content_commit_sha"] = historical_candidate_sha
+        with self.assertRaises(ReceiptValidationError):
+            validate_batch_receipt_object(
+                ROOT,
+                wrong_candidate_commit,
+                authority_sha=candidate_sha,
+            )
+
+        changed_body_hashes = dict(replay.source_body_sha256)
+        changed_body_hashes[next(iter(changed_body_hashes))] = "0" * 64
+        changed_outcomes = copy.deepcopy(dict(replay.terminal_outcomes))
+        changed_outcome_id = next(iter(changed_outcomes))
+        changed_outcomes[changed_outcome_id] = dict(
+            changed_outcomes[changed_outcome_id]
+        )
+        old_code = changed_outcomes[changed_outcome_id]["outcome_code"]
+        changed_outcomes[changed_outcome_id]["outcome_code"] = (
+            "no_marker" if old_code != "no_marker" else "authority_missing"
+        )
+        changed_source_ids = list(replay.source_comment_ids)
+        changed_source_ids[0] += 1
+        replay_variants = {
+            "source fingerprint": replace(
+                replay,
+                source_body_sha256=changed_body_hashes,
+            ),
+            "outcome authority": replace(
+                replay,
+                terminal_outcomes=changed_outcomes,
+            ),
+            "source membership": replace(
+                replay,
+                source_comment_ids=tuple(changed_source_ids),
+            ),
+        }
+        for label, replay_variant in replay_variants.items():
+            with self.subTest(label=label):
+                with mock.patch.object(
+                    receipt_validator,
+                    "refetch_frozen_source",
+                    return_value=live,
+                ), mock.patch.object(
+                    receipt_validator,
+                    "replay_frozen_from_receipt",
+                    return_value=replay_variant,
+                ):
+                    with self.assertRaises(ReceiptValidationError):
+                        receipt_validator._validate_frozen_source_replay(
+                            ROOT,
+                            receipt=sealed,
+                            candidate_sha=candidate_sha,
+                            seal_sha=terminal_sha,
+                        )
+
+    def test_frozen_replay_prefix_variants_fail_closed(self):
+        candidate_sha, _terminal_sha = self._current_and_terminal_shas()
+        historical_receipt = self._frozen_historical_receipt()
+        frozen = receipt_validator.git_object_bytes(
+            ROOT,
+            historical_receipt["candidate_content_commit_sha"],
+            "evaluations.jsonl",
+        )
+        current = receipt_validator.git_object_bytes(
+            ROOT,
+            candidate_sha,
+            "evaluations.jsonl",
+        )
+        self.assertTrue(current.startswith(frozen))
+        lines = frozen.splitlines(keepends=True)
+        variants = {
+            "shorter": frozen[:-1],
+            "prefix mutation": bytes([frozen[0] ^ 1]) + frozen[1:],
+            "record deletion": b"".join(lines[1:]) + current[len(frozen):],
+            "record reorder": lines[1] + lines[0] + b"".join(lines[2:]) + current[len(frozen):],
+            "prefix insertion": lines[0] + b"{}\n" + b"".join(lines[1:]) + current[len(frozen):],
+            "prefix replacement": lines[0].replace(b'"run_id"', b'"run-id"', 1) + b"".join(lines[1:]) + current[len(frozen):],
+            "malformed non-prefix": b"not-a-prefix\n" + current,
+        }
+        replay = SimpleNamespace(candidate_files={"evaluations.jsonl": frozen})
+        for label, candidate in variants.items():
+            with self.subTest(label=label):
+                with mock.patch.object(
+                    seal_batch_receipt,
+                    "git_object_bytes",
+                    return_value=candidate,
+                ):
+                    with self.assertRaises(ReceiptValidationError):
+                        seal_batch_receipt._verify_frozen_replay_artifacts(
+                            ROOT,
+                            candidate_sha,
+                            replay,
+                        )
 
     def fixture(self, root: Path, *, extra_final_file=False):
         record = {

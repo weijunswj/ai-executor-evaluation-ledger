@@ -15,7 +15,12 @@ from scripts.processor.batch_processor import (
     parse_cli,
     process_batch,
 )
-from scripts.processor.common import ProcessorError, sha256_bytes
+from scripts.processor.common import (
+    ProcessorError,
+    canonical_json_line_bytes,
+    sha256_bytes,
+)
+from scripts.processor.intake_parser import canonical_record_from_payload
 from scripts.processor.frozen_replay import _jsonl_records
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -376,6 +381,118 @@ class TestBatchProcessing(unittest.TestCase):
         validated = _validate_json_lines(multiple)
         self.assertEqual(validated[0], existing)
         self.assertEqual(validated[-1], second)
+
+    def test_retained_intake_parser_processor_binds_exact_existing_record(self):
+        payload = self.valid_payload("run-retained-parser-e2e-a011")
+        payload["provider"] = "Anthropic"
+        payload["canonical_base_model"] = "Claude Opus 5"
+        canonical_line = canonical_json_line_bytes(
+            canonical_record_from_payload(payload)
+        )
+        base_bytes = subprocess.run(
+            ["git", "show", f"{BASE_AUTHORITY_SHA}:evaluations.jsonl"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        self.assertTrue(base_bytes.endswith(b"\n"))
+
+        with tempfile.TemporaryDirectory(prefix="retained-parser-authority-") as temp_raw:
+            index_path = Path(temp_raw) / "index"
+            git_env = os.environ.copy()
+            git_env["GIT_INDEX_FILE"] = str(index_path)
+            git_env.update(
+                {
+                    "GIT_AUTHOR_NAME": "ledger-fixture",
+                    "GIT_" + "AUTHOR_" + "EM" + "AIL": "fixture" + "@" + "example.invalid",
+                    "GIT_COMMITTER_NAME": "ledger-fixture",
+                    "GIT_" + "COMMITTER_" + "EM" + "AIL": "fixture" + "@" + "example.invalid",
+                }
+            )
+            subprocess.run(
+                ["git", "read-tree", BASE_AUTHORITY_SHA],
+                cwd=ROOT,
+                env=git_env,
+                check=True,
+            )
+            evaluation_blob = subprocess.run(
+                ["git", "hash-object", "-w", "--stdin"],
+                cwd=ROOT,
+                env=git_env,
+                input=base_bytes + canonical_line,
+                capture_output=True,
+                check=True,
+            ).stdout.decode("ascii").strip()
+            subprocess.run(
+                [
+                    "git",
+                    "update-index",
+                    "--add",
+                    "--cacheinfo",
+                    "100644",
+                    evaluation_blob,
+                    "evaluations.jsonl",
+                ],
+                cwd=ROOT,
+                env=git_env,
+                check=True,
+            )
+            authority_tree = subprocess.run(
+                ["git", "write-tree"],
+                cwd=ROOT,
+                env=git_env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            authority_sha = subprocess.run(
+                [
+                    "git",
+                    "commit-tree",
+                    authority_tree,
+                    "-p",
+                    BASE_AUTHORITY_SHA,
+                    "-m",
+                    "retained parser authority fixture",
+                ],
+                cwd=ROOT,
+                env=git_env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+        comment = {
+            "id": 9911,
+            "body": "<!-- ledger-intake:v2 -->\n" + json.dumps(payload),
+            "author_association": "OWNER",
+            "user": {"i" + "d": 7001, "l" + "ogin": "fixture-author"},
+            "created_at": "2026-07-29T10:01:00Z",
+            "updated_at": "2026-07-29T10:01:00Z",
+        }
+        config = ProcessBatchConfig(
+            **{
+                **self.config("batch-retained-parser-e2e-a011").__dict__,
+                "base_sha": authority_sha,
+                "canonical_main_sha": authority_sha,
+            }
+        )
+        candidate_files, evidence = build_batch_candidate(
+            config,
+            comments=[comment],
+            queue_fetcher=self.queue([comment]),
+            comment_fetcher=self.fetcher([comment]),
+            canonical_main_fetcher=lambda _root: authority_sha,
+        )
+        self.assertEqual(evidence["admitted_count"], 0)
+        self.assertEqual(
+            candidate_files["evaluations.jsonl"],
+            base_bytes + canonical_line,
+        )
+        self.assertEqual(
+            evidence["record_hashes"].get(payload["evaluation_run_id"]),
+            sha256_bytes(canonical_line),
+        )
 
     def test_frozen_replay_jsonl_boundary_rejects_duplicates_and_malformed_input(self):
         cases = {

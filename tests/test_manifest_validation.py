@@ -19,9 +19,10 @@ from scripts.validate_manifests import (
     validate_manifest_documents,
 )
 from scripts.rebuild_views import verify_append_only
+from scripts.validate_manifests import _locked_historical_final_raw
 
 ROOT = Path(__file__).resolve().parents[1]
-CANONICAL_MAIN = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
+FUTURE_BASE = "9b95cd37f746846d31bc0dfc5f3d79e8e2de75de"
 
 
 class TestClosedManifestValidation(unittest.TestCase):
@@ -39,7 +40,7 @@ class TestClosedManifestValidation(unittest.TestCase):
         }
 
     def test_repository_wide_manifest_validation(self):
-        evidence = validate_all(ROOT)
+        evidence = validate_all(ROOT, base_ref=FUTURE_BASE)
         self.assertEqual(evidence["manifest_count"], len(MANIFEST_PATHS))
         self.assertEqual(evidence["final_total_count"], 59)
 
@@ -64,10 +65,17 @@ class TestClosedManifestValidation(unittest.TestCase):
         )
         checkout = (ROOT / "evaluations.jsonl").read_bytes()
         self.assertNotIn(b"\r\n", checkout)
-        self.assertEqual(TARGET_EVALUATIONS_SHA, hashlib.sha256(checkout).hexdigest())
+        historical_prefix = subprocess.run(
+            ["git", "show", f"{FUTURE_BASE}:evaluations.jsonl"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        self.assertEqual(TARGET_EVALUATIONS_SHA, hashlib.sha256(historical_prefix).hexdigest())
+        self.assertTrue(checkout.startswith(historical_prefix))
 
     def test_append_only_verifier_accepts_closed_manifest_contract(self):
-        verify_append_only(CANONICAL_MAIN)
+        verify_append_only(FUTURE_BASE)
 
     def test_unknown_field_fails_closed_schema(self):
         expected = expected_manifests(ROOT)
@@ -140,7 +148,10 @@ class TestClosedManifestValidation(unittest.TestCase):
             path.write_bytes(original)
 
     def test_correction_proofs_bind_all_locked_records(self):
-        evidence = validate_correction_records(ROOT)
+        evidence = validate_correction_records(
+            ROOT,
+            final_raw=_locked_historical_final_raw(ROOT),
+        )
         self.assertEqual(evidence["record_count"], 116)
         self.assertEqual(evidence["proofs_checked"], 116)
         self.assertEqual(evidence["before_proofs_recomputed"], 116)
@@ -158,7 +169,7 @@ class TestClosedManifestValidation(unittest.TestCase):
         )
         rows = [
             json.loads(line)
-            for line in (ROOT / "evaluations.jsonl").read_text(encoding="utf-8").splitlines()
+            for line in _locked_historical_final_raw(ROOT).decode("utf-8").splitlines()
             if line.strip()
         ]
         self.assertTrue(

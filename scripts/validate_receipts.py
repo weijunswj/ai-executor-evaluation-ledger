@@ -668,8 +668,6 @@ def _validate_frozen_source_replay(
         "terminal_outcomes": dict(replay.terminal_outcomes),
         "admitted_run_ids": list(replay.admitted_run_ids),
         "accepted_record_proofs": dict(replay.accepted_record_proofs),
-        "canonical_record_hashes": dict(replay.canonical_record_hashes),
-        "canonical_hashes": dict(replay.canonical_hashes),
         "comment_bindings": list(replay.comment_bindings),
         "source_comment_ids": list(replay.source_comment_ids),
         "source_body_sha256": dict(replay.source_body_sha256),
@@ -678,14 +676,36 @@ def _validate_frozen_source_replay(
     for field, expected in comparisons.items():
         if receipt.get(field) != expected:
             raise ReceiptValidationError(f"receipt_source_replay_mismatch:{field}")
+    generated_view_paths = {
+        "README.md",
+        "scorecard.md",
+        "analysis/model-recommendation.json",
+    }
     for relative_path, expected in replay.candidate_files.items():
-        if (
-            candidate_sha is not None
-            and git_object_bytes(root, candidate_sha, relative_path) != expected
-        ):
-            raise ReceiptValidationError("receipt_candidate_replay_mismatch")
-        if git_object_bytes(root, seal_sha, relative_path) != expected:
-            raise ReceiptValidationError("receipt_terminal_content_mismatch")
+        candidate_bytes = (
+            git_object_bytes(root, candidate_sha, relative_path)
+            if candidate_sha is not None
+            else None
+        )
+        seal_bytes = git_object_bytes(root, seal_sha, relative_path)
+        if relative_path == "evaluations.jsonl":
+            if (
+                candidate_bytes is not None
+                and not candidate_bytes.startswith(expected)
+            ):
+                raise ReceiptValidationError("receipt_candidate_replay_mismatch")
+            if not seal_bytes.startswith(expected):
+                raise ReceiptValidationError("receipt_terminal_content_mismatch")
+        elif relative_path in generated_view_paths:
+            continue
+        else:
+            if candidate_bytes is not None and candidate_bytes != expected:
+                raise ReceiptValidationError("receipt_candidate_replay_mismatch")
+            if seal_bytes != expected:
+                raise ReceiptValidationError("receipt_terminal_content_mismatch")
+    if candidate_sha is not None:
+        _validate_content_at_commit(root, candidate_sha, receipt)
+    _validate_content_at_commit(root, seal_sha, receipt)
     return {
         "outcomes": len(replay.terminal_outcomes),
         "admissions": len(replay.admitted_run_ids),

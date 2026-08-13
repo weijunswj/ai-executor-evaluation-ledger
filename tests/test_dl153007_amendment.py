@@ -121,7 +121,7 @@ class TestA1FutureAppendOnlyBases(unittest.TestCase):
             json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
         ).encode("utf-8")
 
-    def _verify(self, candidate: bytes) -> None:
+    def _verify(self, candidate: bytes, *, base_bytes: bytes | None = None) -> None:
         with tempfile.TemporaryDirectory(prefix="dl153007-append-") as raw:
             root = Path(raw)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
@@ -136,7 +136,7 @@ class TestA1FutureAppendOnlyBases(unittest.TestCase):
                 check=True,
             )
             ledger = root / "evaluations.jsonl"
-            ledger.write_bytes(self.base_bytes)
+            ledger.write_bytes(self.base_bytes if base_bytes is None else base_bytes)
             subprocess.run(["git", "add", "evaluations.jsonl"], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "base"], cwd=root, check=True)
             base_sha = subprocess.run(
@@ -155,7 +155,18 @@ class TestA1FutureAppendOnlyBases(unittest.TestCase):
                 rebuild_views.verify_append_only(base_sha)
 
     def test_locked_one_time_migration_path_still_passes(self):
-        rebuild_views.verify_append_only(LOCKED_BASE)
+        historical_prefix = subprocess.run(
+            ["git", "show", "9b95cd37f746846d31bc0dfc5f3d79e8e2de75de:evaluations.jsonl"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        self.assertEqual(
+            "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
+            hashlib.sha256(historical_prefix).hexdigest(),
+        )
+        self.assertTrue(self.base_bytes.startswith(historical_prefix))
+        self._verify(self.base_bytes, base_bytes=historical_prefix)
 
     def test_future_base_accepts_no_change_one_append_and_multiple_appends(self):
         for label, candidate in {

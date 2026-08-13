@@ -521,6 +521,7 @@ def parse_intake_comment(
                 return _reject("conflicting_identity")
             if dict(existing) != candidate_record:
                 return _reject("conflicting_identity")
+            return "already_recorded", {"evaluation_run_id": run_id}, "already_recorded"
         return _reject("already_recorded")
     if run_id in seen_candidate_ids:
         return _reject("duplicate_identity")

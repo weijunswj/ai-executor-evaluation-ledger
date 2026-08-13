@@ -450,6 +450,52 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(first[0], "admitted")
         self.assertEqual(second[0], "duplicate_identity")
 
+    def test_recorded_identity_transport_requires_exact_canonical_evidence(self):
+        payload = copy.deepcopy(self.valid_payload)
+        record = canonical_record_from_payload(payload)
+        run_id = payload["evaluation_run_id"]
+        body = self.body(payload)
+
+        exact = parse_intake_comment(
+            1001,
+            body,
+            {run_id},
+            set(),
+            recorded_records={run_id: record},
+        )
+        self.assertEqual(
+            exact,
+            ("already_recorded", {"evaluation_run_id": run_id}, "already_recorded"),
+        )
+
+        without_evidence = parse_intake_comment(
+            1001,
+            body,
+            {run_id},
+            set(),
+        )
+        self.assertEqual(without_evidence, ("already_recorded", {}, "already_recorded"))
+
+        cases = {
+            "wrong_run": {"other-run": record},
+            "absent": {},
+            "malformed": {run_id: []},
+            "conflicting": {run_id: {**record, "outcome": "hold"}},
+        }
+        for label, records in cases.items():
+            with self.subTest(label=label):
+                result = parse_intake_comment(
+                    1001,
+                    body,
+                    {run_id},
+                    set(),
+                    recorded_records=records,
+                )
+                self.assertEqual(
+                    result,
+                    ("conflicting_identity", {}, "conflicting_identity"),
+                )
+
     def test_duplicate_intake_keys_fail_closed_before_adaptation(self):
         compact = json.dumps(self.valid_payload, separators=(",", ":"))
         cases = {

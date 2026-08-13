@@ -682,7 +682,12 @@ def build_batch_candidate(
             owner_authority,
             recorded_run_ids,
             seen_candidate_ids,
-            existing_record_bindings,
+            {
+                run_id: binding["record"]
+                for run_id, binding in existing_record_bindings.items()
+                if isinstance(binding, dict)
+                and isinstance(binding.get("record"), dict)
+            },
         )
         evaluation_run_id = None
         record_hash = None

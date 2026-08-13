@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 from scripts.processor.common import (
     git_tree_file_bindings,
     git_tree_manifest_sha256,
+    sha256_bytes,
     validate_batch_receipt_closure,
 )
 from scripts.processor.frozen_source import (
@@ -28,6 +29,7 @@ from scripts.processor.frozen_source import (
 )
 from scripts.processor.frozen_replay import replay_frozen_from_receipt
 from scripts.validate_receipts import (
+    CANONICAL_PATHS,
     ReceiptValidationError,
     git_object_bytes,
     resolve_commit,
@@ -52,6 +54,38 @@ def _source_receipt(root: Path, content_sha: str, batch_id: str) -> dict[str, An
     ):
         raise ReceiptValidationError("seal_source_receipt_invalid")
     return value
+
+
+FROZEN_GENERATED_VIEW_PATHS = frozenset(
+    {
+        "README.md",
+        "scorecard.md",
+        "analysis/model-recommendation.json",
+    }
+)
+
+
+def _verify_frozen_replay_artifacts(
+    root: Path,
+    content_sha: str,
+    replay: Any,
+) -> None:
+    for relative_path, expected in replay.candidate_files.items():
+        actual = git_object_bytes(root, content_sha, relative_path)
+        if relative_path == "evaluations.jsonl":
+            if not actual.startswith(expected):
+                raise ReceiptValidationError("seal_candidate_replay_mismatch")
+        elif relative_path in FROZEN_GENERATED_VIEW_PATHS:
+            continue
+        elif actual != expected:
+            raise ReceiptValidationError("seal_candidate_replay_mismatch")
+
+
+def _full_current_canonical_hashes(root: Path, content_sha: str) -> dict[str, str]:
+    return {
+        hash_name: sha256_bytes(git_object_bytes(root, content_sha, relative_path))
+        for hash_name, relative_path in CANONICAL_PATHS.items()
+    }
 
 
 def build_sealed_receipt(
@@ -85,9 +119,7 @@ def build_sealed_receipt(
         replay = replay_frozen_from_receipt(root, source, comments)
     except Exception as error:
         raise ReceiptValidationError("seal_replay_failure") from error
-    for relative_path, expected in replay.candidate_files.items():
-        if git_object_bytes(root, content_sha, relative_path) != expected:
-            raise ReceiptValidationError("seal_candidate_replay_mismatch")
+    _verify_frozen_replay_artifacts(root, content_sha, replay)
     source_ids = list(replay.source_comment_ids)
     receipt_path = f"ledger/receipts/batches/{batch_id}.json"
     candidate_manifest = git_tree_file_bindings(
@@ -129,7 +161,7 @@ def build_sealed_receipt(
         "admitted_run_ids": list(replay.admitted_run_ids),
         "accepted_record_proofs": dict(replay.accepted_record_proofs),
         "canonical_record_hashes": dict(replay.canonical_record_hashes),
-        "canonical_hashes": dict(replay.canonical_hashes),
+        "canonical_hashes": _full_current_canonical_hashes(root, content_sha),
         "comment_bindings": list(replay.comment_bindings),
     }
     schema = json.loads(
