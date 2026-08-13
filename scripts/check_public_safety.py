@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import io
 import re
 import subprocess
 import sys
@@ -21,6 +22,24 @@ GENERIC_HISTORY_BASELINE = "c644a6032dec6709ff08b10f8bfb4fe53de28b69"
 UUID_HISTORY_ACTIVATION_HEAD = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 PR_ACTIVATION_HEAD = "10f40ea2f820f4a6230355502639bd7a238b2c45"
 CANONICAL_MAIN_BASE = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
+LUNA_HISTORY_BASE = "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898"
+LUNA_RED_PROOF_COMMIT = "d3624f0782329b2bd46ce56daf784e6a3c0d6fbb"
+LUNA_TDD_HISTORY_ALLOWED_MATCHES = frozenset(
+    {
+        (
+            "ba224fb72dd9e10fd65d36fdbd33f2974679f8ce",
+            "tests/test_controller_maintenance.py",
+            270,
+            "luna_execution_setting_003",
+        ),
+        (
+            "6e0ec65979831e720680d0c7633ec9c427e2cceb",
+            "tests/test_controller_maintenance.py",
+            242,
+            "luna_execution_setting_003",
+        ),
+    }
+)
 PRE_ACTIVATION_OCCURRENCE_COUNT = 571
 ACTIVATION_MANIFEST_RELATIVE_PATH = Path(
     "migrations/unicode-identity-history-activation.json"
@@ -165,6 +184,7 @@ INFERENCE_IDENTITY_WORD = "reason" + "ing"
 COGNITIVE_SETTING_PARTS = ("think" + "ing", "setting")
 NATIVE_CLASSIFICATION_WORDS = ("native", INFERENCE_IDENTITY_WORD, "classification")
 GPT_MODEL_WORDS = ("GPT", "5", "6", "Sol")
+LUNA_MODEL_WORDS = ("GPT", "5", "6", "Luna")
 CLAUDE_48_MODEL_WORDS = ("Claude", "Opus", "4", "8")
 CLAUDE_5_MODEL_WORDS = ("Claude", "Opus", "5")
 MEDIUM_SETTING_WORD = "Medium"
@@ -223,6 +243,28 @@ def _identity_pattern(*words: str) -> re.Pattern[str]:
     )
 
 
+LUNA_EXECUTION_SETTING_WORDS = (
+    (*LUNA_MODEL_WORDS, MEDIUM_SETTING_WORD),
+    (*LUNA_MODEL_WORDS, HIGH_SETTING_WORD),
+    (*LUNA_MODEL_WORDS, MAX_SETTING_WORD),
+)
+LUNA_EXECUTION_SETTING_SEQUENCES = tuple(
+    tuple(unicodedata.normalize("NFKC", word).casefold() for word in words)
+    for words in LUNA_EXECUTION_SETTING_WORDS
+)
+LUNA_EXECUTION_SETTING_RULES = tuple(
+    (f"luna_execution_setting_{index:03d}", sequence)
+    for index, sequence in enumerate(LUNA_EXECUTION_SETTING_SEQUENCES, start=1)
+)
+LUNA_SEQUENCES_BY_FIRST_TOKEN = {
+    first: tuple(
+        (rule_id, sequence)
+        for rule_id, sequence in LUNA_EXECUTION_SETTING_RULES
+        if sequence[0] == first
+    )
+    for first in {sequence[0] for sequence in LUNA_EXECUTION_SETTING_SEQUENCES}
+}
+
 FORBIDDEN_LEDGER_IDENTITY_PATTERNS = tuple(
     _identity_pattern(*words) for words in FORBIDDEN_LEDGER_IDENTITY_WORDS
 )
@@ -253,12 +295,43 @@ FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN = {
     }
 }
 
+NORMALIZED_IDENTITY_RULE_MAPS = (
+    FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN,
+    LUNA_SEQUENCES_BY_FIRST_TOKEN,
+)
+MAX_NORMALIZED_IDENTITY_SEQUENCE_LENGTH = max(
+    len(sequence)
+    for rules_by_first_token in NORMALIZED_IDENTITY_RULE_MAPS
+    for rules in rules_by_first_token.values()
+    for _rule_id, sequence in rules
+)
+NORMALIZED_IDENTITY_CARRY_LENGTH = MAX_NORMALIZED_IDENTITY_SEQUENCE_LENGTH - 1
+
 
 @dataclass(frozen=True)
 class IdentityMatch:
     rule_id: str
     offset: int
     line_number: int
+
+
+class JsonScalarToken(str):
+    """Preserve the original JSON scalar lexeme for context scanning."""
+
+@dataclass(frozen=True)
+
+class NormalizedIdentityContextToken:
+    value: str
+    line_number: int
+    is_key: bool
+
+
+@dataclass(frozen=True)
+class CrossRecordIdentityMatch:
+    rule_id: str
+    start_line: int
+    end_line: int
+    uses_key: bool
 
 
 @dataclass(frozen=True)
@@ -286,6 +359,95 @@ def _unicode_alphanumeric_runs(text: str) -> tuple[str, list[tuple[str, int]]]:
     if start is not None:
         runs.append((normalized[start:], start))
     return normalized, runs
+
+
+def _normalized_context_tokens(
+    parts: Iterable[tuple[str, bool]],
+    line_number: int,
+) -> tuple[NormalizedIdentityContextToken, ...]:
+    tokens: list[NormalizedIdentityContextToken] = []
+    for text, is_key in parts:
+        _normalized, runs = _unicode_alphanumeric_runs(text)
+        tokens.extend(
+            NormalizedIdentityContextToken(
+                value=value,
+                line_number=line_number,
+                is_key=is_key,
+            )
+            for value, _offset in runs
+        )
+    return tuple(tokens)
+
+
+def _bounded_normalized_context(
+    tokens: tuple[NormalizedIdentityContextToken, ...],
+) -> tuple[NormalizedIdentityContextToken, ...]:
+    if NORMALIZED_IDENTITY_CARRY_LENGTH <= 0:
+        return ()
+    return tokens[-NORMALIZED_IDENTITY_CARRY_LENGTH:]
+
+
+def _json_record_normalized_contexts(
+    value_context: str,
+    record_strings: list[tuple[str, bool]],
+    line_number: int,
+) -> tuple[
+    tuple[NormalizedIdentityContextToken, ...],
+    tuple[NormalizedIdentityContextToken, ...],
+]:
+    return (
+        _normalized_context_tokens(((value_context, False),), line_number),
+        _normalized_context_tokens(record_strings, line_number),
+    )
+
+
+def _cross_record_normalized_identity_matches(
+    previous_contexts: Iterable[tuple[NormalizedIdentityContextToken, ...]],
+    current_contexts: Iterable[tuple[NormalizedIdentityContextToken, ...]],
+    rules_by_first_token: Mapping[
+        str,
+        tuple[tuple[str, tuple[str, ...]], ...],
+    ],
+) -> list[CrossRecordIdentityMatch]:
+    aggregated: dict[tuple[str, int, int], bool] = {}
+    for previous in previous_contexts:
+        if not previous:
+            continue
+        for current in current_contexts:
+            if not current:
+                continue
+            combined = previous + current
+            boundary = len(previous)
+            token_values = tuple(token.value for token in combined)
+            for index, first in enumerate(token_values):
+                for rule_id, sequence in rules_by_first_token.get(first, ()):
+                    width = len(sequence)
+                    end_index = index + width
+                    if (
+                        index >= boundary
+                        or end_index <= boundary
+                        or end_index > len(combined)
+                        or token_values[index:end_index] != sequence
+                    ):
+                        continue
+                    key = (
+                        rule_id,
+                        combined[index].line_number,
+                        combined[end_index - 1].line_number,
+                    )
+                    uses_key = any(
+                        token.is_key for token in combined[index:end_index]
+                    )
+                    aggregated[key] = aggregated.get(key, False) or uses_key
+    return [
+        CrossRecordIdentityMatch(
+            rule_id=rule_id,
+            start_line=start_line,
+            end_line=end_line,
+            uses_key=uses_key,
+        )
+        for (rule_id, start_line, end_line), uses_key in aggregated.items()
+    ]
 
 
 def tracked_files(root: Path = ROOT) -> list[Path]:
@@ -399,17 +561,15 @@ def identity_rule_set_sha256() -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
-def iter_ledger_identity_matches(text: str) -> list[IdentityMatch]:
-    """Return privacy-safe match metadata for the normalized identity rules."""
-
+def _iter_normalized_identity_matches(
+    text: str,
+    rules_by_first_token: Mapping[str, tuple[tuple[str, tuple[str, ...]], ...]],
+) -> list[IdentityMatch]:
     normalized, runs = _unicode_alphanumeric_runs(text)
     run_values = tuple(value for value, _offset in runs)
     matches: list[IdentityMatch] = []
     for index, (first, offset) in enumerate(runs):
-        for rule_id, sequence in FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN.get(
-            first,
-            (),
-        ):
+        for rule_id, sequence in rules_by_first_token.get(first, ()):
             width = len(sequence)
             if run_values[index : index + width] == sequence:
                 matches.append(
@@ -422,6 +582,58 @@ def iter_ledger_identity_matches(text: str) -> list[IdentityMatch]:
     return matches
 
 
+def _iter_normalized_identity_run_spans(
+    text: str,
+    rules_by_first_token: Mapping[str, tuple[tuple[str, tuple[str, ...]], ...]],
+) -> list[tuple[str, int, int, int, int]]:
+    normalized, runs = _unicode_alphanumeric_runs(text)
+    run_values = tuple(value for value, _offset in runs)
+    matches: list[tuple[str, int, int, int, int]] = []
+    for index, (first, offset) in enumerate(runs):
+        for rule_id, sequence in rules_by_first_token.get(first, ()):
+            width = len(sequence)
+            if run_values[index : index + width] != sequence:
+                continue
+            last_value, last_offset = runs[index + width - 1]
+            end_offset = last_offset + len(last_value)
+            matches.append(
+                (rule_id, index, index + width - 1, offset, end_offset)
+            )
+    return matches
+
+
+def _iter_normalized_identity_line_spans(
+    text: str,
+    rules_by_first_token: Mapping[str, tuple[tuple[str, tuple[str, ...]], ...]],
+) -> list[tuple[str, int, int]]:
+    """Return privacy-safe normalized rule IDs with inclusive line spans."""
+
+    normalized, runs = _unicode_alphanumeric_runs(text)
+    run_values = tuple(value for value, _offset in runs)
+    spans: list[tuple[str, int, int]] = []
+    for index, (first, offset) in enumerate(runs):
+        for rule_id, sequence in rules_by_first_token.get(first, ()):
+            width = len(sequence)
+            if run_values[index : index + width] != sequence:
+                continue
+            last_value, last_offset = runs[index + width - 1]
+            end_offset = last_offset + len(last_value)
+            spans.append(
+                (
+                    rule_id,
+                    normalized.count("\n", 0, offset) + 1,
+                    normalized.count("\n", 0, end_offset) + 1,
+                )
+            )
+    return spans
+
+
+def iter_ledger_identity_matches(text: str) -> list[IdentityMatch]:
+    """Return privacy-safe match metadata for the normalized identity rules."""
+
+    return _iter_normalized_identity_matches(text, FORBIDDEN_SEQUENCES_BY_FIRST_TOKEN)
+
+
 def scan_ledger_identity(label: str, text: str) -> list[str]:
     """Reject normalized model-setting identities in every tracked directory."""
 
@@ -432,6 +644,17 @@ def scan_ledger_identity(label: str, text: str) -> list[str]:
     ]
 
 
+def scan_luna_execution_settings(label: str, text: str) -> list[str]:
+    return [
+        f"{label}:{match.line_number}: forbidden ledger identity token "
+        f"[{match.rule_id}]"
+        for match in _iter_normalized_identity_matches(
+            text,
+            LUNA_SEQUENCES_BY_FIRST_TOKEN,
+        )
+    ]
+
+
 def scan_public_text(
     label: str,
     text: str,
@@ -439,6 +662,7 @@ def scan_public_text(
     generic_text: str | None = None,
     policy_failures: Iterable[str] = (),
     generic_rules: Iterable[tuple[str, re.Pattern[str]]] = RULES,
+    include_luna_execution_settings: bool = True,
 ) -> list[str]:
     """Apply the one generic and normalized-identity scanning pipeline."""
 
@@ -451,6 +675,8 @@ def scan_public_text(
         )
     )
     failures.extend(scan_ledger_identity(label, text))
+    if include_luna_execution_settings:
+        failures.extend(scan_luna_execution_settings(label, text))
     return failures
 
 
@@ -465,23 +691,240 @@ def walk_json(value: object, label: str, path: str = "$") -> list[str]:
         for index, item in enumerate(value):
             failures.extend(walk_json(item, label, f"{path}[{index}]"))
     elif isinstance(value, str):
-        failures.extend(scan_text(f"{label}:{path}", value))
+        failures.extend(scan_public_text(f"{label}:{path}", value))
     return failures
+
+
+def _collect_json_record_strings(
+    value: object,
+    label: str,
+    path: str = "$",
+) -> tuple[list[str], list[str], list[tuple[str, bool]]]:
+    """Validate JSON keys while retaining value and key-aware contexts."""
+
+    failures: list[str] = []
+    string_values: list[str] = []
+    record_strings: list[tuple[str, bool]] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key.lower() in SENSITIVE_JSON_KEYS:
+                failures.append(f"{label}: forbidden JSON key at {path}.{key}")
+            record_strings.append((key, True))
+            child_failures, child_strings, child_record_strings = _collect_json_record_strings(
+                item,
+                label,
+                f"{path}.{key}",
+            )
+            failures.extend(child_failures)
+            string_values.extend(child_strings)
+            record_strings.extend(child_record_strings)
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            child_failures, child_strings, child_record_strings = _collect_json_record_strings(
+                item,
+                label,
+                f"{path}[{index}]",
+            )
+            failures.extend(child_failures)
+            string_values.extend(child_strings)
+            record_strings.extend(child_record_strings)
+    elif isinstance(value, JsonScalarToken):
+        scalar = str(value)
+        string_values.append(scalar)
+        record_strings.append((scalar, False))
+    elif isinstance(value, bool):
+        scalar = "true" if value else "false"
+        string_values.append(scalar)
+        record_strings.append((scalar, False))
+    elif value is None:
+        string_values.append("null")
+        record_strings.append(("null", False))
+    elif isinstance(value, str):
+        string_values.append(value)
+        record_strings.append((value, False))
+    return failures, string_values, record_strings
+
+
+def _scan_json_record(
+    value: object,
+    label: str,
+) -> tuple[list[str], tuple[str, list[tuple[str, bool]]]]:
+    """Scan one record in value-only and key-aware deterministic contexts."""
+
+    failures, string_values, record_strings = _collect_json_record_strings(value, label)
+    value_context = " ".join(string_values)
+    record_context = " ".join(text for text, _is_key in record_strings)
+    if value_context:
+        failures.extend(scan_public_text(label, value_context))
+    seen_failures = set(failures)
+    if record_context:
+        for failure in scan_public_text(label, record_context):
+            if failure not in seen_failures:
+                failures.append(failure)
+                seen_failures.add(failure)
+    return failures, (value_context, record_strings)
+
+
+def _luna_json_record_occurrences(
+    value_context: str,
+    record_strings: list[tuple[str, bool]],
+) -> dict[str, list[tuple[int, int]]]:
+    occurrences = _luna_match_occurrence_spans_by_rule(value_context)
+    record_context = " ".join(text for text, _is_key in record_strings)
+    if not record_context:
+        return occurrences
+
+    normalized, runs = _unicode_alphanumeric_runs(record_context)
+    part_ranges: list[tuple[int, int, bool]] = []
+    part_offset = 0
+    for text, is_key in record_strings:
+        normalized_part = unicodedata.normalize("NFKC", text).casefold()
+        part_ranges.append(
+            (part_offset, part_offset + len(normalized_part), is_key)
+        )
+        part_offset += len(normalized_part) + 1
+
+    for (
+        rule_id,
+        start_index,
+        end_index,
+        start_offset,
+        end_offset,
+    ) in _iter_normalized_identity_run_spans(
+        record_context,
+        LUNA_SEQUENCES_BY_FIRST_TOKEN,
+    ):
+        uses_key = any(
+            is_key
+            for _run_value, run_offset in runs[start_index : end_index + 1]
+            for part_start, part_end, is_key in part_ranges
+            if part_start <= run_offset < part_end
+        )
+        if not uses_key:
+            continue
+        occurrences.setdefault(rule_id, []).append(
+            (
+                normalized.count("\n", 0, start_offset) + 1,
+                normalized.count("\n", 0, end_offset) + 1,
+            )
+        )
+    return occurrences
+
+
+def _parse_jsonl_record(raw_line: bytes) -> object:
+    if b"\0" in raw_line:
+        raise ValueError("JSONL record contains a NUL byte")
+
+    def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        record: dict[str, object] = {}
+        for key, value in pairs:
+            if key in record:
+                raise ValueError("JSONL record contains duplicate object keys")
+            record[key] = value
+        return record
+
+    return json.loads(
+        raw_line.decode("utf-8", errors="strict"),
+        object_pairs_hook=reject_duplicates,
+        parse_int=JsonScalarToken,
+        parse_float=JsonScalarToken,
+        parse_constant=JsonScalarToken,
+    )
+
+
+def _iter_jsonl_blob_records(raw: bytes) -> Iterable[tuple[int, object]]:
+    """Yield strict, parsed JSONL records without decoding the whole blob."""
+
+    for number, raw_line in enumerate(io.BytesIO(raw), start=1):
+        if not raw_line.strip():
+            continue
+        try:
+            record = _parse_jsonl_record(raw_line)
+        except UnicodeDecodeError as error:
+            raise RuntimeError(
+                "Luna history JSONL is not strict UTF-8"
+            ) from error
+        except json.JSONDecodeError as error:
+            raise RuntimeError("Luna history JSONL contains invalid JSON") from error
+        except ValueError as error:
+            raise RuntimeError("Luna history JSONL contains invalid text") from error
+        yield number, record
 
 
 def scan_jsonl(path: Path, *, root: Path = ROOT) -> list[str]:
     failures: list[str] = []
-    text = path.read_text(encoding="utf-8")
-    for number, line in enumerate(text.splitlines(), start=1):
-        if not line.strip():
-            continue
-        try:
-            record = json.loads(line)
-        except json.JSONDecodeError as exc:
-            failures.append(f"{path.relative_to(root)}:{number}: invalid JSON: {exc.msg}")
-            continue
-        failures.extend(walk_json(record, f"{path.relative_to(root)}:{number}"))
+    label = path.relative_to(root).as_posix()
+    previous_value_context: tuple[NormalizedIdentityContextToken, ...] = ()
+    previous_record_context: tuple[NormalizedIdentityContextToken, ...] = ()
+    with path.open("rb") as handle:
+        for number, raw_line in enumerate(handle, start=1):
+            if not raw_line.strip():
+                continue
+            try:
+                record = _parse_jsonl_record(raw_line)
+            except UnicodeDecodeError:
+                failures.append(f"{label}:{number}: invalid UTF-8")
+                previous_value_context = ()
+                previous_record_context = ()
+                continue
+            except json.JSONDecodeError as exc:
+                failures.append(f"{label}:{number}: invalid JSON: {exc.msg}")
+                previous_value_context = ()
+                previous_record_context = ()
+                continue
+            except ValueError as exc:
+                failures.append(f"{label}:{number}: invalid text: {exc}")
+                previous_value_context = ()
+                previous_record_context = ()
+                continue
+            record_failures, (value_context, record_strings) = _scan_json_record(
+                record,
+                f"{label}:{number}",
+            )
+            failures.extend(record_failures)
+            value_tokens, record_tokens = _json_record_normalized_contexts(
+                value_context,
+                record_strings,
+                number,
+            )
+            for rules_by_first_token in NORMALIZED_IDENTITY_RULE_MAPS:
+                for match in _cross_record_normalized_identity_matches(
+                    (previous_value_context, previous_record_context),
+                    (value_tokens, record_tokens),
+                    rules_by_first_token,
+                ):
+                    failure = (
+                        f"{label}:{match.end_line}: forbidden ledger identity token "
+                        f"[{match.rule_id}]"
+                    )
+                    if failure not in failures:
+                        failures.append(failure)
+            previous_value_context = _bounded_normalized_context(
+                previous_value_context + value_tokens
+            )
+            previous_record_context = _bounded_normalized_context(
+                previous_record_context + record_tokens
+            )
     return failures
+
+
+def _commit_parents(root: Path, commit: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "rev-list", "--parents", "-n", "1", commit],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("history parent authority is unavailable")
+    fields = result.stdout.split()
+    if not fields or re.fullmatch(r"[0-9a-f]{40}", fields[0]) is None:
+        raise RuntimeError("history parent authority is malformed")
+    parents = fields[1:]
+    if any(re.fullmatch(r"[0-9a-f]{40}", parent) is None for parent in parents):
+        raise RuntimeError("history parent authority is malformed")
+    return parents
 
 
 def changed_files_in_commit(commit: str, *, root: Path = ROOT) -> list[str]:
@@ -493,6 +936,7 @@ def changed_files_in_commit(commit: str, *, root: Path = ROOT) -> list[str]:
             "--no-commit-id",
             "--name-only",
             "-r",
+            "-m",
             "-z",
             commit,
         ],
@@ -500,11 +944,470 @@ def changed_files_in_commit(commit: str, *, root: Path = ROOT) -> list[str]:
         check=True,
         capture_output=True,
     )
-    return [
-        item.decode("utf-8")
-        for item in result.stdout.split(b"\0")
-        if item
-    ]
+    return sorted(
+        {
+            item.decode("utf-8")
+            for item in result.stdout.split(b"\0")
+            if item
+        }
+    )
+
+
+def _jsonl_finding_signature(failure: str) -> str:
+    return failure.rsplit(": ", 1)[-1]
+
+
+def _jsonl_finding_surplus(
+    after: Iterable[str],
+    parents: Iterable[Iterable[str]],
+) -> list[str]:
+    available: dict[str, int] = {}
+    for parent_findings in parents:
+        for failure in parent_findings:
+            signature = _jsonl_finding_signature(failure)
+            available[signature] = available.get(signature, 0) + 1
+
+    surplus: list[str] = []
+    for failure in after:
+        signature = _jsonl_finding_signature(failure)
+        remaining = available.get(signature, 0)
+        if remaining:
+            available[signature] = remaining - 1
+        else:
+            surplus.append(failure)
+    return surplus
+
+
+def _luna_history_blob_scan(
+    raw: bytes,
+    label: str,
+    *,
+    root: Path,
+    revision: str | None,
+) -> tuple[dict[str, list[tuple[int, int]]], list[str]]:
+    if not label.casefold().endswith(".jsonl"):
+        if raw and _git_revision_blob_is_binary(root, revision, label):
+            return {}, []
+        return _luna_match_occurrence_spans_by_rule(_decode_luna_history_blob(raw)), []
+
+    matches: dict[str, list[tuple[int, int]]] = {}
+    non_luna_failures: list[str] = []
+    previous_value_context: tuple[NormalizedIdentityContextToken, ...] = ()
+    previous_record_context: tuple[NormalizedIdentityContextToken, ...] = ()
+    for number, record in _iter_jsonl_blob_records(raw):
+        record_failures, (value_context, record_strings) = _scan_json_record(
+            record,
+            f"{label}:{number}",
+        )
+        non_luna_failures.extend(
+            failure
+            for failure in record_failures
+            if "luna_execution_setting_" not in failure
+        )
+        for rule_id, spans in _luna_json_record_occurrences(
+            value_context,
+            record_strings,
+        ).items():
+            matches.setdefault(rule_id, []).extend(
+                (number, number) for _start_line, _end_line in spans
+            )
+        value_tokens, record_tokens = _json_record_normalized_contexts(
+            value_context,
+            record_strings,
+            number,
+        )
+        for rules_by_first_token in NORMALIZED_IDENTITY_RULE_MAPS:
+            cross_matches = _cross_record_normalized_identity_matches(
+                (previous_value_context, previous_record_context),
+                (value_tokens, record_tokens),
+                rules_by_first_token,
+            )
+            if rules_by_first_token is LUNA_SEQUENCES_BY_FIRST_TOKEN:
+                for match in cross_matches:
+                    matches.setdefault(match.rule_id, []).append(
+                        (match.start_line, match.end_line)
+                    )
+            else:
+                non_luna_failures.extend(
+                    f"{label}:{match.end_line}: forbidden ledger identity token "
+                    f"[{match.rule_id}]"
+                    for match in cross_matches
+                )
+        previous_value_context = _bounded_normalized_context(
+            previous_value_context + value_tokens
+        )
+        previous_record_context = _bounded_normalized_context(
+            previous_record_context + record_tokens
+        )
+    for occurrences in matches.values():
+        occurrences.sort()
+    return matches, non_luna_failures
+
+
+def _line_ranges_from_hunks(
+    hunks: list[tuple[int, int, int, int]],
+) -> list[tuple[int, int | None, int]]:
+    if not hunks:
+        return [(1, None, 0)]
+
+    ranges: list[tuple[int, int | None, int]] = []
+    previous_new = 1
+    previous_old = 1
+    for old_start, old_count, new_start, new_count in hunks:
+        before_new_end = new_start - 1 if new_count else new_start
+        before_old_end = old_start - 1 if old_count else old_start
+        if (
+            before_new_end - previous_new
+            != before_old_end - previous_old
+        ):
+            raise RuntimeError("history parent-child mapping is malformed")
+        if before_new_end >= previous_new:
+            ranges.append(
+                (
+                    previous_new,
+                    before_new_end,
+                    previous_old - previous_new,
+                )
+            )
+        previous_new = new_start + new_count if new_count else new_start + 1
+        previous_old = old_start + old_count if old_count else old_start + 1
+    ranges.append((previous_new, None, previous_old - previous_new))
+    return ranges
+
+
+def _unchanged_line_ranges_for_path(
+    parent: str,
+    child: str,
+    label: str,
+    *,
+    root: Path,
+) -> list[tuple[int, int | None, int]]:
+    return _unchanged_line_ranges_for_commit(
+        str(root),
+        parent,
+        child,
+    ).get(label, [(1, None, 0)])
+
+
+@lru_cache(maxsize=256)
+def _unchanged_line_ranges_for_commit(
+    root_text: str,
+    parent: str,
+    child: str,
+) -> dict[str, list[tuple[int, int | None, int]]]:
+    root = Path(root_text)
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--no-renames",
+            "--unified=0",
+            "--format=",
+            "--no-prefix",
+            parent,
+            child,
+            "--",
+        ],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("history parent-child mapping is unavailable")
+
+    hunks_by_path: dict[str, list[tuple[int, int, int, int]]] = {}
+    current_path: str | None = None
+    for raw_line in result.stdout.splitlines():
+        if raw_line.startswith(b"+++ "):
+            path = raw_line[4:].decode("utf-8", errors="strict")
+            if path == "/dev/null":
+                current_path = None
+                continue
+            current_path = path
+            hunks_by_path.setdefault(current_path, [])
+            continue
+        if current_path is None or not raw_line.startswith(b"@@ "):
+            continue
+        match = re.match(
+            br"^@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@",
+            raw_line,
+        )
+        if match is None:
+            raise RuntimeError("history parent-child mapping is malformed")
+        hunks_by_path[current_path].append(
+            (
+                int(match.group(1)),
+                int(match.group(2) or b"1"),
+                int(match.group(3)),
+                int(match.group(4) or b"1"),
+            )
+        )
+    return {
+        path: _line_ranges_from_hunks(hunks)
+        for path, hunks in hunks_by_path.items()
+    }
+
+
+def _map_occurrence_span(
+    occurrence: tuple[int, int],
+    ranges: list[tuple[int, int | None, int]],
+) -> tuple[int, int] | None:
+    mapped: list[int] = []
+    for line_number in range(occurrence[0], occurrence[1] + 1):
+        parent_line: int | None = None
+        for start, end, offset in ranges:
+            if line_number >= start and (end is None or line_number <= end):
+                parent_line = line_number + offset
+                break
+        if parent_line is None:
+            return None
+        mapped.append(parent_line)
+    if not mapped or mapped != list(range(mapped[0], mapped[-1] + 1)):
+        return None
+    return mapped[0], mapped[-1]
+
+
+
+def _changed_line_records_for_path(
+    parent: str,
+    child: str,
+    label: str,
+    *,
+    root: Path,
+) -> tuple[list[tuple[int, bytes]], list[tuple[int, bytes]]]:
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--no-renames",
+            "--unified=0",
+            "--format=",
+            parent,
+            child,
+            "--",
+            ":(literal)" + label,
+        ],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("history parent-child mapping is unavailable")
+
+    added: list[tuple[int, bytes]] = []
+    deleted: list[tuple[int, bytes]] = []
+    old_line: int | None = None
+    new_line: int | None = None
+    for raw_line in result.stdout.splitlines():
+        if raw_line.startswith(b"@@ "):
+            match = re.match(
+                br"^@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@",
+                raw_line,
+            )
+            if match is None:
+                raise RuntimeError("history parent-child mapping is malformed")
+            old_line = int(match.group(1))
+            new_line = int(match.group(3))
+            continue
+        if old_line is None or new_line is None:
+            continue
+        if raw_line.startswith(b"+"):
+            added.append((new_line, raw_line[1:]))
+            new_line += 1
+        elif raw_line.startswith(b"-"):
+            deleted.append((old_line, raw_line[1:]))
+            old_line += 1
+        elif raw_line.startswith(b" "):
+            old_line += 1
+            new_line += 1
+    return added, deleted
+
+
+def _occurrence_is_relocated(
+    occurrence: tuple[int, int],
+    mapped: tuple[int, int],
+    line_edits: tuple[list[tuple[int, bytes]], list[tuple[int, bytes]]],
+) -> bool:
+    added, deleted = line_edits
+    added_before = {
+        line_bytes
+        for line_number, line_bytes in added
+        if line_number < occurrence[0]
+    }
+    added_after = {
+        line_bytes
+        for line_number, line_bytes in added
+        if line_number > occurrence[1]
+    }
+    deleted_before = {
+        line_bytes
+        for line_number, line_bytes in deleted
+        if line_number < mapped[0]
+    }
+    deleted_after = {
+        line_bytes
+        for line_number, line_bytes in deleted
+        if line_number > mapped[1]
+    }
+    return bool(
+        (added_before & deleted_after)
+        or (added_after & deleted_before)
+
+
+    )
+def _inherited_occurrence_indexes(
+    rule_id: str,
+    after_occurrences: list[tuple[int, int]],
+    parent_scans: list[dict[str, list[tuple[int, int]]]],
+    parent_ranges: list[list[tuple[int, int | None, int]]],
+    parent_line_edits: list[
+        tuple[list[tuple[int, bytes]], list[tuple[int, bytes]]]
+    ] | None = None,
+) -> set[int]:
+    used_parent_occurrences = [set() for _ in parent_scans]
+    inherited: set[int] = set()
+    for after_index, occurrence in enumerate(after_occurrences):
+        for parent_index, parent_scan in enumerate(parent_scans):
+            mapped = _map_occurrence_span(occurrence, parent_ranges[parent_index])
+            if mapped is None:
+                continue
+            if (
+                parent_line_edits is not None
+                and _occurrence_is_relocated(
+                    occurrence,
+                    mapped,
+                    parent_line_edits[parent_index],
+                )
+            ):
+                continue
+            for parent_occurrence_index, parent_occurrence in enumerate(
+                parent_scan.get(rule_id, ())
+            ):
+                if parent_occurrence_index in used_parent_occurrences[parent_index]:
+                    continue
+                if parent_occurrence != mapped:
+                    continue
+                used_parent_occurrences[parent_index].add(parent_occurrence_index)
+                inherited.add(after_index)
+                break
+            if after_index in inherited:
+                break
+    return inherited
+
+
+def luna_history_failures_in_range(
+    start: str,
+    *,
+    end: str = "HEAD",
+    root: Path = ROOT,
+) -> list[str]:
+    """Reject Luna matches newly introduced by any changed commit result."""
+
+    _require_complete_history(root)
+    if not _git_commit_exists(root, start) or not _git_commit_exists(root, end):
+        raise RuntimeError("Luna history range authority is unavailable")
+    if not _is_ancestor(root, start, end):
+        raise RuntimeError("Luna history range authority is not an ancestor")
+    commits = subprocess.run(
+        ["git", "rev-list", "--reverse", f"{start}..{end}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+
+    failures: list[str] = []
+    for commit in commits:
+        if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+            raise RuntimeError("Luna history commit authority is malformed")
+        parents = _commit_parents(root, commit)
+        for label in changed_files_in_commit(commit, root=root):
+            after_matches, after_jsonl_findings = _luna_history_blob_scan(
+                _git_blob_or_empty(root, commit, label),
+                label,
+                root=root,
+                revision=commit,
+            )
+            parent_scans = [
+                _luna_history_blob_scan(
+                    _git_blob_or_empty(root, parent, label),
+                    label,
+                    root=root,
+                    revision=parent,
+                )
+                for parent in parents
+            ]
+            before_matches = [scan[0] for scan in parent_scans]
+            parent_ranges = (
+                [
+                    _unchanged_line_ranges_for_path(
+                        parent,
+                        commit,
+                        label,
+                        root=root,
+                    )
+                    for parent in parents
+                ]
+                if after_matches
+                else []
+            )
+            parent_line_edits = (
+                [
+                    _changed_line_records_for_path(
+                        parent,
+                        commit,
+                        label,
+                        root=root,
+                    )
+                    for parent in parents
+                ]
+                if after_matches
+                else []
+            )
+            for rule_id, after_occurrences in sorted(after_matches.items()):
+                inherited = _inherited_occurrence_indexes(
+                    rule_id,
+                    after_occurrences,
+                    before_matches,
+                    parent_ranges,
+                    parent_line_edits,
+                )
+                new_indexes = [
+                    index
+                    for index in range(len(after_occurrences))
+                    if index not in inherited
+                ]
+                allowed_indexes: set[int] = set()
+                consumed_exceptions: set[tuple[str, str, int, str]] = set()
+                for index in new_indexes:
+                    start_line, _end_line = after_occurrences[index]
+                    exception = (commit, label, start_line, rule_id)
+                    if (
+                        exception in LUNA_TDD_HISTORY_ALLOWED_MATCHES
+                        and exception not in consumed_exceptions
+                    ):
+                        allowed_indexes.add(index)
+                        consumed_exceptions.add(exception)
+                for index in new_indexes:
+                    if index in allowed_indexes:
+                        continue
+                    start_line, _end_line = after_occurrences[index]
+                    failures.append(
+                        f"commit:{commit[:12]}:{label}:line-{start_line}: "
+                        f"forbidden ledger identity token [{rule_id}]"
+                    )
+            if label.casefold().endswith(".jsonl"):
+                failures.extend(
+                    _jsonl_finding_surplus(
+                        after_jsonl_findings,
+                        (scan[1] for scan in parent_scans),
+                    )
+                )
+    return failures
 
 
 def added_line_byte_records_for_path(
@@ -684,6 +1587,64 @@ def _git_blob(root: Path, revision: str, relative_path: str) -> bytes:
     if result.returncode != 0:
         raise RuntimeError("history authority blob is unavailable")
     return result.stdout
+
+
+def _git_blob_or_empty(root: Path, revision: str | None, relative_path: str) -> bytes:
+    if revision is None:
+        return b""
+    result = subprocess.run(
+        ["git", "show", f"{revision}:{relative_path}"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return result.stdout
+    if not _git_commit_exists(root, revision):
+        raise RuntimeError("history authority commit is unavailable")
+    return b""
+
+
+def _git_revision_blob_is_binary(
+    root: Path,
+    revision: str | None,
+    relative_path: str,
+) -> bool:
+    """Use blob bytes as binary authority, never candidate Git attributes."""
+    if revision is None:
+        return False
+    raw = _git_blob_or_empty(root, revision, relative_path)
+    return bool(raw and b"\0" in raw)
+
+
+def _decode_luna_history_blob(raw: bytes) -> str:
+    if len(raw) > MAX_TEXT_BYTES:
+        raise RuntimeError("Luna history authority exceeds text limit")
+    if b"\0" in raw:
+        raise RuntimeError("Luna history authority is not text")
+    try:
+        return raw.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as error:
+        raise RuntimeError("Luna history authority blob is not strict UTF-8") from error
+
+
+def _luna_match_lines_by_rule(text: str) -> dict[str, list[int]]:
+    return {
+        rule_id: [start_line for start_line, _end_line in spans]
+        for rule_id, spans in _luna_match_occurrence_spans_by_rule(text).items()
+    }
+
+
+def _luna_match_occurrence_spans_by_rule(
+    text: str,
+) -> dict[str, list[tuple[int, int]]]:
+    matches: dict[str, list[tuple[int, int]]] = {}
+    for rule_id, start_line, _end_line in _iter_normalized_identity_line_spans(
+        text,
+        LUNA_SEQUENCES_BY_FIRST_TOKEN,
+    ):
+        matches.setdefault(rule_id, []).append((start_line, _end_line))
+    return matches
 
 
 def _baseline_blob_is_unchanged(root: Path) -> None:
@@ -902,6 +1863,27 @@ def unicode_history_start(root: Path, manifest: Mapping[str, Any]) -> tuple[str,
     return canonical, "canonical-main-squash"
 
 
+def luna_history_start(
+    root: Path,
+    manifest: Mapping[str, Any],
+) -> tuple[str, str]:
+    """Select prospective Luna history in PR, squash-main, or isolated fixtures."""
+
+    _require_complete_history(root)
+    if _git_commit_exists(root, LUNA_RED_PROOF_COMMIT) and _is_ancestor(
+        root,
+        LUNA_RED_PROOF_COMMIT,
+    ):
+        return LUNA_RED_PROOF_COMMIT, "pr-descendant"
+    if _git_commit_exists(root, LUNA_HISTORY_BASE) and _is_ancestor(
+        root,
+        LUNA_HISTORY_BASE,
+    ):
+        return LUNA_HISTORY_BASE, "canonical-main-squash"
+    start, _mode = unicode_history_start(root, manifest)
+    return start, "isolated-authority-fallback"
+
+
 def uuid_history_start(root: Path) -> tuple[str, str]:
     """Select the prospective UUID-rule history without rewriting legacy history."""
 
@@ -926,12 +1908,17 @@ def tree_failures(root: Path) -> list[str]:
             relative = path.relative_to(root)
         except ValueError:
             continue
-        if not path.is_file() or ".git" in relative.parts:
+        if not path.is_file():
+            continue
+        if ".git" in relative.parts:
+            continue
+        label = relative.as_posix()
+        if label.casefold().endswith(".jsonl"):
+            failures.extend(scan_jsonl(path, root=root))
             continue
         text = decode_text(path)
         if text is None:
             continue
-        label = relative.as_posix()
         prepared, policy_failures = prepare_tracked_text(label, text)
         failures.extend(
             scan_public_text(
@@ -941,10 +1928,6 @@ def tree_failures(root: Path) -> list[str]:
                 policy_failures=policy_failures,
             )
         )
-
-    jsonl = root / "evaluations.jsonl"
-    if jsonl.exists():
-        failures.extend(scan_jsonl(jsonl, root=root))
 
     return failures
 
@@ -979,8 +1962,12 @@ def history_failures(root: Path = ROOT) -> list[str]:
                 addition,
                 generic_text=prepared,
                 generic_rules=HISTORICAL_RULES,
+                include_luna_execution_settings=False,
             )
         )
+
+    luna_start, _mode = luna_history_start(root, manifest)
+    failures.extend(luna_history_failures_in_range(luna_start, root=root))
 
     uuid_start, _mode = uuid_history_start(root)
     for commit, label, line_number, addition in added_lines_in_range(

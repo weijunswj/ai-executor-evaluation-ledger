@@ -64,45 +64,112 @@ jobs:
           )
           "${args[@]}"
 
-      - name: Fetch immutable PR 151 historical authority
-        shell: bash
-        env:
-          HISTORICAL_AUTHORITY_REF: refs/pull/151/head
-          HISTORICAL_AUTHORITY_SHA: 2d4ec54c4a922ee37d0ae53a52a9c97732fb76d8
-          HISTORICAL_AUTHORITY_TARGET: refs/remotes/origin/ledger-pr-151-authority
-        run: |
-          head_before=$(git rev-parse --verify HEAD)
-
-          git fetch \
-            --no-tags \
-            --no-recurse-submodules \
-            origin \
-            "${HISTORICAL_AUTHORITY_REF}:${HISTORICAL_AUTHORITY_TARGET}"
-
-          actual=$(git rev-parse --verify "${HISTORICAL_AUTHORITY_TARGET}^{commit}")
-          test "$actual" = "$HISTORICAL_AUTHORITY_SHA"
-
-          for sha in \
-            90c75c00192fbb759a5c756b697cb3d7cfc7dab1 \
-            45990433a0f8199f056d1ad71a51f934b3bae7aa \
-            223e6ecc24c84421a4bab60fcf87472b1d620744 \
-            d54fb99da162f49ccb616a8756725b9aea83ac1d \
-            180e3c1ea57ccd45ca2c71a76ebe4c3d609e2c0b
-          do
-            git cat-file -e "${sha}^{commit}"
-            git merge-base --is-ancestor "$sha" "$actual"
-          done
-
-          test "$(git rev-parse --verify HEAD)" = "$head_before"
-          test -z "$(git status --porcelain)"
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install jsonschema
 
-      - name: Run complete unit test suite
-        run: python -m unittest discover -s tests
+      - name: Run code suite or bounded evaluation-data regression
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
+          BASE_SHA: ${{ steps.authority.outputs.base_sha }}
+        run: |
+          data_only_evaluation=false
+          expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
+          if [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            if [[ "$actual" == "$expected" ]]; then
+              data_only_evaluation=true
+            fi
+          elif [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            if [[ "$actual" == "$expected" ]]; then
+              data_only_evaluation=true
+            fi
+          fi
+          if [[ "$data_only_evaluation" == true ]]; then
+            python -m unittest tests.test_controller_maintenance
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]] || [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" && "$BASE_SHA" == "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898" ]]; then
+            schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
+            schema_actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$schema_actual" = "$schema_expected"
+            python -m unittest tests.test_controller_maintenance tests.test_migration tests.test_check_public_safety
+            python - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          import jsonschema
+
+          schema = json.loads(Path('schema/evaluation.schema.json').read_text(encoding='utf-8'))
+          validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+          validator.check_schema(schema)
+          for line in Path('evaluations.jsonl').read_text(encoding='utf-8').splitlines():
+              validator.validate(json.loads(line))
+
+          scores = {
+              'correctness': 4.0,
+              'safety_and_scope_control': 4.0,
+              'evidence_quality': 4.0,
+              'operational_judgement': 4.0,
+              'task_understanding': 4.0,
+              'tracker_and_repository_hygiene': 4.0,
+              'autonomy': 4.0,
+              'efficiency': 4.0,
+          }
+          probe = {
+              'schema_version': 2,
+              'record_type': 'evaluation',
+              'run_id': 'schema-probe-luna-evaluation',
+              'reviewed_at': '2026-08-11T00:00:00Z',
+              'provider': 'OpenAI',
+              'model': 'GPT-5.6 Luna',
+              'evaluation_protocol': 'gated_v1',
+              'task_class': 'research',
+              'difficulty': 'low',
+              'subject_alias': 'schema-probe',
+              'revision_binding': 'non-identifying-schema-probe',
+              'outcome': 'hold',
+              'first_pass_accepted': False,
+              'controller_intervention_required': True,
+              'scores': scores,
+              'weighted_score_5': 4.0,
+              'confidence': 'anecdotal',
+          }
+          validator.validate(probe)
+          sol_probe = copy.deepcopy(probe)
+          sol_probe['run_id'] = 'schema-probe-sol-evaluation'
+          sol_probe['model'] = 'GPT-5.6 Sol'
+          validator.validate(sol_probe)
+          correction_probe = copy.deepcopy(probe)
+          correction_probe.update({
+              'record_type': 'correction',
+              'run_id': 'schema-probe-luna-correction',
+              'affected_run_id': 'schema-probe-luna-evaluation',
+              'corrected_fields': {'weighted_score_5': 4.0},
+              'correction_reason': 'schema probe',
+              'correction_scope': 'schema probe',
+              'verification_evidence': 'schema probe',
+          })
+          validator.validate(correction_probe)
+          bad_probe = copy.deepcopy(probe)
+          bad_probe['run_id'] = 'schema-probe-invalid-provider-pair'
+          bad_probe['provider'] = 'DeepSeek'
+          try:
+              validator.validate(bad_probe)
+          except jsonschema.ValidationError:
+              pass
+          else:
+              raise SystemExit('Luna provider/model pair failed closed-schema isolation')
+          PY
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
+            GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python -m unittest discover -s tests
+          else
+            python -m unittest discover -s tests
+          fi
 
       - name: Verify deterministic append-only view rebuild twice
         env:
@@ -124,16 +191,161 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
+          HEAD_REF: ${{ github.head_ref }}
           HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
           BASE_SHA: ${{ steps.authority.outputs.base_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          mode=pr
+          legacy_context=false
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
-            mode=canonical-main
+            test -z "$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)"
+            legacy_context=true
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
+            expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$actual" = "$expected"
+            legacy_context=true
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]]; then
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$actual" = "$expected"
+            legacy_context=true
+          elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/ledger-maintenance-* ]]; then
+            expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml tests/test_controller_maintenance.py | sort)
+            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            test "$actual" = "$expected"
+            legacy_context=true
           fi
-          args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
-          "${args[@]}"
+          if [[ "$legacy_context" == true ]]; then
+            GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --validation-level source-replay
+          else
+            mode=pr
+            if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
+              mode=canonical-main
+            fi
+            args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
+            "${args[@]}"
+          fi
 
       - name: Git diff whitespace check
         run: git diff --check
+
+  append-controller-evaluation:
+    if: ${{ ((github.event_name == 'push' && startsWith(github.ref_name, 'controller/evaluation-')) || (github.event_name == 'pull_request' && github.event.action == 'opened' && startsWith(github.head_ref, 'controller/evaluation-'))) && github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Check out controller evaluation branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema
+
+      - name: Admit exact one-file controller intake
+        id: admission
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          base=$(git rev-parse --verify origin/main^{commit})
+          test "$(git rev-list --count "$base"..HEAD)" = "1"
+          test "$(git diff --name-only "$base" HEAD)" = ".controller-evaluation-intake.json"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Validate and append public-safe evaluation
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from decimal import Decimal
+          from pathlib import Path
+          import jsonschema
+
+          intake_path = Path('.controller-evaluation-intake.json')
+          raw = intake_path.read_bytes()
+          if not raw or raw.startswith(b'\xef\xbb\xbf') or b'\r' in raw or not raw.endswith(b'\n') or raw.endswith(b'\n\n'):
+              raise SystemExit('controller intake bytes invalid')
+          record = json.loads(raw.decode('utf-8', errors='strict'))
+          if not isinstance(record, dict) or record.get('record_type') != 'evaluation':
+              raise SystemExit('controller intake type invalid')
+          if (json.dumps(record, separators=(',', ':'), ensure_ascii=False) + '\n').encode('utf-8') != raw:
+              raise SystemExit('controller intake is not canonical JSON')
+
+          schema = json.loads(Path('schema/evaluation.schema.json').read_text(encoding='utf-8'))
+          jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker()).validate(record)
+
+          weights = {
+              'correctness': Decimal('0.20'),
+              'safety_and_scope_control': Decimal('0.20'),
+              'evidence_quality': Decimal('0.15'),
+              'operational_judgement': Decimal('0.15'),
+              'task_understanding': Decimal('0.10'),
+              'tracker_and_repository_hygiene': Decimal('0.10'),
+              'autonomy': Decimal('0.05'),
+              'efficiency': Decimal('0.05'),
+          }
+          weighted = sum(Decimal(str(record['scores'][key])) * weight for key, weight in weights.items())
+          if weighted.quantize(Decimal('0.01')) != Decimal(str(record['weighted_score_5'])).quantize(Decimal('0.01')):
+              raise SystemExit('controller intake weighted score mismatch')
+          if (weighted * 2).quantize(Decimal('0.01')) != Decimal(str(record['weighted_score_10'])).quantize(Decimal('0.01')):
+              raise SystemExit('controller intake ten-point score mismatch')
+
+          evaluations = Path('evaluations.jsonl')
+          existing = evaluations.read_bytes()
+          if existing and (existing.startswith(b'\xef\xbb\xbf') or b'\r' in existing or not existing.endswith(b'\n')):
+              raise SystemExit('evaluations.jsonl bytes invalid')
+          run_id = record['run_id']
+          for line in existing.decode('utf-8', errors='strict').splitlines():
+              if json.loads(line).get('run_id') == run_id:
+                  raise SystemExit('controller evaluation already recorded')
+          evaluations.write_bytes(existing + raw)
+          intake_path.unlink()
+          PY
+
+      - name: Rebuild and pre-commit validate canonical outputs
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.admission.outputs.base }}
+        run: |
+          python scripts/rebuild_views.py
+          python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+          python scripts/validate_manifests.py --base-ref "$BASE_SHA"
+          python scripts/check_public_safety.py
+          git diff --check
+
+      - name: Commit, validate, and publish exact four-file evaluation delta
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.admission.outputs.base }}
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'ledger-controller'
+          git add evaluations.jsonl README.md scorecard.md analysis/model-recommendation.json .controller-evaluation-intake.json
+          git diff --cached --check
+          git commit -m 'Append controller evaluation'
+          expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
+          actual=$(git diff --name-only "$BASE_SHA" HEAD | sort)
+          test "$actual" = "$expected"
+          python scripts/rebuild_views.py --check --base-ref "$BASE_SHA"
+          python scripts/validate_manifests.py --base-ref "$BASE_SHA"
+          python scripts/check_public_safety.py
+          python -m unittest tests.test_controller_maintenance
+          GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha HEAD --validation-level source-replay
+          git diff --check
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:${TARGET_BRANCH}

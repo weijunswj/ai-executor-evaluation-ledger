@@ -12,23 +12,37 @@ from scripts.validate_manifests import (
 )
 
 
+MIGRATION_RECORD_COUNT = 59
+MIGRATION_EVALUATIONS_SHA256 = "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64"
+
+
 class TestMigrationAndPreservation(unittest.TestCase):
     def setUp(self):
         self.jsonl_path = "evaluations.jsonl"
-        with open(self.jsonl_path, "r", encoding="utf-8") as f:
-            self.records = [json.loads(line) for line in f if line.strip()]
+        with open(self.jsonl_path, "rb") as source:
+            raw = source.read()
+        lines = raw.splitlines(keepends=True)
+        self.assertGreaterEqual(len(lines), MIGRATION_RECORD_COUNT)
+        migration_lines = lines[:MIGRATION_RECORD_COUNT]
+        self.assertEqual(
+            hashlib.sha256(b"".join(migration_lines)).hexdigest(),
+            MIGRATION_EVALUATIONS_SHA256,
+        )
+        self.records = [json.loads(line) for line in lines if line.strip()]
+        self.migration_records = [json.loads(line) for line in migration_lines if line.strip()]
 
     def test_record_counts(self):
-        evals = [r for r in self.records if r.get("record_type") == "evaluation"]
-        corrs = [r for r in self.records if r.get("record_type") == "correction"]
+        evals = [r for r in self.migration_records if r.get("record_type") == "evaluation"]
+        corrs = [r for r in self.migration_records if r.get("record_type") == "correction"]
         self.assertEqual(len(evals), 58)
         self.assertEqual(len(corrs), 1)
-        self.assertEqual(len(self.records), 59)
+        self.assertEqual(len(self.migration_records), MIGRATION_RECORD_COUNT)
+        self.assertGreaterEqual(len(self.records), MIGRATION_RECORD_COUNT)
 
     def test_g3_locked_record_sets_and_score_corrections(self):
         with open("migrations/correction-records-v3.jsonl", "r", encoding="utf-8") as f:
             corrections = [json.loads(line) for line in f if line.strip()]
-        self.assertEqual(len(self.records), 59)
+        self.assertEqual(len(self.migration_records), MIGRATION_RECORD_COUNT)
         self.assertEqual(len(corrections), 116)
         self.assertEqual(
             set(REPLACEMENTS.values()),
@@ -38,7 +52,11 @@ class TestMigrationAndPreservation(unittest.TestCase):
                 if record["record_type"] == "base_model_replacement"
             },
         )
-        self.assertTrue(set(WITHDRAWN_IDS).isdisjoint({record["run_id"] for record in self.records}))
+        self.assertTrue(
+            set(WITHDRAWN_IDS).isdisjoint(
+                {record["run_id"] for record in self.migration_records}
+            )
+        )
         observed_scores = {
             record["target"]["run_id"]: tuple(
                 str(change["after_public_safe"])
@@ -79,13 +97,14 @@ class TestMigrationAndPreservation(unittest.TestCase):
             "Claude Opus 5",
             "DeepSeek V4 Pro",
             "GPT-5.6 Sol",
+            "GPT-5.6 Luna",
             "Qwen3.7 Plus",
             "Gemini 3.1 Pro",
             "Gemini 3.6 Flash",
             "MiniMax M3"
         }
-        for r in self.records:
-            model = r.get("model")
+        observed_and_future_models = [r.get("model") for r in self.records] + ["GPT-5.6 Luna"]
+        for model in observed_and_future_models:
             self.assertIn(model, allowed_models, f"Model '{model}' not in allowed canonical models")
 
     def test_manifests_exist(self):

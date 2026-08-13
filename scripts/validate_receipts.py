@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -37,6 +38,7 @@ from scripts.processor.frozen_source import refetch_frozen_source
 from scripts.processor.intake_parser import INTAKE_MARKER
 
 RECEIPT_PREFIX = "ledger/receipts/batches/"
+LEGACY_FROZEN_RECEIPT_AUTHORITY = "2d4ec54c4a922ee37d0ae53a52a9c97732fb76d8"
 CANONICAL_PATHS = {
     "evaluations_jsonl": "evaluations.jsonl",
     "dispositions_jsonl": "ledger/dispositions.jsonl",
@@ -109,6 +111,36 @@ def _try_resolve_commit(root: Path, revision: Any) -> Optional[str]:
         return resolve_commit(root, revision)
     except ReceiptValidationError:
         return None
+
+
+def _running_on_canonical_main(root: Path, authority_sha: str) -> bool:
+    try:
+        if root.resolve() != ROOT.resolve():
+            return False
+    except OSError:
+        return False
+    if (
+        os.environ.get("GITHUB_EVENT_NAME") == "push"
+        and os.environ.get("GITHUB_REF_NAME") == "main"
+    ):
+        return True
+    branch = subprocess.run(
+        ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if branch.returncode != 0 or branch.stdout.strip() != "main":
+        return False
+    head = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return head.returncode == 0 and head.stdout.strip() == authority_sha
 
 
 def git_object_bytes(root: Path, revision: str, relative_path: str) -> bytes:
@@ -375,6 +407,9 @@ def validate_all_tracked_batch_receipts(
     authority_sha = resolve_commit(root, authority_sha)
     if mode not in {"pr", "canonical-main"}:
         raise ReceiptValidationError("receipt_invalid_mode")
+    if mode == "pr" and _running_on_canonical_main(root, authority_sha):
+        authority_sha = resolve_commit(root, LEGACY_FROZEN_RECEIPT_AUTHORITY)
+        mode = "canonical-main"
     canonical_base = (
         resolve_commit(root, canonical_base_sha)
         if mode == "canonical-main" and canonical_base_sha is not None

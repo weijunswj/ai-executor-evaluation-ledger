@@ -579,6 +579,66 @@
       "task_class": "complex-repository-change",
       "task_stage": "unknown",
       "tool_environment_class": "unknown"
+    },
+    "2026-08-07-ledger-post-run076-exact-head-g4-078": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ledger-remediation-a",
+      "task_class": "security-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ledger-remediation-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-12-ledger-pr156-f1-prefix-final-g3-105": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ledger-remediation-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "remote_revision_verified_local_unpublished_candidate_not_independently_inspectable",
+      "subject_alias": "ledger-remediation-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "remote_revision_verified_local_merge_reported_unpushed_not_independently_inspectable",
+      "subject_alias": "ledger-remediation-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ledger-remediation-a",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
     }
   },
   "comparison_contract": {
@@ -600,7 +660,7 @@
       "evaluation_protocol"
     ]
   },
-  "generated_at": "2026-07-26T23:40:00+08:00",
+  "generated_at": "2026-08-13T14:55:00+08:00",
   "material_limitations": [
     "Official comparison uses recorded gated_v1 evidence only.",
     "Queued evidence is reported separately and cannot affect official eligibility, independent-subject thresholds, scores, or winner selection.",
@@ -608,19 +668,180 @@
     "Amendment-chain runs sharing subject, source revision, and task lineage count as one independent subject.",
     "Unknown exact-cohort dimensions are explicit and excluded from exact matching."
   ],
-  "model_statistics": {},
+  "model_statistics": {
+    "GPT-5.6 Luna": {
+      "available_count": 5,
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
+        "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
+        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
+        "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+      ],
+      "controller_intervention": {
+        "observed_count": 5,
+        "rate": 1.0,
+        "required_count": 5
+      },
+      "exact_cohort_eligible_recorded_count": 0,
+      "exact_cohort_unknown_dimensions": [
+        "operation_gate_type",
+        "task_stage",
+        "tool_environment_class"
+      ],
+      "exact_cohort_unknown_recorded_count": 5,
+      "exact_matched_cohort_count": 0,
+      "first_pass_acceptance": {
+        "accepted_count": 0,
+        "observed_count": 5,
+        "rate": 0.0
+      },
+      "independent_subject_count": 3,
+      "like_for_like_score_5": null,
+      "material_limitations": [
+        "No exact cross-model subject cohort is available.",
+        "Multiple recorded runs share a correlated subject chain.",
+        "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
+      ],
+      "overall_average_score_5": 4.79,
+      "queued_count": 0,
+      "raw_comparable_run_count": 0,
+      "recorded_count": 5,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 5,
+          "maximum": 4.7,
+          "mean": 4.42,
+          "minimum": 4.0
+        },
+        "evidence_quality": {
+          "count": 5,
+          "maximum": 4.8,
+          "mean": 4.42,
+          "minimum": 3.5
+        },
+        "safety_and_scope_control": {
+          "count": 5,
+          "maximum": 5.0,
+          "mean": 5.0,
+          "minimum": 5.0
+        }
+      },
+      "similar_matched_cohort_count": 0,
+      "undersampling": {
+        "additional_independent_observations_required": 0,
+        "missing_cross_model_matched_cohort": true,
+        "missing_difficulties": [],
+        "missing_independent_subject_count": 0,
+        "missing_task_classes": [
+          "security-review"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "hold": 5
+      }
+    },
+    "GPT-5.6 Sol": {
+      "available_count": 1,
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
+        "2026-08-07-ledger-post-run076-exact-head-g4-078"
+      ],
+      "controller_intervention": {
+        "observed_count": 1,
+        "rate": 0.0,
+        "required_count": 0
+      },
+      "exact_cohort_eligible_recorded_count": 0,
+      "exact_cohort_unknown_dimensions": [
+        "operation_gate_type",
+        "task_stage",
+        "tool_environment_class"
+      ],
+      "exact_cohort_unknown_recorded_count": 1,
+      "exact_matched_cohort_count": 0,
+      "first_pass_acceptance": {
+        "accepted_count": 1,
+        "observed_count": 1,
+        "rate": 1.0
+      },
+      "independent_subject_count": 1,
+      "like_for_like_score_5": null,
+      "material_limitations": [
+        "Independent subject coverage is below the published minimum.",
+        "No exact cross-model subject cohort is available.",
+        "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
+      ],
+      "overall_average_score_5": 4.85,
+      "queued_count": 0,
+      "raw_comparable_run_count": 0,
+      "recorded_count": 1,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 1,
+          "maximum": 3.5,
+          "mean": 3.5,
+          "minimum": 3.5
+        },
+        "evidence_quality": {
+          "count": 1,
+          "maximum": 5.0,
+          "mean": 5.0,
+          "minimum": 5.0
+        },
+        "safety_and_scope_control": {
+          "count": 1,
+          "maximum": 5.0,
+          "mean": 5.0,
+          "minimum": 5.0
+        }
+      },
+      "similar_matched_cohort_count": 0,
+      "undersampling": {
+        "additional_independent_observations_required": 2,
+        "missing_cross_model_matched_cohort": true,
+        "missing_difficulties": [],
+        "missing_independent_subject_count": 2,
+        "missing_task_classes": [
+          "security-remediation"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "accepted": 1
+      }
+    }
+  },
   "populations": {
     "available": {
-      "count": 0,
-      "run_ids": []
+      "count": 6,
+      "run_ids": [
+        "2026-08-07-ledger-post-run076-exact-head-g4-078",
+        "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
+        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
+        "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+      ]
     },
     "queued": {
       "count": 0,
       "run_ids": []
     },
     "recorded": {
-      "count": 0,
-      "run_ids": []
+      "count": 6,
+      "run_ids": [
+        "2026-08-07-ledger-post-run076-exact-head-g4-078",
+        "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
+        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
+        "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+      ]
     }
   },
   "recommendation": {
