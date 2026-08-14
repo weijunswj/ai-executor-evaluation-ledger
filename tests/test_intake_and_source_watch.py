@@ -7,6 +7,7 @@ from unittest import mock
 
 from scripts.processor.common import (
     AUTHORIZED_PAIRS,
+    HISTORICAL_AUTHORIZED_PAIRS,
     FROZEN_BATCH_ID,
     FROZEN_SNAPSHOT_SHA256,
     REASONING_KEYS,
@@ -16,6 +17,7 @@ from scripts.processor import intake_parser
 from scripts.processor.intake_parser import (
     HistoricalReviewTimestampAuthority,
     canonical_record_from_payload,
+    parse_historical_intake_comment,
     parse_intake_comment,
 )
 from scripts.processor.source_watch import (
@@ -577,6 +579,77 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         reasoning = copy.deepcopy(luna)
         reasoning["public_safe_evidence"]["reason" + "ing_level"] = "high"
         self.assertEqual(self.parse(reasoning)[0], "ineligible_identity")
+
+    def test_historical_v1_keeps_independent_closed_pair_authority(self):
+        luna = copy.deepcopy(self.valid_payload)
+        luna["canonical_base_model"] = "GPT-5.6 Luna"
+        self.assertEqual(self.parse(luna)[0], "admitted")
+        self.assertNotIn(
+            ("OpenAI", "GPT-5.6 Luna"),
+            HISTORICAL_AUTHORIZED_PAIRS,
+        )
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1101,
+                self.historical_body(luna),
+                set(),
+                set(),
+            )[0],
+            "unsupported_identity",
+        )
+
+        legitimate = copy.deepcopy(self.valid_payload)
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1102,
+                self.historical_body(legitimate),
+                set(),
+                set(),
+            )[0],
+            "admitted",
+        )
+
+        mismatched = copy.deepcopy(luna)
+        mismatched["provider"] = "DeepSeek"
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1103,
+                self.historical_body(mismatched),
+                set(),
+                set(),
+            )[0],
+            "unsupported_identity",
+        )
+
+        unsupported = copy.deepcopy(luna)
+        unsupported["canonical_base_model"] = "GPT-5.6 Unknown"
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1104,
+                self.historical_body(unsupported),
+                set(),
+                set(),
+            )[0],
+            "unsupported_identity",
+        )
+
+        future_pair = ("Future Provider", "Future Model")
+        future = copy.deepcopy(self.valid_payload)
+        future.update(provider=future_pair[0], canonical_base_model=future_pair[1])
+        with mock.patch.object(
+            intake_parser,
+            "AUTHORIZED_PAIRS",
+            AUTHORIZED_PAIRS | {future_pair},
+        ):
+            self.assertEqual(
+                parse_historical_intake_comment(
+                    1105,
+                    self.historical_body(future),
+                    set(),
+                    set(),
+                )[0],
+                "unsupported_identity",
+            )
 
     def test_duplicate_intake_keys_fail_closed_before_adaptation(self):
         compact = json.dumps(self.valid_payload, separators=(",", ":"))

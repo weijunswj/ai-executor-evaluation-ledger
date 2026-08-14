@@ -9,7 +9,14 @@ from types import SimpleNamespace
 from pathlib import Path
 from unittest import mock
 
-from scripts.processor.common import canonical_json_line_bytes, sha256_bytes
+from scripts.processor.common import (
+    FROZEN_BATCH_ID,
+    ProcessorError,
+    canonical_json_line_bytes,
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
+    sha256_bytes,
+)
 from scripts.processor.frozen_replay import FrozenReplayResult
 from scripts import seal_batch_receipt
 from scripts.seal_batch_receipt import build_sealed_receipt
@@ -847,6 +854,301 @@ class TestReceiptValidation(unittest.TestCase):
                     mode="canonical-main",
                     canonical_base_sha=content_sha,
                 )
+
+class TestA13ReceiptConvergence(unittest.TestCase):
+    current_receipt_path = (
+        "ledger/receipts/batches/batch-a13-current.json"
+    )
+
+    def _git_sha(self, root):
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+    def _commit_json(self, root, relative_path, value, message):
+        target = root / relative_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(
+            (
+                json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2)
+                + "\n"
+            ).encode("utf-8")
+        )
+        subprocess.run(["git", "add", relative_path], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", message], cwd=root, check=True)
+        return self._git_sha(root)
+
+    def _build_later_topology(self, root):
+        fixture = TestReceiptValidation()
+        receipt, content_sha, unrelated_seal = fixture.fixture(root)
+        subprocess.run(["git", "checkout", "-q", content_sha], cwd=root, check=True)
+
+        historical = copy.deepcopy(receipt)
+        historical["batch_id"] = FROZEN_BATCH_ID
+        historical.pop("source_replay", None)
+        historical["candidate_content_commit_sha"] = content_sha
+        historical["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            content_sha,
+            excluded_paths=(FROZEN_RECEIPT_PATH,),
+        )
+        historical["candidate_content_manifest_sha256"] = (
+            git_tree_manifest_sha256(historical["candidate_content_manifest"])
+        )
+        historical_seal = self._commit_json(
+            root,
+            FROZEN_RECEIPT_PATH,
+            historical,
+            "historical frozen receipt",
+        )
+
+        (root / "a13-marker.txt").write_text("later candidate\n", encoding="utf-8")
+        subprocess.run(["git", "add", "a13-marker.txt"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "later candidate"], cwd=root, check=True)
+        candidate_sha = self._git_sha(root)
+
+        current = copy.deepcopy(receipt)
+        current["batch_id"] = "batch-a13-current"
+        current["batch_mode"] = "incremental"
+        current["base_sha"] = content_sha
+        current["canonical_main_sha"] = candidate_sha
+        current["candidate_content_commit_sha"] = candidate_sha
+        current["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            candidate_sha,
+            excluded_paths=(self.current_receipt_path,),
+        )
+        current["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+            current["candidate_content_manifest"]
+        )
+        current["canonical_hashes"] = {
+            name: sha256_bytes(
+                receipt_validator.git_object_bytes(root, candidate_sha, relative)
+            )
+            for name, relative in CANONICAL_PATHS.items()
+        }
+        current_seal = self._commit_json(
+            root,
+            self.current_receipt_path,
+            current,
+            "current receipt seal",
+        )
+        return {
+            "historical": historical,
+            "historical_seal": historical_seal,
+            "candidate_sha": candidate_sha,
+            "current_seal": current_seal,
+            "unrelated_seal": unrelated_seal,
+            "root": root,
+        }
+
+    def test_current_frozen_receipt_uses_strict_canonical_base(self):
+        with tempfile.TemporaryDirectory(prefix="a13-current-frozen-") as raw:
+            root = Path(raw)
+            topology = self._build_later_topology(root)
+            result = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=topology["historical_seal"],
+                mode="canonical-main",
+                canonical_base_sha=topology["historical"]["base_sha"],
+            )
+            self.assertEqual(
+                result["receipt_seals"][FROZEN_RECEIPT_PATH],
+                topology["historical_seal"],
+            )
+            with self.assertRaises(ReceiptValidationError):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["historical_seal"],
+                    mode="canonical-main",
+                    canonical_base_sha=topology["candidate_sha"],
+                )
+
+    def test_later_receipt_push_preserves_historical_seal_and_validates_current_base(self):
+        with tempfile.TemporaryDirectory(prefix="a13-later-receipt-") as raw:
+            root = Path(raw)
+            topology = self._build_later_topology(root)
+            result = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=topology["current_seal"],
+                mode="canonical-main",
+                canonical_base_sha=topology["candidate_sha"],
+            )
+            self.assertEqual(
+                result["receipt_seals"][FROZEN_RECEIPT_PATH],
+                topology["historical_seal"],
+            )
+            self.assertEqual(
+                result["receipt_seals"][self.current_receipt_path],
+                topology["current_seal"],
+            )
+            with self.assertRaises(ReceiptValidationError):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["current_seal"],
+                    mode="canonical-main",
+                    canonical_base_sha=topology["historical"]["base_sha"],
+                )
+
+    def test_later_receipt_push_rejects_historical_mutation_and_manifest_corruption(self):
+        for label, mutate in (
+            (
+                "historical bytes",
+                lambda receipt: receipt.update(
+                    controller_run_id="controller-mutated"
+                ),
+            ),
+            (
+                "historical manifest",
+                lambda receipt: receipt["candidate_content_manifest"][0].update(
+                    path="../unsafe"
+                ),
+            ),
+        ):
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory(prefix="a13-history-corrupt-") as raw:
+                    root = Path(raw)
+                    topology = self._build_later_topology(root)
+                    mutated = copy.deepcopy(topology["historical"])
+                    mutate(mutated)
+                    authority = self._commit_json(
+                        root,
+                        FROZEN_RECEIPT_PATH,
+                        mutated,
+                        "corrupt historical receipt",
+                    )
+                    with self.assertRaises(ReceiptValidationError):
+                        validate_all_tracked_batch_receipts(
+                            root,
+                            authority_sha=authority,
+                            mode="canonical-main",
+                            canonical_base_sha=topology["current_seal"],
+                        )
+
+    def test_later_receipt_push_rejects_historical_seal_without_ancestry(self):
+        with tempfile.TemporaryDirectory(prefix="a13-history-ancestry-") as raw:
+            root = Path(raw)
+            topology = self._build_later_topology(root)
+
+            def seal_for_path(_root, **kwargs):
+                if kwargs["receipt_path"] == FROZEN_RECEIPT_PATH:
+                    return topology["unrelated_seal"]
+                return topology["current_seal"]
+
+            with mock.patch.object(
+                receipt_validator,
+                "_terminal_seal_commit",
+                side_effect=seal_for_path,
+            ):
+                with self.assertRaises(ReceiptValidationError):
+                    validate_all_tracked_batch_receipts(
+                        root,
+                        authority_sha=topology["current_seal"],
+                        mode="canonical-main",
+                        canonical_base_sha=topology["candidate_sha"],
+                    )
+
+
+class TestA13ManifestPathContract(unittest.TestCase):
+    current_receipt_path = (
+        "ledger/receipts/batches/batch-a13-current.json"
+    )
+
+    def _fake_tree_run(self, listing):
+        def run(args, **_kwargs):
+            if args[1] == "ls-tree":
+                return SimpleNamespace(returncode=0, stdout=listing)
+            if args[1] == "cat-file":
+                return SimpleNamespace(returncode=0, stdout=b"payload")
+            raise AssertionError(args)
+
+        return run
+
+    def _blob_entry(self, path, *, object_sha="a" * 40):
+        raw_path = path if isinstance(path, bytes) else path.encode("utf-8")
+        return b"100644 blob " + object_sha.encode("ascii") + b"\t" + raw_path + b"\0"
+
+    def test_normal_tree_is_complete_deterministic_and_excludes_only_authorized_receipt(self):
+        receipt_path = FROZEN_RECEIPT_PATH.encode("utf-8")
+        listing = (
+            self._blob_entry("z.txt")
+            + self._blob_entry("a.txt", object_sha="b" * 40)
+            + self._blob_entry(receipt_path, object_sha="c" * 40)
+        )
+        with mock.patch(
+            "scripts.processor.common.subprocess.run",
+            side_effect=self._fake_tree_run(listing),
+        ):
+            first = git_tree_file_bindings(
+                Path("."),
+                "a" * 40,
+                excluded_paths=(FROZEN_RECEIPT_PATH,),
+            )
+            second = git_tree_file_bindings(
+                Path("."),
+                "a" * 40,
+                excluded_paths=(FROZEN_RECEIPT_PATH,),
+            )
+        self.assertEqual(first, second)
+        self.assertEqual([item["path"] for item in first], ["a.txt", "z.txt"])
+
+    def test_every_other_unsafe_tracked_path_fails_closed(self):
+        cases = {
+            "backslash": b"unsafe\\name",
+            "absolute": b"/absolute",
+            "windows_absolute": b"C:/absolute",
+            "traversal": b"../traversal",
+            "dot_traversal": b"dir/../traversal",
+            "empty": b"",
+            "invalid_utf8": b"\xff",
+        }
+        for label, raw_path in cases.items():
+            with self.subTest(label=label):
+                listing = self._blob_entry(raw_path)
+                with mock.patch(
+                    "scripts.processor.common.subprocess.run",
+                    side_effect=self._fake_tree_run(listing),
+                ):
+                    with self.assertRaises(ProcessorError):
+                        git_tree_file_bindings(Path("."), "a" * 40)
+
+        non_blob = (
+            b"040000 tree "
+            + (b"d" * 40)
+            + b"\tdirectory\0"
+        )
+        with mock.patch(
+            "scripts.processor.common.subprocess.run",
+            side_effect=self._fake_tree_run(non_blob),
+        ):
+            with self.assertRaises(ProcessorError):
+                git_tree_file_bindings(Path("."), "a" * 40)
+
+    def test_validator_cannot_accept_manifest_by_omitting_unsafe_tracked_path(self):
+        unsafe = self._blob_entry(b"unsafe\\name")
+        receipt = {
+            "batch_id": "batch-a13-current",
+            "candidate_content_manifest": [],
+            "candidate_content_manifest_sha256": git_tree_manifest_sha256([]),
+        }
+        with mock.patch(
+            "scripts.processor.common.subprocess.run",
+            side_effect=self._fake_tree_run(unsafe),
+        ):
+            with self.assertRaises(ProcessorError):
+                git_tree_file_bindings(Path("."), "a" * 40)
+            with self.assertRaises(ReceiptValidationError):
+                receipt_validator._validate_candidate_manifest(
+                    Path("."),
+                    receipt=receipt,
+                    receipt_path=self.current_receipt_path,
+                    candidate_sha="a" * 40,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,7 @@ import jsonschema
 
 from scripts.processor.common import (
     AUTHORIZED_PAIRS,
+    HISTORICAL_AUTHORIZED_PAIRS,
     FROZEN_BATCH_ID,
     FROZEN_COUNT,
     FROZEN_SNAPSHOT_SHA256,
@@ -53,6 +54,25 @@ HISTORICAL_INTAKE_SCHEMA["properties"]["source_revision"] = {
     "type": "string",
     "pattern": "^[0-9a-f]{40}$",
 }
+HISTORICAL_INTAKE_SCHEMA["properties"]["provider"]["enum"] = sorted(
+    {provider for provider, _model in HISTORICAL_AUTHORIZED_PAIRS}
+)
+HISTORICAL_INTAKE_SCHEMA["properties"]["canonical_base_model"]["enum"] = sorted(
+    {model for _provider, model in HISTORICAL_AUTHORIZED_PAIRS}
+)
+HISTORICAL_INTAKE_SCHEMA["allOf"] = [
+    {
+        "oneOf": [
+            {
+                "properties": {
+                    "provider": {"const": provider},
+                    "canonical_base_model": {"const": model},
+                }
+            }
+            for provider, model in sorted(HISTORICAL_AUTHORIZED_PAIRS)
+        ]
+    }
+]
 HISTORICAL_INTAKE_VALIDATOR = jsonschema.Draft202012Validator(
     HISTORICAL_INTAKE_SCHEMA,
     format_checker=jsonschema.FormatChecker(),
@@ -489,7 +509,10 @@ def parse_intake_comment(
         return _reject("withdrawn_identity")
     if pair in INELIGIBLE_PAIRS:
         return _reject("ineligible_identity")
-    if pair not in AUTHORIZED_PAIRS:
+    authorized_pairs = (
+        HISTORICAL_AUTHORIZED_PAIRS if historical_mode else AUTHORIZED_PAIRS
+    )
+    if pair not in authorized_pairs:
         return _reject("unsupported_identity")
     if schema_errors:
         return _reject("invalid_schema")

@@ -21,6 +21,7 @@ from scripts.processor.common import (
     FROZEN_BATCH_ID,
     ProcessorError,
     git_tree_file_bindings,
+    is_representable_manifest_path,
     git_tree_manifest_sha256,
     valid_sha256,
     sha256_bytes,
@@ -177,11 +178,7 @@ def _validate_candidate_manifest(
         path = item["path"]
         mode = item["mode"]
         if (
-            not isinstance(path, str)
-            or not path
-            or path.startswith(("/", "\\"))
-            or "\\" in path
-            or ".." in Path(path).parts
+            not is_representable_manifest_path(path)
             or path == receipt_path
             or not isinstance(mode, str)
             or len(mode) != 6
@@ -513,10 +510,17 @@ def validate_all_tracked_batch_receipts(
             )
         if mode == "canonical-main":
             _validate_content_at_commit(root, seal_sha, receipt)
-        if not (
-            receipt["batch_id"] == FROZEN_BATCH_ID
-            and not canonical_base_requested
-        ):
+        frozen_historical_receipt = receipt["batch_id"] == FROZEN_BATCH_ID and (
+            (
+                mode == "canonical-main"
+                and seal_sha != authority_sha
+            )
+            or (
+                mode != "canonical-main"
+                and not canonical_base_requested
+            )
+        )
+        if not frozen_historical_receipt:
             _validate_terminal_seal_scope(
                 root,
                 seal_sha=seal_sha,

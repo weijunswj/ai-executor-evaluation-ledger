@@ -7,7 +7,7 @@ import json
 import re
 import subprocess
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Iterable
 
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -31,6 +31,19 @@ AUTHORIZED_PAIRS = frozenset(
         ("DeepSeek", "DeepSeek V4 Pro"),
         ("OpenAI", "GPT-5.6 Sol"),
         ("OpenAI", "GPT-5.6 Luna"),
+        ("Qwen", "Qwen3.7 Plus"),
+        ("Google", "Gemini 3.1 Pro"),
+        ("MiniMax", "MiniMax M3"),
+    }
+)
+
+HISTORICAL_AUTHORIZED_PAIRS = frozenset(
+    {
+        ("Xiaomi", "MiMo 2.5 Pro"),
+        ("MiMo", "MiMo 2.5 Pro"),
+        ("Anthropic", "Claude Opus 5"),
+        ("DeepSeek", "DeepSeek V4 Pro"),
+        ("OpenAI", "GPT-5.6 Sol"),
         ("Qwen", "Qwen3.7 Plus"),
         ("Google", "Gemini 3.1 Pro"),
         ("MiniMax", "MiniMax M3"),
@@ -181,6 +194,18 @@ def valid_sha256(value: Any) -> bool:
     return isinstance(value, str) and bool(SHA256_PATTERN.fullmatch(value))
 
 
+def is_representable_manifest_path(value: Any) -> bool:
+    """Return whether a Git path fits the public candidate-manifest contract."""
+
+    if not isinstance(value, str) or not value:
+        return False
+    if value.startswith(("/", "\\")) or "\\" in value:
+        return False
+    if Path(value).is_absolute() or PureWindowsPath(value).drive:
+        return False
+    return not any(part in {"", ".", ".."} for part in value.split("/"))
+
+
 def git_tree_file_bindings(
     repository_root: Path,
     revision: str,
@@ -211,17 +236,12 @@ def git_tree_file_bindings(
             relative_path = raw_path.decode("utf-8", errors="strict")
         except (UnicodeDecodeError, ValueError):
             raise ProcessorError("processor_integrity_failure")
-        if (
-            object_type != "blob"
-            or not relative_path
-            or relative_path in excluded
-            or relative_path.startswith("/")
-            or "\\" in relative_path
-            or ".." in Path(relative_path).parts
-        ):
-            if object_type != "blob":
-                raise ProcessorError("processor_integrity_failure")
+        if object_type != "blob":
+            raise ProcessorError("processor_integrity_failure")
+        if relative_path in excluded:
             continue
+        if not is_representable_manifest_path(relative_path):
+            raise ProcessorError("processor_integrity_failure")
         blob = subprocess.run(
             ["git", "cat-file", "blob", object_sha],
             cwd=repository_root,
