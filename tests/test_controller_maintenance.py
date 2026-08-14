@@ -115,6 +115,11 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             'receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" '
             '-- ledger/receipts/batches)'
         )
+        receipt_bound_delta = (
+            'receipt_bound_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" '
+            '-- evaluations.jsonl ledger/dispositions.jsonl README.md scorecard.md '
+            'analysis/model-recommendation.json)'
+        )
         strict_pr_route = (
             'args=(python scripts/validate_receipts.py --mode pr '
             '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
@@ -165,7 +170,8 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 self.assertIn(
                     f"{ordinary_pr}\n"
                     f"            {receipt_delta}\n"
-                    '            if [[ -z "$receipt_delta" ]]; then\n'
+                    f"            {receipt_bound_delta}\n"
+                    '            if [[ -z "$receipt_delta" && -z "$receipt_bound_delta" ]]; then\n'
                     "              canonical_base_context=true\n"
                     "            fi",
                     block,
@@ -189,6 +195,38 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                     self.assertIn(guard + fail_closed_tail, block)
                 self.assertIn('read -r -a base_parent_fields <<< "$base_parent_line"', block)
                 self.assertIn('BASE_PARENT_SHA="${base_parent_fields[1]}"', block)
+                self.assertIn(
+                    'if ! TERMINAL_RECEIPT_SHA=$(git log -1 --format=%H '
+                    '"$BASE_SHA" -- ledger/receipts/batches); then',
+                    block,
+                )
+                self.assertIn(
+                    'if [[ ! "$TERMINAL_RECEIPT_SHA" =~ ^[0-9a-f]{40}$ ]]; then',
+                    block,
+                )
+                self.assertIn(
+                    'if ! resolved_terminal_receipt_sha=$(git rev-parse --verify '
+                    '"$TERMINAL_RECEIPT_SHA^{commit}"); then',
+                    block,
+                )
+                self.assertIn(
+                    'if [[ "$resolved_terminal_receipt_sha" != "$TERMINAL_RECEIPT_SHA" ]]; then',
+                    block,
+                )
+                self.assertIn(receipt_bound_delta, block)
+                terminal_parent_route = (
+                    'if [[ "$TERMINAL_RECEIPT_SHA" == "$BASE_SHA" ]]; then\n'
+                    '            if ! base_parent_line=$(git rev-list --parents -n 1 "$BASE_SHA"); then'
+                )
+                self.assertIn(terminal_parent_route, block)
+                historical_terminal_route = (
+                    'else\n'
+                    '              args=(python scripts/validate_receipts.py --mode canonical-main '
+                    '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
+                    '              "${args[@]}"\n'
+                    '            fi'
+                )
+                self.assertIn(historical_terminal_route, block)
                 self.assertIn(canonical_base_route, block)
                 self.assertIn(strict_pr_route, block)
                 self.assertLess(block.index(canonical_base_route), block.index(strict_pr_route))
@@ -1275,7 +1313,10 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             workflow = (ROOT / relative).read_text(encoding="utf-8")
             block = self._receipt_route_block(workflow)
-            self.assertIn('if [[ -z "$receipt_delta" ]]; then', block)
+            self.assertIn(
+                'if [[ -z "$receipt_delta" && -z "$receipt_bound_delta" ]]; then',
+                block,
+            )
             self.assertIn(
                 'args=(python scripts/validate_receipts.py --mode pr '
                 '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
@@ -1283,6 +1324,55 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 block,
             )
             self.assertNotIn("continue-on-error", block)
+
+    def test_receipt_bound_canonical_changes_prevent_canonical_base_handling(self):
+        bound_paths = (
+            "evaluations.jsonl",
+            "ledger/dispositions.jsonl",
+            "README.md",
+            "scorecard.md",
+            "analysis/model-recommendation.json",
+        )
+        for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+            workflow = (ROOT / relative).read_text(encoding="utf-8")
+            block = self._receipt_route_block(workflow)
+            with self.subTest(workflow=relative):
+                self.assertEqual(
+                    1,
+                    block.count(
+                        'receipt_bound_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" '
+                        '-- evaluations.jsonl ledger/dispositions.jsonl README.md scorecard.md '
+                        'analysis/model-recommendation.json)'
+                    ),
+                )
+                for path in bound_paths:
+                    self.assertIn(path, block)
+                self.assertIn(
+                    'if [[ -z "$receipt_delta" && -z "$receipt_bound_delta" ]]; then',
+                    block,
+                )
+                self.assertIn(
+                    'args=(python scripts/validate_receipts.py --mode pr '
+                    '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
+                    '--validation-level source-replay)',
+                    block,
+                )
+
+    def test_historical_terminal_receipt_allows_merge_base_without_synthetic_parent(self):
+        for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+            workflow = (ROOT / relative).read_text(encoding="utf-8")
+            block = self._receipt_route_block(workflow)
+            historical_route = (
+                'else\n'
+                '              args=(python scripts/validate_receipts.py --mode canonical-main '
+                '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
+                '              "${args[@]}"\n'
+                '            fi'
+            )
+            with self.subTest(workflow=relative):
+                self.assertIn('if [[ "$TERMINAL_RECEIPT_SHA" == "$BASE_SHA" ]]; then', block)
+                self.assertIn(historical_route, block)
+                self.assertNotIn("--canonical-base-sha", historical_route)
 
 
     def test_red_oversized_jsonl_preserves_cross_value_luna_context(self):
