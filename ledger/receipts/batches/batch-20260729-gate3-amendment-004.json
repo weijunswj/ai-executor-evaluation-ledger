@@ -4,7 +4,7 @@
   "base_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "batch_id": "batch-20260729-gate3-amendment-004",
   "batch_mode": "initial",
-  "candidate_content_commit_sha": "559f682c79f64cde348b653882a64b0ad176f652",
+  "candidate_content_commit_sha": "a9afcb74c4220a93fca32b75106b3e57d20ac81d",
   "candidate_content_manifest": [
     {
       "blob_sha": "2480662b3ff7587f0df58727f525d081778850e2",
@@ -19,8 +19,8 @@
       "path": ".github/dependabot.yml"
     },
     {
-      "blob_sha": "3d5242b51ea6de1381a3bd863c5f87884f98fff2",
-      "content_sha256": "e36c7082eab3391606a85732182321440ed686cf9410c0809836a7acddda3559",
+      "blob_sha": "467e4b7035e2c35a18dd040c001e7e4932ad4007",
+      "content_sha256": "09ae2a1282ff8e719787d6daa274919b6f9cd091c4b1d2e6cdb011078561270d",
       "mode": "100644",
       "path": ".github/workflows/ci.yml"
     },
@@ -31,8 +31,8 @@
       "path": ".github/workflows/post-merge-cleanup.yml"
     },
     {
-      "blob_sha": "c9b9861e03281d87bcb6841454d8c714df3ce75c",
-      "content_sha256": "ff9625ecdc02c679a6e3b6948844fc76c336785fc37e5cc7043021a2079bf109",
+      "blob_sha": "8c861b452161c872935b98dea3bc86a8c1a81ae7",
+      "content_sha256": "4fc074ec3ab05b0d04d09c1ed3685e4fc0b8226c64490bb4e2a9a66e37c02c79",
       "mode": "100644",
       "path": ".github/workflows/public-safety.yml"
     },
@@ -73,8 +73,8 @@
       "path": "CONTROLLER_QUICKSTART.md"
     },
     {
-      "blob_sha": "71c81ef965b9ca141b32dd7ea4a764d3b6c0393a",
-      "content_sha256": "359fe492a2218a8f9badd938d217ecb9d17f12a2ab38e68c72491272a36ca1a3",
+      "blob_sha": "d3a8e5f45456aadb29545249fe558eec2c50b522",
+      "content_sha256": "440e192e8aeff4366c3ce93f069f521ace1a7f5b7b912b4985956eb2a4073e1a",
       "mode": "100644",
       "path": "README.md"
     },
@@ -85,8 +85,8 @@
       "path": "SCORING_RUBRIC.md"
     },
     {
-      "blob_sha": "998de22d76e0a6e5138524ace1b8c5d2c8f2c800",
-      "content_sha256": "2883bdfb360ca1c9b153c6651fc7061793b5a1ed74e3fc3e6225f651a403695d",
+      "blob_sha": "b88d8e6f88598a289b0a719aac24730cc340ecec",
+      "content_sha256": "a732f7271bd5c01a586c1bbddf4382677635bcdcee542d4494596d96f15006bf",
       "mode": "100644",
       "path": "analysis/model-recommendation.json"
     },
@@ -163,8 +163,8 @@
       "path": "docs/agent-playbooks/windows-command-hygiene.md"
     },
     {
-      "blob_sha": "a32393d492d62efe45a705e4dabbb000916a81f8",
-      "content_sha256": "76c8f63e9684d5743ed56405e5af2d134b4c4970b954aa4e20dbdd475adb4f59",
+      "blob_sha": "bc6ad28cbcb1044f10ab9d59e77af34a362e3338",
+      "content_sha256": "a884b738a02a4462ca39818e78fc6e5cc3c6389cdc3168b359ff0e9bd2e8f77f",
       "mode": "100644",
       "path": "evaluations.jsonl"
     },
@@ -259,8 +259,8 @@
       "path": "schema/evaluation.schema.json"
     },
     {
-      "blob_sha": "6951157abcb9f4cdec1f3a24969b7cb6af5c8caf",
-      "content_sha256": "50d1844f447e40cda8c11405db83c1c26d950a99df2e058c09ef54f1e9299c21",
+      "blob_sha": "d797db715b82295b24b28573f2f1a46feabb57ec",
+      "content_sha256": "6dfb8cc72d3cff426e5a2553661b0f92beb52fc63dfc98fbd6132a6e9904579c",
       "mode": "100644",
       "path": "schema/intake.schema.json"
     },
@@ -283,8 +283,8 @@
       "path": "schema/recommendation.schema.json"
     },
     {
-      "blob_sha": "821af850230653a226ae15fd3006150da0676df7",
-      "content_sha256": "40a2d355aa2cc42f48a92dc7ffaec5eed42c25b19581b36f317f1dcf07b84df8",
+      "blob_sha": "d17256f50d5cae1f97380a080c62517d93bc7d52",
+      "content_sha256": "89c240404aa41d05a38d3b642054be646f351c692ecb05adc620bf5bca1efd2b",
       "mode": "100644",
       "path": "scorecard.md"
     },
@@ -319,8 +319,8 @@
       "path": "scripts/processor/cleanup_workflow.py"
     },
     {
-      "blob_sha": "8ebc732d9067a6cb3b6de21473edcaa707ad2ea4",
-      "content_sha256": "561055503baab126274b17d12494305552f5680b107e9f9acdfa01b22047a2ce",
+      "blob_sha": "a439b39409727f475633765189355d65d54c3ae0",
+      "content_sha256": "6dc34adb3f7cb32824c0e255caeaf355ffddce9302d6bb0500d8228dab88f305",
       "mode": "100644",
       "path": "scripts/processor/common.py"
     },
@@ -343,8 +343,8 @@
       "path": "scripts/processor/github_cli.py"
     },
     {
-      "blob_sha": "f14c7f0b79c7d3b27019e5b162155136fe92e049",
-      "content_sha256": "da9340b5272d26ac4d8ff3248814ee70601a16c52dad69161bec5345d3091eec",
+      "blob_sha": "c914816762af995c9c121b3f95996d0abbb915b2",
+      "content_sha256": "db8de5bf72f8ac77a738665753634f63d2243f289a6b5c26028cb8f721a8c777",
       "mode": "100644",
       "path": "scripts/processor/intake_parser.py"
     },
@@ -367,8 +367,8 @@
       "path": "scripts/rebuild_views.py"
     },
     {
-      "blob_sha": "851a6df00d3a17ef82a45bfc10ab6542dd715cf7",
-      "content_sha256": "bccc4ee5f778af49aaf177d0dd572588c46cf582bbea564e43aee1a4670f20a4",
+      "blob_sha": "3a2ad067f8f74423c34d611b3f9ad9176fd70e8d",
+      "content_sha256": "a48c1eb1a24ce2035f76c2e389e8ba670da49dbbb3dd795820af6c25c4a4fea8",
       "mode": "100644",
       "path": "scripts/refreeze_frozen_batch.py"
     },
@@ -439,20 +439,20 @@
       "path": "tests/test_cleanup_and_auto_merge.py"
     },
     {
-      "blob_sha": "374a19f6283aaa7684a66e104c85ce9cba577e51",
-      "content_sha256": "14cfeaae753825baa4a08c9d2881c9e3666fdad7b8b75c138db9078f35b13b8b",
+      "blob_sha": "863eccbb97cdf31511a1f27b3e48d6d31901b2b1",
+      "content_sha256": "b36ff20447b6f7c270c3d04cdbd400c413aecdc95b46f1619a703761d9067aef",
       "mode": "100644",
       "path": "tests/test_controller_maintenance.py"
     },
     {
-      "blob_sha": "c8ddee74e23810aee86363e57292b607f610d59b",
-      "content_sha256": "86323d50c36efd7feb21122c60dba2ebc80b48feb15e49fb6f6f3d61a7a71c2f",
+      "blob_sha": "fa464354e8c9dbe5644c348260d095efdde5339b",
+      "content_sha256": "153a3d39e362528993ef027cabb24b4cace41e1064946651db0a95c05fcb1f49",
       "mode": "100644",
       "path": "tests/test_dl153007_amendment.py"
     },
     {
-      "blob_sha": "1046559963c3e4245483d1465f8596be7abb5547",
-      "content_sha256": "b95ba7bd8805bc032fe7c043fa881a56afd114a55096d2559de96a41e04059fb",
+      "blob_sha": "bf536e10da90599c66f3f049a0845be6ef21cdeb",
+      "content_sha256": "ed4907d22c6184220f1abd82cd6458a15c8d2225d290b511cf8aa2acf9d90d68",
       "mode": "100644",
       "path": "tests/test_dl153008_amendment.py"
     },
@@ -481,8 +481,8 @@
       "path": "tests/test_github_cli.py"
     },
     {
-      "blob_sha": "efc64b42bf0255b97b2971c3f4c1843e5d7ed48e",
-      "content_sha256": "0768cd014a535b641b5d2fbf4a3a1ab0fe4d14a5b2e66ad1bd9592aed652f197",
+      "blob_sha": "5352ce09ed67e62125c9fc369de855bd08b4ebfe",
+      "content_sha256": "12e018ba456530d0472a3767395c31b3f4058ad16579787f448ba90fd7fdd2e8",
       "mode": "100644",
       "path": "tests/test_intake_and_source_watch.py"
     },
@@ -499,8 +499,8 @@
       "path": "tests/test_migration.py"
     },
     {
-      "blob_sha": "498f6a6d2f559f23d08ed28675238219ef770e13",
-      "content_sha256": "c5057421243e27ac36db29ca8c333fb68998b5176e194a7b328d3b9ae8a9ff63",
+      "blob_sha": "5140dfd22bf48afb51b55da9fdff1547166ded98",
+      "content_sha256": "cea699c7bf07b7b65b71e945712b05d237d549b95e182672fcb28a5473d9e2c2",
       "mode": "100644",
       "path": "tests/test_receipt_validation.py"
     },
@@ -523,13 +523,13 @@
       "path": "tests/test_transaction_and_lifecycle.py"
     }
   ],
-  "candidate_content_manifest_sha256": "d96f1e6690595259f90a4aa08be1bbeaa9e5d4cd15806a4b3a00614bc89e3315",
+  "candidate_content_manifest_sha256": "317427f06471329c965dd604b6edec2b67e6b42ad01c5f30cccc81d9eef2329a",
   "canonical_hashes": {
     "dispositions_jsonl": "17a95e2e35889115afc6b1130aa2c836d6bff12815126a6547263e8e85b2ff7d",
-    "evaluations_jsonl": "76c8f63e9684d5743ed56405e5af2d134b4c4970b954aa4e20dbdd475adb4f59",
-    "model_recommendation_json": "2883bdfb360ca1c9b153c6651fc7061793b5a1ed74e3fc3e6225f651a403695d",
-    "readme_md": "359fe492a2218a8f9badd938d217ecb9d17f12a2ab38e68c72491272a36ca1a3",
-    "scorecard_md": "40a2d355aa2cc42f48a92dc7ffaec5eed42c25b19581b36f317f1dcf07b84df8"
+    "evaluations_jsonl": "a884b738a02a4462ca39818e78fc6e5cc3c6389cdc3168b359ff0e9bd2e8f77f",
+    "model_recommendation_json": "a732f7271bd5c01a586c1bbddf4382677635bcdcee542d4494596d96f15006bf",
+    "readme_md": "440e192e8aeff4366c3ce93f069f521ace1a7f5b7b912b4985956eb2a4073e1a",
+    "scorecard_md": "89c240404aa41d05a38d3b642054be646f351c692ecb05adc620bf5bca1efd2b"
   },
   "canonical_main_sha": "27748b1fa4b70eb69f18047c31ec97c3505beb88",
   "canonical_record_hashes": {},
