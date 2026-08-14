@@ -30,6 +30,7 @@ AUTHORIZED_PAIRS = frozenset(
         ("Anthropic", "Claude Opus 5"),
         ("DeepSeek", "DeepSeek V4 Pro"),
         ("OpenAI", "GPT-5.6 Sol"),
+        ("OpenAI", "GPT-5.6 Luna"),
         ("Qwen", "Qwen3.7 Plus"),
         ("Google", "Gemini 3.1 Pro"),
         ("MiniMax", "MiniMax M3"),

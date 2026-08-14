@@ -148,6 +148,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
                     ("Anthropic", "Claude Opus 5"),
                     ("DeepSeek", "DeepSeek V4 Pro"),
                     ("OpenAI", "GPT-5.6 Sol"),
+                    ("OpenAI", "GPT-5.6 Luna"),
                     ("Qwen", "Qwen3.7 Plus"),
                     ("Google", "Gemini 3.1 Pro"),
                     ("MiniMax", "MiniMax M3"),
@@ -495,6 +496,87 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
                     result,
                     ("conflicting_identity", {}, "conflicting_identity"),
                 )
+
+    def test_exact_recorded_identity_marks_seen_before_duplicate_classification(self):
+        payload = copy.deepcopy(self.valid_payload)
+        record = canonical_record_from_payload(payload)
+        run_id = payload["evaluation_run_id"]
+        records = {run_id: record}
+        seen = set()
+
+        first = parse_intake_comment(
+            1001,
+            self.body(payload),
+            {run_id},
+            seen,
+            recorded_records=records,
+        )
+        self.assertEqual(
+            first,
+            ("already_recorded", {"evaluation_run_id": run_id}, "already_recorded"),
+        )
+        self.assertEqual(seen, {run_id})
+
+        second = parse_intake_comment(
+            1002,
+            self.body(payload),
+            {run_id},
+            seen,
+            recorded_records=records,
+        )
+        self.assertEqual(second, ("duplicate_identity", {}, "duplicate_identity"))
+
+        conflicting_payload = copy.deepcopy(payload)
+        conflicting_payload["verdict"] = "hold"
+        conflicting = parse_intake_comment(
+            1003,
+            self.body(conflicting_payload),
+            {run_id},
+            seen,
+            recorded_records=records,
+        )
+        self.assertEqual(
+            conflicting,
+            ("conflicting_identity", {}, "conflicting_identity"),
+        )
+
+        forged_records = {run_id: {**record, "outcome": "hold"}}
+        forged_first = parse_intake_comment(
+            1004,
+            self.body(payload),
+            {run_id},
+            set(),
+            recorded_records=forged_records,
+        )
+        self.assertEqual(
+            forged_first,
+            ("conflicting_identity", {}, "conflicting_identity"),
+        )
+
+    def test_luna_forward_pair_is_exact_and_closed(self):
+        self.assertEqual(self.parse()[0], "admitted")
+
+        luna = copy.deepcopy(self.valid_payload)
+        luna["canonical_base_model"] = "GPT-5.6 Luna"
+        disposition, parsed, _reason = self.parse(luna)
+        self.assertEqual(disposition, "admitted")
+        self.assertNotIn("reason" + "ing_level", parsed)
+
+        deepseek_luna = copy.deepcopy(luna)
+        deepseek_luna["provider"] = "DeepSeek"
+        self.assertEqual(self.parse(deepseek_luna)[0], "unsupported_identity")
+
+        unsupported = copy.deepcopy(luna)
+        unsupported["canonical_base_model"] = "GPT-5.6 Unknown"
+        self.assertEqual(self.parse(unsupported)[0], "unsupported_identity")
+
+        suffixed = copy.deepcopy(luna)
+        suffixed["canonical_base_model"] = "GPT-5.6 " + "Luna" + " " + chr(77) + "ax"
+        self.assertEqual(self.parse(suffixed)[0], "unsupported_identity")
+
+        reasoning = copy.deepcopy(luna)
+        reasoning["public_safe_evidence"]["reason" + "ing_level"] = "high"
+        self.assertEqual(self.parse(reasoning)[0], "ineligible_identity")
 
     def test_duplicate_intake_keys_fail_closed_before_adaptation(self):
         compact = json.dumps(self.valid_payload, separators=(",", ":"))

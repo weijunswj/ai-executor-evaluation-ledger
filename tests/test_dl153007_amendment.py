@@ -17,11 +17,15 @@ from scripts.processor import batch_processor, cleanup_workflow, frozen_replay
 from scripts.processor.common import (
     ProcessorError,
     canonical_json_bytes,
+    canonical_json_line_bytes,
     safe_author_hash,
     safe_comment_body_hash,
 )
 from scripts.processor.frozen_source import refetch_frozen_source
 from scripts.processor.intake_parser import (
+    HISTORICAL_INTAKE_VALIDATOR,
+    INTAKE_VALIDATOR,
+    adapt_historical_payload,
     canonical_record_from_payload,
     parse_intake_comment,
 )
@@ -381,6 +385,66 @@ class TestA4ReachableRefreeze(FrozenRefreezeFixture):
         receipt, comments, snapshot = self.changed()
         evidence = self.precompare(receipt, comments, snapshot)
         self.assertEqual(evidence["changed_comment_ids"], [comments[0]["id"]])
+
+    def test_changed_historical_v1_uses_historical_validator(self):
+        receipt, comments, _snapshot = self.authority()
+        payload = valid_payload("run-refreeze-validator")
+        body = historical_intake_body(payload)
+        raw_payload = json.loads(body.split("\n", 1)[1])
+        adapted = adapt_historical_payload(raw_payload)
+        self.assertTrue(tuple(INTAKE_VALIDATOR.iter_errors(adapted)))
+        self.assertFalse(tuple(HISTORICAL_INTAKE_VALIDATOR.iter_errors(adapted)))
+
+        changed_comments = copy.deepcopy(comments)
+        changed_comments[0]["body"] = body
+        changed_comments[0]["updated_at"] = "2026-07-29T12:00:00Z"
+        first_id = str(changed_comments[0]["id"])
+        receipt["terminal_outcomes"][first_id] = {
+            "outcome_code": "admitted",
+            "evaluation_run_id": payload["evaluation_run_id"],
+        }
+        evidence = {
+            "source_body_sha256": {
+                str(comment["id"]): safe_comment_body_hash(comment["body"])
+                for comment in changed_comments
+            },
+            "comments": changed_comments,
+            "fingerprints": [{"id": comment["id"]} for comment in changed_comments],
+            "later_comment_count": 0,
+        }
+        replacement = refreeze_frozen_batch.canonical_refreeze_replacement(
+            body,
+            payload["evaluation_run_id"],
+        )
+        with tempfile.TemporaryDirectory(prefix="dl153007-refreeze-validator-") as raw:
+            root = Path(raw)
+            receipt_path = (
+                root
+                / "ledger"
+                / "receipts"
+                / "batches"
+                / "batch-20260729-gate3-amendment-004.json"
+            )
+            receipt_path.parent.mkdir(parents=True)
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            (root / "evaluations.jsonl").write_bytes(
+                canonical_json_line_bytes(replacement)
+            )
+            dispositions = root / "ledger" / "dispositions.jsonl"
+            dispositions.parent.mkdir(parents=True, exist_ok=True)
+            dispositions.write_bytes(b"")
+            with mock.patch.object(
+                refreeze_frozen_batch,
+                "refetch_frozen_source_for_refreeze",
+                return_value=evidence,
+            ):
+                result = refreeze_frozen_batch.refreeze(root)
+            self.assertEqual(result["changed_comment_count"], 1)
+            self.assertEqual(result["changed_record_count"], 1)
+            self.assertEqual(
+                json.loads((root / "evaluations.jsonl").read_text(encoding="utf-8"))["run_id"],
+                payload["evaluation_run_id"],
+            )
 
     def test_zero_two_membership_author_and_time_changes_fail_closed(self):
         cases = {}

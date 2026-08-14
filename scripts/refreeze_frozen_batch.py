@@ -19,7 +19,7 @@ from scripts.processor.common import (
 from scripts.processor.frozen_source import refetch_frozen_source_for_refreeze
 from scripts.processor.intake_parser import (
     HISTORICAL_INTAKE_MARKER,
-    INTAKE_VALIDATOR,
+    HISTORICAL_INTAKE_VALIDATOR,
     adapt_historical_payload,
     canonical_record_from_payload,
     parse_historical_intake_comment,
@@ -103,7 +103,7 @@ def refreeze(root: Path = ROOT) -> dict[str, int]:
             expected_run_id = outcome.get("evaluation_run_id")
             if adapted.get("evaluation_run_id") != expected_run_id:
                 raise ProcessorError("source_changed")
-            intake_errors = list(INTAKE_VALIDATOR.iter_errors(adapted))
+            intake_errors = list(HISTORICAL_INTAKE_VALIDATOR.iter_errors(adapted))
             if not intake_errors:
                 record = canonical_refreeze_replacement(body, expected_run_id)
                 changed_records[record["run_id"]] = record

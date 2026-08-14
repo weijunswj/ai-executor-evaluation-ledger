@@ -103,6 +103,42 @@ def luna_rule_set_sha256(rules: tuple[tuple[str, tuple[str, ...]], ...]) -> str:
 
 
 class TestControllerLedgerMaintenance(unittest.TestCase):
+    @staticmethod
+    def _receipt_route_block(workflow: str) -> str:
+        start = workflow.index("          legacy_context=false")
+        end = workflow.index("\n\n      - name:", start)
+        return workflow[start:end]
+
+    def test_receipt_routes_are_aligned_and_fail_closed(self):
+        blocks = []
+        for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+            workflow = (ROOT / relative).read_text(encoding="utf-8")
+            block = self._receipt_route_block(workflow)
+            blocks.append(block)
+            with self.subTest(workflow=relative):
+                self.assertIn("canonical_main_context=false", block)
+                self.assertIn(
+                    'receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)',
+                    block,
+                )
+                self.assertLess(
+                    block.index("receipt_delta="),
+                    block.index('if [[ -n "$receipt_delta" ]]; then'),
+                )
+                self.assertLess(
+                    block.index('if [[ -n "$receipt_delta" ]]; then'),
+                    block.index('elif [[ "$canonical_main_context" == true ]]'),
+                )
+                self.assertIn("validate_receipts.py --mode canonical-main", block)
+                self.assertIn('elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then', block)
+                self.assertIn('if [[ "$REF_NAME" != "main" ]]; then', block)
+                self.assertIn("exit 1", block)
+                self.assertNotIn(
+                    'test -z "$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)"',
+                    block,
+                )
+        self.assertEqual(blocks[0], blocks[1])
+
     def test_controller_evaluation_scope_is_exact_four_files(self):
         required = {
             "README.md",

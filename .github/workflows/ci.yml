@@ -197,9 +197,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           legacy_context=false
+          canonical_main_context=false
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
-            test -z "$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)"
-            legacy_context=true
+            receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)
+            if [[ -n "$receipt_delta" ]]; then
+              canonical_main_context=true
+            else
+              legacy_context=true
+            fi
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ "$REF_NAME" != "main" ]]; then
+              printf '%s\n' 'Canonical main receipt validation target is ambiguous.' >&2
+              exit 1
+            fi
+            canonical_main_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
             expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
@@ -218,12 +229,11 @@ jobs:
           fi
           if [[ "$legacy_context" == true ]]; then
             GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --validation-level source-replay
+          elif [[ "$canonical_main_context" == true ]]; then
+            args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
+            "${args[@]}"
           else
-            mode=pr
-            if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
-              mode=canonical-main
-            fi
-            args=(python scripts/validate_receipts.py --mode "$mode" --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
+            args=(python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
             "${args[@]}"
           fi
 

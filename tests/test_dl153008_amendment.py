@@ -17,7 +17,7 @@ from scripts.processor.common import ProcessorError
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STARTING_HEAD = "91ae4288aa1a64267685daa575c051370e17d9e5"
+STARTING_HEAD = "576ae01584e2ae5f60595a01e28c101cb9d4b287"
 NUMERIC_KEY = "i" + "d"
 LOGIN_KEY = "l" + "ogin"
 

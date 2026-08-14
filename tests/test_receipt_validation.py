@@ -811,5 +811,42 @@ class TestReceiptValidation(unittest.TestCase):
                 )
 
 
+    def test_canonical_main_rejects_malformed_receipt_after_receipt_delta(self):
+        with tempfile.TemporaryDirectory(prefix="receipt-canonical-invalid-") as raw:
+            root = Path(raw)
+            _receipt, content_sha, _final_sha = self.fixture(root)
+            subprocess.run(
+                ["git", "checkout", "-q", content_sha],
+                cwd=root,
+                check=True,
+            )
+            receipt_path = root / FROZEN_RECEIPT_PATH
+            receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            receipt_path.write_bytes(b'{"schema_version":2}\n')
+            subprocess.run(
+                ["git", "add", FROZEN_RECEIPT_PATH],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "commit", "-qm", "malformed receipt delta"],
+                cwd=root,
+                check=True,
+            )
+            seal_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            with self.assertRaises(ReceiptValidationError):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=seal_sha,
+                    mode="canonical-main",
+                    canonical_base_sha=content_sha,
+                )
+
 if __name__ == "__main__":
     unittest.main()
