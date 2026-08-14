@@ -22,7 +22,8 @@ from scripts.rebuild_views import verify_append_only
 from scripts.validate_manifests import _locked_historical_final_raw
 
 ROOT = Path(__file__).resolve().parents[1]
-FUTURE_BASE = "9b95cd37f746846d31bc0dfc5f3d79e8e2de75de"
+# Durable canonical ancestor carrying the locked first-59 evaluation bytes.
+CANONICAL_FIRST_59_BASE = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 
 
 class TestClosedManifestValidation(unittest.TestCase):
@@ -40,7 +41,7 @@ class TestClosedManifestValidation(unittest.TestCase):
         }
 
     def test_repository_wide_manifest_validation(self):
-        evidence = validate_all(ROOT, base_ref=FUTURE_BASE)
+        evidence = validate_all(ROOT, base_ref=CANONICAL_FIRST_59_BASE)
         self.assertEqual(evidence["manifest_count"], len(MANIFEST_PATHS))
         self.assertEqual(evidence["final_total_count"], 59)
 
@@ -66,7 +67,7 @@ class TestClosedManifestValidation(unittest.TestCase):
         checkout = (ROOT / "evaluations.jsonl").read_bytes()
         self.assertNotIn(b"\r\n", checkout)
         historical_prefix = subprocess.run(
-            ["git", "show", f"{FUTURE_BASE}:evaluations.jsonl"],
+            ["git", "show", f"{CANONICAL_FIRST_59_BASE}:evaluations.jsonl"],
             cwd=ROOT,
             capture_output=True,
             check=True,
@@ -75,7 +76,7 @@ class TestClosedManifestValidation(unittest.TestCase):
         self.assertTrue(checkout.startswith(historical_prefix))
 
     def test_append_only_verifier_accepts_closed_manifest_contract(self):
-        verify_append_only(FUTURE_BASE)
+        verify_append_only(CANONICAL_FIRST_59_BASE)
 
     def test_unknown_field_fails_closed_schema(self):
         expected = expected_manifests(ROOT)

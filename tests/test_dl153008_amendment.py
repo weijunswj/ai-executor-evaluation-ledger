@@ -17,7 +17,8 @@ from scripts.processor.common import ProcessorError
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STARTING_HEAD = "576ae01584e2ae5f60595a01e28c101cb9d4b287"
+# Durable canonical main authority for the current production append-only chain.
+CANONICAL_CANDIDATE_BASE = "be69246a7b9e7f06601f1e6ed032202a5e8a0b1f"
 NUMERIC_KEY = "i" + "d"
 LOGIN_KEY = "l" + "ogin"
 
@@ -210,7 +211,7 @@ class ProductionChainFixture(unittest.TestCase):
                 check=True,
             )
             subprocess.run(
-                ["git", "checkout", "--quiet", "--detach", STARTING_HEAD],
+                ["git", "checkout", "--quiet", "--detach", CANONICAL_CANDIDATE_BASE],
                 cwd=root,
                 check=True,
             )

@@ -14,6 +14,7 @@ from unittest import mock
 
 from scripts.processor import cleanup_workflow
 from scripts.processor.common import (
+    FROZEN_BATCH_ID,
     ProcessorError,
     canonical_json_line_bytes,
     git_tree_file_bindings,
@@ -303,7 +304,7 @@ class ReceiptHistoryFixture(unittest.TestCase):
             "analysis/model-recommendation.json": (json.dumps({"count": len(self.records)}, sort_keys=True, indent=2) + "\n").encode(),
         }
 
-    def append_batch(self, number: int, *, extra_seal_file: bool = False, path_batch_id: str | None = None) -> tuple[str, str, str]:
+    def append_batch(self, number: int, *, extra_seal_file: bool = False, path_batch_id: str | None = None, frozen: bool = False) -> tuple[str, str, str]:
         record = {
             "run_id": f"run-receipt-{number}",
             "provider": "OpenAI",
@@ -322,7 +323,7 @@ class ReceiptHistoryFixture(unittest.TestCase):
         candidate = git(self.root, "rev-parse", "HEAD")
         record_line = canonical_json_line_bytes(record)
         digest = sha256_bytes(f"source-{number}".encode())
-        batch_id = f"batch-fixture-{number}"
+        batch_id = FROZEN_BATCH_ID if frozen else f"batch-fixture-{number}"
         receipt = {
             "schema_version": 2,
             "receipt_type": "batch",
@@ -351,8 +352,9 @@ class ReceiptHistoryFixture(unittest.TestCase):
             "canonical_record_hashes": {record["run_id"]: sha256_bytes(record_line)},
             "canonical_hashes": {name: sha256_bytes(contents[path]) for name, path in CANONICAL_PATHS.items()},
             "comment_bindings": [{"comment_id": number, "created_at": f"2026-08-05T00:00:0{number}Z", "updated_at": f"2026-08-05T00:00:0{number}Z", "body_sha256": digest, "outcome_code": "admitted", "evaluation_run_id": record["run_id"], "canonical_record_sha256": sha256_bytes(record_line), "cleanup_eligible": False}],
-            "source_replay": {"adapter": "github-intake-v1"},
         }
+        if not frozen:
+            receipt["source_replay"] = {"adapter": "github-intake-v1"}
         path_id = path_batch_id or batch_id
         receipt_path = self.root / "ledger" / "receipts" / "batches" / f"{path_id}.json"
         receipt_relative = receipt_path.relative_to(self.root).as_posix()
@@ -485,16 +487,28 @@ class TestA3ReceiptReplayAndTampering(ReceiptHistoryFixture):
         self.assertEqual(0, result)
 
     def test_frozen_receipt_routes_only_to_frozen_replay(self):
-        head = git(ROOT, "rev-parse", "HEAD")
+        _path, candidate, seal = self.append_batch(1, frozen=True)
         with mock.patch(
             "scripts.validate_receipts._validate_frozen_source_replay",
             return_value={"outcomes": 101, "admissions": 0, "later_comments": 0},
         ) as frozen, mock.patch(
             "scripts.validate_receipts._validate_github_intake_source_replay"
-        ) as incremental:
-            evidence = validate_source_replay(ROOT, authority_sha=head, mode="pr")
+        ) as incremental, mock.patch(
+            "scripts.validate_receipts._validate_terminal_seal_scope",
+            wraps=_validate_terminal_seal_scope,
+        ) as terminal:
+            evidence = validate_source_replay(
+                self.root,
+                authority_sha=seal,
+                mode="pr",
+                canonical_base_sha=candidate,
+            )
         frozen.assert_called_once()
         incremental.assert_not_called()
+        terminal.assert_called_once()
+        self.assertEqual("pr", terminal.call_args.kwargs["mode"])
+        self.assertEqual(candidate, terminal.call_args.kwargs["candidate_sha"])
+        self.assertEqual(seal, terminal.call_args.kwargs["seal_sha"])
         self.assertEqual("frozen-v1", evidence["replayed_receipts"][0]["adapter"])
 
     def test_missing_unsupported_and_cross_routed_contracts_fail_closed(self):
