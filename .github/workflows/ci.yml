@@ -198,6 +198,7 @@ jobs:
         run: |
           legacy_context=false
           canonical_main_context=false
+          canonical_base_context=false
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
             receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)
             if [[ -n "$receipt_delta" ]]; then
@@ -226,11 +227,57 @@ jobs:
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
             test "$actual" = "$expected"
             legacy_context=true
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)
+            if [[ -z "$receipt_delta" ]]; then
+              canonical_base_context=true
+            fi
           fi
           if [[ "$legacy_context" == true ]]; then
             GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --validation-level source-replay
           elif [[ "$canonical_main_context" == true ]]; then
             args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
+            "${args[@]}"
+          elif [[ "$canonical_base_context" == true ]]; then
+            if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            if ! resolved_base_sha=$(git rev-parse --verify "$BASE_SHA^{commit}"); then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            if [[ "$resolved_base_sha" != "$BASE_SHA" ]]; then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            if ! base_parent_line=$(git rev-list --parents -n 1 "$BASE_SHA"); then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            read -r -a base_parent_fields <<< "$base_parent_line"
+            if [[ "${#base_parent_fields[@]}" -ne 2 ]]; then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            if [[ "${base_parent_fields[0]}" != "$BASE_SHA" ]]; then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            BASE_PARENT_SHA="${base_parent_fields[1]}"
+            if [[ ! "$BASE_PARENT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            if ! resolved_base_parent_sha=$(git rev-parse --verify "$BASE_PARENT_SHA^{commit}"); then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            if [[ "$resolved_base_parent_sha" != "$BASE_PARENT_SHA" ]]; then
+              printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
+              exit 1
+            fi
+            args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$BASE_SHA" --canonical-base-sha "$BASE_PARENT_SHA" --validation-level source-replay)
             "${args[@]}"
           else
             args=(python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)

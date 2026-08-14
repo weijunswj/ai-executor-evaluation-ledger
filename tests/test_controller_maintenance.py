@@ -111,32 +111,101 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
 
     def test_receipt_routes_are_aligned_and_fail_closed(self):
         blocks = []
+        receipt_delta = (
+            'receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" '
+            '-- ledger/receipts/batches)'
+        )
+        strict_pr_route = (
+            'args=(python scripts/validate_receipts.py --mode pr '
+            '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
+            '--validation-level source-replay)'
+        )
+        canonical_base_route = (
+            'args=(python scripts/validate_receipts.py --mode canonical-main '
+            '--authority-sha "$BASE_SHA" --canonical-base-sha '
+            '"$BASE_PARENT_SHA" --validation-level source-replay)'
+        )
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             workflow = (ROOT / relative).read_text(encoding="utf-8")
             block = self._receipt_route_block(workflow)
             blocks.append(block)
             with self.subTest(workflow=relative):
                 self.assertIn("canonical_main_context=false", block)
+                self.assertIn("canonical_base_context=false", block)
+                self.assertEqual(2, block.count(receipt_delta))
+                ordinary_pr = 'elif [[ "$EVENT_NAME" == "pull_request" ]]; then'
+                self.assertIn(ordinary_pr, block)
+                self.assertLess(
+                    block.index('"$HEAD_REF" == controller/evaluation-*'),
+                    block.index(ordinary_pr),
+                )
+                self.assertLess(
+                    block.index('"$HEAD_REF" == controller/ledger-maintenance-*'),
+                    block.index(ordinary_pr),
+                )
                 self.assertIn(
-                    'receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)',
+                    'if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then\n'
+                    f"            {receipt_delta}\n"
+                    '            if [[ -n "$receipt_delta" ]]; then\n'
+                    "              canonical_main_context=true\n"
+                    "            else\n"
+                    "              legacy_context=true\n"
+                    "            fi",
                     block,
                 )
-                self.assertLess(
-                    block.index("receipt_delta="),
-                    block.index('if [[ -n "$receipt_delta" ]]; then'),
+                self.assertIn(
+                    'elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then\n'
+                    '            if [[ "$REF_NAME" != "main" ]]; then\n'
+                    "              printf '%s\\n' 'Canonical main receipt validation target is ambiguous.' >&2\n"
+                    "              exit 1\n"
+                    "            fi\n"
+                    "            canonical_main_context=true",
+                    block,
                 )
-                self.assertLess(
-                    block.index('if [[ -n "$receipt_delta" ]]; then'),
-                    block.index('elif [[ "$canonical_main_context" == true ]]'),
+                self.assertIn(
+                    f"{ordinary_pr}\n"
+                    f"            {receipt_delta}\n"
+                    '            if [[ -z "$receipt_delta" ]]; then\n'
+                    "              canonical_base_context=true\n"
+                    "            fi",
+                    block,
                 )
-                self.assertIn("validate_receipts.py --mode canonical-main", block)
-                self.assertIn('elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then', block)
-                self.assertIn('if [[ "$REF_NAME" != "main" ]]; then', block)
-                self.assertIn("exit 1", block)
+                fail_closed_tail = (
+                    "\n              printf '%s\\n' 'Canonical base receipt topology is invalid.' >&2\n"
+                    "              exit 1\n"
+                    "            fi"
+                )
+                for guard in (
+                    'if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then',
+                    'if ! resolved_base_sha=$(git rev-parse --verify "$BASE_SHA^{commit}"); then',
+                    'if [[ "$resolved_base_sha" != "$BASE_SHA" ]]; then',
+                    'if ! base_parent_line=$(git rev-list --parents -n 1 "$BASE_SHA"); then',
+                    'if [[ "${#base_parent_fields[@]}" -ne 2 ]]; then',
+                    'if [[ "${base_parent_fields[0]}" != "$BASE_SHA" ]]; then',
+                    'if [[ ! "$BASE_PARENT_SHA" =~ ^[0-9a-f]{40}$ ]]; then',
+                    'if ! resolved_base_parent_sha=$(git rev-parse --verify "$BASE_PARENT_SHA^{commit}"); then',
+                    'if [[ "$resolved_base_parent_sha" != "$BASE_PARENT_SHA" ]]; then',
+                ):
+                    self.assertIn(guard + fail_closed_tail, block)
+                self.assertIn('read -r -a base_parent_fields <<< "$base_parent_line"', block)
+                self.assertIn('BASE_PARENT_SHA="${base_parent_fields[1]}"', block)
+                self.assertIn(canonical_base_route, block)
+                self.assertIn(strict_pr_route, block)
+                self.assertLess(block.index(canonical_base_route), block.index(strict_pr_route))
+                self.assertIn("fetch-depth: 0", workflow)
+                self.assertIn(
+                    'expected=$(printf \'%s\\n\' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)',
+                    block,
+                )
+                self.assertIn(
+                    'expected=$(printf \'%s\\n\' .github/workflows/ci.yml .github/workflows/public-safety.yml tests/test_controller_maintenance.py | sort)',
+                    block,
+                )
                 self.assertNotIn(
                     'test -z "$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)"',
                     block,
                 )
+                self.assertNotIn("continue-on-error", block)
         self.assertEqual(blocks[0], blocks[1])
 
     def test_controller_evaluation_scope_is_exact_four_files(self):
@@ -1202,12 +1271,18 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             LEGACY_FROZEN_RECEIPT_AUTHORITY,
         )
 
-    def test_normal_pull_request_receipt_mode_remains_strict(self):
+    def test_receipt_changing_pull_request_mode_remains_strict(self):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             workflow = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("--mode pr", workflow)
-            self.assertIn('--authority-sha "$HEAD_SHA"', workflow)
-            self.assertNotIn("continue-on-error", workflow)
+            block = self._receipt_route_block(workflow)
+            self.assertIn('if [[ -z "$receipt_delta" ]]; then', block)
+            self.assertIn(
+                'args=(python scripts/validate_receipts.py --mode pr '
+                '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
+                '--validation-level source-replay)',
+                block,
+            )
+            self.assertNotIn("continue-on-error", block)
 
 
     def test_red_oversized_jsonl_preserves_cross_value_luna_context(self):
