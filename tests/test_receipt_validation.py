@@ -31,7 +31,8 @@ from scripts.validate_receipts import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMIT_1 = "91ae4288aa1a64267685daa575c051370e17d9e5"
+# Durable receipt-only seal whose parent is the matching frozen candidate.
+FROZEN_RECEIPT_SEAL = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 FROZEN_RECEIPT_PATH = (
     "ledger/receipts/batches/batch-20260729-gate3-amendment-004.json"
 )
@@ -71,7 +72,7 @@ class TestReceiptValidation(unittest.TestCase):
         return json.loads(
             receipt_validator.git_object_bytes(
                 ROOT,
-                COMMIT_1,
+                FROZEN_RECEIPT_SEAL,
                 FROZEN_RECEIPT_PATH,
             ).decode("utf-8")
         )

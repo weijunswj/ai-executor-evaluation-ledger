@@ -32,6 +32,8 @@ from scripts.processor.intake_parser import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# Durable canonical ancestor carrying the locked first-59 evaluation bytes.
+CANONICAL_FIRST_59_BASE = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
 LOCKED_BASE = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 RECEIPT_PATH = (
     ROOT
@@ -160,7 +162,7 @@ class TestA1FutureAppendOnlyBases(unittest.TestCase):
 
     def test_locked_one_time_migration_path_still_passes(self):
         historical_prefix = subprocess.run(
-            ["git", "show", "9b95cd37f746846d31bc0dfc5f3d79e8e2de75de:evaluations.jsonl"],
+            ["git", "show", f"{CANONICAL_FIRST_59_BASE}:evaluations.jsonl"],
             cwd=ROOT,
             check=True,
             capture_output=True,
