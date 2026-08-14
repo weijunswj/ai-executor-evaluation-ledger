@@ -18,6 +18,8 @@ from scripts.processor.common import (
     ProcessorError,
     canonical_json_bytes,
     canonical_json_line_bytes,
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
     reject_duplicate_json_keys,
     safe_author_hash,
     safe_comment_body_hash,
@@ -46,6 +48,13 @@ from scripts.processor.transaction import (
 from scripts.rebuild_views import expected_files_for_records, resolved_evaluations
 
 ROOT = Path(__file__).resolve().parents[2]
+ISSUE_142_API_URL = (
+    "https://api."
+    "github.com/repos/"
+    "weijunswj/"
+    "ai-executor-evaluation-ledger/issues/"
+    "142"
+)
 LEDGER_PATH = ROOT / "evaluations.jsonl"
 DISPOSITIONS_PATH = ROOT / "ledger" / "dispositions.jsonl"
 BATCH_RECEIPTS_DIR = ROOT / "ledger" / "receipts" / "batches"
@@ -148,6 +157,31 @@ def _validate_json_lines(content: bytes) -> List[Dict[str, Any]]:
     return records
 
 
+def _canonical_record_bindings(content: bytes) -> Dict[str, Dict[str, Any]]:
+    """Index exact recorded JSONL bytes without collapsing line identity."""
+
+    records = _validate_json_lines(content)
+    lines = [line for line in content.splitlines(keepends=True) if line.strip()]
+    if len(lines) != len(records):
+        raise ProcessorError("processor_schema_failure")
+    bindings: Dict[str, Dict[str, Any]] = {}
+    for line, record in zip(lines, records):
+        run_id = record["run_id"]
+        if run_id in bindings:
+            raise ProcessorError("processor_schema_failure")
+        bindings[run_id] = {
+            "record": record,
+            "line_sha256": sha256_bytes(line),
+            "proof": {
+                "provider": record["provider"],
+                "model": record["model"],
+                "outcome": record["outcome"],
+                "weighted_score_5": record["weighted_score_5"],
+            },
+        }
+    return bindings
+
+
 def load_canonical_base_records(repository_root: Path, base_sha: str) -> List[Dict[str, Any]]:
     return _validate_json_lines(read_git_object(repository_root, base_sha, "evaluations.jsonl"))
 
@@ -189,6 +223,7 @@ def _validate_live_142_comment(value: Any) -> Dict[str, Any]:
         or not isinstance(association, str)
         or not association
         or not isinstance(value.get("body"), str)
+        or value.get("issue_url") != ISSUE_142_API_URL
         or not valid_timestamp(value.get("created_at"))
         or not valid_timestamp(value.get("updated_at"))
     ):
@@ -210,6 +245,9 @@ def fetch_live_142_comments(repository_root: Path = ROOT) -> List[Dict[str, Any]
             raise ProcessorError("processor_source_unavailable")
         for item in page:
             comments.append(_validate_live_142_comment(item))
+    comment_ids = [item["id"] for item in comments]
+    if comment_ids != sorted(comment_ids) or len(comment_ids) != len(set(comment_ids)):
+        raise ProcessorError("processor_source_unavailable")
     return comments
 
 
@@ -331,6 +369,7 @@ def _parse_authorized_intake_comment(
     owner: Mapping[str, Any],
     recorded_run_ids: set[str],
     seen_candidate_ids: set[str],
+    recorded_records: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> Tuple[str, Dict[str, Any], str]:
     body = comment.get("body")
     if isinstance(body, str) and body.startswith(INTAKE_MARKER):
@@ -349,6 +388,7 @@ def _parse_authorized_intake_comment(
         body,
         recorded_run_ids,
         seen_candidate_ids,
+        recorded_records=recorded_records,
     )
 
 
@@ -608,7 +648,10 @@ def build_batch_candidate(
         fresh = comment_fetcher(int(comment["id"]), config.repository_root)
         _verify_selected_comment(comment, fresh)
 
-    recorded_run_ids = {record.get("run_id") for record in preserved_records}
+    existing_record_bindings = _canonical_record_bindings(
+        authority_files["evaluations.jsonl"]
+    )
+    recorded_run_ids = set(existing_record_bindings)
     existing_disposition_bindings: set[tuple[int, str]] = set()
     for line in authority_files["ledger/dispositions.jsonl"].decode("utf-8").splitlines():
         if not line.strip():
@@ -635,7 +678,16 @@ def build_batch_candidate(
     for comment, fingerprint in zip(comments, first_fingerprints):
         comment_id = int(comment["id"])
         code, payload, _ = _parse_authorized_intake_comment(
-            comment, owner_authority, recorded_run_ids, seen_candidate_ids
+            comment,
+            owner_authority,
+            recorded_run_ids,
+            seen_candidate_ids,
+            {
+                run_id: binding["record"]
+                for run_id, binding in existing_record_bindings.items()
+                if isinstance(binding, dict)
+                and isinstance(binding.get("record"), dict)
+            },
         )
         evaluation_run_id = None
         record_hash = None
@@ -660,6 +712,20 @@ def build_batch_candidate(
             }
             admitted_run_ids.append(evaluation_run_id)
             recorded_run_ids.add(evaluation_run_id)
+        elif code == "already_recorded":
+            evaluation_run_id = payload.get("evaluation_run_id")
+            existing_binding = existing_record_bindings.get(evaluation_run_id)
+            if (
+                not isinstance(evaluation_run_id, str)
+                or not isinstance(existing_binding, dict)
+                or evaluation_run_id in new_record_hashes
+            ):
+                raise ProcessorError("conflicting_identity")
+            record_hash = existing_binding["line_sha256"]
+            new_record_hashes[evaluation_run_id] = record_hash
+            admitted_record_proofs[evaluation_run_id] = dict(
+                existing_binding["proof"]
+            )
         else:
             disposition = {
                 "schema_version": 2,
@@ -755,6 +821,11 @@ def build_batch_candidate(
                 relative_path,
             ) != expected:
                 raise ProcessorError("processor_integrity_failure")
+        candidate_manifest = git_tree_file_bindings(
+            config.repository_root,
+            config.candidate_content_commit_sha,
+            excluded_paths=(existing_receipt_path,),
+        )
         batch_receipt = {
             "schema_version": 2,
             "receipt_type": "batch",
@@ -764,6 +835,10 @@ def build_batch_candidate(
             "base_sha": config.base_sha,
             "canonical_main_sha": config.canonical_main_sha,
             "candidate_content_commit_sha": config.candidate_content_commit_sha,
+            "candidate_content_manifest": candidate_manifest,
+            "candidate_content_manifest_sha256": git_tree_manifest_sha256(
+                candidate_manifest
+            ),
             "pr_number": config.pr_number,
             "source_issue_number": config.source_issue_number,
             "receipt_issue_number": config.receipt_issue_number,

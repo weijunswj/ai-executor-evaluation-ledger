@@ -17,11 +17,15 @@ from scripts.processor import batch_processor, cleanup_workflow, frozen_replay
 from scripts.processor.common import (
     ProcessorError,
     canonical_json_bytes,
+    canonical_json_line_bytes,
     safe_author_hash,
     safe_comment_body_hash,
 )
 from scripts.processor.frozen_source import refetch_frozen_source
 from scripts.processor.intake_parser import (
+    HISTORICAL_INTAKE_VALIDATOR,
+    INTAKE_VALIDATOR,
+    adapt_historical_payload,
     canonical_record_from_payload,
     parse_intake_comment,
 )
@@ -51,7 +55,7 @@ def valid_payload(run_id: str = "run-dl153007-fixture") -> dict:
         "efficiency": 3,
     }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "record_type": "evaluation_intake",
         "controller_run_id": "controller-dl153007-fixture",
         "evaluation_run_id": run_id,
@@ -59,7 +63,7 @@ def valid_payload(run_id: str = "run-dl153007-fixture") -> dict:
         "canonical_base_model": "GPT-5.6 Sol",
         "evaluation_protocol": "gated_v1",
         "repository_alias": "ledger-public",
-        "source_revision": "a" * 40,
+        "revision_assertion": "private_revision_verified",
         "task_class": "repository-repair",
         "difficulty": "high",
         "verdict": "accepted",
@@ -85,8 +89,20 @@ def valid_payload(run_id: str = "run-dl153007-fixture") -> dict:
 
 
 def intake_body(payload: dict) -> str:
-    return "<!-- ledger-intake:v1 -->\n" + json.dumps(
+    return "<!-- ledger-intake:v2 -->\n" + json.dumps(
         payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
+def historical_intake_body(payload: dict) -> str:
+    value = copy.deepcopy(payload)
+    value["schema_version"] = 1
+    value.pop("revision_assertion", None)
+    value["source_revision"] = "a" * 40
+    return "<!-- ledger-intake:v1 -->\n" + json.dumps(
+        value,
         ensure_ascii=False,
         separators=(",", ":"),
     )
@@ -109,7 +125,7 @@ class TestA1FutureAppendOnlyBases(unittest.TestCase):
             json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
         ).encode("utf-8")
 
-    def _verify(self, candidate: bytes) -> None:
+    def _verify(self, candidate: bytes, *, base_bytes: bytes | None = None) -> None:
         with tempfile.TemporaryDirectory(prefix="dl153007-append-") as raw:
             root = Path(raw)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
@@ -124,7 +140,7 @@ class TestA1FutureAppendOnlyBases(unittest.TestCase):
                 check=True,
             )
             ledger = root / "evaluations.jsonl"
-            ledger.write_bytes(self.base_bytes)
+            ledger.write_bytes(self.base_bytes if base_bytes is None else base_bytes)
             subprocess.run(["git", "add", "evaluations.jsonl"], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "base"], cwd=root, check=True)
             base_sha = subprocess.run(
@@ -143,7 +159,18 @@ class TestA1FutureAppendOnlyBases(unittest.TestCase):
                 rebuild_views.verify_append_only(base_sha)
 
     def test_locked_one_time_migration_path_still_passes(self):
-        rebuild_views.verify_append_only(LOCKED_BASE)
+        historical_prefix = subprocess.run(
+            ["git", "show", "9b95cd37f746846d31bc0dfc5f3d79e8e2de75de:evaluations.jsonl"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        self.assertEqual(
+            "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64",
+            hashlib.sha256(historical_prefix).hexdigest(),
+        )
+        self.assertTrue(self.base_bytes.startswith(historical_prefix))
+        self._verify(self.base_bytes, base_bytes=historical_prefix)
 
     def test_future_base_accepts_no_change_one_append_and_multiple_appends(self):
         for label, candidate in {
@@ -359,6 +386,66 @@ class TestA4ReachableRefreeze(FrozenRefreezeFixture):
         evidence = self.precompare(receipt, comments, snapshot)
         self.assertEqual(evidence["changed_comment_ids"], [comments[0]["id"]])
 
+    def test_changed_historical_v1_uses_historical_validator(self):
+        receipt, comments, _snapshot = self.authority()
+        payload = valid_payload("run-refreeze-validator")
+        body = historical_intake_body(payload)
+        raw_payload = json.loads(body.split("\n", 1)[1])
+        adapted = adapt_historical_payload(raw_payload)
+        self.assertTrue(tuple(INTAKE_VALIDATOR.iter_errors(adapted)))
+        self.assertFalse(tuple(HISTORICAL_INTAKE_VALIDATOR.iter_errors(adapted)))
+
+        changed_comments = copy.deepcopy(comments)
+        changed_comments[0]["body"] = body
+        changed_comments[0]["updated_at"] = "2026-07-29T12:00:00Z"
+        first_id = str(changed_comments[0]["id"])
+        receipt["terminal_outcomes"][first_id] = {
+            "outcome_code": "admitted",
+            "evaluation_run_id": payload["evaluation_run_id"],
+        }
+        evidence = {
+            "source_body_sha256": {
+                str(comment["id"]): safe_comment_body_hash(comment["body"])
+                for comment in changed_comments
+            },
+            "comments": changed_comments,
+            "fingerprints": [{"id": comment["id"]} for comment in changed_comments],
+            "later_comment_count": 0,
+        }
+        replacement = refreeze_frozen_batch.canonical_refreeze_replacement(
+            body,
+            payload["evaluation_run_id"],
+        )
+        with tempfile.TemporaryDirectory(prefix="dl153007-refreeze-validator-") as raw:
+            root = Path(raw)
+            receipt_path = (
+                root
+                / "ledger"
+                / "receipts"
+                / "batches"
+                / "batch-20260729-gate3-amendment-004.json"
+            )
+            receipt_path.parent.mkdir(parents=True)
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            (root / "evaluations.jsonl").write_bytes(
+                canonical_json_line_bytes(replacement)
+            )
+            dispositions = root / "ledger" / "dispositions.jsonl"
+            dispositions.parent.mkdir(parents=True, exist_ok=True)
+            dispositions.write_bytes(b"")
+            with mock.patch.object(
+                refreeze_frozen_batch,
+                "refetch_frozen_source_for_refreeze",
+                return_value=evidence,
+            ):
+                result = refreeze_frozen_batch.refreeze(root)
+            self.assertEqual(result["changed_comment_count"], 1)
+            self.assertEqual(result["changed_record_count"], 1)
+            self.assertEqual(
+                json.loads((root / "evaluations.jsonl").read_text(encoding="utf-8"))["run_id"],
+                payload["evaluation_run_id"],
+            )
+
     def test_zero_two_membership_author_and_time_changes_fail_closed(self):
         cases = {}
         receipt, comments, snapshot = self.authority()
@@ -405,12 +492,15 @@ class TestA4ReachableRefreeze(FrozenRefreezeFixture):
     def test_replacement_marker_payload_and_run_identity_are_revalidated(self):
         helper = getattr(refreeze_frozen_batch, "canonical_refreeze_replacement")
         payload = valid_payload("run-refreeze-fixture")
-        record = helper(intake_body(payload), payload["evaluation_run_id"])
+        record = helper(
+            historical_intake_body(payload),
+            payload["evaluation_run_id"],
+        )
         self.assertEqual(record["run_id"], payload["evaluation_run_id"])
         cases = (
             (json.dumps(payload), payload["evaluation_run_id"]),
             ("<!-- ledger-intake:v1 -->\n{} trailing", payload["evaluation_run_id"]),
-            (intake_body(payload), "different-run"),
+            (historical_intake_body(payload), "different-run"),
         )
         for body, expected in cases:
             with self.subTest(body=body[:20]), self.assertRaises(ProcessorError):

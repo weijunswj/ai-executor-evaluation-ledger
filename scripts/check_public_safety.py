@@ -1904,9 +1904,12 @@ def tree_failures(root: Path) -> list[str]:
     """Return privacy-safe failures for a complete isolated candidate tree."""
     failures: list[str] = []
     for path in sorted(root.rglob("*")):
+        try:
+            relative = path.relative_to(root)
+        except ValueError:
+            continue
         if not path.is_file():
             continue
-        relative = path.relative_to(root)
         if ".git" in relative.parts:
             continue
         label = relative.as_posix()

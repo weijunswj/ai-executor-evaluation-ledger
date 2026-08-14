@@ -13,7 +13,13 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.processor import cleanup_workflow
-from scripts.processor.common import ProcessorError, canonical_json_line_bytes, sha256_bytes
+from scripts.processor.common import (
+    ProcessorError,
+    canonical_json_line_bytes,
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
+    sha256_bytes,
+)
 from scripts.validate_receipts import (
     CANONICAL_PATHS,
     ReceiptValidationError,
@@ -112,7 +118,47 @@ class TestA1A2WorkflowAuthority(WorkflowAuthorityFixture):
                     workflow.index("scripts/resolve_workflow_authority.py"),
                     workflow.index("python -m unittest"),
                 )
-                self.assertNotIn("refs/pull/", workflow)
+                checkout_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
+                checkout_uses_start = workflow.index("uses: actions/checkout@v4")
+                checkout_start = workflow.rfind("- name:", 0, checkout_uses_start)
+                checkout_end = workflow.find("\n      - name:", checkout_start + 1)
+                if checkout_end == -1:
+                    checkout_end = len(workflow)
+                checkout_step = workflow[checkout_start:checkout_end]
+                self.assertEqual(1, checkout_step.count(checkout_ref))
+                self.assertNotIn("refs/pull/", checkout_step)
+
+                authority_label = "- name: Verify immutable checkout and base authority"
+                authority_start = workflow.index(authority_label)
+                authority_end = workflow.find("\n      - name:", authority_start + 1)
+                if authority_end == -1:
+                    authority_end = len(workflow)
+                authority_step = workflow[authority_start:authority_end]
+                self.assertLess(checkout_start, authority_start)
+                self.assertLess(authority_start, workflow.index("python -m unittest"))
+                self.assertIn("id: authority", authority_step)
+                self.assertIn("scripts/resolve_workflow_authority.py", authority_step)
+                self.assertIn("--checkout-sha", authority_step)
+                self.assertIn("--pr-head-sha", authority_step)
+                self.assertIn("--pr-base-sha", authority_step)
+                self.assertIn("--dispatch-base-sha", authority_step)
+                self.assertIn("--output-file", authority_step)
+                self.assertNotIn("refs/pull/", authority_step)
+                self.assertNotIn("HISTORICAL_AUTHORITY_REF", workflow)
+                for wildcard in ("refs/pull/*", "+refs/pull/*", "refs/pull/**/*"):
+                    self.assertNotIn(wildcard, workflow)
+                for forbidden in (
+                    "git branch",
+                    "git checkout",
+                    "git push",
+                    "git switch",
+                    "refs/heads/",
+                    "set +e",
+                    "|| true",
+                    "|| :",
+                ):
+                    self.assertNotIn(forbidden, authority_step)
+                self.assertNotIn("continue-on-error", workflow)
 
     def test_pull_request_uses_literal_head_not_synthetic_merge(self):
         result = self.resolve(
@@ -309,6 +355,15 @@ class ReceiptHistoryFixture(unittest.TestCase):
         }
         path_id = path_batch_id or batch_id
         receipt_path = self.root / "ledger" / "receipts" / "batches" / f"{path_id}.json"
+        receipt_relative = receipt_path.relative_to(self.root).as_posix()
+        receipt["candidate_content_manifest"] = git_tree_file_bindings(
+            self.root,
+            candidate,
+            excluded_paths=(receipt_relative,),
+        )
+        receipt["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+            receipt["candidate_content_manifest"]
+        )
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
         receipt_path.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
         if extra_seal_file:

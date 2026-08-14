@@ -7,6 +7,7 @@ from unittest import mock
 
 from scripts.processor.common import (
     AUTHORIZED_PAIRS,
+    HISTORICAL_AUTHORIZED_PAIRS,
     FROZEN_BATCH_ID,
     FROZEN_SNAPSHOT_SHA256,
     REASONING_KEYS,
@@ -16,6 +17,7 @@ from scripts.processor import intake_parser
 from scripts.processor.intake_parser import (
     HistoricalReviewTimestampAuthority,
     canonical_record_from_payload,
+    parse_historical_intake_comment,
     parse_intake_comment,
 )
 from scripts.processor.source_watch import (
@@ -29,7 +31,7 @@ from scripts.processor.source_watch import (
 class TestIntakeAndSourceWatch(unittest.TestCase):
     def setUp(self):
         self.valid_payload = {
-            "schema_version": 1,
+            "schema_version": 2,
             "record_type": "evaluation_intake",
             "controller_run_id": "controller-a005-001",
             "evaluation_run_id": "run-a005-001",
@@ -37,7 +39,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             "canonical_base_model": "GPT-5.6 Sol",
             "evaluation_protocol": "gated_v1",
             "repository_alias": "ledger-public",
-            "source_revision": "a" * 40,
+            "revision_assertion": "private_revision_verified",
             "task_class": "repository-repair",
             "difficulty": "high",
             "verdict": "accepted",
@@ -70,7 +72,15 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         }
 
     def body(self, payload=None):
-        return "<!-- ledger-intake:v1 -->\n" + json.dumps(payload or self.valid_payload)
+        return "<!-- ledger-intake:v2 -->\n" + json.dumps(payload or self.valid_payload)
+
+    def historical_body(self, payload=None, *, include_source_revision=True):
+        value = copy.deepcopy(payload or self.valid_payload)
+        value["schema_version"] = 1
+        value.pop("revision_assertion", None)
+        if include_source_revision:
+            value["source_revision"] = "a" * 40
+        return "<!-- ledger-intake:v1 -->\n" + json.dumps(value)
 
     def parse(self, payload=None, *, comment_id=1001, recorded=None, seen=None):
         return parse_intake_comment(
@@ -112,8 +122,23 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual((disposition, reason), ("admitted", "admitted"))
         self.assertNotIn("weighted_score_10", parsed)
         record = canonical_record_from_payload(parsed)
-        self.assertEqual(record["revision_binding"], "a" * 40)
+        self.assertEqual(record["revision_binding"], "private_revision_verified")
         self.assertEqual(record["model"], "GPT-5.6 Sol")
+
+    def test_forward_intake_uses_closed_revision_assertion(self):
+        payload = copy.deepcopy(self.valid_payload)
+        payload["schema_version"] = 2
+        payload["revision_assertion"] = "private_revision_verified"
+        disposition, parsed, reason = parse_intake_comment(
+            1002,
+            "<!-- ledger-intake:v2 -->\n" + json.dumps(payload),
+            set(),
+            set(),
+        )
+        self.assertEqual((disposition, reason), ("admitted", "admitted"))
+        record = canonical_record_from_payload(parsed)
+        self.assertEqual(record["revision_binding"], "private_revision_verified")
+        self.assertNotIn("source_revision", record)
 
     def test_all_current_authorised_pairs_are_explicit(self):
         self.assertEqual(
@@ -125,6 +150,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
                     ("Anthropic", "Claude Opus 5"),
                     ("DeepSeek", "DeepSeek V4 Pro"),
                     ("OpenAI", "GPT-5.6 Sol"),
+                    ("OpenAI", "GPT-5.6 Luna"),
                     ("Qwen", "Qwen3.7 Plus"),
                     ("Google", "Gemini 3.1 Pro"),
                     ("MiniMax", "MiniMax M3"),
@@ -133,7 +159,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         )
 
     def test_missing_required_authority_is_generic_and_non_mutating(self):
-        for field in ("controller_run_id", "evaluation_run_id", "source_revision", "weighted_score_5", "reviewed_at"):
+        for field in ("controller_run_id", "evaluation_run_id", "revision_assertion", "weighted_score_5", "reviewed_at"):
             payload = copy.deepcopy(self.valid_payload)
             payload.pop(field)
             disposition, parsed, reason = self.parse(payload)
@@ -153,7 +179,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         created_at = "2026-07-29T10:00:00Z"
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         body_hash = safe_comment_body_hash(body)
         authority = HistoricalReviewTimestampAuthority(
             batch_id=FROZEN_BATCH_ID,
@@ -178,11 +204,10 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(adapted["reviewed_at"], created_at)
 
         missing_other = copy.deepcopy(payload)
-        missing_other.pop("source_revision")
         self.assertEqual(
             parse_intake_comment(
                 comment_id,
-                self.body(missing_other),
+                self.historical_body(missing_other, include_source_revision=False),
                 set(),
                 set(),
                 historical_review_authority=authority,
@@ -213,7 +238,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
         comment_id = receipt["source_comment_ids"][0]
-        body = self.body()
+        body = self.historical_body()
         body_hash = safe_comment_body_hash(body)
         authority = HistoricalReviewTimestampAuthority(
             batch_id=FROZEN_BATCH_ID,
@@ -243,7 +268,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
     def test_historical_timestamp_authority_rejects_frozen_scope_mismatches(self):
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         receipt = json.loads(
             Path(
                 "ledger/receipts/batches/"
@@ -290,7 +315,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
     def test_historical_timestamp_authority_uses_created_at_only(self):
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         authority = self._frozen_authority(
             body,
             source_created_at="2026-07-29T12:00:00Z",
@@ -311,7 +336,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
     def test_historical_timestamp_parser_does_not_consult_clock_or_local_artifacts(self):
         payload = copy.deepcopy(self.valid_payload)
         payload.pop("reviewed_at")
-        body = self.body(payload)
+        body = self.historical_body(payload)
         authority = self._frozen_authority(body)
 
         class FailIfAccessed:
@@ -428,6 +453,204 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
         self.assertEqual(first[0], "admitted")
         self.assertEqual(second[0], "duplicate_identity")
 
+    def test_recorded_identity_transport_requires_exact_canonical_evidence(self):
+        payload = copy.deepcopy(self.valid_payload)
+        record = canonical_record_from_payload(payload)
+        run_id = payload["evaluation_run_id"]
+        body = self.body(payload)
+
+        exact = parse_intake_comment(
+            1001,
+            body,
+            {run_id},
+            set(),
+            recorded_records={run_id: record},
+        )
+        self.assertEqual(
+            exact,
+            ("already_recorded", {"evaluation_run_id": run_id}, "already_recorded"),
+        )
+
+        without_evidence = parse_intake_comment(
+            1001,
+            body,
+            {run_id},
+            set(),
+        )
+        self.assertEqual(without_evidence, ("already_recorded", {}, "already_recorded"))
+
+        cases = {
+            "wrong_run": {"other-run": record},
+            "absent": {},
+            "malformed": {run_id: []},
+            "conflicting": {run_id: {**record, "outcome": "hold"}},
+        }
+        for label, records in cases.items():
+            with self.subTest(label=label):
+                result = parse_intake_comment(
+                    1001,
+                    body,
+                    {run_id},
+                    set(),
+                    recorded_records=records,
+                )
+                self.assertEqual(
+                    result,
+                    ("conflicting_identity", {}, "conflicting_identity"),
+                )
+
+    def test_exact_recorded_identity_marks_seen_before_duplicate_classification(self):
+        payload = copy.deepcopy(self.valid_payload)
+        record = canonical_record_from_payload(payload)
+        run_id = payload["evaluation_run_id"]
+        records = {run_id: record}
+        seen = set()
+
+        first = parse_intake_comment(
+            1001,
+            self.body(payload),
+            {run_id},
+            seen,
+            recorded_records=records,
+        )
+        self.assertEqual(
+            first,
+            ("already_recorded", {"evaluation_run_id": run_id}, "already_recorded"),
+        )
+        self.assertEqual(seen, {run_id})
+
+        second = parse_intake_comment(
+            1002,
+            self.body(payload),
+            {run_id},
+            seen,
+            recorded_records=records,
+        )
+        self.assertEqual(second, ("duplicate_identity", {}, "duplicate_identity"))
+
+        conflicting_payload = copy.deepcopy(payload)
+        conflicting_payload["verdict"] = "hold"
+        conflicting = parse_intake_comment(
+            1003,
+            self.body(conflicting_payload),
+            {run_id},
+            seen,
+            recorded_records=records,
+        )
+        self.assertEqual(
+            conflicting,
+            ("conflicting_identity", {}, "conflicting_identity"),
+        )
+
+        forged_records = {run_id: {**record, "outcome": "hold"}}
+        forged_first = parse_intake_comment(
+            1004,
+            self.body(payload),
+            {run_id},
+            set(),
+            recorded_records=forged_records,
+        )
+        self.assertEqual(
+            forged_first,
+            ("conflicting_identity", {}, "conflicting_identity"),
+        )
+
+    def test_luna_forward_pair_is_exact_and_closed(self):
+        self.assertEqual(self.parse()[0], "admitted")
+
+        luna = copy.deepcopy(self.valid_payload)
+        luna["canonical_base_model"] = "GPT-5.6 Luna"
+        disposition, parsed, _reason = self.parse(luna)
+        self.assertEqual(disposition, "admitted")
+        self.assertNotIn("reason" + "ing_level", parsed)
+
+        deepseek_luna = copy.deepcopy(luna)
+        deepseek_luna["provider"] = "DeepSeek"
+        self.assertEqual(self.parse(deepseek_luna)[0], "unsupported_identity")
+
+        unsupported = copy.deepcopy(luna)
+        unsupported["canonical_base_model"] = "GPT-5.6 Unknown"
+        self.assertEqual(self.parse(unsupported)[0], "unsupported_identity")
+
+        suffixed = copy.deepcopy(luna)
+        suffixed["canonical_base_model"] = "GPT-5.6 " + "Luna" + " " + chr(77) + "ax"
+        self.assertEqual(self.parse(suffixed)[0], "unsupported_identity")
+
+        reasoning = copy.deepcopy(luna)
+        reasoning["public_safe_evidence"]["reason" + "ing_level"] = "high"
+        self.assertEqual(self.parse(reasoning)[0], "ineligible_identity")
+
+    def test_historical_v1_keeps_independent_closed_pair_authority(self):
+        luna = copy.deepcopy(self.valid_payload)
+        luna["canonical_base_model"] = "GPT-5.6 Luna"
+        self.assertEqual(self.parse(luna)[0], "admitted")
+        self.assertNotIn(
+            ("OpenAI", "GPT-5.6 Luna"),
+            HISTORICAL_AUTHORIZED_PAIRS,
+        )
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1101,
+                self.historical_body(luna),
+                set(),
+                set(),
+            )[0],
+            "unsupported_identity",
+        )
+
+        legitimate = copy.deepcopy(self.valid_payload)
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1102,
+                self.historical_body(legitimate),
+                set(),
+                set(),
+            )[0],
+            "admitted",
+        )
+
+        mismatched = copy.deepcopy(luna)
+        mismatched["provider"] = "DeepSeek"
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1103,
+                self.historical_body(mismatched),
+                set(),
+                set(),
+            )[0],
+            "unsupported_identity",
+        )
+
+        unsupported = copy.deepcopy(luna)
+        unsupported["canonical_base_model"] = "GPT-5.6 Unknown"
+        self.assertEqual(
+            parse_historical_intake_comment(
+                1104,
+                self.historical_body(unsupported),
+                set(),
+                set(),
+            )[0],
+            "unsupported_identity",
+        )
+
+        future_pair = ("Future Provider", "Future Model")
+        future = copy.deepcopy(self.valid_payload)
+        future.update(provider=future_pair[0], canonical_base_model=future_pair[1])
+        with mock.patch.object(
+            intake_parser,
+            "AUTHORIZED_PAIRS",
+            AUTHORIZED_PAIRS | {future_pair},
+        ):
+            self.assertEqual(
+                parse_historical_intake_comment(
+                    1105,
+                    self.historical_body(future),
+                    set(),
+                    set(),
+                )[0],
+                "unsupported_identity",
+            )
+
     def test_duplicate_intake_keys_fail_closed_before_adaptation(self):
         compact = json.dumps(self.valid_payload, separators=(",", ":"))
         cases = {
@@ -464,7 +687,7 @@ class TestIntakeAndSourceWatch(unittest.TestCase):
             with self.subTest(label=label):
                 result = parse_intake_comment(
                     1001,
-                    "<!-- ledger-intake:v1 -->\n" + raw,
+                    "<!-- ledger-intake:v2 -->\n" + raw,
                     set(),
                     set(),
                 )

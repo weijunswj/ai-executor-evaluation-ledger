@@ -17,9 +17,160 @@ from scripts.processor.common import ProcessorError
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STARTING_HEAD = "180e3c1ea57ccd45ca2c71a76ebe4c3d609e2c0b"
+STARTING_HEAD = "576ae01584e2ae5f60595a01e28c101cb9d4b287"
 NUMERIC_KEY = "i" + "d"
 LOGIN_KEY = "l" + "ogin"
+
+CURRENT_AUTHORITY_STEP = "Verify immutable checkout and base authority"
+CURRENT_AUTHORITY_ARGS = (
+    "--github-sha",
+    "--checkout-sha",
+    "--pr-head-sha",
+    "--pr-base-sha",
+    "--before-sha",
+    "--dispatch-base-sha",
+    "--output-file",
+)
+
+
+class TestWorkflowAuthorityGate(unittest.TestCase):
+    WORKFLOWS = (
+        (
+            ".github/workflows/ci.yml",
+            "Checkout immutable workflow authority",
+            "Run code suite or bounded evaluation-data regression",
+            (
+                "Verify deterministic append-only view rebuild twice",
+                "Run Public Safety Scan",
+                "Validate closed migration manifests",
+                "Validate immutable batch receipt seals",
+            ),
+        ),
+        (
+            ".github/workflows/public-safety.yml",
+            "Check out immutable workflow authority with full history",
+            "Run safety code suite or bounded evaluation-data regression",
+            (
+                "Scan tracked content and added history",
+                "Validate closed migration manifests",
+                "Validate immutable batch receipt seals",
+                "Verify append-only source and generated views",
+            ),
+        ),
+    )
+
+    @staticmethod
+    def step_block(workflow: str, name: str) -> tuple[str, int, int]:
+        match = re.search(
+            rf"(?ms)^      - name: {re.escape(name)}\n.*?(?=^      - name: |\Z)",
+            workflow,
+        )
+        if match is None:
+            raise AssertionError(f"workflow step missing: {name}")
+        return match.group(0), match.start(), match.end()
+
+    def assert_gate(
+        self,
+        relative: str,
+        workflow: str,
+        checkout: str,
+        first_test: str,
+        later_steps: tuple[str, ...],
+    ) -> None:
+        del relative
+        gate, gate_start, gate_end = self.step_block(
+            workflow, CURRENT_AUTHORITY_STEP
+        )
+        _, checkout_start, _ = self.step_block(workflow, checkout)
+        self.assertLess(checkout_start, gate_start)
+        self.assertLess(gate_start, self.step_block(workflow, first_test)[1])
+        self.assertLess(gate_end, self.step_block(workflow, first_test)[1])
+
+        for name in later_steps:
+            self.assertLess(gate_start, self.step_block(workflow, name)[1])
+
+        self.assertIn("id: authority", gate)
+        self.assertIn("scripts/resolve_workflow_authority.py", gate)
+        for argument in CURRENT_AUTHORITY_ARGS:
+            self.assertIn(argument, gate)
+        self.assertIn('"$GITHUB_OUTPUT"', gate)
+        self.assertNotIn("refs/pull/", workflow)
+        for forbidden in (
+            "git branch",
+            "git checkout",
+            "git push",
+            "git switch",
+            "refs/heads/",
+            "set +e",
+            "|| true",
+            "|| :",
+        ):
+            self.assertNotIn(forbidden, gate)
+        self.assertNotIn("continue-on-error", workflow)
+
+    def test_both_workflows_retain_fail_closed_current_authority_gate_and_reject_weakening(self):
+        for relative, checkout, first_test, later_steps in self.WORKFLOWS:
+            with self.subTest(relative=relative):
+                original = (ROOT / relative).read_text(encoding="utf-8")
+                self.assert_gate(relative, original, checkout, first_test, later_steps)
+                gate, gate_start, gate_end = self.step_block(
+                    original, CURRENT_AUTHORITY_STEP
+                )
+
+                without_gate = original[:gate_start] + original[gate_end:]
+                _, first_test_start, first_test_end = self.step_block(
+                    without_gate, first_test
+                )
+                del first_test_start
+                step_after_tests = (
+                    without_gate[:first_test_end]
+                    + gate
+                    + without_gate[first_test_end:]
+                )
+                gate_with_continue = gate.replace(
+                    "        shell: bash\n",
+                    "        continue-on-error: true\n        shell: bash\n",
+                    1,
+                )
+
+                mutations = {
+                    "authority resolver omitted": original.replace(
+                        "            python scripts/resolve_workflow_authority.py\n",
+                        "",
+                        1,
+                    ),
+                    "checkout argument omitted": original.replace(
+                        '            --checkout-sha "$CHECKOUT_SHA"\n',
+                        "",
+                        1,
+                    ),
+                    "step placed after tests": step_after_tests,
+                    "failure ignored": (
+                        original[:gate_start]
+                        + gate_with_continue
+                        + original[gate_end:]
+                    ),
+                    "PR namespace introduced": original.replace(
+                        "        shell: bash\n",
+                        "        shell: bash\n        # refs/pull/ is not an immutable authority\n",
+                        1,
+                    ),
+                    "authority output id altered": original.replace(
+                        "        id: authority\n",
+                        "        id: changed\n",
+                        1,
+                    ),
+                }
+                for label, mutated in mutations.items():
+                    with self.subTest(mutation=label):
+                        with self.assertRaises(AssertionError):
+                            self.assert_gate(
+                                relative,
+                                mutated,
+                                checkout,
+                                first_test,
+                                later_steps,
+                            )
 
 
 class ProductionChainFixture(unittest.TestCase):
@@ -245,7 +396,8 @@ class TestF1ProductionManifestAppendOnly(ProductionChainFixture):
 
         def generated(root: Path) -> None:
             path = root / "README.md"
-            path.write_bytes(path.read_bytes() + b"tampered\n")
+            marker = b"<!-- GENERATED:README-SCORES:START -->"
+            path.write_bytes(path.read_bytes().replace(marker, marker + b"\ntampered", 1))
 
         for label, mutate in {
             "manifest": manifest,
@@ -254,7 +406,7 @@ class TestF1ProductionManifestAppendOnly(ProductionChainFixture):
             "generated": generated,
         }.items():
             with self.subTest(label=label):
-                self.assert_chain_rejects(mutate)
+                self.assert_chain_rejects(mutate, regenerate=label != "generated")
 
 
 class TestF2ProductionReviewStates(unittest.TestCase):
@@ -369,6 +521,7 @@ class TestF3Issue142EvidenceBoundary(unittest.TestCase):
             "body": "fixture",
             "created_at": "2026-08-04T00:00:00Z",
             "updated_at": "2026-08-04T00:00:00Z",
+            "issue_url": batch_processor.ISSUE_142_API_URL,
         }
 
     def fetch(self, value):

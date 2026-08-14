@@ -182,3 +182,11 @@ If the task involves n8n workflows, workflow templates, helper scripts, MCP, imp
 If that skill or its full rules are unavailable, stop and report the limitation instead of continuing.
 Do not run live n8n, Docker, import/export, sync, activation, execution, publish/unpublish, credential, deployment, or production actions without explicit current-turn approval naming the target and allowed operation.
 <!-- AI-AGENT-TOOLKIT:_projects/development/ai-coding-agent-rules/_main/_partials/n8n-agent-rules-adapter.md:END N8N-AGENT-RULES-ADAPTER -->
+
+## Temporary Toolkit #342 Compatibility Rule
+
+`TEMPORARY TOOLKIT #342 COMPATIBILITY RULE — REMOVE AFTER PROPAGATED TOOLKIT RULE IS VERIFIED`
+
+**Structural-change impact check:** Keep ordinary narrow tasks narrow. Before renaming, removing, moving, re-signaturing, or structurally replacing an existing symbol, path, command, schema field, allowlist, receipt shape, generated shape, or other established contract, run a targeted repo-wide search for the exact current identity plus relevant source-shape/contract consumers. Classify every material consumer as preserved, intentionally updated/superseded, or outside current authority requiring escalation. After editing, run the affected contract/source-shape tests first, then the task’s broader required validation. This is a targeted impact exception, not permission for indiscriminate broad scans.
+
+This temporary repo-specific appendix does not weaken existing narrow-scope or smallest-validation rules. Apply it to all subsequent executor and reviewer work until Toolkit #342 is merged and the propagated managed `AGENTS.md` version is verified to contain the permanent rule; then remove this temporary appendix to prevent drift or duplication.

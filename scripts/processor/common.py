@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 from datetime import datetime
+from pathlib import Path, PureWindowsPath
 from typing import Any, Iterable
 
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -22,6 +24,20 @@ FROZEN_SNAPSHOT_SHA256 = (
 FROZEN_CANONICAL_BASE_SHA = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
 
 AUTHORIZED_PAIRS = frozenset(
+    {
+        ("Xiaomi", "MiMo 2.5 Pro"),
+        ("MiMo", "MiMo 2.5 Pro"),
+        ("Anthropic", "Claude Opus 5"),
+        ("DeepSeek", "DeepSeek V4 Pro"),
+        ("OpenAI", "GPT-5.6 Sol"),
+        ("OpenAI", "GPT-5.6 Luna"),
+        ("Qwen", "Qwen3.7 Plus"),
+        ("Google", "Gemini 3.1 Pro"),
+        ("MiniMax", "MiniMax M3"),
+    }
+)
+
+HISTORICAL_AUTHORIZED_PAIRS = frozenset(
     {
         ("Xiaomi", "MiMo 2.5 Pro"),
         ("MiMo", "MiMo 2.5 Pro"),
@@ -176,6 +192,85 @@ def valid_git_sha(value: Any) -> bool:
 
 def valid_sha256(value: Any) -> bool:
     return isinstance(value, str) and bool(SHA256_PATTERN.fullmatch(value))
+
+
+def is_representable_manifest_path(value: Any) -> bool:
+    """Return whether a Git path fits the public candidate-manifest contract."""
+
+    if not isinstance(value, str) or not value:
+        return False
+    if value.startswith(("/", "\\")) or "\\" in value:
+        return False
+    if Path(value).is_absolute() or PureWindowsPath(value).drive:
+        return False
+    return not any(part in {"", ".", ".."} for part in value.split("/"))
+
+
+def git_tree_file_bindings(
+    repository_root: Path,
+    revision: str,
+    *,
+    excluded_paths: Iterable[str] = (),
+) -> list[dict[str, str]]:
+    """Return deterministic path/mode/blob/content evidence for one Git tree."""
+
+    if not valid_git_sha(revision):
+        raise ProcessorError("processor_integrity_failure")
+    excluded = frozenset(excluded_paths)
+    listing = subprocess.run(
+        ["git", "ls-tree", "-r", "--full-tree", "-z", revision],
+        cwd=repository_root,
+        capture_output=True,
+        check=False,
+    )
+    if listing.returncode != 0:
+        raise ProcessorError("processor_integrity_failure")
+
+    bindings: list[dict[str, str]] = []
+    for raw_entry in listing.stdout.split(b"\0"):
+        if not raw_entry:
+            continue
+        try:
+            metadata, raw_path = raw_entry.split(b"\t", 1)
+            mode, object_type, object_sha = metadata.decode("ascii").split(" ")
+            relative_path = raw_path.decode("utf-8", errors="strict")
+        except (UnicodeDecodeError, ValueError):
+            raise ProcessorError("processor_integrity_failure")
+        if object_type != "blob":
+            raise ProcessorError("processor_integrity_failure")
+        if relative_path in excluded:
+            continue
+        if not is_representable_manifest_path(relative_path):
+            raise ProcessorError("processor_integrity_failure")
+        blob = subprocess.run(
+            ["git", "cat-file", "blob", object_sha],
+            cwd=repository_root,
+            capture_output=True,
+            check=False,
+        )
+        if blob.returncode != 0:
+            raise ProcessorError("processor_integrity_failure")
+        bindings.append(
+            {
+                "path": relative_path,
+                "mode": mode,
+                "blob_sha": object_sha,
+                "content_sha256": sha256_bytes(blob.stdout),
+            }
+        )
+    bindings.sort(key=lambda item: item["path"])
+    if len({item["path"] for item in bindings}) != len(bindings):
+        raise ProcessorError("processor_integrity_failure")
+    return bindings
+
+
+def git_tree_manifest_sha256(bindings: Iterable[dict[str, str]]) -> str:
+    """Hash one already-validated deterministic Git-tree binding list."""
+
+    normalized = list(bindings)
+    if normalized != sorted(normalized, key=lambda item: item.get("path", "")):
+        raise ProcessorError("processor_integrity_failure")
+    return sha256_bytes(canonical_json_bytes(normalized))
 
 
 def valid_identifier(value: Any) -> bool:

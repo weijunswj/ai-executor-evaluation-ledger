@@ -13,7 +13,7 @@
     "canonical_base_model",
     "evaluation_protocol",
     "repository_alias",
-    "source_revision",
+    "revision_assertion",
     "task_class",
     "difficulty",
     "verdict",
@@ -24,7 +24,7 @@
     "reviewed_at"
   ],
   "properties": {
-    "schema_version": {"type": "integer", "const": 1},
+    "schema_version": {"type": "integer", "const": 2},
     "record_type": {"type": "string", "const": "evaluation_intake"},
     "controller_run_id": {
       "type": "string",
@@ -45,6 +45,7 @@
         "Claude Opus 5",
         "DeepSeek V4 Pro",
         "GPT-5.6 Sol",
+        "GPT-5.6 Luna",
         "Qwen3.7 Plus",
         "Gemini 3.1 Pro",
         "MiniMax M3"
@@ -60,9 +61,9 @@
     },
     "issue_number": {"type": ["integer", "null"], "minimum": 1},
     "pull_request_number": {"type": ["integer", "null"], "minimum": 1},
-    "source_revision": {
+    "revision_assertion": {
       "type": "string",
-      "pattern": "^[0-9a-f]{40}$"
+      "enum": ["private_revision_verified"]
     },
     "task_class": {"type": "string", "minLength": 1, "maxLength": 120},
     "difficulty": {
@@ -178,6 +179,7 @@
         {"properties": {"provider": {"const": "Anthropic"}, "canonical_base_model": {"const": "Claude Opus 5"}}},
         {"properties": {"provider": {"const": "DeepSeek"}, "canonical_base_model": {"const": "DeepSeek V4 Pro"}}},
         {"properties": {"provider": {"const": "OpenAI"}, "canonical_base_model": {"const": "GPT-5.6 Sol"}}},
+        {"properties": {"provider": {"const": "OpenAI"}, "canonical_base_model": {"const": "GPT-5.6 Luna"}}},
         {"properties": {"provider": {"const": "Qwen"}, "canonical_base_model": {"const": "Qwen3.7 Plus"}}},
         {"properties": {"provider": {"const": "Google"}, "canonical_base_model": {"const": "Gemini 3.1 Pro"}}},
         {"properties": {"provider": {"const": "MiniMax"}, "canonical_base_model": {"const": "MiniMax M3"}}}
