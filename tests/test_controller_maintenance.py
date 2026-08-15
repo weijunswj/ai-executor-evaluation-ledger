@@ -223,16 +223,31 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                     block.index('"$HEAD_REF" == controller/ledger-maintenance-*'),
                     block.index(ordinary_pr),
                 )
+                self.assertEqual(
+                    1,
+                    block.count(
+                        'full_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)'
+                    ),
+                )
+                self.assertEqual(
+                    1,
+                    block.count(
+                        "supported_evaluation_delta=$(printf '%s\\n' evaluations.jsonl README.md scorecard.md analysis/model-recommendation.json | sort)"
+                    ),
+                )
                 self.assertIn(
                     'if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then\n'
                     f"            {receipt_delta}\n"
                     f"            {receipt_bound_delta}\n"
-                    '            if [[ -z "$receipt_delta" && -n "$receipt_bound_delta" ]]; then\n'
-                    "              printf '%s\\n' 'Canonical receipt-bound data changed without a receipt.' >&2\n"
-                    "              exit 1\n"
-                    "            fi\n"
+                    '            full_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)\n'
+                    "            supported_evaluation_delta=$(printf '%s\\n' evaluations.jsonl README.md scorecard.md analysis/model-recommendation.json | sort)\n"
                     '            if [[ -n "$receipt_delta" ]]; then\n'
                     "              canonical_main_context=true\n"
+                    '            elif [[ "$full_delta" == "$supported_evaluation_delta" ]]; then\n'
+                    "              canonical_main_historical_context=true\n"
+                    '            elif [[ -n "$receipt_bound_delta" ]]; then\n'
+                    "              printf '%s\\n' 'Canonical receipt-bound data changed without a receipt.' >&2\n"
+                    "              exit 1\n"
                     "            else\n"
                     "              canonical_main_historical_context=true\n"
                     "            fi",
@@ -360,6 +375,85 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                         '--authority-sha "$HEAD_SHA" --validation-level source-replay)',
                         self._receipt_route_block(workflow),
                     )
+
+
+    def test_supported_four_file_main_push_selects_historical_canonical_main(self):
+        paths = (
+            "evaluations.jsonl",
+            "README.md",
+            "scorecard.md",
+            "analysis/model-recommendation.json",
+        )
+        with tempfile.TemporaryDirectory(prefix="ledger-four-file-main-push-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            for path in paths:
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"before\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            base_sha = git(root, "rev-parse", "HEAD")
+            for path in paths:
+                (root / path).write_bytes(b"after\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "four-file evaluation")
+            head_sha = git(root, "rev-parse", "HEAD")
+            self.assertEqual(
+                "\n".join(sorted(paths)),
+                git(root, "diff", "--name-only", base_sha, head_sha),
+            )
+
+            for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+                workflow = (ROOT / relative).read_text(encoding="utf-8")
+                with self.subTest(workflow=relative):
+                    result = self._run_push_route(workflow, root, base_sha, head_sha)
+                    self.assertEqual(0, result.returncode, result.stderr)
+                    self.assertIn("route_completed", result.stdout)
+                    self.assertIn("legacy_context=false", result.stdout)
+                    self.assertIn("canonical_main_context=false", result.stdout)
+                    self.assertIn("canonical_main_historical_context=true", result.stdout)
+                    self.assertIn("canonical_base_context=false", result.stdout)
+                    self.assertIn(
+                        'args=(python scripts/validate_receipts.py --mode canonical-main '
+                        '--authority-sha "$HEAD_SHA" --validation-level source-replay)',
+                        self._receipt_route_block(workflow),
+                    )
+
+    def test_supported_four_file_plus_unrelated_file_fails_closed(self):
+        paths = (
+            "evaluations.jsonl",
+            "README.md",
+            "scorecard.md",
+            "analysis/model-recommendation.json",
+            "unrelated.txt",
+        )
+        with tempfile.TemporaryDirectory(prefix="ledger-four-file-plus-one-main-push-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            for path in paths:
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"before\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            base_sha = git(root, "rev-parse", "HEAD")
+            for path in paths:
+                (root / path).write_bytes(b"after\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "four-file evaluation plus unrelated")
+            head_sha = git(root, "rev-parse", "HEAD")
+
+            for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+                workflow = (ROOT / relative).read_text(encoding="utf-8")
+                with self.subTest(workflow=relative):
+                    result = self._run_push_route(workflow, root, base_sha, head_sha)
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn(
+                        "Canonical receipt-bound data changed without a receipt.",
+                        result.stderr,
+                    )
+                    self.assertNotIn("route_completed", result.stdout)
 
     def test_receipt_bound_main_change_without_receipt_fails_closed_for_each_path(self):
         bound_paths = (

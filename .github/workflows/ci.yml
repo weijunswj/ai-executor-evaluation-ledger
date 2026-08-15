@@ -203,12 +203,15 @@ jobs:
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
             receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)
             receipt_bound_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- evaluations.jsonl ledger/dispositions.jsonl README.md scorecard.md analysis/model-recommendation.json)
-            if [[ -z "$receipt_delta" && -n "$receipt_bound_delta" ]]; then
-              printf '%s\n' 'Canonical receipt-bound data changed without a receipt.' >&2
-              exit 1
-            fi
+            full_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
+            supported_evaluation_delta=$(printf '%s\n' evaluations.jsonl README.md scorecard.md analysis/model-recommendation.json | sort)
             if [[ -n "$receipt_delta" ]]; then
               canonical_main_context=true
+            elif [[ "$full_delta" == "$supported_evaluation_delta" ]]; then
+              canonical_main_historical_context=true
+            elif [[ -n "$receipt_bound_delta" ]]; then
+              printf '%s\n' 'Canonical receipt-bound data changed without a receipt.' >&2
+              exit 1
             else
               canonical_main_historical_context=true
             fi

@@ -870,6 +870,15 @@ class TestA13ReceiptConvergence(unittest.TestCase):
             check=True,
         ).stdout.strip()
 
+    def _git_output(self, root, *args):
+        return subprocess.run(
+            ["git", *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
     def _commit_json(self, root, relative_path, value, message):
         target = root / relative_path
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -915,8 +924,8 @@ class TestA13ReceiptConvergence(unittest.TestCase):
         current = copy.deepcopy(receipt)
         current["batch_id"] = "batch-a13-current"
         current["batch_mode"] = "incremental"
-        current["base_sha"] = content_sha
-        current["canonical_main_sha"] = candidate_sha
+        current["base_sha"] = historical_seal
+        current["canonical_main_sha"] = historical_seal
         current["candidate_content_commit_sha"] = candidate_sha
         current["candidate_content_manifest"] = git_tree_file_bindings(
             root,
@@ -932,17 +941,37 @@ class TestA13ReceiptConvergence(unittest.TestCase):
             )
             for name, relative in CANONICAL_PATHS.items()
         }
-        current_seal = self._commit_json(
+        current_pr_seal = self._commit_json(
             root,
             self.current_receipt_path,
             current,
-            "current receipt seal",
+            "raw PR receipt-only seal",
         )
+        canonical_seal = self._git_output(
+            root,
+            "commit-tree",
+            self._git_output(root, "rev-parse", f"{current_pr_seal}^{{tree}}"),
+            "-p",
+            historical_seal,
+            "-m",
+            "canonical squash-style seal",
+        )
+        subprocess.run(["git", "checkout", "-q", canonical_seal], cwd=root, check=True)
+        (root / "a13-later-code-only.txt").write_text(
+            "later code-only\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "a13-later-code-only.txt"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "later code-only descendant"], cwd=root, check=True)
+        later_code_sha = self._git_sha(root)
         return {
             "historical": historical,
             "historical_seal": historical_seal,
+            "base_sha": historical_seal,
             "candidate_sha": candidate_sha,
-            "current_seal": current_seal,
+            "current_pr_seal": current_pr_seal,
+            "current_seal": canonical_seal,
+            "later_code_sha": later_code_sha,
             "unrelated_seal": unrelated_seal,
             "root": root,
         }
@@ -977,7 +1006,7 @@ class TestA13ReceiptConvergence(unittest.TestCase):
                 root,
                 authority_sha=topology["current_seal"],
                 mode="canonical-main",
-                canonical_base_sha=topology["candidate_sha"],
+                canonical_base_sha=topology["base_sha"],
             )
             self.assertEqual(
                 result["receipt_seals"][FROZEN_RECEIPT_PATH],
@@ -992,7 +1021,7 @@ class TestA13ReceiptConvergence(unittest.TestCase):
                     root,
                     authority_sha=topology["current_seal"],
                     mode="canonical-main",
-                    canonical_base_sha=topology["historical"]["base_sha"],
+                    canonical_base_sha=topology["candidate_sha"],
                 )
 
     def test_later_receipt_push_rejects_historical_mutation_and_manifest_corruption(self):
@@ -1050,8 +1079,131 @@ class TestA13ReceiptConvergence(unittest.TestCase):
                         root,
                         authority_sha=topology["current_seal"],
                         mode="canonical-main",
-                        canonical_base_sha=topology["candidate_sha"],
+                        canonical_base_sha=topology["base_sha"],
                     )
+
+
+    def test_incremental_squash_seal_validates_at_later_code_only_descendant(self):
+        with tempfile.TemporaryDirectory(prefix="a13-incremental-squash-") as raw:
+            root = Path(raw)
+            topology = self._build_later_topology(root)
+            result = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=topology["later_code_sha"],
+                mode="canonical-main",
+            )
+            self.assertEqual(
+                result["receipt_seals"][FROZEN_RECEIPT_PATH],
+                topology["historical_seal"],
+            )
+            self.assertEqual(
+                result["receipt_seals"][self.current_receipt_path],
+                topology["current_seal"],
+            )
+            self.assertEqual(topology["base_sha"], topology["historical_seal"])
+
+    def test_incremental_raw_pr_seal_keeps_candidate_parent_semantics(self):
+        with tempfile.TemporaryDirectory(prefix="a13-incremental-pr-") as raw:
+            root = Path(raw)
+            topology = self._build_later_topology(root)
+            result = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=topology["current_pr_seal"],
+                mode="pr",
+            )
+            self.assertEqual(
+                result["changed_receipt_path"],
+                self.current_receipt_path,
+            )
+            self.assertEqual(result["final_parent_sha"], topology["candidate_sha"])
+
+    def test_incremental_recorded_authority_must_resolve_and_match(self):
+        with tempfile.TemporaryDirectory(prefix="a13-incremental-authority-") as raw:
+            root = Path(raw)
+            topology = self._build_later_topology(root)
+            current = json.loads(
+                subprocess.run(
+                    [
+                        "git",
+                        "show",
+                        f'{topology["current_pr_seal"]}:{self.current_receipt_path}',
+                    ],
+                    cwd=root,
+                    capture_output=True,
+                    check=True,
+                ).stdout
+            )
+            for field in ("base_sha", "canonical_main_sha"):
+                broken = copy.deepcopy(current)
+                broken[field] = "a" * 40
+                with self.subTest(field=field), self.assertRaises(ReceiptValidationError):
+                    receipt_validator._resolve_incremental_canonical_authority(
+                        root,
+                        broken,
+                    )
+            mismatched = copy.deepcopy(current)
+            mismatched["canonical_main_sha"] = topology["candidate_sha"]
+            with self.assertRaises(ReceiptValidationError):
+                receipt_validator._resolve_incremental_canonical_authority(
+                    root,
+                    mismatched,
+                )
+
+    def test_incremental_canonical_seal_parent_and_candidate_bindings_remain_strict(self):
+        with tempfile.TemporaryDirectory(prefix="a13-incremental-strict-") as raw:
+            root = Path(raw)
+            topology = self._build_later_topology(root)
+            wrong_seal = self._git_output(
+                root,
+                "commit-tree",
+                self._git_output(
+                    root,
+                    "rev-parse",
+                    f'{topology["current_pr_seal"]}^{{tree}}',
+                ),
+                "-p",
+                topology["candidate_sha"],
+                "-m",
+                "wrong canonical parent",
+            )
+            with self.assertRaises(ReceiptValidationError):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=wrong_seal,
+                    mode="canonical-main",
+                )
+
+            current = json.loads(
+                subprocess.run(
+                    [
+                        "git",
+                        "show",
+                        f'{topology["current_pr_seal"]}:{self.current_receipt_path}',
+                    ],
+                    cwd=root,
+                    capture_output=True,
+                    check=True,
+                ).stdout
+            )
+            broken_manifest = copy.deepcopy(current)
+            broken_manifest["candidate_content_manifest"][0]["content_sha256"] = "0" * 64
+            with self.assertRaises(ReceiptValidationError):
+                receipt_validator._validate_candidate_manifest(
+                    root,
+                    receipt=broken_manifest,
+                    receipt_path=self.current_receipt_path,
+                    candidate_sha=topology["candidate_sha"],
+                    seal_sha=topology["current_seal"],
+                )
+
+            wrong_candidate = copy.deepcopy(current)
+            wrong_candidate["candidate_content_commit_sha"] = topology["base_sha"]
+            with self.assertRaises(ReceiptValidationError):
+                validate_batch_receipt_object(
+                    root,
+                    wrong_candidate,
+                    authority_sha=topology["current_seal"],
+                )
 
 
 class TestA13ManifestPathContract(unittest.TestCase):

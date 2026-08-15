@@ -114,6 +114,17 @@ def _try_resolve_commit(root: Path, revision: Any) -> Optional[str]:
         return None
 
 
+def _resolve_incremental_canonical_authority(
+    root: Path,
+    receipt: Mapping[str, Any],
+) -> str:
+    recorded_base_sha = resolve_commit(root, receipt["base_sha"])
+    recorded_canonical_main_sha = resolve_commit(root, receipt["canonical_main_sha"])
+    if recorded_base_sha != recorded_canonical_main_sha:
+        raise ReceiptValidationError("receipt_incremental_authority_mismatch")
+    return recorded_base_sha
+
+
 def _running_on_canonical_main(root: Path, authority_sha: str) -> bool:
     try:
         if root.resolve() != ROOT.resolve():
@@ -427,6 +438,8 @@ def validate_all_tracked_batch_receipts(
             raise ReceiptValidationError("receipt_path_identity_mismatch")
         if batch_id in batch_ids:
             raise ReceiptValidationError("receipt_duplicate_batch_id")
+        if mode == "canonical-main" and receipt.get("batch_mode") == "incremental":
+            _resolve_incremental_canonical_authority(root, receipt)
         batch_ids.add(batch_id)
         if mode == "pr":
             validate_batch_receipt_object(
@@ -602,13 +615,18 @@ def _validate_terminal_seal_scope(
     ).strip().split()
     if candidate_sha is None and mode != "canonical-main":
         raise ReceiptValidationError("receipt_candidate_commit_invalid")
+    incremental_authority = None
+    if mode == "canonical-main" and receipt is not None and receipt.get("batch_mode") == "incremental":
+        incremental_authority = _resolve_incremental_canonical_authority(root, receipt)
     if mode == "pr":
         expected_parent = candidate_sha
     elif mode == "canonical-main":
         if canonical_base_sha is not None:
+            if incremental_authority is not None and canonical_base_sha != incremental_authority:
+                raise ReceiptValidationError("receipt_canonical_base_mismatch")
             expected_parent = canonical_base_sha
-        elif receipt is not None and receipt.get("batch_mode") == "incremental":
-            expected_parent = candidate_sha
+        elif incremental_authority is not None:
+            expected_parent = incremental_authority
         else:
             expected_parent = resolve_commit(root, base_sha)
     else:
