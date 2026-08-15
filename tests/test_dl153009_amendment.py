@@ -287,8 +287,13 @@ class ReceiptHistoryFixture(unittest.TestCase):
         git(self.root, "config", "user.email", "fixture" + "@" + "example.invalid")
         (self.root / "schema").mkdir()
         shutil.copy2(ROOT / "schema" / "receipt.schema.json", self.root / "schema" / "receipt.schema.json")
+        git(self.root, "add", "schema/receipt.schema.json")
+        git(self.root, "commit", "-qm", "canonical main base")
+        self.initial_base = git(self.root, "rev-parse", "HEAD")
         self.records: list[dict[str, object]] = []
+        self.bases: list[str] = []
         self.seals: list[str] = []
+        self.pr_seals: list[str] = []
         self.candidates: list[str] = []
 
     def tearDown(self) -> None:
@@ -313,6 +318,7 @@ class ReceiptHistoryFixture(unittest.TestCase):
             "weighted_score_5": 4.5,
         }
         self.records.append(record)
+        base_sha = self.seals[-1] if self.seals else self.initial_base
         contents = self.canonical_files()
         for relative, content in contents.items():
             target = self.root / relative
@@ -330,8 +336,8 @@ class ReceiptHistoryFixture(unittest.TestCase):
             "batch_id": batch_id,
             "batch_mode": "initial" if number == 1 else "incremental",
             "controller_run_id": f"controller-fixture-{number}",
-            "base_sha": self.candidates[-1] if self.candidates else candidate,
-            "canonical_main_sha": self.candidates[-1] if self.candidates else candidate,
+            "base_sha": base_sha,
+            "canonical_main_sha": base_sha,
             "candidate_content_commit_sha": candidate,
             "pr_number": 151,
             "source_issue_number": 142,
@@ -371,11 +377,24 @@ class ReceiptHistoryFixture(unittest.TestCase):
         if extra_seal_file:
             (self.root / "unexpected.txt").write_text("unexpected\n", encoding="utf-8")
         git(self.root, "add", ".")
-        git(self.root, "commit", "-qm", f"seal {number}")
-        seal = git(self.root, "rev-parse", "HEAD")
+        git(self.root, "commit", "-qm", f"raw PR receipt-only seal {number}")
+        pr_seal = git(self.root, "rev-parse", "HEAD")
+        seal = git(
+            self.root,
+            "commit-tree",
+            git(self.root, "rev-parse", f"{pr_seal}^{{tree}}"),
+            "-p",
+            base_sha,
+            "-m",
+            f"canonical squash-style seal {number}",
+        )
+        git(self.root, "checkout", "-q", seal)
+        self.bases.append(base_sha)
         self.candidates.append(candidate)
+        self.pr_seals.append(pr_seal)
         self.seals.append(seal)
         return receipt_path.relative_to(self.root).as_posix(), candidate, seal
+
 
 
 class TestA3ImmutableMultiReceiptHistory(ReceiptHistoryFixture):
@@ -389,12 +408,126 @@ class TestA3ImmutableMultiReceiptHistory(ReceiptHistoryFixture):
                 evidence = validate_all_tracked_batch_receipts(self.root, authority_sha=self.seals[-1], mode="canonical-main")
                 self.assertEqual(count, evidence["receipt_count"])
 
-    def test_pr_mode_detects_only_current_terminal_receipt(self):
+    def test_incremental_receipt_records_previous_canonical_seal(self):
         self.append_batch(1)
+        first_candidate = self.candidates[-1]
+        first_seal = self.seals[-1]
         second_path, second_candidate, second_seal = self.append_batch(2)
-        evidence = validate_all_tracked_batch_receipts(self.root, authority_sha=second_seal, mode="pr")
+        second = json.loads(
+            subprocess.run(
+                ["git", "show", f"HEAD:{second_path}"],
+                cwd=self.root,
+                capture_output=True,
+                check=True,
+            ).stdout
+        )
+        self.assertEqual(first_seal, second["base_sha"])
+        self.assertEqual(first_seal, second["canonical_main_sha"])
+        self.assertNotEqual(first_candidate, first_seal)
+        self.assertEqual(
+            second_candidate,
+            git(self.root, "rev-parse", f"{self.pr_seals[-1]}^"),
+        )
+        self.assertEqual(
+            first_seal,
+            git(self.root, "rev-parse", f"{second_seal}^"),
+        )
+
+
+    def test_pr_mode_detects_only_current_terminal_receipt(self):
+        self.append_batch(1, frozen=True)
+        second_path, second_candidate, _second_seal = self.append_batch(2)
+        second_pr_seal = self.pr_seals[-1]
+        evidence = validate_all_tracked_batch_receipts(self.root, authority_sha=second_pr_seal, mode="pr")
         self.assertEqual(second_path, evidence["changed_receipt_path"])
         self.assertEqual(second_candidate, evidence["final_parent_sha"])
+
+    def test_pr_mode_uses_historical_topology_for_nonfrozen_incremental_receipts(self):
+        self.append_batch(1, frozen=True)
+        frozen_canonical_seal = self.seals[0]
+
+        first_path, first_candidate, first_canonical_seal = self.append_batch(2)
+        first_pr_seal = self.pr_seals[1]
+
+        current_path, current_candidate, _current_canonical_seal = self.append_batch(3)
+        current_pr_seal = self.pr_seals[2]
+
+        self.assertEqual(first_path, "ledger/receipts/batches/batch-fixture-2.json")
+        self.assertEqual(current_path, "ledger/receipts/batches/batch-fixture-3.json")
+        self.assertEqual(frozen_canonical_seal, git(self.root, "rev-parse", f"{first_candidate}^"))
+        self.assertEqual(first_candidate, git(self.root, "rev-parse", f"{first_pr_seal}^"))
+        self.assertEqual(frozen_canonical_seal, git(self.root, "rev-parse", f"{first_canonical_seal}^"))
+        self.assertEqual(
+            git(self.root, "rev-parse", f"{first_pr_seal}^{{tree}}"),
+            git(self.root, "rev-parse", f"{first_canonical_seal}^{{tree}}"),
+        )
+        self.assertEqual(first_canonical_seal, git(self.root, "rev-parse", f"{current_candidate}^"))
+        self.assertEqual(current_candidate, git(self.root, "rev-parse", f"{current_pr_seal}^"))
+
+        evidence = validate_all_tracked_batch_receipts(
+            self.root,
+            authority_sha=current_pr_seal,
+            mode="pr",
+        )
+        self.assertEqual(current_path, evidence["changed_receipt_path"])
+        self.assertEqual(current_candidate, evidence["final_parent_sha"])
+
+    def test_pr_mode_validates_historical_initial_canonical_seal(self):
+        self.append_batch(1)
+        current_path, current_candidate, _current_seal = self.append_batch(2)
+        evidence = validate_all_tracked_batch_receipts(
+            self.root,
+            authority_sha=self.pr_seals[-1],
+            mode="pr",
+        )
+        self.assertEqual(current_path, evidence["changed_receipt_path"])
+        self.assertEqual(current_candidate, evidence["final_parent_sha"])
+
+    def test_pr_mode_validates_multiple_historical_canonical_incremental_seals(self):
+        self.append_batch(1, frozen=True)
+        self.append_batch(2)
+        self.append_batch(3)
+        current_path, current_candidate, _current_seal = self.append_batch(4)
+        evidence = validate_all_tracked_batch_receipts(
+            self.root,
+            authority_sha=self.pr_seals[-1],
+            mode="pr",
+        )
+        self.assertEqual(4, evidence["receipt_count"])
+        self.assertEqual(current_path, evidence["changed_receipt_path"])
+        self.assertEqual(current_candidate, evidence["final_parent_sha"])
+
+    def test_pr_mode_rejects_current_raw_seal_with_noncandidate_parent(self):
+        self.append_batch(1, frozen=True)
+        _current_path, current_candidate, _current_seal = self.append_batch(2)
+        current_pr_seal = self.pr_seals[-1]
+        wrong_candidate = git(
+            self.root,
+            "commit-tree",
+            git(self.root, "rev-parse", f"{current_candidate}^{{tree}}"),
+            "-p",
+            self.seals[0],
+            "-m",
+            "wrong candidate identity",
+        )
+        wrong_pr_seal = git(
+            self.root,
+            "commit-tree",
+            git(self.root, "rev-parse", f"{current_pr_seal}^{{tree}}"),
+            "-p",
+            wrong_candidate,
+            "-m",
+            "wrong raw PR parent",
+        )
+        with self.assertRaisesRegex(
+            ReceiptValidationError,
+            "^receipt_candidate_parent_mismatch$",
+        ):
+            validate_all_tracked_batch_receipts(
+                self.root,
+                authority_sha=wrong_pr_seal,
+                mode="pr",
+            )
 
     def test_historical_receipt_bytes_and_hashes_are_not_compared_to_later_canonical_bytes(self):
         first_path, _candidate, first_seal = self.append_batch(1)
@@ -479,7 +612,7 @@ class TestA3ReceiptReplayAndTampering(ReceiptHistoryFixture):
                     "--mode",
                     "pr",
                     "--authority-sha",
-                    self.seals[-1],
+                    self.pr_seals[-1],
                     "--validation-level",
                     "source-replay",
                 ]
@@ -487,7 +620,8 @@ class TestA3ReceiptReplayAndTampering(ReceiptHistoryFixture):
         self.assertEqual(0, result)
 
     def test_frozen_receipt_routes_only_to_frozen_replay(self):
-        _path, candidate, seal = self.append_batch(1, frozen=True)
+        _path, candidate, _seal = self.append_batch(1, frozen=True)
+        seal = self.pr_seals[-1]
         with mock.patch(
             "scripts.validate_receipts._validate_frozen_source_replay",
             return_value={"outcomes": 101, "admissions": 0, "later_comments": 0},
@@ -501,7 +635,7 @@ class TestA3ReceiptReplayAndTampering(ReceiptHistoryFixture):
                 self.root,
                 authority_sha=seal,
                 mode="pr",
-                canonical_base_sha=candidate,
+                canonical_base_sha=self.bases[-1],
             )
         frozen.assert_called_once()
         incremental.assert_not_called()
@@ -540,7 +674,7 @@ class TestA3ReceiptReplayAndTampering(ReceiptHistoryFixture):
         ), self.assertRaises(ReceiptValidationError):
             validate_source_replay(
                 self.root,
-                authority_sha=self.seals[-1],
+                authority_sha=self.pr_seals[-1],
                 mode="pr",
             )
 
