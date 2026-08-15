@@ -201,11 +201,12 @@ jobs:
           canonical_base_context=false
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
             receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)
-            if [[ -n "$receipt_delta" ]]; then
-              canonical_main_context=true
-            else
-              legacy_context=true
+            receipt_bound_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- evaluations.jsonl ledger/dispositions.jsonl README.md scorecard.md analysis/model-recommendation.json)
+            if [[ -z "$receipt_delta" && -n "$receipt_bound_delta" ]]; then
+              printf '%s\n' 'Canonical receipt-bound data changed without a receipt.' >&2
+              exit 1
             fi
+            canonical_main_context=true
           elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             if [[ "$REF_NAME" != "main" ]]; then
               printf '%s\n' 'Canonical main receipt validation target is ambiguous.' >&2
