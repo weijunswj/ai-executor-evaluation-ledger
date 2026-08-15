@@ -198,6 +198,7 @@ jobs:
         run: |
           legacy_context=false
           canonical_main_context=false
+          canonical_main_historical_context=false
           canonical_base_context=false
           if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
             receipt_delta=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- ledger/receipts/batches)
@@ -206,7 +207,11 @@ jobs:
               printf '%s\n' 'Canonical receipt-bound data changed without a receipt.' >&2
               exit 1
             fi
-            canonical_main_context=true
+            if [[ -n "$receipt_delta" ]]; then
+              canonical_main_context=true
+            else
+              canonical_main_historical_context=true
+            fi
           elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             if [[ "$REF_NAME" != "main" ]]; then
               printf '%s\n' 'Canonical main receipt validation target is ambiguous.' >&2
@@ -239,6 +244,9 @@ jobs:
             GITHUB_EVENT_NAME=push GITHUB_REF_NAME=main python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --validation-level source-replay
           elif [[ "$canonical_main_context" == true ]]; then
             args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)
+            "${args[@]}"
+          elif [[ "$canonical_main_historical_context" == true ]]; then
+            args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$HEAD_SHA" --validation-level source-replay)
             "${args[@]}"
           elif [[ "$canonical_base_context" == true ]]; then
             if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then

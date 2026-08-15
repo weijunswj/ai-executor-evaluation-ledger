@@ -153,6 +153,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             + "echo route_completed\n"
             + "echo legacy_context=$legacy_context\n"
             + "echo canonical_main_context=$canonical_main_context\n"
+            + "echo canonical_main_historical_context=$canonical_main_historical_context\n"
             + "echo canonical_base_context=$canonical_base_context\n"
         )
         environment = os.environ.copy()
@@ -189,6 +190,15 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
             '--validation-level source-replay)'
         )
+        current_main_route = (
+            'args=(python scripts/validate_receipts.py --mode canonical-main '
+            '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
+            '--validation-level source-replay)'
+        )
+        historical_main_route = (
+            'args=(python scripts/validate_receipts.py --mode canonical-main '
+            '--authority-sha "$HEAD_SHA" --validation-level source-replay)'
+        )
         canonical_base_route = (
             'args=(python scripts/validate_receipts.py --mode canonical-main '
             '--authority-sha "$BASE_SHA" --canonical-base-sha '
@@ -199,7 +209,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             block = self._receipt_route_block(workflow)
             blocks.append(block)
             with self.subTest(workflow=relative):
-                self.assertIn("canonical_main_context=false", block)
+                self.assertIn("canonical_main_historical_context=false", block)
                 self.assertIn("canonical_base_context=false", block)
                 self.assertEqual(2, block.count(receipt_delta))
                 self.assertEqual(2, block.count(receipt_bound_delta))
@@ -221,7 +231,11 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                     "              printf '%s\\n' 'Canonical receipt-bound data changed without a receipt.' >&2\n"
                     "              exit 1\n"
                     "            fi\n"
-                    "            canonical_main_context=true",
+                    '            if [[ -n "$receipt_delta" ]]; then\n'
+                    "              canonical_main_context=true\n"
+                    "            else\n"
+                    "              canonical_main_historical_context=true\n"
+                    "            fi",
                     block,
                 )
                 push_start = block.index(
@@ -288,6 +302,9 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                     block,
                 )
                 self.assertIn(receipt_bound_delta, block)
+                self.assertIn(current_main_route, block)
+                self.assertIn(historical_main_route, block)
+                self.assertNotIn("--canonical-base-sha", historical_main_route)
                 terminal_parent_route = (
                     'if [[ "$TERMINAL_RECEIPT_SHA" == "$BASE_SHA" ]]; then\n'
                     '            if ! base_parent_line=$(git rev-list --parents -n 1 "$BASE_SHA"); then'
@@ -335,12 +352,12 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                     self.assertEqual(0, result.returncode, result.stderr)
                     self.assertIn("route_completed", result.stdout)
                     self.assertIn("legacy_context=false", result.stdout)
-                    self.assertIn("canonical_main_context=true", result.stdout)
+                    self.assertIn("canonical_main_context=false", result.stdout)
+                    self.assertIn("canonical_main_historical_context=true", result.stdout)
                     self.assertIn("canonical_base_context=false", result.stdout)
                     self.assertIn(
                         'args=(python scripts/validate_receipts.py --mode canonical-main '
-                        '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
-                        '--validation-level source-replay)',
+                        '--authority-sha "$HEAD_SHA" --validation-level source-replay)',
                         self._receipt_route_block(workflow),
                     )
 
@@ -393,6 +410,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                     self.assertIn("route_completed", result.stdout)
                     self.assertIn("legacy_context=false", result.stdout)
                     self.assertIn("canonical_main_context=true", result.stdout)
+                    self.assertIn("canonical_main_historical_context=false", result.stdout)
                     self.assertIn("canonical_base_context=false", result.stdout)
                     self.assertIn(
                         'args=(python scripts/validate_receipts.py --mode canonical-main '
@@ -435,6 +453,9 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
         )
         self.assertNotEqual(authority_sha, terminal_receipt_sha)
 
+        validation_environment = os.environ.copy()
+        validation_environment.pop("GH_TOKEN", None)
+        validation_environment.pop("GITHUB_TOKEN", None)
         result = subprocess.run(
             [
                 sys.executable,
@@ -443,17 +464,34 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 "canonical-main",
                 "--authority-sha",
                 authority_sha,
-                "--canonical-base-sha",
-                base_sha,
                 "--validation-level",
-                "source-replay",
+                "structural",
             ],
             cwd=ROOT,
+            env=validation_environment,
             text=True,
             capture_output=True,
             check=False,
         )
         self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+
+        self.assertIn("Batch receipt structural validation passed", result.stdout)
+        historical_route = (
+            'args=(python scripts/validate_receipts.py --mode canonical-main '
+            '--authority-sha "$HEAD_SHA" --validation-level source-replay)'
+        )
+        current_route = (
+            'args=(python scripts/validate_receipts.py --mode canonical-main '
+            '--authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" '
+            '--validation-level source-replay)'
+        )
+        for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+            workflow = (ROOT / relative).read_text(encoding="utf-8")
+            block = self._receipt_route_block(workflow)
+            with self.subTest(workflow=relative):
+                self.assertIn(historical_route, block)
+                self.assertNotIn("--canonical-base-sha", historical_route)
+                self.assertIn(current_route, block)
 
     def test_controller_evaluation_scope_is_exact_four_files(self):
         required = {
