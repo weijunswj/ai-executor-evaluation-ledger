@@ -533,12 +533,19 @@ def validate_all_tracked_batch_receipts(
                 and not canonical_base_requested
             )
         )
+        terminal_mode = mode
+        if (
+            mode == "pr"
+            and path != changed_path
+            and receipt["batch_id"] != FROZEN_BATCH_ID
+        ):
+            terminal_mode = "canonical-main"
         if not frozen_historical_receipt:
             _validate_terminal_seal_scope(
                 root,
                 seal_sha=seal_sha,
                 receipt_path=path,
-                mode=mode,
+                mode=terminal_mode,
                 base_sha=receipt["base_sha"],
                 candidate_sha=candidate_sha,
                 receipt=receipt,

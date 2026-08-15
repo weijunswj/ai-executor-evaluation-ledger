@@ -442,6 +442,93 @@ class TestA3ImmutableMultiReceiptHistory(ReceiptHistoryFixture):
         self.assertEqual(second_path, evidence["changed_receipt_path"])
         self.assertEqual(second_candidate, evidence["final_parent_sha"])
 
+    def test_pr_mode_uses_historical_topology_for_nonfrozen_incremental_receipts(self):
+        self.append_batch(1, frozen=True)
+        frozen_canonical_seal = self.seals[0]
+
+        first_path, first_candidate, first_canonical_seal = self.append_batch(2)
+        first_pr_seal = self.pr_seals[1]
+
+        current_path, current_candidate, _current_canonical_seal = self.append_batch(3)
+        current_pr_seal = self.pr_seals[2]
+
+        self.assertEqual(first_path, "ledger/receipts/batches/batch-fixture-2.json")
+        self.assertEqual(current_path, "ledger/receipts/batches/batch-fixture-3.json")
+        self.assertEqual(frozen_canonical_seal, git(self.root, "rev-parse", f"{first_candidate}^"))
+        self.assertEqual(first_candidate, git(self.root, "rev-parse", f"{first_pr_seal}^"))
+        self.assertEqual(frozen_canonical_seal, git(self.root, "rev-parse", f"{first_canonical_seal}^"))
+        self.assertEqual(
+            git(self.root, "rev-parse", f"{first_pr_seal}^{{tree}}"),
+            git(self.root, "rev-parse", f"{first_canonical_seal}^{{tree}}"),
+        )
+        self.assertEqual(first_canonical_seal, git(self.root, "rev-parse", f"{current_candidate}^"))
+        self.assertEqual(current_candidate, git(self.root, "rev-parse", f"{current_pr_seal}^"))
+
+        evidence = validate_all_tracked_batch_receipts(
+            self.root,
+            authority_sha=current_pr_seal,
+            mode="pr",
+        )
+        self.assertEqual(current_path, evidence["changed_receipt_path"])
+        self.assertEqual(current_candidate, evidence["final_parent_sha"])
+
+    def test_pr_mode_validates_historical_initial_canonical_seal(self):
+        self.append_batch(1)
+        current_path, current_candidate, _current_seal = self.append_batch(2)
+        evidence = validate_all_tracked_batch_receipts(
+            self.root,
+            authority_sha=self.pr_seals[-1],
+            mode="pr",
+        )
+        self.assertEqual(current_path, evidence["changed_receipt_path"])
+        self.assertEqual(current_candidate, evidence["final_parent_sha"])
+
+    def test_pr_mode_validates_multiple_historical_canonical_incremental_seals(self):
+        self.append_batch(1, frozen=True)
+        self.append_batch(2)
+        self.append_batch(3)
+        current_path, current_candidate, _current_seal = self.append_batch(4)
+        evidence = validate_all_tracked_batch_receipts(
+            self.root,
+            authority_sha=self.pr_seals[-1],
+            mode="pr",
+        )
+        self.assertEqual(4, evidence["receipt_count"])
+        self.assertEqual(current_path, evidence["changed_receipt_path"])
+        self.assertEqual(current_candidate, evidence["final_parent_sha"])
+
+    def test_pr_mode_rejects_current_raw_seal_with_noncandidate_parent(self):
+        self.append_batch(1, frozen=True)
+        _current_path, current_candidate, _current_seal = self.append_batch(2)
+        current_pr_seal = self.pr_seals[-1]
+        wrong_candidate = git(
+            self.root,
+            "commit-tree",
+            git(self.root, "rev-parse", f"{current_candidate}^{{tree}}"),
+            "-p",
+            self.seals[0],
+            "-m",
+            "wrong candidate identity",
+        )
+        wrong_pr_seal = git(
+            self.root,
+            "commit-tree",
+            git(self.root, "rev-parse", f"{current_pr_seal}^{{tree}}"),
+            "-p",
+            wrong_candidate,
+            "-m",
+            "wrong raw PR parent",
+        )
+        with self.assertRaisesRegex(
+            ReceiptValidationError,
+            "^receipt_candidate_parent_mismatch$",
+        ):
+            validate_all_tracked_batch_receipts(
+                self.root,
+                authority_sha=wrong_pr_seal,
+                mode="pr",
+            )
+
     def test_historical_receipt_bytes_and_hashes_are_not_compared_to_later_canonical_bytes(self):
         first_path, _candidate, first_seal = self.append_batch(1)
         original = subprocess.run(["git", "show", f"{first_seal}:{first_path}"], cwd=self.root, capture_output=True, check=True).stdout
