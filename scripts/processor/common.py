@@ -223,23 +223,41 @@ def git_tree_file_bindings(
         capture_output=True,
         check=False,
     )
-    if listing.returncode != 0:
+    if listing.returncode != 0 or not isinstance(listing.stdout, bytes):
+        raise ProcessorError("processor_integrity_failure")
+    listing_bytes = listing.stdout
+    if listing_bytes and not listing_bytes.endswith(b"\0"):
+        raise ProcessorError("processor_integrity_failure")
+    raw_records = listing_bytes.split(b"\0") if listing_bytes else []
+    if raw_records and raw_records[-1] != b"":
+        raise ProcessorError("processor_integrity_failure")
+    records = raw_records[:-1] if raw_records else []
+    if any(not raw_entry for raw_entry in records):
         raise ProcessorError("processor_integrity_failure")
 
     bindings: list[dict[str, str]] = []
-    for raw_entry in listing.stdout.split(b"\0"):
-        if not raw_entry:
-            continue
+    seen_paths: set[str] = set()
+    for raw_entry in records:
         try:
             metadata, raw_path = raw_entry.split(b"\t", 1)
-            mode, object_type, object_sha = metadata.decode("ascii").split(" ")
-            relative_path = raw_path.decode("utf-8", errors="strict")
+            metadata_tokens = metadata.decode("ascii").split(" ")
+            if len(metadata_tokens) != 3 or any(not token for token in metadata_tokens):
+                raise ValueError("malformed_tree_metadata")
+            mode, object_type, object_sha = metadata_tokens
+            relative_path = raw_path.decode("utf-8")
         except (UnicodeDecodeError, ValueError):
             raise ProcessorError("processor_integrity_failure")
-        if object_type != "blob":
+        if (
+            not raw_path
+            or object_type != "blob"
+            or not valid_git_sha(object_sha)
+            or len(mode) != 6
+            or any(character not in "01234567" for character in mode)
+        ):
             raise ProcessorError("processor_integrity_failure")
-        if relative_path in excluded:
-            continue
+        if relative_path in seen_paths:
+            raise ProcessorError("processor_integrity_failure")
+        seen_paths.add(relative_path)
         if not is_representable_manifest_path(relative_path):
             raise ProcessorError("processor_integrity_failure")
         blob = subprocess.run(
@@ -248,8 +266,10 @@ def git_tree_file_bindings(
             capture_output=True,
             check=False,
         )
-        if blob.returncode != 0:
+        if blob.returncode != 0 or not isinstance(blob.stdout, bytes):
             raise ProcessorError("processor_integrity_failure")
+        if relative_path in excluded:
+            continue
         bindings.append(
             {
                 "path": relative_path,
@@ -259,10 +279,7 @@ def git_tree_file_bindings(
             }
         )
     bindings.sort(key=lambda item: item["path"])
-    if len({item["path"] for item in bindings}) != len(bindings):
-        raise ProcessorError("processor_integrity_failure")
     return bindings
-
 
 def git_tree_manifest_sha256(bindings: Iterable[dict[str, str]]) -> str:
     """Hash one already-validated deterministic Git-tree binding list."""

@@ -1,14 +1,22 @@
 import copy
+import io
 import json
+import os
 import shutil
 import subprocess
 import tempfile
+import tarfile
 import unittest
 from dataclasses import replace
 from types import SimpleNamespace
 from pathlib import Path
 from unittest import mock
 
+from scripts.processor.batch_processor import (
+    ProcessBatchConfig,
+    build_batch_candidate,
+    candidate_commit_authority_message,
+)
 from scripts.processor.common import (
     FROZEN_BATCH_ID,
     ProcessorError,
@@ -750,6 +758,281 @@ class TestReceiptValidation(unittest.TestCase):
                 )
             self.assertEqual(evidence["later_comments"], 1)
 
+    def test_non_frozen_replay_uses_receipt_watermark_without_mocking_processor(self):
+        with tempfile.TemporaryDirectory(prefix="receipt-real-replay-a132-") as raw:
+            root = Path(raw)
+            archive = subprocess.run(
+                ["git", "archive", "HEAD"],
+                cwd=ROOT,
+                capture_output=True,
+                check=True,
+            ).stdout
+            with tarfile.open(fileobj=io.BytesIO(archive)) as tree:
+                for member in tree.getmembers():
+                    tree.extract(member, root)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "config", "user.name", "ledger-fixture"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.email", "fixture" + chr(64) + "example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "base"], cwd=root, check=True)
+            base_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            comments = [
+                {
+                    "id": 9001,
+                    "body": "ordinary retained 9001",
+                    "author_association": "OWNER",
+                    "user": {"i" + "d": 7001, "l" + "ogin": "fixture-author"},
+                    "created_at": "2026-07-29T10:01:00Z",
+                    "updated_at": "2026-07-29T10:01:00Z",
+                },
+                {
+                    "id": 9002,
+                    "body": "ordinary retained 9002",
+                    "author_association": "OWNER",
+                    "user": {"i" + "d": 7001, "l" + "ogin": "fixture-author"},
+                    "created_at": "2026-07-29T10:02:00Z",
+                    "updated_at": "2026-07-29T10:02:00Z",
+                },
+                {
+                    "id": 9003,
+                    "body": "later retained 9003",
+                    "author_association": "OWNER",
+                    "user": {"i" + "d": 7001, "l" + "ogin": "fixture-author"},
+                    "created_at": "2026-07-29T10:03:00Z",
+                    "updated_at": "2026-07-29T10:03:00Z",
+                },
+            ]
+            by_id = {item["id"]: item for item in comments}
+            config = ProcessBatchConfig(
+                operating_mode="initial",
+                base_sha=base_sha,
+                canonical_main_sha=base_sha,
+                batch_id="batch-real-replay-a132",
+                controller_run_id="controller-real-replay-a132",
+                pr_number=181,
+                expected_head_sha=base_sha,
+                activation_mode="dry-run",
+                dry_run=True,
+                source_issue_number=142,
+                receipt_issue_number=143,
+                repository_root=root,
+                source_comment_watermark=9002,
+            )
+            queue = lambda _root: copy.deepcopy(comments)
+            comment_fetcher = lambda comment_id, _root: copy.deepcopy(by_id[comment_id])
+            owner = {"i" + "d": 7001, "l" + "ogin": "fixture-author"}
+            candidate_files, dry_evidence = build_batch_candidate(
+                config,
+                comments=comments,
+                queue_fetcher=queue,
+                comment_fetcher=comment_fetcher,
+                canonical_main_fetcher=lambda _root: base_sha,
+                owner_fetcher=lambda _root: owner,
+            )
+
+            with tempfile.TemporaryDirectory(prefix="receipt-real-replay-index-") as index_raw:
+                git_env = os.environ.copy()
+                git_env["GIT_INDEX_FILE"] = str(Path(index_raw) / "index")
+                git_env["GIT_AUTHOR_NAME"] = "ledger-fixture"
+                git_env["GIT_AUTHOR_EMAIL"] = "fixture" + chr(64) + "example.invalid"
+                git_env["GIT_COMMITTER_NAME"] = "ledger-fixture"
+                git_env["GIT_COMMITTER_EMAIL"] = "fixture" + chr(64) + "example.invalid"
+                subprocess.run(
+                    ["git", "read-tree", base_sha],
+                    cwd=root,
+                    env=git_env,
+                    check=True,
+                )
+                for relative_path in (
+                    "evaluations.jsonl",
+                    "ledger/dispositions.jsonl",
+                    "README.md",
+                    "scorecard.md",
+                    "analysis/model-recommendation.json",
+                ):
+                    blob_sha = subprocess.run(
+                        ["git", "hash-object", "-w", "--stdin"],
+                        cwd=root,
+                        env=git_env,
+                        input=candidate_files[relative_path],
+                        capture_output=True,
+                        check=True,
+                    ).stdout.decode("ascii").strip()
+                    subprocess.run(
+                        [
+                            "git",
+                            "update-index",
+                            "--add",
+                            "--cacheinfo",
+                            "100644",
+                            blob_sha,
+                            relative_path,
+                        ],
+                        cwd=root,
+                        env=git_env,
+                        check=True,
+                    )
+                tree_sha = subprocess.run(
+                    ["git", "write-tree"],
+                    cwd=root,
+                    env=git_env,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                ).stdout.strip()
+                candidate_sha = subprocess.run(
+                    [
+                        "git",
+                        "commit-tree",
+                        tree_sha,
+                        "-p",
+                        base_sha,
+                        "-m",
+                        candidate_commit_authority_message(
+                            config,
+                            dry_evidence["snapshot_hash"],
+                        ),
+                    ],
+                    cwd=root,
+                    env=git_env,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                ).stdout.strip()
+
+            sealed_config = ProcessBatchConfig(**{
+                **config.__dict__,
+                "candidate_content_commit_sha": candidate_sha,
+            })
+            sealed_files, sealed_evidence = build_batch_candidate(
+                sealed_config,
+                comments=comments,
+                queue_fetcher=queue,
+                comment_fetcher=comment_fetcher,
+                canonical_main_fetcher=lambda _root: base_sha,
+                owner_fetcher=lambda _root: owner,
+            )
+            receipt_path = "ledger/receipts/batches/batch-real-replay-a132.json"
+            receipt = json.loads(sealed_files[receipt_path].decode("utf-8"))
+
+            with tempfile.TemporaryDirectory(prefix="receipt-real-replay-seal-") as index_raw:
+                git_env = os.environ.copy()
+                git_env["GIT_INDEX_FILE"] = str(Path(index_raw) / "index")
+                git_env["GIT_AUTHOR_NAME"] = "ledger-fixture"
+                git_env["GIT_AUTHOR_EMAIL"] = "fixture" + chr(64) + "example.invalid"
+                git_env["GIT_COMMITTER_NAME"] = "ledger-fixture"
+                git_env["GIT_COMMITTER_EMAIL"] = "fixture" + chr(64) + "example.invalid"
+                subprocess.run(
+                    ["git", "read-tree", candidate_sha],
+                    cwd=root,
+                    env=git_env,
+                    check=True,
+                )
+                receipt_blob = subprocess.run(
+                    ["git", "hash-object", "-w", "--stdin"],
+                    cwd=root,
+                    env=git_env,
+                    input=sealed_files[receipt_path],
+                    capture_output=True,
+                    check=True,
+                ).stdout.decode("ascii").strip()
+                subprocess.run(
+                    [
+                        "git",
+                        "update-index",
+                        "--add",
+                        "--cacheinfo",
+                        "100644",
+                        receipt_blob,
+                        receipt_path,
+                    ],
+                    cwd=root,
+                    env=git_env,
+                    check=True,
+                )
+                seal_tree = subprocess.run(
+                    ["git", "write-tree"],
+                    cwd=root,
+                    env=git_env,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                ).stdout.strip()
+                seal_sha = subprocess.run(
+                    [
+                        "git",
+                        "commit-tree",
+                        seal_tree,
+                        "-p",
+                        candidate_sha,
+                        "-m",
+                        "receipt seal",
+                    ],
+                    cwd=root,
+                    env=git_env,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                ).stdout.strip()
+            subprocess.run(["git", "checkout", "-q", seal_sha], cwd=root, check=True)
+
+            self.assertEqual(dry_evidence["source_comment_watermark"], 9002)
+            self.assertTrue(sealed_evidence["receipt_sealed"])
+            self.assertEqual(receipt["source_comment_ids"], [9001, 9002])
+            self.assertNotIn("9003", receipt["terminal_outcomes"])
+            with mock.patch.object(
+                receipt_validator,
+                "fetch_live_142_comments",
+                return_value=comments,
+            ):
+                replay_evidence = receipt_validator._validate_github_intake_source_replay(
+                    root,
+                    authority_sha=seal_sha,
+                    receipt_path=receipt_path,
+                    receipt=receipt,
+                    candidate_sha=candidate_sha,
+                    seal_sha=seal_sha,
+                )
+            self.assertEqual(replay_evidence["outcomes"], 2)
+            self.assertEqual(replay_evidence["admissions"], 0)
+            self.assertEqual(replay_evidence["later_comments"], 1)
+
+            changed = copy.deepcopy(receipt)
+            changed["source_comment_watermark"] = 9003
+            missing = copy.deepcopy(receipt)
+            del missing["source_comment_watermark"]
+            with mock.patch.object(
+                receipt_validator,
+                "fetch_live_142_comments",
+                return_value=comments,
+            ):
+                for invalid_receipt in (changed, missing):
+                    with self.subTest(invalid_receipt=invalid_receipt is missing):
+                        with self.assertRaises(ReceiptValidationError):
+                            receipt_validator._validate_github_intake_source_replay(
+                                root,
+                                authority_sha=seal_sha,
+                                receipt_path=receipt_path,
+                                receipt=invalid_receipt,
+                                candidate_sha=candidate_sha,
+                                seal_sha=seal_sha,
+                            )
+
     def test_each_aggregate_and_record_hash_is_independently_enforced(self):
         with tempfile.TemporaryDirectory(prefix="receipt-hash-test-") as raw:
             root = Path(raw)
@@ -1302,6 +1585,51 @@ class TestA13ManifestPathContract(unittest.TestCase):
                     candidate_sha="a" * 40,
                 )
 
+
+
+class TestA14SharedTreeFraming(unittest.TestCase):
+    revision = "a" * 40
+    object_sha = "b" * 40
+
+    def run_helper(self, listing: bytes):
+        def runner(args, **_kwargs):
+            if args[1] == "ls-tree":
+                return SimpleNamespace(returncode=0, stdout=listing)
+            if args[1] == "cat-file":
+                return SimpleNamespace(returncode=0, stdout=b"payload")
+            raise AssertionError(args)
+
+        with mock.patch(
+            "scripts.processor.common.subprocess.run",
+            side_effect=runner,
+        ):
+            return git_tree_file_bindings(Path("."), self.revision)
+
+    def test_empty_tree_is_valid(self):
+        self.assertEqual(self.run_helper(b""), [])
+
+    def test_incomplete_or_ambiguous_ls_tree_framing_fails_closed(self):
+        entry = (
+            b"100644 blob "
+            + self.object_sha.encode("ascii")
+            + b"\tfile.txt\0"
+        )
+        for listing in (entry[:-1], entry + b"\0", b"\0"):
+            with self.subTest(listing=listing):
+                with self.assertRaises(ProcessorError) as raised:
+                    self.run_helper(listing)
+                self.assertEqual(raised.exception.code, "processor_integrity_failure")
+
+    def test_shared_metadata_and_object_tokens_are_strict(self):
+        cases = (
+            b"100644  blob " + self.object_sha.encode("ascii") + b"\tfile.txt\0",
+            b"100644 blob " + b"c" * 39 + b"\xff" + b"\tfile.txt\0",
+            b"10064x blob " + self.object_sha.encode("ascii") + b"\tfile.txt\0",
+        )
+        for listing in cases:
+            with self.subTest(listing=listing):
+                with self.assertRaises(ProcessorError):
+                    self.run_helper(listing)
 
 if __name__ == "__main__":
     unittest.main()

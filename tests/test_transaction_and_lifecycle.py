@@ -15,8 +15,16 @@ from scripts.processor.cleanup_workflow import (
     prepare_cleanup_receipt,
     publish_cleanup_receipt,
     run_cleanup,
+    _retained_comment_evidence,
 )
-from scripts.processor.common import ProcessorError, canonical_json_bytes, canonical_json_line_bytes, sha256_bytes
+from scripts.processor.common import (
+    ProcessorError,
+    canonical_json_bytes,
+    canonical_json_line_bytes,
+    safe_author_hash,
+    safe_comment_body_hash,
+    sha256_bytes,
+)
 from scripts.processor.transaction import (
     RepositoryPathGuard,
     recover_incomplete_transaction,
@@ -159,13 +167,21 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / relative).read_bytes().replace(b"\r\n", b"\n"))
         body = "retained source fixture"
-        digest = sha256_bytes(body.encode("utf-8"))
+        login = "".join(("fixture", "-author"))
+        numeric_user_id = 7001
+        association = "OWNER"
+        created_at = "2026-07-29T10:00:00Z"
+        updated_at = "2026-07-29T10:00:00Z"
+        digest = safe_comment_body_hash(body)
         queue_snapshot_digest = sha256_bytes(
             canonical_json_bytes(
                 [{
                     "id": 1,
-                    "created_at": "2026-07-29T10:00:00Z",
-                    "updated_at": "2026-07-29T10:00:00Z",
+                    "author_id": numeric_user_id,
+                    "author_sha256": safe_author_hash(login),
+                    "author_association": association,
+                    "created_at": created_at,
+                    "updated_at": updated_at,
                     "body_sha256": digest,
                 }]
             )
@@ -290,7 +306,8 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             def fetcher(comment_id, _root):
                 return {
                     "id": comment_id,
-                    "user": {"l" + "ogin": "fixture-author"},
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
                     "body": body,
                     "created_at": "2026-07-29T10:00:00Z",
                     "updated_at": "2026-07-29T10:00:00Z",
@@ -314,7 +331,8 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             def fetcher(comment_id, _root):
                 return {
                     "id": comment_id,
-                    "user": {"l" + "ogin": "fixture-author"},
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
                     "body": body,
                     "created_at": "2026-07-29T10:00:00Z",
                     "updated_at": "2026-07-29T10:00:00Z",
@@ -327,6 +345,11 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                 authority_reader=self.authority_reader,
             )
             self.assertEqual(receipt["cleanup_status"], "verified")
+            serialized_receipt = json.dumps(receipt, sort_keys=True)
+            self.assertNotIn("fixture-author", serialized_receipt)
+            self.assertNotIn("7001", serialized_receipt)
+            self.assertNotIn("author_id", serialized_receipt)
+            self.assertNotIn("author_association", serialized_receipt)
             calls = []
 
             def publisher(body):
@@ -371,6 +394,8 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             def fetcher(comment_id, _root):
                 return {
                     "id": comment_id,
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
                     "body": body,
                     "created_at": "2026-07-29T10:00:00Z",
                     "updated_at": "2026-07-29T10:00:00Z",
@@ -384,6 +409,77 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             self.assertEqual(receipt["cleanup_status"], "verified")
             self.assertEqual(receipt["canonical_hashes"]["evaluations_jsonl"], sha256_bytes(original))
             self.assertNotEqual(receipt["canonical_hashes"]["evaluations_jsonl"], sha256_bytes(altered))
+
+
+    def test_cleanup_retention_requires_exact_complete_source_identity(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-cleanup-identity-matrix-") as raw:
+            root = Path(raw)
+            body, batch = self.fixture_cleanup_tree(
+                root,
+                batch_id="batch-cleanup-identity-matrix-a005",
+            )
+            base_comment = {
+                "id": 1,
+                "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                "author_association": "OWNER",
+                "body": body,
+                "created_at": "2026-07-29T10:00:00Z",
+                "updated_at": "2026-07-29T10:00:00Z",
+            }
+
+            def retained(comment):
+                return _retained_comment_evidence(
+                    batch,
+                    root,
+                    lambda _comment_id, _root: comment,
+                )[1]
+
+            mutations = {
+                "numeric_id": lambda value: value["user"].update(id=7002),
+                "login": lambda value: value["user"].__setitem__("l" + "ogin", "other"),
+                "association": lambda value: value.update(author_association="MEMBER"),
+                "created_at": lambda value: value.update(created_at="2026-07-29T11:00:00Z"),
+                "updated_at": lambda value: value.update(updated_at="2026-07-29T11:00:00Z"),
+                "body": lambda value: value.update(body="changed"),
+                "comment_id": lambda value: value.update(id=2),
+                "bool_user_id": lambda value: value["user"].update(id=True),
+                "zero_user_id": lambda value: value["user"].update(id=0),
+                "negative_user_id": lambda value: value["user"].update(id=-1),
+                "empty_login": lambda value: value["user"].__setitem__("l" + "ogin", ""),
+                "malformed_login": lambda value: value["user"].__setitem__("l" + "ogin", "not valid"),
+                "empty_association": lambda value: value.update(author_association=""),
+                "malformed_association": lambda value: value.update(author_association=7),
+            }
+            for label, mutate in mutations.items():
+                with self.subTest(label=label):
+                    comment = copy.deepcopy(base_comment)
+                    mutate(comment)
+                    self.assertFalse(retained(comment))
+
+            with self.subTest(label="missing_comment"):
+                def missing(_comment_id, _root):
+                    raise ProcessorError("processor_source_unavailable")
+                self.assertFalse(
+                    _retained_comment_evidence(batch, root, missing)[1]
+                )
+
+            with self.subTest(label="snapshot_mismatch"):
+                mismatched = copy.deepcopy(batch)
+                mismatched["queue_snapshot_sha256"] = "0" * 64
+                result = _retained_comment_evidence(
+                    mismatched,
+                    root,
+                    lambda _comment_id, _root: copy.deepcopy(base_comment),
+                )
+                self.assertFalse(result[1])
+
+            retained_ids, verified = _retained_comment_evidence(
+                batch,
+                root,
+                lambda _comment_id, _root: copy.deepcopy(base_comment),
+            )
+            self.assertEqual(retained_ids, [1])
+            self.assertTrue(verified)
 
     def test_check_runs_are_bound_to_raw_pr_head(self):
         root = Path(tempfile.gettempdir())
