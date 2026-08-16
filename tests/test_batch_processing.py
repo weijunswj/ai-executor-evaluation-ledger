@@ -68,7 +68,7 @@ class TestBatchProcessing(unittest.TestCase):
         self.live_main_patch.stop()
         self.owner_patch.stop()
 
-    def config(self, batch_id="batch-test-a005"):
+    def config(self, batch_id="batch-test-a005", source_comment_watermark=9002):
         return ProcessBatchConfig(
             operating_mode="initial",
             base_sha=BASE_AUTHORITY_SHA,
@@ -82,6 +82,7 @@ class TestBatchProcessing(unittest.TestCase):
             source_issue_number=142,
             receipt_issue_number=143,
             repository_root=ROOT,
+            source_comment_watermark=source_comment_watermark,
         )
 
     def valid_payload(self, run_id="run-batch-a005"):
@@ -153,6 +154,63 @@ class TestBatchProcessing(unittest.TestCase):
     def fetcher(self, comments):
         by_id = {item["id"]: item for item in comments}
         return lambda comment_id, _root: copy.deepcopy(by_id[comment_id])
+    def commit_candidate_files(self, candidate_files, parent_sha=BASE_AUTHORITY_SHA):
+        canonical_paths = (
+            "evaluations.jsonl",
+            "ledger/dispositions.jsonl",
+            "README.md",
+            "scorecard.md",
+            "analysis/model-recommendation.json",
+        )
+        with tempfile.TemporaryDirectory(prefix="batch-watermark-candidate-") as temp_raw:
+            index_path = Path(temp_raw) / "index"
+            git_env = os.environ.copy()
+            git_env["GIT_INDEX_FILE"] = str(index_path)
+            git_env["GIT_AUTHOR_NAME"] = "ledger-fixture"
+            git_env["GIT_AUTHOR_EMAIL"] = "fixture" + chr(64) + "example.invalid"
+            git_env["GIT_COMMITTER_NAME"] = "ledger-fixture"
+            git_env["GIT_COMMITTER_EMAIL"] = "fixture" + chr(64) + "example.invalid"
+            subprocess.run(["git", "read-tree", parent_sha], cwd=ROOT, env=git_env, check=True)
+            for relative_path in canonical_paths:
+                blob_sha = subprocess.run(
+                    ["git", "hash-object", "-w", "--stdin"],
+                    cwd=ROOT,
+                    env=git_env,
+                    input=candidate_files[relative_path],
+                    capture_output=True,
+                    check=True,
+                ).stdout.decode("ascii").strip()
+                subprocess.run(
+                    [
+                        "git",
+                        "update-index",
+                        "--add",
+                        "--cacheinfo",
+                        "100644",
+                        blob_sha,
+                        relative_path,
+                    ],
+                    cwd=ROOT,
+                    env=git_env,
+                    check=True,
+                )
+            tree_sha = subprocess.run(
+                ["git", "write-tree"],
+                cwd=ROOT,
+                env=git_env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            return subprocess.run(
+                ["git", "commit-tree", tree_sha, "-p", parent_sha, "-m", "watermark candidate"],
+                cwd=ROOT,
+                env=git_env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
 
     def test_duplicate_evaluation_json_keys_fail_closed(self):
         record = json.loads(
@@ -242,7 +300,7 @@ class TestBatchProcessing(unittest.TestCase):
             "created_at": "2026-07-29T10:01:00Z",
             "updated_at": "2026-07-29T10:01:00Z",
         }
-        base_config = self.config("batch-already-recorded-a010")
+        base_config = self.config("batch-already-recorded-a010", source_comment_watermark=9901)
         with mock.patch(
             "scripts.processor.batch_processor._parse_authorized_intake_comment",
             return_value=(
@@ -472,7 +530,7 @@ class TestBatchProcessing(unittest.TestCase):
         }
         config = ProcessBatchConfig(
             **{
-                **self.config("batch-retained-parser-e2e-a011").__dict__,
+                **self.config("batch-retained-parser-e2e-a011", source_comment_watermark=9911).__dict__,
                 "base_sha": authority_sha,
                 "canonical_main_sha": authority_sha,
             }
@@ -554,7 +612,7 @@ class TestBatchProcessing(unittest.TestCase):
     def test_receipt_sealing_rejects_uncommitted_candidate_bytes(self):
         config = ProcessBatchConfig(
             **{
-                **self.config("batch-sealed-a009").__dict__,
+                **self.config("batch-sealed-a009", source_comment_watermark=0).__dict__,
                 "operating_mode": "incremental",
                 "base_sha": CURRENT_HEAD_SHA,
                 "canonical_main_sha": CURRENT_HEAD_SHA,
@@ -593,7 +651,7 @@ class TestBatchProcessing(unittest.TestCase):
         )
         self.assertNotEqual(temporary_worktree_bytes, immutable_authority_bytes)
 
-        config = self.config("batch-incremental-a005")
+        config = self.config("batch-incremental-a005", source_comment_watermark=0)
         config = ProcessBatchConfig(**{
             **config.__dict__,
             "operating_mode": "incremental",
@@ -681,6 +739,223 @@ class TestBatchProcessing(unittest.TestCase):
                 comment_fetcher=lambda comment_id, _root: copy.deepcopy(by_id[comment_id]),
             )
         self.assertEqual(ctx.exception.code, "source_changed")
+
+    def test_explicit_watermark_excludes_multiple_later_comments(self):
+        initial = self.comments()
+
+        def extra(comment_id):
+            return {
+                "id": comment_id,
+                "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                "author_association": "OWNER",
+                "body": f"later comment {comment_id}",
+                "created_at": "2026-07-29T10:03:00Z",
+                "updated_at": "2026-07-29T10:03:00Z",
+            }
+
+        live = initial + [extra(9003), extra(9004)]
+        queue_calls = iter([live, live, live])
+        fetched = []
+        by_id = {item["id"]: item for item in live}
+
+        def fetch(comment_id, _root):
+            fetched.append(comment_id)
+            return copy.deepcopy(by_id[comment_id])
+
+        result = process_batch(
+            self.config("batch-watermark-later-a128", source_comment_watermark=9002),
+            comments=None,
+            queue_fetcher=lambda _root: copy.deepcopy(next(queue_calls)),
+            comment_fetcher=fetch,
+        )
+        self.assertEqual(result["status"], "DRY_RUN_VALIDATED")
+        self.assertEqual(result["source_comment_watermark"], 9002)
+        self.assertEqual(result["full_queue_count"], 2)
+        self.assertEqual(result["selected_comment_count"], 2)
+        self.assertEqual(result["later_comment_count"], 2)
+        self.assertEqual(fetched, [9001, 9002])
+
+    def test_missing_configured_boundary_fails_closed(self):
+        comments = self.comments() + [{
+            "id": 9003,
+            "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+            "author_association": "OWNER",
+            "body": "later comment 9003",
+            "created_at": "2026-07-29T10:03:00Z",
+            "updated_at": "2026-07-29T10:03:00Z",
+        }]
+        with self.assertRaises(ProcessorError) as raised:
+            build_batch_candidate(
+                self.config("batch-watermark-missing-boundary-a128", source_comment_watermark=9004),
+                comments=comments,
+                queue_fetcher=self.queue(comments),
+                comment_fetcher=self.fetcher(comments),
+            )
+        self.assertEqual(raised.exception.code, "source_changed")
+
+    def test_selected_deletion_fails_closed(self):
+        initial = self.comments()
+        queue_calls = iter([initial, initial[:1]])
+        with self.assertRaises(ProcessorError) as raised:
+            build_batch_candidate(
+                self.config("batch-watermark-deletion-a128", source_comment_watermark=9002),
+                comments=None,
+                queue_fetcher=lambda _root: copy.deepcopy(next(queue_calls)),
+                comment_fetcher=self.fetcher(initial),
+            )
+        self.assertEqual(raised.exception.code, "source_changed")
+
+    def test_selected_author_and_body_mutations_fail_closed(self):
+        initial = self.comments()
+        for index in (0, 1):
+            moved = copy.deepcopy(initial)
+            moved[index]["body"] = f"mutated selected body {index}"
+            moved[index]["user"]["l" + "ogin"] = f"mutated-author-{index}"
+            queue_calls = iter([initial, moved])
+            with self.subTest(comment_id=initial[index]["id"]):
+                with self.assertRaises(ProcessorError) as raised:
+                    build_batch_candidate(
+                        self.config(f"batch-watermark-mutated-{index}-a128", source_comment_watermark=9002),
+                        comments=None,
+                        queue_fetcher=lambda _root: copy.deepcopy(next(queue_calls)),
+                        comment_fetcher=self.fetcher(initial),
+                    )
+                self.assertEqual(raised.exception.code, "source_changed")
+
+    def test_selected_numeric_author_and_association_mutation_fails_closed(self):
+        initial = self.comments()
+        moved = copy.deepcopy(initial)
+        moved[0]["user"]["id"] = 7002
+        moved[0]["author_association"] = "CONTRIBUTOR"
+        queue_calls = iter([initial, moved])
+        with self.assertRaises(ProcessorError) as raised:
+            build_batch_candidate(
+                self.config("batch-watermark-author-identity-a128", source_comment_watermark=9002),
+                comments=None,
+                queue_fetcher=lambda _root: copy.deepcopy(next(queue_calls)),
+                comment_fetcher=self.fetcher(initial),
+            )
+        self.assertEqual(raised.exception.code, "source_changed")
+
+    def test_duplicate_and_out_of_order_live_sources_fail_closed(self):
+        initial = self.comments()
+        cases = {
+            "duplicate": initial + [copy.deepcopy(initial[1])],
+            "out_of_order": list(reversed(initial)),
+        }
+        for label, live in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaises(ProcessorError) as raised:
+                    build_batch_candidate(
+                        self.config(f"batch-watermark-shape-{label}-a128", source_comment_watermark=9002),
+                        comments=live,
+                        queue_fetcher=self.queue(live),
+                        comment_fetcher=self.fetcher(live),
+                    )
+                self.assertEqual(raised.exception.code, "source_changed")
+
+    def test_receipt_sealing_binds_configured_watermark_and_prefix(self):
+        comments = self.comments() + [{
+            "id": 9003,
+            "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+            "author_association": "OWNER",
+            "body": "later comment 9003",
+            "created_at": "2026-07-29T10:03:00Z",
+            "updated_at": "2026-07-29T10:03:00Z",
+        }]
+        config = self.config("batch-watermark-sealed-a128", source_comment_watermark=9002)
+        candidate_files, dry_evidence = build_batch_candidate(
+            config,
+            comments=comments,
+            queue_fetcher=self.queue(comments),
+            comment_fetcher=self.fetcher(comments),
+        )
+        candidate_sha = self.commit_candidate_files(candidate_files)
+        sealed_files, sealed_evidence = build_batch_candidate(
+            ProcessBatchConfig(**{
+                **config.__dict__,
+                "candidate_content_commit_sha": candidate_sha,
+            }),
+            comments=comments,
+            queue_fetcher=self.queue(comments),
+            comment_fetcher=self.fetcher(comments),
+        )
+        receipt = json.loads(
+            sealed_files["ledger/receipts/batches/batch-watermark-sealed-a128.json"].decode("utf-8")
+        )
+        self.assertEqual(dry_evidence["source_comment_watermark"], 9002)
+        self.assertEqual(sealed_evidence["source_comment_watermark"], 9002)
+        self.assertEqual(receipt["source_comment_watermark"], 9002)
+        self.assertEqual(receipt["source_comment_ids"], [9001, 9002])
+        self.assertEqual(receipt["selected_comment_ids"], [9001, 9002])
+        self.assertEqual(receipt["full_queue_count"], 2)
+        self.assertEqual(receipt["latest_observed_comment_id"], 9002)
+        self.assertEqual(receipt["terminal_outcome_count"], 2)
+        self.assertNotIn("9003", receipt["terminal_outcomes"])
+        self.assertTrue(sealed_evidence["receipt_sealed"])
+        for relative_path in (
+            "evaluations.jsonl",
+            "ledger/dispositions.jsonl",
+            "README.md",
+            "scorecard.md",
+            "analysis/model-recommendation.json",
+        ):
+            self.assertEqual(candidate_files[relative_path], sealed_files[relative_path])
+
+    def test_changed_watermark_rejects_existing_candidate_integrity(self):
+        comments = self.comments() + [{
+            "id": 9003,
+            "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+            "author_association": "OWNER",
+            "body": "later comment 9003",
+            "created_at": "2026-07-29T10:03:00Z",
+            "updated_at": "2026-07-29T10:03:00Z",
+        }]
+        config = self.config("batch-watermark-changed-a128", source_comment_watermark=9002)
+        candidate_files, _ = build_batch_candidate(
+            config,
+            comments=comments,
+            queue_fetcher=self.queue(comments),
+            comment_fetcher=self.fetcher(comments),
+        )
+        candidate_sha = self.commit_candidate_files(candidate_files)
+        changed = ProcessBatchConfig(**{
+            **config.__dict__,
+            "source_comment_watermark": 9003,
+            "candidate_content_commit_sha": candidate_sha,
+        })
+        with self.assertRaises(ProcessorError) as raised:
+            build_batch_candidate(
+                changed,
+                comments=comments,
+                queue_fetcher=self.queue(comments),
+                comment_fetcher=self.fetcher(comments),
+            )
+        self.assertEqual(raised.exception.code, "processor_integrity_failure")
+
+    def test_cli_requires_explicit_non_frozen_watermark(self):
+        args = [
+            "--mode", "initial",
+            "--base-sha", BASE_AUTHORITY_SHA,
+            "--canonical-main-sha", BASE_AUTHORITY_SHA,
+            "--batch-id", "batch-cli-watermark-a128",
+            "--controller-run-id", "controller-cli-watermark-a128",
+            "--pr-number", "181",
+            "--expected-head-sha", CURRENT_HEAD_SHA,
+            "--activation-mode", "dry-run",
+            "--dry-run",
+            "--source-issue-number", "142",
+            "--receipt-issue-number", "143",
+            "--repository-root", str(ROOT),
+        ]
+        parsed = parse_cli(args + ["--source-comment-watermark", "9002"])
+        self.assertEqual(parsed.source_comment_watermark, 9002)
+        with self.assertRaises(ProcessorError):
+            parse_cli(args)
+        with self.assertRaises(ProcessorError):
+            parse_cli(args + ["--source-comment-watermark", "-1"])
+        with self.assertRaises(SystemExit):
+            parse_cli(args + ["--source-comment-watermark", "invalid"])
 
     def test_frozen_batch_refuses_incomplete_source_replay(self):
         with self.assertRaises(ProcessorError) as ctx:

@@ -95,6 +95,7 @@ class ProcessBatchConfig:
     checks_state: Optional[str] = None
     review_state: Optional[str] = None
     candidate_content_commit_sha: Optional[str] = None
+    source_comment_watermark: Optional[int] = None
 
 
 def compute_sha256(content: bytes) -> str:
@@ -119,6 +120,57 @@ def read_git_object(repository_root: Path, revision: str, relative_path: str) ->
         raise ProcessorError("authority_missing")
     result = _run_git(repository_root, ["show", f"{revision}:{relative_path}"])
     return result.stdout
+
+
+def _valid_source_comment_watermark(value: Any) -> bool:
+    return (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and value >= 0
+    )
+
+
+def _replay_source_comment_watermark(
+    config: ProcessBatchConfig,
+) -> Optional[int]:
+    if config.candidate_content_commit_sha is None:
+        return None
+    try:
+        raw = read_git_object(
+            config.repository_root,
+            config.expected_head_sha,
+            f"ledger/receipts/batches/{config.batch_id}.json",
+        )
+        receipt = json.loads(
+            raw.decode("utf-8", errors="strict"),
+            object_pairs_hook=reject_duplicate_json_keys,
+            parse_constant=_reject_nonfinite_constant,
+        )
+    except (ProcessorError, UnicodeDecodeError, TypeError, ValueError):
+        return None
+    watermark = (
+        receipt.get("source_comment_watermark")
+        if isinstance(receipt, dict)
+        else None
+    )
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("batch_id") != config.batch_id
+        or not _valid_source_comment_watermark(watermark)
+    ):
+        return None
+    return watermark
+
+
+def _source_comment_watermark(config: ProcessBatchConfig) -> Optional[int]:
+    if config.batch_id == FROZEN_BATCH_ID:
+        return None
+    watermark = config.source_comment_watermark
+    if watermark is None:
+        watermark = _replay_source_comment_watermark(config)
+    if not _valid_source_comment_watermark(watermark):
+        raise ProcessorError("processor_invalid_contract")
+    return watermark
 
 
 def list_git_paths(repository_root: Path, revision: str, prefix: str) -> List[str]:
@@ -306,6 +358,7 @@ def _comment_fingerprint(comment: Mapping[str, Any]) -> Dict[str, Any]:
     updated_at = comment.get("updated_at")
     if (
         not isinstance(comment_id, int)
+        or isinstance(comment_id, bool)
         or comment_id <= 0
         or not isinstance(body, str)
         or not valid_author_login(author)
@@ -326,9 +379,8 @@ def _comment_fingerprint(comment: Mapping[str, Any]) -> Dict[str, Any]:
 
 def _queue_snapshot(comments: Iterable[Mapping[str, Any]]) -> Tuple[List[Dict[str, Any]], str]:
     fingerprints = [_comment_fingerprint(comment) for comment in comments]
-    fingerprints.sort(key=lambda item: item["id"])
     ids = [item["id"] for item in fingerprints]
-    if len(ids) != len(set(ids)):
+    if len(ids) != len(set(ids)) or ids != sorted(ids):
         raise ProcessorError("source_changed")
     return fingerprints, sha256_bytes(canonical_json_bytes(fingerprints))
 
@@ -347,8 +399,14 @@ def _bounded_queue_snapshot(
     if not isinstance(watermark, int) or isinstance(watermark, bool) or watermark < 0:
         raise ProcessorError("processor_invalid_contract")
     fingerprints, _ = _queue_snapshot(comments)
+    if watermark != 0 and not any(item["id"] == watermark for item in fingerprints):
+        raise ProcessorError("source_changed")
     bounded = [item for item in fingerprints if item["id"] <= watermark]
-    return bounded, sha256_bytes(canonical_json_bytes(bounded)), len(fingerprints) - len(bounded)
+    return (
+        bounded,
+        sha256_bytes(canonical_json_bytes(bounded)),
+        len(fingerprints) - len(bounded),
+    )
 
 
 def _comment_author_identity(comment: Mapping[str, Any]) -> tuple[int, str, str]:
@@ -417,6 +475,13 @@ def _validate_config(config: ProcessBatchConfig) -> None:
         raise ProcessorError("processor_invalid_contract")
     if not valid_identifier(config.batch_id) or not valid_identifier(config.controller_run_id):
         raise ProcessorError("processor_invalid_contract")
+    if (
+        config.source_comment_watermark is not None
+        and not _valid_source_comment_watermark(config.source_comment_watermark)
+    ):
+        raise ProcessorError("processor_invalid_contract")
+    if config.batch_id != FROZEN_BATCH_ID:
+        _source_comment_watermark(config)
     if not isinstance(config.pr_number, int) or config.pr_number <= 0:
         raise ProcessorError("processor_invalid_contract")
     if config.source_issue_number != 142 or config.receipt_issue_number != 143:
@@ -651,15 +716,21 @@ def build_batch_candidate(
         raise ProcessorError("receipt_conflict")
     if comments is None:
         comments = queue_fetcher(config.repository_root)
-    comments = sorted(comments, key=lambda item: item.get("id", 0))
     owner_fetcher = owner_fetcher or fetch_repository_owner_authority
     owner_authority = owner_fetcher(config.repository_root)
-    all_first_fingerprints, _ = _queue_snapshot(comments)
-    source_comment_watermark = all_first_fingerprints[-1]["id"] if all_first_fingerprints else 0
-    first_fingerprints = [item for item in all_first_fingerprints if item["id"] <= source_comment_watermark]
-    first_queue_hash = sha256_bytes(canonical_json_bytes(first_fingerprints))
+    source_comment_watermark = _source_comment_watermark(config)
+    if source_comment_watermark is None:
+        raise ProcessorError("processor_invalid_contract")
+    first_fingerprints, first_queue_hash, _ = _bounded_queue_snapshot(
+        comments,
+        source_comment_watermark,
+    )
+    selected_comments = [
+        comment for comment in comments
+        if comment["id"] <= source_comment_watermark
+    ]
 
-    for comment in comments:
+    for comment in selected_comments:
         fresh = comment_fetcher(int(comment["id"]), config.repository_root)
         _verify_selected_comment(comment, fresh)
 
@@ -690,7 +761,7 @@ def build_batch_candidate(
     bindings: List[Dict[str, Any]] = []
     admitted_run_ids: List[str] = []
 
-    for comment, fingerprint in zip(comments, first_fingerprints):
+    for comment, fingerprint in zip(selected_comments, first_fingerprints):
         comment_id = int(comment["id"])
         code, payload, _ = _parse_authorized_intake_comment(
             comment,
@@ -778,6 +849,15 @@ def build_batch_candidate(
     final_fingerprints, final_queue_hash, later_comment_count = _bounded_queue_snapshot(
         final_comments, source_comment_watermark
     )
+    final_selected_comments = [
+        comment
+        for comment in final_comments
+        if comment["id"] <= source_comment_watermark
+    ]
+    if len(final_selected_comments) != len(selected_comments):
+        raise ProcessorError("source_changed")
+    for initial, final in zip(selected_comments, final_selected_comments):
+        _verify_selected_comment(initial, final)
     if first_queue_hash != final_queue_hash or first_fingerprints != final_fingerprints:
         raise ProcessorError("source_changed")
 
@@ -982,6 +1062,7 @@ def parse_cli(argv: Optional[List[str]] = None) -> ProcessBatchConfig:
     parser.add_argument("--source-issue-number", type=int, required=True)
     parser.add_argument("--receipt-issue-number", type=int, required=True)
     parser.add_argument("--repository-root", type=Path, required=True)
+    parser.add_argument("--source-comment-watermark", type=int)
     parser.add_argument("--operator-intent", choices=["reviewed"])
     parser.add_argument("--reviewed-pr-state", choices=["open", "merged"])
     parser.add_argument("--merge-state", choices=["unmerged", "merged"])
@@ -1007,6 +1088,7 @@ def parse_cli(argv: Optional[List[str]] = None) -> ProcessBatchConfig:
         checks_state=args.checks_state,
         review_state=args.review_state,
         candidate_content_commit_sha=args.candidate_content_commit_sha,
+        source_comment_watermark=args.source_comment_watermark,
     )
     _validate_config(config)
     return config
