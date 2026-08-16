@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
@@ -18,8 +19,8 @@ from scripts.processor.common import (
     ProcessorError,
     canonical_json_bytes,
     canonical_json_line_bytes,
-    git_tree_file_bindings,
     git_tree_manifest_sha256,
+    is_representable_manifest_path,
     reject_duplicate_json_keys,
     safe_author_hash,
     safe_comment_body_hash,
@@ -174,6 +175,7 @@ def candidate_commit_authority_message(
     ) + "\n"
 
 
+
 def _validate_candidate_commit_authority(
     config: ProcessBatchConfig,
     candidate_content_commit_sha: str,
@@ -190,18 +192,207 @@ def _validate_candidate_commit_authority(
             ["rev-list", "--parents", "-n", "1", candidate_content_commit_sha],
             text=True,
         ).stdout.strip().split()
-        _run_git(
-            config.repository_root,
-            ["merge-base", "--is-ancestor", config.base_sha, candidate_content_commit_sha],
-        )
     except ProcessorError:
         raise ProcessorError("processor_integrity_failure")
     if message.endswith("\n\n"):
         message = message[:-1]
     if message != candidate_commit_authority_message(config, queue_snapshot_sha256):
         raise ProcessorError("processor_integrity_failure")
-    if len(topology) != 2 or topology[0] != candidate_content_commit_sha:
+    if (
+        len(topology) != 2
+        or topology[0] != candidate_content_commit_sha
+        or topology[1] != config.base_sha
+    ):
         raise ProcessorError("processor_integrity_failure")
+
+
+def _git_blob_sha(repository_root: Path, content: bytes) -> str:
+    result = subprocess.run(
+        ["git", "hash-object", "--stdin"],
+        cwd=repository_root,
+        input=content,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise ProcessorError("processor_integrity_failure")
+    try:
+        value = result.stdout.decode("ascii").strip()
+    except UnicodeDecodeError as error:
+        raise ProcessorError("processor_integrity_failure") from error
+    if not valid_git_sha(value):
+        raise ProcessorError("processor_integrity_failure")
+    return value
+
+
+def _git_tree_bindings(
+    repository_root: Path,
+    revision: str,
+) -> Tuple[List[Dict[str, str]], Dict[str, bytes]]:
+    listing = subprocess.run(
+        ["git", "ls-tree", "-r", "--full-tree", "-z", revision],
+        cwd=repository_root,
+        capture_output=True,
+        check=False,
+    )
+    if listing.returncode != 0:
+        raise ProcessorError("processor_integrity_failure")
+
+    entries: List[Tuple[str, str, str]] = []
+    for raw_entry in listing.stdout.split(b"\0"):
+        if not raw_entry:
+            continue
+        try:
+            metadata, raw_path = raw_entry.split(b"\t", 1)
+            mode, object_type, object_sha = metadata.decode("ascii").split(" ")
+            relative_path = raw_path.decode("utf-8", errors="strict")
+        except (UnicodeDecodeError, ValueError):
+            raise ProcessorError("processor_integrity_failure")
+        if (
+            object_type != "blob"
+            or not valid_git_sha(object_sha)
+            or not is_representable_manifest_path(relative_path)
+        ):
+            raise ProcessorError("processor_integrity_failure")
+        entries.append((relative_path, mode, object_sha))
+    if len({item[0] for item in entries}) != len(entries):
+        raise ProcessorError("processor_integrity_failure")
+
+    requested = b"".join(
+        f"{object_sha}\n".encode("ascii")
+        for _path, _mode, object_sha in entries
+    )
+    blobs_result = subprocess.run(
+        ["git", "cat-file", "--batch"],
+        cwd=repository_root,
+        input=requested,
+        capture_output=True,
+        check=False,
+    )
+    if blobs_result.returncode != 0:
+        raise ProcessorError("processor_integrity_failure")
+    contents: Dict[str, bytes] = {}
+    cursor = 0
+    for relative_path, _mode, object_sha in entries:
+        header_end = blobs_result.stdout.find(b"\n", cursor)
+        if header_end < 0:
+            raise ProcessorError("processor_integrity_failure")
+        header = blobs_result.stdout[cursor:header_end].split()
+        if (
+            len(header) != 3
+            or header[0].decode("ascii", errors="ignore") != object_sha
+            or header[1] != b"blob"
+        ):
+            raise ProcessorError("processor_integrity_failure")
+        try:
+            size = int(header[2])
+        except ValueError:
+            raise ProcessorError("processor_integrity_failure")
+        content_start = header_end + 1
+        content_end = content_start + size
+        content = blobs_result.stdout[content_start:content_end]
+        if len(content) != size or blobs_result.stdout[content_end:content_end + 1] != b"\n":
+            raise ProcessorError("processor_integrity_failure")
+        contents[relative_path] = content
+        cursor = content_end + 1
+
+    bindings = [
+        {
+            "path": relative_path,
+            "mode": mode,
+            "blob_sha": object_sha,
+            "content_sha256": sha256_bytes(contents[relative_path]),
+        }
+        for relative_path, mode, object_sha in entries
+    ]
+    bindings.sort(key=lambda item: item["path"])
+    contents = {
+        item["path"]: contents[item["path"]]
+        for item in bindings
+    }
+    return bindings, contents
+
+
+def _validate_candidate_commit_tree(
+    config: ProcessBatchConfig,
+    candidate_content_commit_sha: str,
+    canonical_files: Mapping[str, bytes],
+    existing_receipt_path: str,
+) -> Tuple[List[Dict[str, str]], Dict[str, bytes]]:
+    """Prove the candidate commit is exactly base-tree plus processor output."""
+
+    try:
+        base_bindings, _ = _git_tree_bindings(
+            config.repository_root,
+            config.base_sha,
+        )
+        candidate_bindings, candidate_contents = _git_tree_bindings(
+            config.repository_root,
+            candidate_content_commit_sha,
+        )
+    except ProcessorError as error:
+        raise ProcessorError("processor_integrity_failure") from error
+
+    base_by_path = {item["path"]: item for item in base_bindings}
+    if existing_receipt_path in base_by_path:
+        raise ProcessorError("receipt_conflict")
+    if any(path == existing_receipt_path for path in canonical_files):
+        raise ProcessorError("processor_integrity_failure")
+
+    expected_by_path = {
+        item["path"]: dict(item)
+        for item in base_bindings
+    }
+    for relative_path, content in canonical_files.items():
+        if not isinstance(relative_path, str) or not isinstance(content, bytes):
+            raise ProcessorError("processor_integrity_failure")
+        existing = base_by_path.get(relative_path)
+        if existing is not None and existing["mode"] != "100644":
+            raise ProcessorError("processor_integrity_failure")
+        expected_by_path[relative_path] = {
+            "path": relative_path,
+            "mode": "100644",
+            "blob_sha": _git_blob_sha(config.repository_root, content),
+            "content_sha256": sha256_bytes(content),
+        }
+
+    expected_bindings = sorted(
+        expected_by_path.values(),
+        key=lambda item: item["path"],
+    )
+    if candidate_bindings != expected_bindings:
+        raise ProcessorError("processor_integrity_failure")
+    return candidate_bindings, candidate_contents
+
+
+def _candidate_files_from_bindings(
+    bindings: Iterable[Mapping[str, str]],
+    contents: Mapping[str, bytes],
+    overlays: Mapping[str, bytes],
+) -> Tuple[Dict[str, bytes], Dict[str, str]]:
+    files: Dict[str, bytes] = {}
+    modes: Dict[str, str] = {}
+    for binding in bindings:
+        mode = binding["mode"]
+        if mode not in {"100644", "100755"}:
+            raise ProcessorError("processor_integrity_failure")
+        relative = Path(binding["path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ProcessorError("processor_integrity_failure")
+        content = contents.get(binding["path"])
+        if content is None:
+            raise ProcessorError("processor_integrity_failure")
+        if sha256_bytes(content) != binding["content_sha256"]:
+            raise ProcessorError("processor_integrity_failure")
+        files[binding["path"]] = content
+        modes[binding["path"]] = mode
+    for relative_path, content in overlays.items():
+        if not isinstance(relative_path, str) or not isinstance(content, bytes):
+            raise ProcessorError("processor_integrity_failure")
+        files[relative_path] = content
+        modes[relative_path] = "100644"
+    return files, modes
+
 
 
 def list_git_paths(repository_root: Path, revision: str, prefix: str) -> List[str]:
@@ -955,11 +1146,18 @@ def build_batch_candidate(
                 relative_path,
             ) != expected:
                 raise ProcessorError("processor_integrity_failure")
-        candidate_manifest = git_tree_file_bindings(
-            config.repository_root,
+        candidate_bindings, candidate_contents = _validate_candidate_commit_tree(
+            config,
             config.candidate_content_commit_sha,
-            excluded_paths=(existing_receipt_path,),
+            canonical_files,
+            existing_receipt_path,
         )
+        if any(
+            item["path"] == existing_receipt_path
+            for item in candidate_bindings
+        ):
+            raise ProcessorError("processor_integrity_failure")
+        candidate_manifest = list(candidate_bindings)
         batch_receipt = {
             "schema_version": 2,
             "receipt_type": "batch",
@@ -1005,16 +1203,45 @@ def build_batch_candidate(
         ).encode("utf-8")
         candidate_files[existing_receipt_path] = receipt_bytes
 
-    with build_complete_candidate_tree(config.repository_root, candidate_files) as candidate_tree:
-        _validate_candidate_tree(
-            candidate_tree.path,
-            candidate_files,
-            final_record_objects,
-            final_disposition_objects,
-            batch_receipt,
+    if config.candidate_content_commit_sha is not None:
+        if candidate_bindings is None:
+            raise ProcessorError("processor_integrity_failure")
+        exact_files, exact_modes = _candidate_files_from_bindings(
+            candidate_bindings,
+            candidate_contents,
+            {existing_receipt_path: receipt_bytes}
+            if receipt_bytes is not None
+            else {},
         )
-        if failure_hook:
-            failure_hook("candidate_validation_complete", "")
+        with tempfile.TemporaryDirectory(prefix="ledger-candidate-exact-") as raw:
+            candidate_tree_path = Path(raw)
+            for relative_path, content in exact_files.items():
+                target = candidate_tree_path.joinpath(*Path(relative_path).parts)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(content)
+                if exact_modes[relative_path] == "100755":
+                    target.chmod(0o755)
+            _validate_candidate_tree(
+                candidate_tree_path,
+                exact_files,
+                final_record_objects,
+                final_disposition_objects,
+                batch_receipt,
+            )
+    else:
+        with build_complete_candidate_tree(
+            config.repository_root,
+            candidate_files,
+        ) as candidate_tree:
+            _validate_candidate_tree(
+                candidate_tree.path,
+                candidate_files,
+                final_record_objects,
+                final_disposition_objects,
+                batch_receipt,
+            )
+    if failure_hook:
+        failure_hook("candidate_validation_complete", "")
 
     return candidate_files, {
         "status": "CANDIDATE_VALIDATED",

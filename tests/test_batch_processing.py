@@ -19,6 +19,7 @@ from scripts.processor.batch_processor import (
 from scripts.processor.common import (
     ProcessorError,
     canonical_json_line_bytes,
+    git_tree_file_bindings,
     sha256_bytes,
 )
 from scripts.processor.intake_parser import canonical_record_from_payload
@@ -26,7 +27,7 @@ from scripts.processor.frozen_replay import _jsonl_records
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_MAIN = "27748b1fa4b70eb69f18047c31ec97c3505beb88"
-BASE_AUTHORITY_SHA = "d54fb99da162f49ccb616a8756725b9aea83ac1d"
+BASE_AUTHORITY_SHA = "ff11fdd861633ea2e375c6b61e98cdddef077f85"
 STARTING_HEAD_SHA = "90c75c00192fbb759a5c756b697cb3d7cfc7dab1"
 
 
@@ -162,6 +163,12 @@ class TestBatchProcessing(unittest.TestCase):
         queue_snapshot_sha256=None,
         parent_sha=BASE_AUTHORITY_SHA,
         commit_message=None,
+        *,
+        extra_files=None,
+        remove_paths=(),
+        mode_overrides=None,
+        include_parent=True,
+        additional_parent_sha=None,
     ):
         if commit_message is None:
             if config is None or queue_snapshot_sha256 is None:
@@ -208,6 +215,58 @@ class TestBatchProcessing(unittest.TestCase):
                     env=git_env,
                     check=True,
                 )
+            for relative_path, content in (extra_files or {}).items():
+                blob_sha = subprocess.run(
+                    ["git", "hash-object", "-w", "--stdin"],
+                    cwd=ROOT,
+                    env=git_env,
+                    input=content,
+                    capture_output=True,
+                    check=True,
+                ).stdout.decode("ascii").strip()
+                subprocess.run(
+                    [
+                        "git",
+                        "update-index",
+                        "--add",
+                        "--cacheinfo",
+                        "100644",
+                        blob_sha,
+                        relative_path,
+                    ],
+                    cwd=ROOT,
+                    env=git_env,
+                    check=True,
+                )
+            for relative_path in remove_paths:
+                subprocess.run(
+                    ["git", "update-index", "--force-remove", "--", relative_path],
+                    cwd=ROOT,
+                    env=git_env,
+                    check=True,
+                )
+            for relative_path, mode in (mode_overrides or {}).items():
+                blob_sha = subprocess.run(
+                    ["git", "rev-parse", f"{parent_sha}:{relative_path}"],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                ).stdout.strip()
+                subprocess.run(
+                    [
+                        "git",
+                        "update-index",
+                        "--add",
+                        "--cacheinfo",
+                        mode,
+                        blob_sha,
+                        relative_path,
+                    ],
+                    cwd=ROOT,
+                    env=git_env,
+                    check=True,
+                )
             tree_sha = subprocess.run(
                 ["git", "write-tree"],
                 cwd=ROOT,
@@ -216,8 +275,14 @@ class TestBatchProcessing(unittest.TestCase):
                 text=True,
                 check=True,
             ).stdout.strip()
+            command = ["git", "commit-tree", tree_sha]
+            if include_parent:
+                command.extend(["-p", parent_sha])
+            if additional_parent_sha is not None:
+                command.extend(["-p", additional_parent_sha])
+            command.extend(["-m", commit_message])
             return subprocess.run(
-                ["git", "commit-tree", tree_sha, "-p", parent_sha, "-m", commit_message],
+                command,
                 cwd=ROOT,
                 env=git_env,
                 capture_output=True,
@@ -915,6 +980,10 @@ class TestBatchProcessing(unittest.TestCase):
         self.assertEqual(receipt["latest_observed_comment_id"], 9002)
         self.assertEqual(receipt["terminal_outcome_count"], 2)
         self.assertNotIn("9003", receipt["terminal_outcomes"])
+        self.assertEqual(
+            receipt["candidate_content_manifest"],
+            git_tree_file_bindings(ROOT, candidate_sha),
+        )
         self.assertTrue(sealed_evidence["receipt_sealed"])
         for relative_path in (
             "evaluations.jsonl",
@@ -1072,6 +1141,168 @@ class TestBatchProcessing(unittest.TestCase):
                 with self.assertRaises(ProcessorError) as raised:
                     build_batch_candidate(
                         sealed_config,
+                        comments=comments,
+                        queue_fetcher=self.queue(comments),
+                        comment_fetcher=self.fetcher(comments),
+                    )
+                self.assertEqual(raised.exception.code, "processor_integrity_failure")
+
+    def test_candidate_commit_requires_exact_base_single_parent(self):
+        comments = self.comments()
+        config = self.config("batch-candidate-topology-a132", source_comment_watermark=9002)
+        candidate_files, evidence = build_batch_candidate(
+            config,
+            comments=comments,
+            queue_fetcher=self.queue(comments),
+            comment_fetcher=self.fetcher(comments),
+        )
+
+        exact = self.commit_candidate_files(
+            candidate_files,
+            config=config,
+            queue_snapshot_sha256=evidence["snapshot_hash"],
+        )
+        sealed = build_batch_candidate(
+            ProcessBatchConfig(**{
+                **config.__dict__,
+                "candidate_content_commit_sha": exact,
+            }),
+            comments=comments,
+            queue_fetcher=self.queue(comments),
+            comment_fetcher=self.fetcher(comments),
+        )
+        self.assertTrue(sealed[1]["receipt_sealed"])
+
+        descendant = self.commit_candidate_files(
+            candidate_files,
+            commit_message="descendant intermediate",
+        )
+        unrelated = self.commit_candidate_files(
+            candidate_files,
+            commit_message="unrelated root",
+            include_parent=False,
+        )
+        merge = self.commit_candidate_files(
+            candidate_files,
+            commit_message="merge intermediate",
+            additional_parent_sha=unrelated,
+        )
+        variants = {
+            "descendant": self.commit_candidate_files(
+                candidate_files,
+                config=config,
+                queue_snapshot_sha256=evidence["snapshot_hash"],
+                parent_sha=descendant,
+            ),
+            "unrelated": self.commit_candidate_files(
+                candidate_files,
+                config=config,
+                queue_snapshot_sha256=evidence["snapshot_hash"],
+                parent_sha=unrelated,
+            ),
+            "merge": self.commit_candidate_files(
+                candidate_files,
+                config=config,
+                queue_snapshot_sha256=evidence["snapshot_hash"],
+                parent_sha=merge,
+            ),
+            "no-parent": self.commit_candidate_files(
+                candidate_files,
+                config=config,
+                queue_snapshot_sha256=evidence["snapshot_hash"],
+                include_parent=False,
+            ),
+        }
+        for label, candidate_sha in variants.items():
+            with self.subTest(label=label):
+                with self.assertRaises(ProcessorError) as raised:
+                    build_batch_candidate(
+                        ProcessBatchConfig(**{
+                            **config.__dict__,
+                            "candidate_content_commit_sha": candidate_sha,
+                        }),
+                        comments=comments,
+                        queue_fetcher=self.queue(comments),
+                        comment_fetcher=self.fetcher(comments),
+                    )
+                self.assertEqual(raised.exception.code, "processor_integrity_failure")
+
+    def test_candidate_complete_tree_rejects_unexpected_paths_and_bindings(self):
+        comments = self.comments()
+        config = self.config("batch-candidate-tree-matrix-a132", source_comment_watermark=9002)
+        candidate_files, evidence = build_batch_candidate(
+            config,
+            comments=comments,
+            queue_fetcher=self.queue(comments),
+            comment_fetcher=self.fetcher(comments),
+        )
+        canonical_paths = {
+            "evaluations.jsonl",
+            "ledger/dispositions.jsonl",
+            "README.md",
+            "scorecard.md",
+            "analysis/model-recommendation.json",
+        }
+        untouched = None
+        for line in subprocess.run(
+            ["git", "ls-tree", "-r", "--name-only", BASE_AUTHORITY_SHA],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.splitlines():
+            if line not in canonical_paths:
+                mode = subprocess.run(
+                    ["git", "ls-tree", BASE_AUTHORITY_SHA, "--", line],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                ).stdout.split(" ", 1)[0]
+                if mode == "100644":
+                    untouched = line
+                    break
+        self.assertIsNotNone(untouched)
+        receipt_path = f"ledger/receipts/batches/{config.batch_id}.json"
+        newline = bytes([10])
+        variants = {
+            "extra": {
+                "extra_files": {
+                    "candidate-extra-a132.txt": b"ordinary extra" + newline,
+                }
+            },
+            "delete": {"remove_paths": (untouched,)},
+            "modify": {
+                "extra_files": {untouched: b"untouched mutation" + newline}
+            },
+            "mode": {"mode_overrides": {untouched: "100755"}},
+            "symlink": {
+                "extra_files": {untouched: b"symlink-target" + newline},
+                "mode_overrides": {untouched: "120000"},
+            },
+            "receipt-path": {
+                "extra_files": {receipt_path: b"{}" + newline}
+            },
+            "unsafe-extra": {
+                "extra_files": {
+                    "candidate-unsafe-a132.txt": b"unsafe sentinel" + newline,
+                }
+            },
+        }
+        for label, changes in variants.items():
+            with self.subTest(label=label):
+                candidate_sha = self.commit_candidate_files(
+                    candidate_files,
+                    config=config,
+                    queue_snapshot_sha256=evidence["snapshot_hash"],
+                    **changes,
+                )
+                with self.assertRaises(ProcessorError) as raised:
+                    build_batch_candidate(
+                        ProcessBatchConfig(**{
+                            **config.__dict__,
+                            "candidate_content_commit_sha": candidate_sha,
+                        }),
                         comments=comments,
                         queue_fetcher=self.queue(comments),
                         comment_fetcher=self.fetcher(comments),

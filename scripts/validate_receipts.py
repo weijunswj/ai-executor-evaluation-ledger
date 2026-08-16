@@ -834,6 +834,7 @@ def _validate_github_intake_source_replay(
             receipt_issue_number=receipt["receipt_issue_number"],
             repository_root=root,
             candidate_content_commit_sha=candidate_sha,
+            source_comment_watermark=receipt["source_comment_watermark"],
         )
         candidate_files, evidence = build_batch_candidate(
             config,
