@@ -27,6 +27,7 @@ from scripts.processor.common import (
     validate_batch_receipt_closure,
     valid_author_login,
     valid_git_sha,
+    valid_sha256,
     valid_identifier,
     valid_timestamp,
 )
@@ -98,6 +99,16 @@ class ProcessBatchConfig:
     source_comment_watermark: Optional[int] = None
 
 
+CANDIDATE_COMMIT_AUTHORITY_MARKER = "ledger-batch-candidate:v1"
+CANDIDATE_COMMIT_AUTHORITY_KEYS = (
+    "batch_id",
+    "controller_run_id",
+    "base_sha",
+    "source_comment_watermark",
+    "queue_snapshot_sha256",
+)
+
+
 def compute_sha256(content: bytes) -> str:
     return sha256_bytes(content)
 
@@ -130,47 +141,67 @@ def _valid_source_comment_watermark(value: Any) -> bool:
     )
 
 
-def _replay_source_comment_watermark(
-    config: ProcessBatchConfig,
-) -> Optional[int]:
-    if config.candidate_content_commit_sha is None:
-        return None
-    try:
-        raw = read_git_object(
-            config.repository_root,
-            config.expected_head_sha,
-            f"ledger/receipts/batches/{config.batch_id}.json",
-        )
-        receipt = json.loads(
-            raw.decode("utf-8", errors="strict"),
-            object_pairs_hook=reject_duplicate_json_keys,
-            parse_constant=_reject_nonfinite_constant,
-        )
-    except (ProcessorError, UnicodeDecodeError, TypeError, ValueError):
-        return None
-    watermark = (
-        receipt.get("source_comment_watermark")
-        if isinstance(receipt, dict)
-        else None
-    )
-    if (
-        not isinstance(receipt, dict)
-        or receipt.get("batch_id") != config.batch_id
-        or not _valid_source_comment_watermark(watermark)
-    ):
-        return None
-    return watermark
-
-
 def _source_comment_watermark(config: ProcessBatchConfig) -> Optional[int]:
     if config.batch_id == FROZEN_BATCH_ID:
         return None
     watermark = config.source_comment_watermark
-    if watermark is None:
-        watermark = _replay_source_comment_watermark(config)
     if not _valid_source_comment_watermark(watermark):
         raise ProcessorError("processor_invalid_contract")
     return watermark
+
+
+def candidate_commit_authority_message(
+    config: ProcessBatchConfig,
+    queue_snapshot_sha256: str,
+) -> str:
+    """Return the closed, public-safe commit metadata contract for a candidate."""
+
+    if config.batch_id == FROZEN_BATCH_ID:
+        raise ProcessorError("processor_invalid_contract")
+    watermark = _source_comment_watermark(config)
+    if not valid_sha256(queue_snapshot_sha256):
+        raise ProcessorError("processor_invalid_contract")
+    values = {
+        "batch_id": config.batch_id,
+        "controller_run_id": config.controller_run_id,
+        "base_sha": config.base_sha,
+        "source_comment_watermark": str(watermark),
+        "queue_snapshot_sha256": queue_snapshot_sha256,
+    }
+    return "\n".join(
+        [CANDIDATE_COMMIT_AUTHORITY_MARKER]
+        + [f"{key}={values[key]}" for key in CANDIDATE_COMMIT_AUTHORITY_KEYS]
+    ) + "\n"
+
+
+def _validate_candidate_commit_authority(
+    config: ProcessBatchConfig,
+    candidate_content_commit_sha: str,
+    queue_snapshot_sha256: str,
+) -> None:
+    try:
+        message = _run_git(
+            config.repository_root,
+            ["show", "-s", "--format=%B", candidate_content_commit_sha],
+            text=True,
+        ).stdout
+        topology = _run_git(
+            config.repository_root,
+            ["rev-list", "--parents", "-n", "1", candidate_content_commit_sha],
+            text=True,
+        ).stdout.strip().split()
+        _run_git(
+            config.repository_root,
+            ["merge-base", "--is-ancestor", config.base_sha, candidate_content_commit_sha],
+        )
+    except ProcessorError:
+        raise ProcessorError("processor_integrity_failure")
+    if message.endswith("\n\n"):
+        message = message[:-1]
+    if message != candidate_commit_authority_message(config, queue_snapshot_sha256):
+        raise ProcessorError("processor_integrity_failure")
+    if len(topology) != 2 or topology[0] != candidate_content_commit_sha:
+        raise ProcessorError("processor_integrity_failure")
 
 
 def list_git_paths(repository_root: Path, revision: str, prefix: str) -> List[str]:
@@ -352,8 +383,7 @@ def fetch_live_canonical_main_sha(repository_root: Path = ROOT) -> str:
 def _comment_fingerprint(comment: Mapping[str, Any]) -> Dict[str, Any]:
     comment_id = comment.get("id")
     body = comment.get("body")
-    user = comment.get("user")
-    author = user.get("login") if isinstance(user, dict) else None
+    numeric_id, author, association = _comment_author_identity(comment)
     created_at = comment.get("created_at")
     updated_at = comment.get("updated_at")
     if (
@@ -361,7 +391,6 @@ def _comment_fingerprint(comment: Mapping[str, Any]) -> Dict[str, Any]:
         or isinstance(comment_id, bool)
         or comment_id <= 0
         or not isinstance(body, str)
-        or not valid_author_login(author)
     ):
         raise ProcessorError("source_changed")
     if created_at is not None and not isinstance(created_at, str):
@@ -370,7 +399,9 @@ def _comment_fingerprint(comment: Mapping[str, Any]) -> Dict[str, Any]:
         raise ProcessorError("source_changed")
     return {
         "id": comment_id,
+        "author_id": numeric_id,
         "author_sha256": safe_author_hash(author),
+        "author_association": association,
         "created_at": created_at,
         "updated_at": updated_at,
         "body_sha256": safe_comment_body_hash(body),
@@ -725,6 +756,12 @@ def build_batch_candidate(
         comments,
         source_comment_watermark,
     )
+    if config.candidate_content_commit_sha is not None:
+        _validate_candidate_commit_authority(
+            config,
+            config.candidate_content_commit_sha,
+            first_queue_hash,
+        )
     selected_comments = [
         comment for comment in comments
         if comment["id"] <= source_comment_watermark
