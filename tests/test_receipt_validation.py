@@ -1586,5 +1586,50 @@ class TestA13ManifestPathContract(unittest.TestCase):
                 )
 
 
+
+class TestA14SharedTreeFraming(unittest.TestCase):
+    revision = "a" * 40
+    object_sha = "b" * 40
+
+    def run_helper(self, listing: bytes):
+        def runner(args, **_kwargs):
+            if args[1] == "ls-tree":
+                return SimpleNamespace(returncode=0, stdout=listing)
+            if args[1] == "cat-file":
+                return SimpleNamespace(returncode=0, stdout=b"payload")
+            raise AssertionError(args)
+
+        with mock.patch(
+            "scripts.processor.common.subprocess.run",
+            side_effect=runner,
+        ):
+            return git_tree_file_bindings(Path("."), self.revision)
+
+    def test_empty_tree_is_valid(self):
+        self.assertEqual(self.run_helper(b""), [])
+
+    def test_incomplete_or_ambiguous_ls_tree_framing_fails_closed(self):
+        entry = (
+            b"100644 blob "
+            + self.object_sha.encode("ascii")
+            + b"\tfile.txt\0"
+        )
+        for listing in (entry[:-1], entry + b"\0", b"\0"):
+            with self.subTest(listing=listing):
+                with self.assertRaises(ProcessorError) as raised:
+                    self.run_helper(listing)
+                self.assertEqual(raised.exception.code, "processor_integrity_failure")
+
+    def test_shared_metadata_and_object_tokens_are_strict(self):
+        cases = (
+            b"100644  blob " + self.object_sha.encode("ascii") + b"\tfile.txt\0",
+            b"100644 blob " + b"c" * 39 + b"\xff" + b"\tfile.txt\0",
+            b"10064x blob " + self.object_sha.encode("ascii") + b"\tfile.txt\0",
+        )
+        for listing in cases:
+            with self.subTest(listing=listing):
+                with self.assertRaises(ProcessorError):
+                    self.run_helper(listing)
+
 if __name__ == "__main__":
     unittest.main()

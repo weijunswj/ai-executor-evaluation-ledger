@@ -5,11 +5,13 @@ import os
 import subprocess
 import tempfile
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 from unittest import mock
 
 from scripts.processor.batch_processor import (
     ProcessBatchConfig,
+    _git_tree_bindings,
     _validate_json_lines,
     candidate_commit_authority_message,
     build_batch_candidate,
@@ -1507,6 +1509,63 @@ class TestBatchProcessing(unittest.TestCase):
         self.assertNotIn("-X", source)
         self.assertNotIn("LEDGER_CLEANUP_ENABLED", source)
 
+
+
+class TestBatchTreeParserFraming(unittest.TestCase):
+    revision = "a" * 40
+    object_sha = "b" * 40
+
+    def run_parser(self, listing: bytes, response: bytes):
+        def runner(args, **_kwargs):
+            if args[1] == "ls-tree":
+                return SimpleNamespace(returncode=0, stdout=listing)
+            if args[1] == "cat-file":
+                return SimpleNamespace(returncode=0, stdout=response)
+            raise AssertionError(args)
+
+        with mock.patch(
+            "scripts.processor.batch_processor.subprocess.run",
+            side_effect=runner,
+        ):
+            return _git_tree_bindings(Path("."), self.revision)
+
+    def test_empty_tree_is_valid(self):
+        self.assertEqual(self.run_parser(b"", b""), ([], {}))
+
+    def test_incomplete_framing_and_batch_responses_fail_closed(self):
+        entry = (
+            b"100644 blob "
+            + self.object_sha.encode("ascii")
+            + b"\tfile.txt\0"
+        )
+        good_response = self.object_sha.encode("ascii") + b" blob 3\nabc\n"
+        cases = {
+            "missing_terminal_nul": (entry[:-1], good_response),
+            "extra_empty_record": (entry + b"\0", good_response),
+            "extra_cat_file_bytes": (entry, good_response + b"TRAIL"),
+            "non_ascii_header_sha": (
+                entry,
+                self.object_sha.encode("ascii") + b"\xff blob 3\nabc\n",
+            ),
+        }
+        for label, (listing, response) in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaises(ProcessorError) as raised:
+                    self.run_parser(listing, response)
+                self.assertEqual(raised.exception.code, "processor_integrity_failure")
+
+    def test_tree_metadata_sha_mode_and_path_are_strict(self):
+        cases = (
+            b"100644 blob " + b"c" * 39 + b"\xff" + b"\tfile.txt\0",
+            b"100644  blob " + self.object_sha.encode("ascii") + b"\tfile.txt\0",
+            b"10064x blob " + self.object_sha.encode("ascii") + b"\tfile.txt\0",
+            b"100644 blob " + self.object_sha.encode("ascii") + b"\t\0",
+        )
+        response = self.object_sha.encode("ascii") + b" blob 3\nabc\n"
+        for listing in cases:
+            with self.subTest(listing=listing):
+                with self.assertRaises(ProcessorError):
+                    self.run_parser(listing, response)
 
 if __name__ == "__main__":
     unittest.main()

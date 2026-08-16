@@ -21,6 +21,8 @@ import jsonschema
 from scripts.processor.common import (
     ProcessorError,
     canonical_json_bytes,
+    safe_author_hash,
+    safe_comment_body_hash,
     sha256_bytes,
     validate_batch_receipt_closure,
     valid_author_login,
@@ -850,39 +852,96 @@ def _retained_comment_evidence(
 ) -> tuple[list[int], bool]:
     retained: list[int] = []
     verified = True
-    expected_hashes = batch.get("source_body_sha256", {})
-    expected_bindings = {
-        int(binding["comment_id"]): binding
-        for binding in batch.get("comment_bindings", [])
-        if isinstance(binding, dict) and isinstance(binding.get("comment_id"), int)
-    }
-    for raw_id in batch.get("source_comment_ids", []):
-        comment_id = int(raw_id)
+    source_ids = batch.get("source_comment_ids")
+    expected_hashes = batch.get("source_body_sha256")
+    raw_bindings = batch.get("comment_bindings")
+    expected_snapshot = batch.get("queue_snapshot_sha256")
+    expected_bindings: Dict[int, Dict[str, Any]] = {}
+    if (
+        not isinstance(source_ids, list)
+        or not isinstance(expected_hashes, dict)
+        or not isinstance(raw_bindings, list)
+    ):
+        return retained, False
+
+    for raw_binding in raw_bindings:
+        if not isinstance(raw_binding, dict):
+            verified = False
+            continue
+        binding_id = raw_binding.get("comment_id")
+        if (
+            not isinstance(binding_id, int)
+            or isinstance(binding_id, bool)
+            or binding_id <= 0
+            or binding_id in expected_bindings
+        ):
+            verified = False
+            continue
+        expected_bindings[binding_id] = raw_binding
+
+    fingerprints: list[Dict[str, Any]] = []
+    seen_ids: set[int] = set()
+    for raw_id in source_ids:
+        if not isinstance(raw_id, int) or isinstance(raw_id, bool) or raw_id <= 0:
+            verified = False
+            continue
+        comment_id = raw_id
+        retained.append(comment_id)
+        if comment_id in seen_ids:
+            verified = False
+        seen_ids.add(comment_id)
         try:
             comment = fetcher(comment_id, root)
+            user = comment.get("user") if isinstance(comment, dict) else None
+            numeric_id = user.get("id") if isinstance(user, dict) else None
+            login = user.get("login") if isinstance(user, dict) else None
+            association = comment.get("author_association") if isinstance(comment, dict) else None
             body = comment.get("body") if isinstance(comment, dict) else None
             actual_id = comment.get("id") if isinstance(comment, dict) else None
             actual_updated = comment.get("updated_at") if isinstance(comment, dict) else None
             actual_created = comment.get("created_at") if isinstance(comment, dict) else None
             binding = expected_bindings.get(comment_id)
+            expected_body_hash = expected_hashes.get(str(comment_id))
             if (
                 actual_id != comment_id
+                or not isinstance(numeric_id, int)
+                or isinstance(numeric_id, bool)
+                or numeric_id <= 0
+                or not valid_author_login(login)
+                or not isinstance(association, str)
+                or not association
                 or not isinstance(body, str)
+                or not valid_timestamp(actual_created)
+                or not valid_timestamp(actual_updated)
                 or not isinstance(binding, dict)
                 or actual_created != binding.get("created_at")
                 or actual_updated != binding.get("updated_at")
             ):
                 verified = False
-                retained.append(comment_id)
                 continue
-            if sha256_bytes(body.encode("utf-8")) != expected_hashes.get(str(comment_id)):
+            body_hash = safe_comment_body_hash(body)
+            if body_hash != expected_body_hash:
                 verified = False
-            retained.append(comment_id)
-        except ProcessorError:
+            fingerprints.append(
+                {
+                    "id": comment_id,
+                    "author_id": numeric_id,
+                    "author_sha256": safe_author_hash(login),
+                    "author_association": association,
+                    "created_at": actual_created,
+                    "updated_at": actual_updated,
+                    "body_sha256": body_hash,
+                }
+            )
+        except (ProcessorError, AttributeError, TypeError, ValueError):
             verified = False
-            retained.append(comment_id)
-    return retained, verified
 
+    if (
+        not isinstance(expected_snapshot, str)
+        or sha256_bytes(canonical_json_bytes(fingerprints)) != expected_snapshot
+    ):
+        verified = False
+    return retained, verified
 
 def prepare_cleanup_receipt(
     config: CleanupConfig,

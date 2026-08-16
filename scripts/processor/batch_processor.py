@@ -235,28 +235,44 @@ def _git_tree_bindings(
         capture_output=True,
         check=False,
     )
-    if listing.returncode != 0:
+    if listing.returncode != 0 or not isinstance(listing.stdout, bytes):
+        raise ProcessorError("processor_integrity_failure")
+    listing_bytes = listing.stdout
+    if listing_bytes and not listing_bytes.endswith(b"\0"):
+        raise ProcessorError("processor_integrity_failure")
+    raw_records = listing_bytes.split(b"\0") if listing_bytes else []
+    if raw_records and raw_records[-1] != b"":
+        raise ProcessorError("processor_integrity_failure")
+    records = raw_records[:-1] if raw_records else []
+    if any(not raw_entry for raw_entry in records):
         raise ProcessorError("processor_integrity_failure")
 
     entries: List[Tuple[str, str, str]] = []
-    for raw_entry in listing.stdout.split(b"\0"):
-        if not raw_entry:
-            continue
+    seen_paths: set[str] = set()
+    for raw_entry in records:
         try:
             metadata, raw_path = raw_entry.split(b"\t", 1)
-            mode, object_type, object_sha = metadata.decode("ascii").split(" ")
-            relative_path = raw_path.decode("utf-8", errors="strict")
+            metadata_tokens = metadata.decode("ascii").split(" ")
+            if len(metadata_tokens) != 3 or any(not token for token in metadata_tokens):
+                raise ValueError("malformed_tree_metadata")
+            mode, object_type, object_sha = metadata_tokens
+            relative_path = raw_path.decode("utf-8")
         except (UnicodeDecodeError, ValueError):
             raise ProcessorError("processor_integrity_failure")
         if (
-            object_type != "blob"
+            not raw_path
+            or object_type != "blob"
             or not valid_git_sha(object_sha)
-            or not is_representable_manifest_path(relative_path)
+            or len(mode) != 6
+            or any(character not in "01234567" for character in mode)
         ):
             raise ProcessorError("processor_integrity_failure")
+        if relative_path in seen_paths:
+            raise ProcessorError("processor_integrity_failure")
+        seen_paths.add(relative_path)
+        if not is_representable_manifest_path(relative_path):
+            raise ProcessorError("processor_integrity_failure")
         entries.append((relative_path, mode, object_sha))
-    if len({item[0] for item in entries}) != len(entries):
-        raise ProcessorError("processor_integrity_failure")
 
     requested = b"".join(
         f"{object_sha}\n".encode("ascii")
@@ -269,7 +285,7 @@ def _git_tree_bindings(
         capture_output=True,
         check=False,
     )
-    if blobs_result.returncode != 0:
+    if blobs_result.returncode != 0 or not isinstance(blobs_result.stdout, bytes):
         raise ProcessorError("processor_integrity_failure")
     contents: Dict[str, bytes] = {}
     cursor = 0
@@ -277,17 +293,22 @@ def _git_tree_bindings(
         header_end = blobs_result.stdout.find(b"\n", cursor)
         if header_end < 0:
             raise ProcessorError("processor_integrity_failure")
-        header = blobs_result.stdout[cursor:header_end].split()
+        try:
+            header_text = blobs_result.stdout[cursor:header_end].decode("ascii")
+        except UnicodeDecodeError:
+            raise ProcessorError("processor_integrity_failure")
+        header_tokens = header_text.split(" ")
+        if len(header_tokens) != 3 or any(not token for token in header_tokens):
+            raise ProcessorError("processor_integrity_failure")
+        header_sha, object_type, size_token = header_tokens
         if (
-            len(header) != 3
-            or header[0].decode("ascii", errors="ignore") != object_sha
-            or header[1] != b"blob"
+            header_sha != object_sha
+            or not valid_git_sha(header_sha)
+            or object_type != "blob"
+            or not size_token.isdigit()
         ):
             raise ProcessorError("processor_integrity_failure")
-        try:
-            size = int(header[2])
-        except ValueError:
-            raise ProcessorError("processor_integrity_failure")
+        size = int(size_token)
         content_start = header_end + 1
         content_end = content_start + size
         content = blobs_result.stdout[content_start:content_end]
@@ -295,6 +316,8 @@ def _git_tree_bindings(
             raise ProcessorError("processor_integrity_failure")
         contents[relative_path] = content
         cursor = content_end + 1
+    if cursor != len(blobs_result.stdout):
+        raise ProcessorError("processor_integrity_failure")
 
     bindings = [
         {
@@ -311,7 +334,6 @@ def _git_tree_bindings(
         for item in bindings
     }
     return bindings, contents
-
 
 def _validate_candidate_commit_tree(
     config: ProcessBatchConfig,
