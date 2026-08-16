@@ -340,6 +340,17 @@ def _same_snapshot(left: List[Mapping[str, Any]], right: List[Mapping[str, Any]]
         return False
 
 
+def _bounded_queue_snapshot(
+    comments: Iterable[Mapping[str, Any]],
+    watermark: int,
+) -> Tuple[List[Dict[str, Any]], str, int]:
+    if not isinstance(watermark, int) or isinstance(watermark, bool) or watermark < 0:
+        raise ProcessorError("processor_invalid_contract")
+    fingerprints, _ = _queue_snapshot(comments)
+    bounded = [item for item in fingerprints if item["id"] <= watermark]
+    return bounded, sha256_bytes(canonical_json_bytes(bounded)), len(fingerprints) - len(bounded)
+
+
 def _comment_author_identity(comment: Mapping[str, Any]) -> tuple[int, str, str]:
     user = comment.get("user")
     numeric_id = user.get("id") if isinstance(user, Mapping) else None
@@ -593,6 +604,7 @@ def _build_frozen_candidate(
     return candidate_files, {
         "status": "CANDIDATE_VALIDATED",
         "batch_id": config.batch_id,
+        "source_comment_watermark": policy_receipt["source_comment_watermark"],
         "full_queue_count": len(replay.source_comment_ids),
         "selected_comment_count": len(replay.source_comment_ids),
         "admitted_count": len(replay.admitted_run_ids),
@@ -642,7 +654,10 @@ def build_batch_candidate(
     comments = sorted(comments, key=lambda item: item.get("id", 0))
     owner_fetcher = owner_fetcher or fetch_repository_owner_authority
     owner_authority = owner_fetcher(config.repository_root)
-    first_fingerprints, first_queue_hash = _queue_snapshot(comments)
+    all_first_fingerprints, _ = _queue_snapshot(comments)
+    source_comment_watermark = all_first_fingerprints[-1]["id"] if all_first_fingerprints else 0
+    first_fingerprints = [item for item in all_first_fingerprints if item["id"] <= source_comment_watermark]
+    first_queue_hash = sha256_bytes(canonical_json_bytes(first_fingerprints))
 
     for comment in comments:
         fresh = comment_fetcher(int(comment["id"]), config.repository_root)
@@ -760,7 +775,9 @@ def build_batch_candidate(
         )
 
     final_comments = queue_fetcher(config.repository_root)
-    final_fingerprints, final_queue_hash = _queue_snapshot(final_comments)
+    final_fingerprints, final_queue_hash, later_comment_count = _bounded_queue_snapshot(
+        final_comments, source_comment_watermark
+    )
     if first_queue_hash != final_queue_hash or first_fingerprints != final_fingerprints:
         raise ProcessorError("source_changed")
 
@@ -843,7 +860,7 @@ def build_batch_candidate(
             "source_issue_number": config.source_issue_number,
             "receipt_issue_number": config.receipt_issue_number,
             "source_replay": {"adapter": "github-intake-v1"},
-            "source_comment_watermark": latest_id or 0,
+            "source_comment_watermark": source_comment_watermark,
             "full_queue_count": len(first_fingerprints),
             "latest_observed_comment_id": latest_id,
             "latest_observed_update_time": latest_update,
@@ -885,6 +902,8 @@ def build_batch_candidate(
     return candidate_files, {
         "status": "CANDIDATE_VALIDATED",
         "batch_id": config.batch_id,
+        "source_comment_watermark": source_comment_watermark,
+        "later_comment_count": later_comment_count,
         "full_queue_count": len(first_fingerprints),
         "selected_comment_count": len(first_fingerprints),
         "admitted_count": len(admitted_records),
@@ -925,7 +944,9 @@ def process_batch(
             receipt
         ).verify_source(final_queue).snapshot_sha256
     else:
-        _, final_snapshot_hash = _queue_snapshot(final_queue)
+        _, final_snapshot_hash, _ = _bounded_queue_snapshot(
+            final_queue, evidence["source_comment_watermark"]
+        )
     if final_snapshot_hash != evidence["snapshot_hash"]:
         raise ProcessorError("source_changed")
     if config.dry_run:

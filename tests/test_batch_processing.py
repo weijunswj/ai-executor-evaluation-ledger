@@ -626,23 +626,47 @@ class TestBatchProcessing(unittest.TestCase):
 
     def test_queue_movement_invalidates_candidate(self):
         comments = self.comments()
-        moved = comments + [{
+        moved = copy.deepcopy(comments)
+        moved[0]["updated_at"] = "2026-07-29T10:04:00Z"
+        moved.append({
             "id": 9003,
             "user": {"l" + "ogin": "fixture-author"},
             "body": "new retained comment",
             "created_at": "2026-07-29T10:03:00Z",
             "updated_at": "2026-07-29T10:03:00Z",
-        }]
+        })
         calls = iter([comments, moved])
         with self.assertRaises(ProcessorError) as ctx:
             build_batch_candidate(
                 self.config("batch-moved-a005"),
                 comments=None,
                 queue_fetcher=lambda _root: copy.deepcopy(next(calls)),
-                comment_fetcher=self.fetcher(moved),
+                comment_fetcher=self.fetcher(comments),
             )
         self.assertEqual(ctx.exception.code, "source_changed")
 
+    def test_bounded_prefix_allows_later_comment_after_initial_watermark(self):
+        initial_prefix = self.comments()
+        later_queue = initial_prefix + [{
+            "id": 9003,
+            "user": {"l" + "ogin": "fixture-author"},
+            "body": "new retained comment",
+            "created_at": "2026-07-29T10:03:00Z",
+            "updated_at": "2026-07-29T10:03:00Z",
+        }]
+        calls = iter([initial_prefix, later_queue, later_queue])
+        result = process_batch(
+            self.config("batch-bounded-prefix-red-a005"),
+            comments=None,
+            queue_fetcher=lambda _root: copy.deepcopy(next(calls)),
+            comment_fetcher=self.fetcher(later_queue),
+        )
+        self.assertEqual(result["status"], "DRY_RUN_VALIDATED")
+        self.assertFalse(result["tracked_replacement"])
+        self.assertEqual(result["source_comment_watermark"], 9002)
+        self.assertEqual(result["full_queue_count"], 2)
+        self.assertEqual(result["selected_comment_count"], 2)
+        self.assertEqual(result["later_comment_count"], 1)
     def test_selected_comment_movement_invalidates_candidate(self):
         comments = self.comments()
         changed = copy.deepcopy(comments[0])
