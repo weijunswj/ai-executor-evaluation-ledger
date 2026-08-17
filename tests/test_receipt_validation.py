@@ -1676,6 +1676,69 @@ class TestA13ReceiptConvergence(unittest.TestCase):
             "current_frozen_pr_seal": current_frozen_pr_seal,
         }
 
+    def _build_frozen_only_pr_topology(
+        self,
+        root,
+        *,
+        wrong_parent=False,
+        unrelated_delta=False,
+    ):
+        fixture = TestReceiptValidation()
+        receipt, content_sha, _final_sha = fixture.fixture(root)
+        subprocess.run(["git", "checkout", "-q", content_sha], cwd=root, check=True)
+
+        current = copy.deepcopy(receipt)
+        current["batch_id"] = FROZEN_BATCH_ID
+        current.pop("source_replay", None)
+        candidate_sha = content_sha
+        if wrong_parent:
+            candidate_sha = self._git_output(
+                root,
+                "commit-tree",
+                self._git_output(root, "rev-parse", f"{content_sha}^{{tree}}"),
+                "-p",
+                content_sha,
+                "-m",
+                "wrong declared candidate",
+            )
+        current["candidate_content_commit_sha"] = candidate_sha
+        current["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            candidate_sha,
+            excluded_paths=(FROZEN_RECEIPT_PATH,),
+        )
+        current["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+            current["candidate_content_manifest"]
+        )
+        receipt_path = root / FROZEN_RECEIPT_PATH
+        receipt_path.parent.mkdir(parents=True, exist_ok=True)
+        receipt_path.write_bytes(
+            (json.dumps(current, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        )
+        if unrelated_delta:
+            (root / "unrelated-terminal-delta.txt").write_text(
+                "unrelated terminal delta\n",
+                encoding="utf-8",
+            )
+        subprocess.run(["git", "add", FROZEN_RECEIPT_PATH], cwd=root, check=True)
+        if unrelated_delta:
+            subprocess.run(
+                ["git", "add", "unrelated-terminal-delta.txt"],
+                cwd=root,
+                check=True,
+            )
+        subprocess.run(
+            ["git", "commit", "-qm", "current frozen receipt seal"],
+            cwd=root,
+            check=True,
+        )
+        return {
+            "candidate_sha": candidate_sha,
+            "content_sha": content_sha,
+            "authority_sha": self._git_sha(root),
+            "receipt_path": FROZEN_RECEIPT_PATH,
+        }
+
     def test_current_frozen_receipt_uses_strict_canonical_base(self):
         with tempfile.TemporaryDirectory(prefix="a13-current-frozen-") as raw:
             root = Path(raw)
@@ -1839,6 +1902,96 @@ class TestA13ReceiptConvergence(unittest.TestCase):
                 result["receipt_seals"][self.current_receipt_path],
                 topology["current_pr_seal"],
             )
+
+    def test_pr_frozen_only_without_canonical_base_validates_current_topology(self):
+        with tempfile.TemporaryDirectory(prefix="a13-pr-frozen-only-") as raw:
+            root = Path(raw)
+            topology = self._build_frozen_only_pr_topology(root)
+            with mock.patch.object(
+                receipt_validator,
+                "_validate_terminal_seal_scope",
+                wraps=receipt_validator._validate_terminal_seal_scope,
+            ) as validate_scope:
+                result = validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=None,
+                )
+            self.assertEqual(result["changed_receipt_path"], topology["receipt_path"])
+            self.assertEqual(result["final_parent_sha"], topology["candidate_sha"])
+            current_scope_calls = [
+                call
+                for call in validate_scope.call_args_list
+                if call.kwargs.get("receipt_path") == topology["receipt_path"]
+            ]
+            self.assertTrue(current_scope_calls)
+            self.assertEqual(current_scope_calls[0].kwargs["mode"], "pr")
+
+    def test_pr_frozen_only_without_canonical_base_rejects_wrong_parent(self):
+        with tempfile.TemporaryDirectory(prefix="a13-pr-frozen-only-parent-") as raw:
+            root = Path(raw)
+            topology = self._build_frozen_only_pr_topology(root, wrong_parent=True)
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_candidate_parent_mismatch$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=None,
+                )
+
+    def test_pr_frozen_only_without_canonical_base_rejects_unrelated_delta(self):
+        with tempfile.TemporaryDirectory(prefix="a13-pr-frozen-only-scope-") as raw:
+            root = Path(raw)
+            topology = self._build_frozen_only_pr_topology(root, unrelated_delta=True)
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_final_commit_scope$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=None,
+                )
+
+    def test_pr_frozen_only_without_canonical_base_rejects_multiple_parents(self):
+        with tempfile.TemporaryDirectory(prefix="a13-pr-frozen-only-parents-") as raw:
+            root = Path(raw)
+            topology = self._build_frozen_only_pr_topology(root)
+            merge_parent = self._git_output(
+                root,
+                "commit-tree",
+                self._git_output(root, "rev-parse", f"{topology['content_sha']}^{{tree}}"),
+                "-p",
+                topology["content_sha"],
+                "-m",
+                "unrelated merge parent",
+            )
+            merge_authority = self._git_output(
+                root,
+                "commit-tree",
+                self._git_output(root, "rev-parse", f"{topology['authority_sha']}^{{tree}}"),
+                "-p",
+                topology["content_sha"],
+                "-p",
+                merge_parent,
+                "-m",
+                "multiple-parent frozen receipt seal",
+            )
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_final_head_parent_count$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=merge_authority,
+                    mode="pr",
+                    canonical_base_sha=None,
+                )
 
     def test_pr_changed_frozen_receipt_requires_current_terminal_topology(self):
         with tempfile.TemporaryDirectory(prefix="a13-pr-current-frozen-") as raw:

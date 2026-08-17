@@ -430,7 +430,6 @@ def validate_all_tracked_batch_receipts(
         if mode == "canonical-main" and canonical_base_sha is not None
         else None
     )
-    canonical_base_requested = canonical_base_sha is not None
     schema = _load_schema(root)
     paths = tracked_batch_receipts(root, authority_sha)
     if not paths:
@@ -459,41 +458,37 @@ def validate_all_tracked_batch_receipts(
     changed_path: Optional[str] = None
     parent_sha: Optional[str] = None
     if mode == "pr":
-        frozen_only = all(
-            receipt["batch_id"] == FROZEN_BATCH_ID for receipt in parsed.values()
-        ) and not canonical_base_requested
-        if not frozen_only:
-            parent_line = str(
-                _git(
-                    root,
-                    "rev-list",
-                    "--parents",
-                    "-n",
-                    "1",
-                    authority_sha,
-                    text=True,
-                )
-            ).strip().split()
-            if len(parent_line) != 2:
-                raise ReceiptValidationError("receipt_final_head_parent_count")
-            parent_sha = parent_line[1]
-            changed = str(
-                _git(
-                    root,
-                    "diff-tree",
-                    "--no-commit-id",
-                    "--name-only",
-                    "-r",
-                    parent_sha,
-                    authority_sha,
-                    text=True,
-                )
-            ).splitlines()
-            if len(changed) != 1 or changed[0] not in parsed:
-                raise ReceiptValidationError("receipt_final_commit_scope")
-            changed_path = changed[0]
-            if parsed[changed_path]["candidate_content_commit_sha"] != parent_sha:
-                raise ReceiptValidationError("receipt_candidate_parent_mismatch")
+        parent_line = str(
+            _git(
+                root,
+                "rev-list",
+                "--parents",
+                "-n",
+                "1",
+                authority_sha,
+                text=True,
+            )
+        ).strip().split()
+        if len(parent_line) != 2:
+            raise ReceiptValidationError("receipt_final_head_parent_count")
+        parent_sha = parent_line[1]
+        changed = str(
+            _git(
+                root,
+                "diff-tree",
+                "--no-commit-id",
+                "--name-only",
+                "-r",
+                parent_sha,
+                authority_sha,
+                text=True,
+            )
+        ).splitlines()
+        if len(changed) != 1 or changed[0] not in parsed:
+            raise ReceiptValidationError("receipt_final_commit_scope")
+        changed_path = changed[0]
+        if parsed[changed_path]["candidate_content_commit_sha"] != parent_sha:
+            raise ReceiptValidationError("receipt_candidate_parent_mismatch")
     seals: dict[str, str] = {}
     for path, receipt in parsed.items():
         seal_sha = _terminal_seal_commit(
