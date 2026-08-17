@@ -47,6 +47,13 @@ CANONICAL_PATHS = {
     "scorecard_md": "scorecard.md",
     "model_recommendation_json": "analysis/model-recommendation.json",
 }
+FROZEN_APPEND_ONLY_PATHS = frozenset(
+    {
+        "evaluations.jsonl",
+        "ledger/dispositions.jsonl",
+    }
+)
+
 FORBIDDEN_BATCH_KEYS = frozenset(
     {
         "author",
@@ -717,7 +724,7 @@ def _validate_frozen_source_replay(
             else None
         )
         seal_bytes = git_object_bytes(root, seal_sha, relative_path)
-        if relative_path == "evaluations.jsonl":
+        if relative_path in FROZEN_APPEND_ONLY_PATHS:
             if (
                 candidate_bytes is not None
                 and not candidate_bytes.startswith(expected)
