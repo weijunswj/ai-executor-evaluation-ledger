@@ -85,6 +85,61 @@ class TestReceiptValidation(unittest.TestCase):
             ).decode("utf-8")
         )
 
+    def _commit_with_disposition_suffix(self, parent_sha, disposition_bytes):
+        with tempfile.TemporaryDirectory(prefix="frozen-disposition-index-") as raw:
+            env = os.environ.copy()
+            env["GIT_INDEX_FILE"] = str(Path(raw) / "index")
+            env["GIT_AUTHOR_NAME"] = "fixture"
+            env["GIT_AUTHOR_EMAIL"] = "fixture" + "@" + "example.invalid"
+            env["GIT_COMMITTER_NAME"] = "fixture"
+            env["GIT_COMMITTER_EMAIL"] = "fixture" + "@" + "example.invalid"
+            subprocess.run(
+                ["git", "read-tree", parent_sha],
+                cwd=ROOT,
+                env=env,
+                check=True,
+            )
+            disposition_blob = subprocess.run(
+                ["git", "hash-object", "-w", "--stdin"],
+                cwd=ROOT,
+                input=disposition_bytes,
+                capture_output=True,
+                check=True,
+            ).stdout.decode("ascii").strip()
+            subprocess.run(
+                ["git", "update-index", "--index-info"],
+                cwd=ROOT,
+                env=env,
+                input=f"100644 {disposition_blob}\tledger/dispositions.jsonl\n".encode(
+                    "ascii"
+                ),
+                check=True,
+            )
+            tree_sha = subprocess.run(
+                ["git", "write-tree"],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            return subprocess.run(
+                [
+                    "git",
+                    "commit-tree",
+                    tree_sha,
+                    "-p",
+                    parent_sha,
+                    "-m",
+                    "frozen disposition suffix fixture",
+                ],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
     def test_frozen_draft_migrates_without_identity_or_rejection_prose(self):
         tracked = json.loads(
             (
@@ -176,9 +231,35 @@ class TestReceiptValidation(unittest.TestCase):
             self.assertNotIn(forbidden, encoded)
 
     def test_frozen_current_append_candidate_seals_against_full_current_hashes(self):
-        candidate_sha, terminal_sha = self._current_and_terminal_shas()
         historical_receipt = self._frozen_historical_receipt()
         historical_candidate_sha = historical_receipt["candidate_content_commit_sha"]
+        frozen_dispositions_for_commit = receipt_validator.git_object_bytes(
+            ROOT,
+            historical_candidate_sha,
+            "ledger/dispositions.jsonl",
+        )
+        later_disposition = canonical_json_line_bytes(
+            {
+                "comment_body_sha256": "0" * 64,
+                "comment_id": 6000000000,
+                "disposition_code": "no_marker",
+                "evaluation_run_id": None,
+                "processed_at": "2026-08-17T01:00:00Z",
+                "schema_version": 2,
+            }
+        )
+        base_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        candidate_sha = self._commit_with_disposition_suffix(
+            base_sha,
+            frozen_dispositions_for_commit + later_disposition,
+        )
+        terminal_sha = candidate_sha
         self.assertEqual(historical_receipt["full_queue_count"], 101)
         self.assertEqual(historical_receipt["selected_comment_count"], 101)
         self.assertEqual(historical_receipt["terminal_outcome_count"], 101)
@@ -245,6 +326,21 @@ class TestReceiptValidation(unittest.TestCase):
             terminal_sha,
             "evaluations.jsonl",
         )
+        frozen_dispositions = receipt_validator.git_object_bytes(
+            ROOT,
+            historical_candidate_sha,
+            "ledger/dispositions.jsonl",
+        )
+        current_dispositions = receipt_validator.git_object_bytes(
+            ROOT,
+            candidate_sha,
+            "ledger/dispositions.jsonl",
+        )
+        terminal_dispositions = receipt_validator.git_object_bytes(
+            ROOT,
+            terminal_sha,
+            "ledger/dispositions.jsonl",
+        )
         frozen_records = frozen_evaluations.splitlines()
         current_records = current_evaluations.splitlines()
         later_records = [
@@ -262,6 +358,13 @@ class TestReceiptValidation(unittest.TestCase):
         self.assertTrue(later_records)
         self.assertTrue(
             all(record.get("record_type") == "evaluation" for record in later_records)
+        )
+        self.assertTrue(current_dispositions.startswith(frozen_dispositions))
+        self.assertGreater(len(current_dispositions), len(frozen_dispositions))
+        self.assertEqual(current_dispositions, terminal_dispositions)
+        self.assertEqual(
+            frozen_dispositions,
+            replay.candidate_files["ledger/dispositions.jsonl"],
         )
         frozen_run_ids = {
             json.loads(line.decode("utf-8"))["run_id"] for line in frozen_records
@@ -445,6 +548,199 @@ class TestReceiptValidation(unittest.TestCase):
                             ROOT,
                             candidate_sha,
                             replay,
+                        )
+
+    def test_frozen_disposition_prefix_variants_fail_closed_in_sealer(self):
+        candidate_sha, _terminal_sha = self._current_and_terminal_shas()
+        historical_receipt = self._frozen_historical_receipt()
+        historical_candidate_sha = historical_receipt["candidate_content_commit_sha"]
+        frozen = receipt_validator.git_object_bytes(
+            ROOT,
+            historical_candidate_sha,
+            "ledger/dispositions.jsonl",
+        )
+        suffix = canonical_json_line_bytes(
+            {
+                "comment_body_sha256": "0" * 64,
+                "comment_id": 6000000000,
+                "disposition_code": "no_marker",
+                "evaluation_run_id": None,
+                "processed_at": "2026-08-17T01:00:00Z",
+                "schema_version": 2,
+            }
+        )
+        current = frozen + suffix
+        lines = frozen.splitlines(keepends=True)
+        variants = {
+            "prefix mutation": bytes([frozen[0] ^ 1]) + frozen[1:] + suffix,
+            "prefix truncation": frozen[:-1] + suffix,
+            "record deletion": b"".join(lines[1:]) + suffix,
+            "record reorder": lines[1] + lines[0] + b"".join(lines[2:]) + suffix,
+            "prefix insertion": lines[0] + b"{}\n" + b"".join(lines[1:]) + suffix,
+            "non-prefix replacement": b"not-a-prefix\n" + current,
+        }
+        self.assertTrue(current.startswith(frozen))
+        replay = SimpleNamespace(
+            candidate_files={"ledger/dispositions.jsonl": frozen}
+        )
+        for label, candidate in variants.items():
+            with self.subTest(label=label):
+                with mock.patch.object(
+                    seal_batch_receipt,
+                    "git_object_bytes",
+                    return_value=candidate,
+                ):
+                    with self.assertRaisesRegex(
+                        ReceiptValidationError,
+                        "^seal_candidate_replay_mismatch$",
+                    ):
+                        seal_batch_receipt._verify_frozen_replay_artifacts(
+                            ROOT,
+                            candidate_sha,
+                            replay,
+                        )
+
+    def test_frozen_disposition_prefix_variants_fail_closed_in_validator(self):
+        historical_receipt = self._frozen_historical_receipt()
+        historical_candidate_sha = historical_receipt["candidate_content_commit_sha"]
+        frozen_evaluations = receipt_validator.git_object_bytes(
+            ROOT,
+            historical_candidate_sha,
+            "evaluations.jsonl",
+        )
+        frozen_dispositions = receipt_validator.git_object_bytes(
+            ROOT,
+            historical_candidate_sha,
+            "ledger/dispositions.jsonl",
+        )
+        fingerprints = [
+            {
+                "id": binding["comment_id"],
+                "created_at": binding["created_at"],
+                "updated_at": binding["updated_at"],
+                "body_sha256": binding["body_sha256"],
+            }
+            for binding in historical_receipt["comment_bindings"]
+        ]
+        replay = FrozenReplayResult(
+            candidate_files={
+                "evaluations.jsonl": frozen_evaluations,
+                "ledger/dispositions.jsonl": frozen_dispositions,
+            },
+            artifact_hashes={},
+            canonical_hashes=historical_receipt["canonical_hashes"],
+            terminal_outcomes=historical_receipt["terminal_outcomes"],
+            admitted_run_ids=tuple(historical_receipt["admitted_run_ids"]),
+            accepted_record_proofs=historical_receipt["accepted_record_proofs"],
+            canonical_record_hashes=historical_receipt["canonical_record_hashes"],
+            comment_bindings=tuple(historical_receipt["comment_bindings"]),
+            source_comment_ids=tuple(historical_receipt["source_comment_ids"]),
+            source_body_sha256=historical_receipt["source_body_sha256"],
+            source_snapshot_sha256=historical_receipt["queue_snapshot_sha256"],
+            later_comment_count=0,
+        )
+        live = {
+            "comments": [{} for _item in fingerprints],
+            "fingerprints": fingerprints,
+        }
+        suffix = canonical_json_line_bytes(
+            {
+                "comment_body_sha256": "0" * 64,
+                "comment_id": 6000000000,
+                "disposition_code": "no_marker",
+                "evaluation_run_id": None,
+                "processed_at": "2026-08-17T01:00:00Z",
+                "schema_version": 2,
+            }
+        )
+        lines = frozen_dispositions.splitlines(keepends=True)
+        current = frozen_dispositions + suffix
+        variants = {
+            "prefix mutation": bytes([frozen_dispositions[0] ^ 1])
+            + frozen_dispositions[1:]
+            + suffix,
+            "prefix truncation": frozen_dispositions[:-1] + suffix,
+            "record deletion": b"".join(lines[1:]) + suffix,
+            "record reorder": (
+                lines[1] + lines[0] + b"".join(lines[2:]) + suffix
+            ),
+            "prefix insertion": (
+                lines[0] + b"{}\n" + b"".join(lines[1:]) + suffix
+            ),
+            "non-prefix replacement": b"not-a-prefix\n" + current,
+        }
+        original_git_object_bytes = receipt_validator.git_object_bytes
+        for label, candidate in variants.items():
+            with self.subTest(scope=f"candidate {label}"):
+                def candidate_bytes_for_path(
+                    root,
+                    commit_sha,
+                    relative_path,
+                    *,
+                    candidate=candidate,
+                ):
+                    if relative_path == "ledger/dispositions.jsonl":
+                        return candidate
+                    return original_git_object_bytes(root, commit_sha, relative_path)
+
+                with mock.patch.object(
+                    receipt_validator,
+                    "git_object_bytes",
+                    side_effect=candidate_bytes_for_path,
+                ), mock.patch.object(
+                    receipt_validator,
+                    "refetch_frozen_source",
+                    return_value=live,
+                ), mock.patch.object(
+                    receipt_validator,
+                    "replay_frozen_from_receipt",
+                    return_value=replay,
+                ):
+                    with self.assertRaisesRegex(
+                        ReceiptValidationError,
+                        "^receipt_candidate_replay_mismatch$",
+                    ):
+                        receipt_validator._validate_frozen_source_replay(
+                            ROOT,
+                            receipt=historical_receipt,
+                            candidate_sha=historical_candidate_sha,
+                            seal_sha=historical_candidate_sha,
+                        )
+
+            with self.subTest(scope=f"terminal {label}"):
+                def terminal_bytes_for_path(
+                    root,
+                    commit_sha,
+                    relative_path,
+                    *,
+                    candidate=candidate,
+                ):
+                    if relative_path == "ledger/dispositions.jsonl":
+                        return candidate
+                    return original_git_object_bytes(root, commit_sha, relative_path)
+
+                with mock.patch.object(
+                    receipt_validator,
+                    "git_object_bytes",
+                    side_effect=terminal_bytes_for_path,
+                ), mock.patch.object(
+                    receipt_validator,
+                    "refetch_frozen_source",
+                    return_value=live,
+                ), mock.patch.object(
+                    receipt_validator,
+                    "replay_frozen_from_receipt",
+                    return_value=replay,
+                ):
+                    with self.assertRaisesRegex(
+                        ReceiptValidationError,
+                        "^receipt_terminal_content_mismatch$",
+                    ):
+                        receipt_validator._validate_frozen_source_replay(
+                            ROOT,
+                            receipt=historical_receipt,
+                            candidate_sha=None,
+                            seal_sha=historical_candidate_sha,
                         )
 
     def fixture(self, root: Path, *, extra_final_file=False):

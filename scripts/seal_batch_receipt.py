@@ -65,6 +65,14 @@ FROZEN_GENERATED_VIEW_PATHS = frozenset(
 )
 
 
+FROZEN_APPEND_ONLY_PATHS = frozenset(
+    {
+        "evaluations.jsonl",
+        "ledger/dispositions.jsonl",
+    }
+)
+
+
 def _verify_frozen_replay_artifacts(
     root: Path,
     content_sha: str,
@@ -72,7 +80,7 @@ def _verify_frozen_replay_artifacts(
 ) -> None:
     for relative_path, expected in replay.candidate_files.items():
         actual = git_object_bytes(root, content_sha, relative_path)
-        if relative_path == "evaluations.jsonl":
+        if relative_path in FROZEN_APPEND_ONLY_PATHS:
             if not actual.startswith(expected):
                 raise ReceiptValidationError("seal_candidate_replay_mismatch")
         elif relative_path in FROZEN_GENERATED_VIEW_PATHS:
