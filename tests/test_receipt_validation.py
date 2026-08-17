@@ -1555,6 +1555,127 @@ class TestA13ReceiptConvergence(unittest.TestCase):
             "root": root,
         }
 
+    def _build_pr_historical_remediation_topology(self, root):
+        fixture = TestReceiptValidation()
+        receipt, content_sha, _final_sha = fixture.fixture(root)
+        subprocess.run(["git", "checkout", "-q", content_sha], cwd=root, check=True)
+
+        historical = copy.deepcopy(receipt)
+        historical["batch_id"] = FROZEN_BATCH_ID
+        historical.pop("source_replay", None)
+        historical["candidate_content_commit_sha"] = content_sha
+        historical["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            content_sha,
+            excluded_paths=(FROZEN_RECEIPT_PATH,),
+        )
+        historical["candidate_content_manifest_sha256"] = (
+            git_tree_manifest_sha256(historical["candidate_content_manifest"])
+        )
+
+        (root / "historical-remediation.txt").write_text(
+            "later legitimate receipt remediation\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "historical-remediation.txt"], cwd=root, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "later historical receipt remediation"],
+            cwd=root,
+            check=True,
+        )
+        remediation_sha = self._git_sha(root)
+        historical_seal = self._commit_json(
+            root,
+            FROZEN_RECEIPT_PATH,
+            historical,
+            "historical frozen receipt after remediation",
+        )
+
+        (root / "a13-current-marker.txt").write_text(
+            "current candidate\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "a13-current-marker.txt"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "current candidate"], cwd=root, check=True)
+        candidate_sha = self._git_sha(root)
+
+        current = copy.deepcopy(receipt)
+        current["batch_id"] = "batch-a13-current"
+        current["batch_mode"] = "incremental"
+        current["base_sha"] = historical_seal
+        current["canonical_main_sha"] = historical_seal
+        current["candidate_content_commit_sha"] = candidate_sha
+        current["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            candidate_sha,
+            excluded_paths=(self.current_receipt_path,),
+        )
+        current["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+            current["candidate_content_manifest"]
+        )
+        current["canonical_hashes"] = {
+            name: sha256_bytes(
+                receipt_validator.git_object_bytes(root, candidate_sha, relative)
+            )
+            for name, relative in CANONICAL_PATHS.items()
+        }
+        current_pr_seal = self._commit_json(
+            root,
+            self.current_receipt_path,
+            current,
+            "current PR receipt-only seal",
+        )
+        return {
+            "historical_seal": historical_seal,
+            "historical_candidate_sha": content_sha,
+            "remediation_sha": remediation_sha,
+            "candidate_sha": candidate_sha,
+            "current_pr_seal": current_pr_seal,
+            "canonical_base_sha": historical_seal,
+            "root": root,
+        }
+
+    def _build_changed_frozen_pr_topology(self, root):
+        topology = self._build_pr_historical_remediation_topology(root)
+        subprocess.run(
+            ["git", "checkout", "-q", topology["historical_seal"]],
+            cwd=root,
+            check=True,
+        )
+        historical = json.loads(
+            subprocess.run(
+                [
+                    "git",
+                    "show",
+                    f'{topology["historical_seal"]}:{FROZEN_RECEIPT_PATH}',
+                ],
+                cwd=root,
+                capture_output=True,
+                check=True,
+            ).stdout
+        )
+        current = copy.deepcopy(historical)
+        current["candidate_content_commit_sha"] = topology["historical_seal"]
+        current["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            topology["historical_seal"],
+            excluded_paths=(FROZEN_RECEIPT_PATH,),
+        )
+        current["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+            current["candidate_content_manifest"]
+        )
+        current_frozen_pr_seal = self._commit_json(
+            root,
+            FROZEN_RECEIPT_PATH,
+            current,
+            "current frozen PR receipt seal",
+        )
+        return {
+            **topology,
+            "current": current,
+            "current_frozen_pr_seal": current_frozen_pr_seal,
+        }
+
     def test_current_frozen_receipt_uses_strict_canonical_base(self):
         with tempfile.TemporaryDirectory(prefix="a13-current-frozen-") as raw:
             root = Path(raw)
@@ -1695,6 +1816,168 @@ class TestA13ReceiptConvergence(unittest.TestCase):
                 self.current_receipt_path,
             )
             self.assertEqual(result["final_parent_sha"], topology["candidate_sha"])
+
+    def test_pr_canonical_base_keeps_later_remediated_frozen_receipt_historical(self):
+        with tempfile.TemporaryDirectory(prefix="a13-pr-frozen-compat-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_remediation_topology(root)
+            result = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=topology["current_pr_seal"],
+                mode="pr",
+                canonical_base_sha=topology["canonical_base_sha"],
+            )
+            self.assertEqual(
+                result["changed_receipt_path"],
+                self.current_receipt_path,
+            )
+            self.assertEqual(
+                result["receipt_seals"][FROZEN_RECEIPT_PATH],
+                topology["historical_seal"],
+            )
+            self.assertEqual(
+                result["receipt_seals"][self.current_receipt_path],
+                topology["current_pr_seal"],
+            )
+
+    def test_pr_changed_frozen_receipt_requires_current_terminal_topology(self):
+        with tempfile.TemporaryDirectory(prefix="a13-pr-current-frozen-") as raw:
+            root = Path(raw)
+            topology = self._build_changed_frozen_pr_topology(root)
+            with mock.patch.object(
+                receipt_validator,
+                "_validate_terminal_seal_scope",
+                wraps=receipt_validator._validate_terminal_seal_scope,
+            ) as validate_scope:
+                result = validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["current_frozen_pr_seal"],
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
+            self.assertEqual(result["changed_receipt_path"], FROZEN_RECEIPT_PATH)
+            self.assertEqual(
+                result["receipt_seals"][FROZEN_RECEIPT_PATH],
+                topology["current_frozen_pr_seal"],
+            )
+            current_scope_calls = [
+                call
+                for call in validate_scope.call_args_list
+                if call.kwargs.get("receipt_path") == FROZEN_RECEIPT_PATH
+            ]
+            self.assertTrue(current_scope_calls)
+            self.assertEqual(current_scope_calls[0].kwargs["mode"], "pr")
+
+            subprocess.run(
+                ["git", "checkout", "-q", topology["historical_seal"]],
+                cwd=root,
+                check=True,
+            )
+            bad = copy.deepcopy(topology["current"])
+            bad["controller_run_id"] = "controller-frozen-bad-parent"
+            bad["candidate_content_commit_sha"] = topology["historical_candidate_sha"]
+            bad["candidate_content_manifest"] = git_tree_file_bindings(
+                root,
+                topology["historical_candidate_sha"],
+                excluded_paths=(FROZEN_RECEIPT_PATH,),
+            )
+            bad["candidate_content_manifest_sha256"] = git_tree_manifest_sha256(
+                bad["candidate_content_manifest"]
+            )
+            bad_authority = self._commit_json(
+                root,
+                FROZEN_RECEIPT_PATH,
+                bad,
+                "current frozen receipt with bad candidate parent",
+            )
+            with self.assertRaises(ReceiptValidationError):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=bad_authority,
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
+
+    def test_pr_current_receipt_rejects_wrong_parent_and_non_receipt_delta(self):
+        with tempfile.TemporaryDirectory(prefix="a13-pr-current-strict-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_remediation_topology(root)
+            candidate_tree = self._git_output(
+                root,
+                "rev-parse",
+                f'{topology["candidate_sha"]}^{{tree}}',
+            )
+            wrong_parent = self._git_output(
+                root,
+                "commit-tree",
+                candidate_tree,
+                "-p",
+                topology["historical_seal"],
+                "-m",
+                "wrong candidate parent alias",
+            )
+            current_tree = self._git_output(
+                root,
+                "rev-parse",
+                f'{topology["current_pr_seal"]}^{{tree}}',
+            )
+            wrong_authority = self._git_output(
+                root,
+                "commit-tree",
+                current_tree,
+                "-p",
+                wrong_parent,
+                "-m",
+                "current receipt with wrong candidate parent",
+            )
+            with self.assertRaises(ReceiptValidationError):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=wrong_authority,
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
+
+            subprocess.run(
+                ["git", "checkout", "-q", topology["candidate_sha"]],
+                cwd=root,
+                check=True,
+            )
+            current_receipt = subprocess.run(
+                [
+                    "git",
+                    "show",
+                    f'{topology["current_pr_seal"]}:{self.current_receipt_path}',
+                ],
+                cwd=root,
+                capture_output=True,
+                check=True,
+            ).stdout
+            current_path = root / self.current_receipt_path
+            current_path.parent.mkdir(parents=True, exist_ok=True)
+            current_path.write_bytes(current_receipt)
+            (root / "non-receipt-delta.txt").write_text(
+                "non-receipt delta" + chr(10),
+                encoding="utf-8",
+            )
+            subprocess.run(
+                ["git", "add", self.current_receipt_path, "non-receipt-delta.txt"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "commit", "-qm", "current receipt plus non-receipt delta"],
+                cwd=root,
+                check=True,
+            )
+            non_receipt_authority = self._git_sha(root)
+            with self.assertRaises(ReceiptValidationError):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=non_receipt_authority,
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
 
     def test_incremental_recorded_authority_must_resolve_and_match(self):
         with tempfile.TemporaryDirectory(prefix="a13-incremental-authority-") as raw:

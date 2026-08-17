@@ -536,8 +536,8 @@ def validate_all_tracked_batch_receipts(
                 and seal_sha != authority_sha
             )
             or (
-                mode != "canonical-main"
-                and not canonical_base_requested
+                mode == "pr"
+                and path != changed_path
             )
         )
         terminal_mode = mode
