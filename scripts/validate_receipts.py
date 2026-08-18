@@ -168,6 +168,26 @@ def git_object_bytes(root: Path, revision: str, relative_path: str) -> bytes:
     return bytes(_git(root, "show", f"{revision}:{relative_path}"))
 
 
+def _validate_pr_frozen_historical_identity(
+    root: Path,
+    *,
+    canonical_base_sha: str,
+    authority_sha: str,
+    receipt_path: str,
+) -> None:
+    try:
+        canonical_bytes = git_object_bytes(
+            root, canonical_base_sha, receipt_path
+        )
+    except ReceiptValidationError as error:
+        raise ReceiptValidationError(
+            "receipt_canonical_base_receipt_missing"
+        ) from error
+    if canonical_bytes != git_object_bytes(
+        root, authority_sha, receipt_path
+    ):
+        raise ReceiptValidationError("receipt_canonical_base_bytes_mismatch")
+
 def _validate_candidate_manifest(
     root: Path,
     *,
@@ -427,10 +447,9 @@ def validate_all_tracked_batch_receipts(
         mode = "canonical-main"
     canonical_base = (
         resolve_commit(root, canonical_base_sha)
-        if mode == "canonical-main" and canonical_base_sha is not None
+        if canonical_base_sha is not None
         else None
     )
-    canonical_base_requested = canonical_base_sha is not None
     schema = _load_schema(root)
     paths = tracked_batch_receipts(root, authority_sha)
     if not paths:
@@ -459,41 +478,37 @@ def validate_all_tracked_batch_receipts(
     changed_path: Optional[str] = None
     parent_sha: Optional[str] = None
     if mode == "pr":
-        frozen_only = all(
-            receipt["batch_id"] == FROZEN_BATCH_ID for receipt in parsed.values()
-        ) and not canonical_base_requested
-        if not frozen_only:
-            parent_line = str(
-                _git(
-                    root,
-                    "rev-list",
-                    "--parents",
-                    "-n",
-                    "1",
-                    authority_sha,
-                    text=True,
-                )
-            ).strip().split()
-            if len(parent_line) != 2:
-                raise ReceiptValidationError("receipt_final_head_parent_count")
-            parent_sha = parent_line[1]
-            changed = str(
-                _git(
-                    root,
-                    "diff-tree",
-                    "--no-commit-id",
-                    "--name-only",
-                    "-r",
-                    parent_sha,
-                    authority_sha,
-                    text=True,
-                )
-            ).splitlines()
-            if len(changed) != 1 or changed[0] not in parsed:
-                raise ReceiptValidationError("receipt_final_commit_scope")
-            changed_path = changed[0]
-            if parsed[changed_path]["candidate_content_commit_sha"] != parent_sha:
-                raise ReceiptValidationError("receipt_candidate_parent_mismatch")
+        parent_line = str(
+            _git(
+                root,
+                "rev-list",
+                "--parents",
+                "-n",
+                "1",
+                authority_sha,
+                text=True,
+            )
+        ).strip().split()
+        if len(parent_line) != 2:
+            raise ReceiptValidationError("receipt_final_head_parent_count")
+        parent_sha = parent_line[1]
+        changed = str(
+            _git(
+                root,
+                "diff-tree",
+                "--no-commit-id",
+                "--name-only",
+                "-r",
+                parent_sha,
+                authority_sha,
+                text=True,
+            )
+        ).splitlines()
+        if len(changed) != 1 or changed[0] not in parsed:
+            raise ReceiptValidationError("receipt_final_commit_scope")
+        changed_path = changed[0]
+        if parsed[changed_path]["candidate_content_commit_sha"] != parent_sha:
+            raise ReceiptValidationError("receipt_candidate_parent_mismatch")
     seals: dict[str, str] = {}
     for path, receipt in parsed.items():
         seal_sha = _terminal_seal_commit(
@@ -530,21 +545,30 @@ def validate_all_tracked_batch_receipts(
             )
         if mode == "canonical-main":
             _validate_content_at_commit(root, seal_sha, receipt)
-        frozen_historical_receipt = receipt["batch_id"] == FROZEN_BATCH_ID and (
-            (
-                mode == "canonical-main"
-                and seal_sha != authority_sha
-            )
-            or (
-                mode != "canonical-main"
-                and not canonical_base_requested
-            )
-        )
+        frozen_historical_receipt = False
+        if receipt["batch_id"] == FROZEN_BATCH_ID:
+            if mode == "canonical-main" and seal_sha != authority_sha:
+                frozen_historical_receipt = True
+            elif (
+                mode == "pr"
+                and path != changed_path
+                and canonical_base is not None
+            ):
+                _validate_pr_frozen_historical_identity(
+                    root,
+                    canonical_base_sha=canonical_base,
+                    authority_sha=authority_sha,
+                    receipt_path=path,
+                )
+                frozen_historical_receipt = True
         terminal_mode = mode
         if (
             mode == "pr"
             and path != changed_path
-            and receipt["batch_id"] != FROZEN_BATCH_ID
+            and (
+                receipt["batch_id"] != FROZEN_BATCH_ID
+                or canonical_base is None
+            )
         ):
             terminal_mode = "canonical-main"
         if not frozen_historical_receipt:
