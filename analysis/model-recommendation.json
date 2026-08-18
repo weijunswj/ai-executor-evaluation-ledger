@@ -649,6 +649,86 @@
       "task_class": "security-remediation",
       "task_stage": "unknown",
       "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ai-agent-toolkit",
+      "task_class": "security-control-plane-amendment",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ai-agent-toolkit",
+      "task_class": "security-control-plane-independent-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "xb-automation",
+      "task_class": "fresh-exact-head-runtime-contract-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051": {
+      "difficulty": "medium",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "xb-automation",
+      "task_class": "runtime-contract-uplift",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "wordpress-migration-a",
+      "task_class": "security-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
     }
   },
   "comparison_contract": {
@@ -670,7 +750,7 @@
       "evaluation_protocol"
     ]
   },
-  "generated_at": "2026-08-14T09:08:00+08:00",
+  "generated_at": "2026-08-18T12:40:00+08:00",
   "material_limitations": [
     "Official comparison uses recorded gated_v1 evidence only.",
     "Queued evidence is reported separately and cannot affect official eligibility, independent-subject thresholds, scores, or winner selection.",
@@ -680,7 +760,7 @@
   ],
   "model_statistics": {
     "GPT-5.6 Luna": {
-      "available_count": 6,
+      "available_count": 11,
       "cited_queued_run_ids": [],
       "cited_recorded_run_ids": [
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
@@ -688,12 +768,17 @@
         "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
         "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
         "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
-        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150",
+        "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051"
       ],
       "controller_intervention": {
-        "observed_count": 6,
-        "rate": 1.0,
-        "required_count": 6
+        "observed_count": 11,
+        "rate": 0.8182,
+        "required_count": 9
       },
       "exact_cohort_eligible_recorded_count": 0,
       "exact_cohort_unknown_dimensions": [
@@ -701,40 +786,40 @@
         "task_stage",
         "tool_environment_class"
       ],
-      "exact_cohort_unknown_recorded_count": 6,
+      "exact_cohort_unknown_recorded_count": 11,
       "exact_matched_cohort_count": 0,
       "first_pass_acceptance": {
-        "accepted_count": 0,
-        "observed_count": 6,
-        "rate": 0.0
+        "accepted_count": 2,
+        "observed_count": 11,
+        "rate": 0.1818
       },
-      "independent_subject_count": 3,
+      "independent_subject_count": 6,
       "like_for_like_score_5": null,
       "material_limitations": [
         "No exact cross-model subject cohort is available.",
         "Multiple recorded runs share a correlated subject chain.",
         "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
       ],
-      "overall_average_score_5": 4.82,
+      "overall_average_score_5": 4.88,
       "queued_count": 0,
       "raw_comparable_run_count": 0,
-      "recorded_count": 6,
+      "recorded_count": 11,
       "recurring_defect_patterns": [],
       "score_evidence": {
         "efficiency": {
-          "count": 6,
-          "maximum": 4.7,
-          "mean": 4.45,
+          "count": 11,
+          "maximum": 5.0,
+          "mean": 4.61,
           "minimum": 4.0
         },
         "evidence_quality": {
-          "count": 6,
+          "count": 11,
           "maximum": 5.0,
-          "mean": 4.52,
+          "mean": 4.74,
           "minimum": 3.5
         },
         "safety_and_scope_control": {
-          "count": 6,
+          "count": 11,
           "maximum": 5.0,
           "mean": 5.0,
           "minimum": 5.0
@@ -747,25 +832,32 @@
         "missing_difficulties": [],
         "missing_independent_subject_count": 0,
         "missing_task_classes": [
+          "fresh-exact-head-runtime-contract-review",
+          "security-control-plane-independent-review",
           "security-review"
         ],
         "under_sampled": true
       },
       "verdict_distribution": {
         "accepted": 1,
-        "hold": 5
+        "amend": 1,
+        "hold": 7,
+        "pass": 2
       }
     },
     "GPT-5.6 Sol": {
-      "available_count": 1,
+      "available_count": 4,
       "cited_queued_run_ids": [],
       "cited_recorded_run_ids": [
-        "2026-08-07-ledger-post-run076-exact-head-g4-078"
+        "2026-08-07-ledger-post-run076-exact-head-g4-078",
+        "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053",
+        "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03"
       ],
       "controller_intervention": {
-        "observed_count": 1,
-        "rate": 0.0,
-        "required_count": 0
+        "observed_count": 4,
+        "rate": 0.25,
+        "required_count": 1
       },
       "exact_cohort_eligible_recorded_count": 0,
       "exact_cohort_unknown_dimensions": [
@@ -773,40 +865,39 @@
         "task_stage",
         "tool_environment_class"
       ],
-      "exact_cohort_unknown_recorded_count": 1,
+      "exact_cohort_unknown_recorded_count": 4,
       "exact_matched_cohort_count": 0,
       "first_pass_acceptance": {
-        "accepted_count": 1,
-        "observed_count": 1,
-        "rate": 1.0
+        "accepted_count": 3,
+        "observed_count": 4,
+        "rate": 0.75
       },
-      "independent_subject_count": 1,
+      "independent_subject_count": 4,
       "like_for_like_score_5": null,
       "material_limitations": [
-        "Independent subject coverage is below the published minimum.",
         "No exact cross-model subject cohort is available.",
         "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
       ],
-      "overall_average_score_5": 4.85,
+      "overall_average_score_5": 4.96,
       "queued_count": 0,
       "raw_comparable_run_count": 0,
-      "recorded_count": 1,
+      "recorded_count": 4,
       "recurring_defect_patterns": [],
       "score_evidence": {
         "efficiency": {
-          "count": 1,
-          "maximum": 3.5,
-          "mean": 3.5,
+          "count": 4,
+          "maximum": 5.0,
+          "mean": 4.62,
           "minimum": 3.5
         },
         "evidence_quality": {
-          "count": 1,
+          "count": 4,
           "maximum": 5.0,
           "mean": 5.0,
           "minimum": 5.0
         },
         "safety_and_scope_control": {
-          "count": 1,
+          "count": 4,
           "maximum": 5.0,
           "mean": 5.0,
           "minimum": 5.0
@@ -814,23 +905,30 @@
       },
       "similar_matched_cohort_count": 0,
       "undersampling": {
-        "additional_independent_observations_required": 2,
+        "additional_independent_observations_required": 0,
         "missing_cross_model_matched_cohort": true,
-        "missing_difficulties": [],
-        "missing_independent_subject_count": 2,
+        "missing_difficulties": [
+          "medium"
+        ],
+        "missing_independent_subject_count": 0,
         "missing_task_classes": [
+          "live-processor-transaction",
+          "runtime-contract-uplift",
+          "security-control-plane-amendment",
           "security-remediation"
         ],
         "under_sampled": true
       },
       "verdict_distribution": {
-        "accepted": 1
+        "accepted": 2,
+        "amend": 1,
+        "pass": 1
       }
     }
   },
   "populations": {
     "available": {
-      "count": 7,
+      "count": 15,
       "run_ids": [
         "2026-08-07-ledger-post-run076-exact-head-g4-078",
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
@@ -838,7 +936,15 @@
         "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
         "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
         "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
-        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150",
+        "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130",
+        "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051",
+        "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03"
       ]
     },
     "queued": {
@@ -846,7 +952,7 @@
       "run_ids": []
     },
     "recorded": {
-      "count": 7,
+      "count": 15,
       "run_ids": [
         "2026-08-07-ledger-post-run076-exact-head-g4-078",
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
@@ -854,7 +960,15 @@
         "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
         "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
         "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
-        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150",
+        "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130",
+        "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051",
+        "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03"
       ]
     }
   },

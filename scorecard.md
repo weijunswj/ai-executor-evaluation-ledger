@@ -1,6 +1,6 @@
 # Executor Scorecard
 
-Updated: 14 August 2026, 09:08 SGT
+Updated: 18 August 2026, 12:40 SGT
 
 This scorecard is generated from controller-verified records in `evaluations.jsonl`. Aggregate scores use the complete append-only history. Public project references use opaque aliases. Correction records relabel existing runs and do not count as additional formal runs.
 
@@ -9,8 +9,8 @@ This scorecard is generated from controller-verified records in `evaluations.jso
 
 | Model | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Integrity/control flags | Evidence level |
 |---|---:|---:|---:|---:|---:|---|
-| GPT-5.6 Sol | 1 | 4.85 | 100% | 1/1 applicable | 0 | Anecdotal |
-| GPT-5.6 Luna | 6 | 4.82 | 0% | 6/6 applicable | 8 | Moderate |
+| GPT-5.6 Sol | 4 | 4.96 | 75% | 4/4 applicable | 11 | Provisional across mixed tasks |
+| GPT-5.6 Luna | 11 | 4.88 | 18% | 11/11 applicable | 30 | Useful operating baseline |
 
 ## Formal evaluated runs
 
@@ -18,6 +18,14 @@ Newest first. This table displays at most 30 formal evaluation runs.
 
 | Reviewed | Model | Task class | Difficulty | Verdict | Score /5 | First-pass | Safe final state |
 |---|---|---|---|---|---:|---:|---|
+| 18 Aug 2026 12:40 SGT | GPT-5.6 Sol | Security Control Plane Independent Review | High | AMEND | 5.00 | No | Verified |
+| 18 Aug 2026 12:39 SGT | GPT-5.6 Sol | Security Review | High | ACCEPTED | 5.00 | Yes | Verified |
+| 18 Aug 2026 12:35 SGT | GPT-5.6 Sol | Fresh Exact Head Runtime Contract Review | High | PASS | 5.00 | Yes | Verified |
+| 18 Aug 2026 12:34 SGT | GPT-5.6 Luna | Live Processor Transaction | Critical | AMEND | 4.73 | No | Verified |
+| 18 Aug 2026 12:10 SGT | GPT-5.6 Luna | Live Processor Transaction | Critical | HOLD | 5.00 | No | Verified |
+| 18 Aug 2026 12:09 SGT | GPT-5.6 Luna | Runtime Contract Uplift | Medium | PASS | 5.00 | Yes | Verified |
+| 18 Aug 2026 12:00 SGT | GPT-5.6 Luna | Security Control Plane Amendment | High | PASS | 5.00 | Yes | Verified |
+| 18 Aug 2026 11:39 SGT | GPT-5.6 Luna | Live Processor Transaction | Critical | HOLD | 5.00 | No | Verified |
 | 14 Aug 2026 09:08 SGT | GPT-5.6 Luna | Security Remediation | Critical | ACCEPTED | 4.96 | No | Verified |
 | 13 Aug 2026 14:55 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.89 | No | Verified |
 | 13 Aug 2026 12:37 SGT | GPT-5.6 Luna | Security Remediation | Critical | HOLD | 4.88 | No | Verified |
@@ -40,14 +48,6 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | 26 Jul 2026 20:56 SGT | DeepSeek V4 Pro | Hosted Product Uat | High | AMEND | 3.50 | No | Verified |
 | 26 Jul 2026 20:55 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.72 | Yes | Verified |
 | 26 Jul 2026 20:47 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.19 | No | Verified |
-| 26 Jul 2026 20:46 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.13 | No | Verified |
-| 26 Jul 2026 20:31 SGT | GPT-5.6 Sol | Research | High | AMEND | 4.28 | No | Verified |
-| 26 Jul 2026 20:24 SGT | DeepSeek V4 Pro | Production Deployment | High | ACCEPTED | 4.59 | Yes | Verified |
-| 26 Jul 2026 20:22 SGT | DeepSeek V4 Pro | Production Operations | High | AMEND | 3.84 | No | Verified |
-| 26 Jul 2026 20:12 SGT | DeepSeek V4 Pro | Research | High | AMEND | 3.83 | No | Verified |
-| 26 Jul 2026 20:05 SGT | DeepSeek V4 Pro | Production Operations | High | ACCEPTED | 4.23 | Yes | Verified |
-| 26 Jul 2026 20:04 SGT | DeepSeek V4 Pro | Security Architecture Audit | High | AMEND | 4.01 | No | Verified |
-| 26 Jul 2026 20:03 SGT | DeepSeek V4 Pro | Incident Diagnosis | High | ACCEPTED | 4.87 | Yes | Verified |
 
 ## Task-class aggregates
 
@@ -66,13 +66,19 @@ Newest first. This table displays at most 30 formal evaluation runs.
 | DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
+| GPT-5.6 Luna | Live Processor Transaction | Critical | 3 | 4.91 | 0% | Provisional |
+| GPT-5.6 Luna | Runtime Contract Uplift | Medium | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Security Control Plane Amendment | High | 1 | 5.00 | 100% | Anecdotal |
 | GPT-5.6 Luna | Security Remediation | Critical | 6 | 4.82 | 0% | Moderate |
 | GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
+| GPT-5.6 Sol | Fresh Exact Head Runtime Contract Review | High | 1 | 5.00 | 100% | Anecdotal |
 | GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
 | GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
 | GPT-5.6 Sol | Security Audit | High | 1 | 4.74 | 100% | Anecdotal |
+| GPT-5.6 Sol | Security Control Plane Independent Review | High | 1 | 5.00 | 0% | Anecdotal |
 | GPT-5.6 Sol | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | GPT-5.6 Sol | Security Review | Critical | 1 | 4.85 | 100% | Anecdotal |
+| GPT-5.6 Sol | Security Review | High | 1 | 5.00 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Architecture Proposal | High | 1 | 4.53 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Complex Repository Change | High | 2 | 3.38 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
@@ -85,6 +91,143 @@ Newest first. This table displays at most 30 formal evaluation runs.
 ## Latest formal evaluations
 
 Newest first. This section displays at most 30 formal evaluation runs.
+
+### GPT-5.6 Sol - Security Control Plane Independent Review
+
+- Reviewed: **18 Aug 2026 12:40 SGT**
+- Run ID: `2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131`
+- Subject alias: `ai-agent-toolkit`
+- Result: **AMEND**
+- Weighted score: **5.00/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Held exact frozen authority and remained strictly read-only while independently re-proving the repaired Run-129 invariants and the wider A1 contract.
+  - Produced a concrete counterexample showing that deny precedence can still be wrong when stronger deny evidence is safely observed beyond the ordinary 16-component canonical-policy limit.
+  - Found a bounded global-resource accounting bypass across array extra/symbol keys with evidence beyond the locked 8,192 captured-key ceiling.
+  - Detected direct runtime/policy mismatch for the ticket default-use contract and supplied the minimum repair plus focused boundary tests.
+  - Passed the full deterministic validation set, confirmed all nine required hosted checks green, and correctly classified the unsupported dynamic-AI workflow as noncandidate because it produced no substantive finding.
+- Principal defects:
+  - none recorded
+
+### GPT-5.6 Sol - Security Review
+
+- Reviewed: **18 Aug 2026 12:39 SGT**
+- Run ID: `xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03`
+- Subject alias: `wordpress-migration-a`
+- Result: **ACCEPTED**
+- Weighted score: **5.00/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Admitted the exact controller-authorised local revision and sole parent with a clean working tree, no remote, and a one-file amendment limited to the ignore policy.
+  - Verified the required sensitive-artifact classes are ignored while the intended example environment file remains trackable, and revalidated credential confidentiality, GET-only dispatch, fixed-origin TLS confinement, localhost-only exposure and bounded timeouts.
+  - Re-ran the full local test suite and static checks, confirmed no production access or repository mutation occurred, and returned no concrete Gate 4 finding.
+- Principal defects:
+  - none recorded
+
+### GPT-5.6 Sol - Fresh Exact Head Runtime Contract Review
+
+- Reviewed: **18 Aug 2026 12:35 SGT**
+- Run ID: `2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053`
+- Subject alias: `xb-automation`
+- Result: **PASS**
+- Weighted score: **5.00/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Fresh isolated exact-head review rebound canonical main, candidate H/T/sole-parent shape, exact three-path +4/-4 manifest and unchanged production/test surfaces without mutation.
+  - Independently verified Toolkit #342 consumer classification: all EnergyGrid Python-runtime consumers were updated while unrelated member-create Python 3.12 consumers remained preserved.
+  - Verified literal-head hosted CI used CPython 3.14.7, installed playwright==1.61.0, provisioned Chromium through Playwright, passed Scheduler parse-only validation and all 51 synthetic tests.
+  - Preserved strict read-only and live-system boundaries with zero GitHub/repository/live mutation and secret exposure none.
+- Principal defects:
+  - none recorded
+
+### GPT-5.6 Luna - Live Processor Transaction
+
+- Reviewed: **18 Aug 2026 12:34 SGT**
+- Run ID: `2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151`
+- Subject alias: `evaluation-ledger`
+- Result: **AMEND**
+- Weighted score: **4.73/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Derived a completely fresh live source snapshot and allowed the shipped processor to admit the eligible set without reusing prior transaction authority.
+  - Produced an Hc whose tree had exactly the five authorised generated-output paths and whose sole parent was canonical main.
+  - Detected the candidate-authority message mismatch before push or PR creation and respected the no-amend/no-third-commit boundary rather than trying to repair the invalid Hc in place.
+  - Preserved canonical main, the ordinary checkout, #142/#143 source and receipt boundaries, and all Ready/review/G4/merge restrictions with no secret exposure.
+- Principal defects:
+  - Hc was created with literal backslash-n escape text in the candidate-authority message instead of the real newline-separated string returned by the shipped candidate_commit_authority_message function.
+
+### GPT-5.6 Luna - Live Processor Transaction
+
+- Reviewed: **18 Aug 2026 12:10 SGT**
+- Run ID: `2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150`
+- Subject alias: `evaluation-ledger`
+- Result: **HOLD**
+- Weighted score: **5.00/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Verified exact canonical-main authority and derived a completely fresh 597-comment source snapshot without reusing Run149 or retired PR authority.
+  - Independently validated and admitted the newly queued Run149 v2 intake, then allowed the shipped processor to derive the candidate rather than forcing or special-casing admission.
+  - Detected that the processor-generated candidate necessarily touched its canonical five generated outputs and failed closed against the narrower controller scope before creating any commit, branch, PR, receipt or hosted-check state.
+  - Preserved the ordinary checkout, clean fresh workspace, source and receipt queues, and all Ready/review/G4/merge boundaries with no secret exposure.
+- Principal defects:
+  - none recorded
+
+### GPT-5.6 Luna - Runtime Contract Uplift
+
+- Reviewed: **18 Aug 2026 12:09 SGT**
+- Run ID: `2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051`
+- Subject alias: `xb-automation`
+- Result: **PASS**
+- Weighted score: **5.00/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Implemented exactly the three locked runtime-contract and CI consumer changes with one commit and no production Python or test changes.
+  - Preserved the pinned Playwright dependency and proved it installs successfully under CPython 3.14 together with official Chromium provisioning.
+  - Obtained natural literal-head hosted CI on the exact candidate with exact-head checkout assertion, scheduler parse-only validation, scope checks and the complete synthetic EnergyGrid suite green.
+  - Preserved repository-only safety boundaries: no live portal, credential, PDF, Scheduler registration, AutoCount, n8n, Google or production-host operation occurred.
+- Principal defects:
+  - none recorded
+
+### GPT-5.6 Luna - Security Control Plane Amendment
+
+- Reviewed: **18 Aug 2026 12:00 SGT**
+- Run ID: `2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130`
+- Subject alias: `ai-agent-toolkit`
+- Result: **PASS**
+- Weighted score: **5.00/5**
+- First-pass accepted: **Yes**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Produced one ordinary successor commit from the authorised reviewed candidate and kept the amendment confined to the control-plane kernel plus its focused test surface.
+  - Closed mutable ticket rebinding and caller-authority broadening by binding ticket consumption and repository/operation authority to private trusted state while preserving caller metadata as non-authoritative.
+  - Closed unresolved-state and invalid-digest escapes, including unsupported shell, before ordinary policy or digest authority can be reached.
+  - Closed branch-local compound accounting and caller-order hard-deny selection with traversal-global accounting and fixed-precedence reduction, with focused boundary regressions for 128/129 and order reversal.
+  - Preserved Draft status, avoided tracker/review/live-system mutations, and passed the directly verified exact-head hosted PR workflows with no submitted reviews or inline review threads.
+- Principal defects:
+  - none recorded
+
+### GPT-5.6 Luna - Live Processor Transaction
+
+- Reviewed: **18 Aug 2026 11:39 SGT**
+- Run ID: `2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149`
+- Subject alias: `evaluation-ledger`
+- Result: **HOLD**
+- Weighted score: **5.00/5**
+- First-pass accepted: **No**
+- Safe final state: **Verified**
+- Principal strengths:
+  - Verified exact canonical-main authority, froze a fresh bounded source snapshot and individually refetched the selected source without source drift or source unavailability.
+  - Ran the shipped processor in dry-run mode, obtained zero eligible admissions with closed rejection classifications, and stopped exactly at the authorised zero-eligible gate rather than fabricating an empty live transaction.
+  - Preserved the ordinary checkout and canonical repository state: no candidate commit, branch, pull request or receipt was created, retired transaction authority was not reused, and the live receipt destination remained untouched.
+  - Reported a public-safe terminal packet with no source bodies or secrets exposed and enough metadata for controller-side reconciliation.
+- Principal defects:
+  - none recorded
 
 ### GPT-5.6 Luna - Security Remediation
 
@@ -519,168 +662,4 @@ Newest first. This section displays at most 30 formal evaluation runs.
   - the proposal would remove existing mandatory CodeQL and code-quality controls without a separate evidence-backed policy change
   - the security properties removed with the seven broad suites are not mapped exhaustively to exact protected invariant IDs
   - current-main integration does not explicitly preserve the reviewed branch through a normal merge
-
-### GPT-5.6 Sol - Research
-
-- Reviewed: **26 Jul 2026 20:46 SGT**
-- Run ID: `2026-07-26-gpt-5-6-sol-external-control-plane-gate1-reset-001`
-- Subject alias: `external-control-plane-a`
-- Result: **AMEND**
-- Weighted score: **4.13/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - independently confirmed all eight exact-head admission and authority defects
-  - defined one canonical environment and risk authority with exact unknown-by-default action admission
-  - replaced alias-only target matching and duplicated approval references with complete canonical authority
-  - separated start, observation and terminal receipt concepts and preserved cross-route parity
-  - kept repository, provider, credential and consumer systems untouched
-- Principal defects:
-  - the selected signed monotonic authority remains an unspecified external service without an exact protocol, key lifecycle or recovery model
-  - the Windows handle-relative filesystem broker remains a category rather than a selected buildable trust boundary
-  - approval revocation before terminalization can prevent truthful evidence for an already-started external operation
-  - connector-supplied action catalogues lack an independent provenance and rollback authority
-  - the proposed rebase integration would rewrite the heavily reviewed branch instead of normally merging current main
-
-### GPT-5.6 Sol - Research
-
-- Reviewed: **26 Jul 2026 20:31 SGT**
-- Run ID: `2026-07-26-gpt-5-6-sol-workflow-compatibility-gate1-reset-001`
-- Subject alias: `workflow-compatibility-a`
-- Result: **AMEND**
-- Weighted score: **4.28/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - independently reproduced the four exact-head transaction and performance defects and accurately mapped their call paths
-  - proposed one coherent transaction-state-machine direction rather than four isolated patches
-  - made phase-30 winner recognition explicit, added final destructive-boundary tree validation and removed the duplicate healthy classification
-  - kept plugin refresh, installed-cache repair and consumer-repository helper propagation as separate authority domains
-  - preserved a clean repository, made zero GitHub mutations and accessed no installed cache or live system
-- Principal defects:
-  - the append-only journal contract simultaneously treats a torn final append as a recoverable durable prefix and malformed evidence, leaving crash recovery undefined
-  - the journal's exact stable placement and supported write-through adapter were not selected, so its authority and durability boundary are not implementable yet
-  - retirement depends on preferred handle-bound Windows operations without selecting a supported implementation or a complete logical-retirement fallback
-  - permanent journal tombstones are only count-bounded and can eventually exhaust future repair authority without an exact safe retention or compaction contract
-
-### DeepSeek V4 Pro - Production Deployment
-
-- Reviewed: **26 Jul 2026 20:24 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-source-commit-deployment-001`
-- Subject alias: `public-web-app-a`
-- Result: **ACCEPTED**
-- Weighted score: **4.59/5**
-- First-pass accepted: **Yes**
-- Safe final state: **Verified**
-- Principal strengths:
-  - deployed the exact accepted revision and produced matching source-commit provenance without weakening repository validation
-  - proved Node 24, mutation-disabled administration, automatic deployment disabled and the required public and unauthenticated-admin route behaviour
-  - verified removed quote and workflow handoff variables were absent from the active runtime
-  - replaced the stale prior container only after a successful build and required no rollback
-  - performed no quote, admin, identity, application-database, DNS, TLS or repository mutation
-- Principal defects:
-  - the authorised native include-source-commit setting remained disabled and was replaced with a fixed SOURCE_COMMIT application environment value
-  - the fixed revision value can become stale and mis-attest a later build unless it is updated atomically for every new target or replaced by native per-deployment source-revision injection
-
-### DeepSeek V4 Pro - Production Operations
-
-- Reviewed: **26 Jul 2026 20:22 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-operator-source-admission-002`
-- Subject alias: `shared-platform-a`
-- Result: **AMEND**
-- Weighted score: **3.84/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - revalidated the exact repository main, merged pull request and accepted continuous-integration identity
-  - checked the Process, User and Machine Windows environment scopes without exposing or transforming any value
-  - stopped before provider access, database connection, Docker access, password generation, Bitwarden use or mutation
-  - returned a complete zero-mutation statement and did not misrepresent any activation phase as started
-- Principal defects:
-  - the canonical shared operator source at %USERPROFILE%\.codex\.env was not inspected even though persistent Windows variables are not the default authority
-  - absence from Process, User and Machine scopes was therefore misclassified as operator credential unavailability
-  - controller injection or a manual paste path was proposed before exhausting the approved host-neutral operator environment authority
-
-### DeepSeek V4 Pro - Research
-
-- Reviewed: **26 Jul 2026 20:12 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-governance-tooling-a-architecture-reset-005`
-- Subject alias: `governance-tooling-a`
-- Result: **AMEND**
-- Weighted score: **3.83/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - preserved the exact no-mutation boundary and correctly bound the packet to the unchanged pull-request head and advanced main
-  - accurately identified the privileged-writeback validator conflict and the shallow workflow inventory root cause
-  - provided useful architecture alternatives, a broad adversarial matrix and substantially improved replacement-chain and sentinel direction
-  - reported the pull request as conflicting and retained the existing draft unmerged implementation authority
-- Principal defects:
-  - the proposed recursive inventory does not actually define executable traversal of local shell wrappers, compound package scripts or recursion-boundary workspace semantics
-  - the mutation design does not first prove the immutable production entry, makes unrelated-tuple preservation conditional and explicitly retains a non-exact GOV015 expectation
-  - the replacement graph and full body-authority algorithm omit material invariants while the packet leaves finding ownership as an unresolved controller decision
-  - diagnostic parity relies on source regex and generated-surface parity mutates the active checkout instead of comparing isolated deterministic expected bytes
-  - the integration sequence simultaneously permits rebase, forbids the required force update and requires descendant ancestry that a rebase cannot preserve
-  - the side-effect plan lacks explicit numeric and string open-flag cases and complete deterministic asynchronous sentinels
-  - the final validation matrix omits the repository's actual Public Safety proof and does not bind CodeQL claims to current required checks
-
-### DeepSeek V4 Pro - Production Operations
-
-- Reviewed: **26 Jul 2026 20:05 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-shared-platform-a-runtime-activation-preflight-001`
-- Subject alias: `shared-platform-a`
-- Result: **ACCEPTED**
-- Weighted score: **4.23/5**
-- First-pass accepted: **Yes**
-- Safe final state: **Verified**
-- Principal strengths:
-  - revalidated the exact merged repository state and accepted continuous-integration result before attempting production access
-  - stopped before provider access, database connection, password creation, secret-store write or any mutation
-  - reported complete zero-mutation and temporary-resource state with no secret exposure
-  - correctly identified the unavailable container runtime as a decisive activation-host blocker
-- Principal defects:
-  - absence from the current process environment was presented as absence of the operator credential without checking persistent user, machine or approved bootstrap sources
-  - absence of one command-line client was presented as absence of all approved secret-store write capability
-  - stale activation containers were reported absent even though the container daemon was unavailable and the inventory could not be observed
-  - all three conditions were grouped as hardware or environment failures even though two were unresolved credential-source and tooling-admission questions
-
-### DeepSeek V4 Pro - Security Architecture Audit
-
-- Reviewed: **26 Jul 2026 20:04 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-private-quote-service-a-role-audit-001`
-- Subject alias: `private-quote-service-a`
-- Result: **AMEND**
-- Weighted score: **4.01/5**
-- First-pass accepted: **No**
-- Safe final state: **Verified**
-- Principal strengths:
-  - proved the current application role lacks superuser, role-creation, database-creation, replication and row-security bypass authority
-  - proved the runtime role owns no application objects and the migrator owns the canonical application tables and trigger functions
-  - identified current excess data-modification grants on migration-ledger and append-only tables
-  - kept the audit read-only with no password, grant, ownership, provider or deployment mutation and no secret exposure
-- Principal defects:
-  - the audit explicitly left transitive memberships, column grants, direct routine grants and legacy-administrator explicit grants incomplete while claiming full admission
-  - the proposed broad table grants would give migration-ledger insert authority to the online runtime
-  - the proposed future default grants would recreate update and delete access on immutable tables and execute access on every future function
-  - the replacement migration and recovery administration path was not proven before proposing membership revocation
-  - the legacy provider-administrator finding was overstated without proving provider support or a material reduction in its existing authority
-  - the proposed role creation installed login credentials before exact privilege validation instead of using a no-login-first sequence
-  - provider utility ownership and provider-role removal were included outside the bounded runtime-role migration scope
-
-### DeepSeek V4 Pro - Incident Diagnosis
-
-- Reviewed: **26 Jul 2026 20:03 SGT**
-- Run ID: `2026-07-26-deepseek-v4-pro-public-web-app-a-build-root-cause-001`
-- Subject alias: `public-web-app-a`
-- Result: **ACCEPTED**
-- Weighted score: **4.87/5**
-- First-pass accepted: **Yes**
-- Safe final state: **Verified**
-- Principal strengths:
-  - recovered the exact post-build provenance failure and correctly separated it from the successful application build
-  - proved the missing revision input through hosted configuration, build arguments and repository call-path evidence
-  - eliminated the runtime-version, dependency, resource and network hypotheses with direct evidence
-  - performed no repository, provider, deployment, database, identity or application-data mutation
-- Principal defects:
-  - the proposed rollback wording initially suggested reverting the required source-revision setting after any later build failure rather than only after evidence that the setting itself was defective
 <!-- GENERATED:SCORECARD-RUNS:END -->
