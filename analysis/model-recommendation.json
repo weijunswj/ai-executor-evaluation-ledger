@@ -649,6 +649,406 @@
       "task_class": "security-remediation",
       "task_stage": "unknown",
       "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-post-receipt-parity-finality-g3-155": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-processor-native-source-availability-retry-g3-157": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-first-controlled-live-processor-batch-source-stability-retry-g3-156": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-processor-transaction",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-pr190-receipt-stage-integrity-localisation-diagnostic-160": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "live-readonly-adjudication",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-receipt-recordproof-current-model-parity-final-exact-head-g4-154": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "receipt-contract-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-ledger-receipt-recordproof-current-model-parity-g3-153": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "evaluation-ledger",
+      "task_class": "receipt-contract-repair",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-toolkit-346-a1-soir-r1-fresh-main-final-exact-head-g4-134": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ai-agent-toolkit",
+      "task_class": "exact-head-gate-4-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ai-agent-toolkit",
+      "task_class": "security-control-plane-amendment",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ai-agent-toolkit",
+      "task_class": "security-control-plane-independent-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-toolkit-346-a1-soir-r1-record-admission-tactic-replacement-g3-138": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ai-agent-toolkit",
+      "task_class": "security-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-toolkit-346-a1-soir-r1-run135-final-exact-head-g4-136": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "ai-agent-toolkit",
+      "task_class": "exact-head-gate-4-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-xb-127-post-repo-ci-main-rebaseline-g3-058": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "x-boundaries-automation",
+      "task_class": "repository-rebaseline-revalidation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-xb-energygrid-live-gate1-host-provisioning-python314-054": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "xb-automation",
+      "task_class": "live-host-provisioning",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "xb-automation",
+      "task_class": "fresh-exact-head-runtime-contract-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051": {
+      "difficulty": "medium",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "xb-automation",
+      "task_class": "runtime-contract-uplift",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "AC2-G4-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "x-boundaries-automation",
+      "task_class": "exact-head-gate-4-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "REPO-CI-G4-001": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "x-boundaries-automation",
+      "task_class": "exact-head-gate-4-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-direct-neon-linux-tls-channel-binding-proof-20260818-75": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "production-readonly-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-existing-coolify-hosting-baseline-preparation-20260818-79": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "live-hosting-baseline-preparation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-existing-dns-edge-oidc-closure-20260818-80": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "live-dns-edge-closure",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-host-network-direct-neon-tls-channel-binding-proof-20260818-76": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "production-readonly-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-host-ssh-composite-strict-tls-session-proof-20260818-78": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "production-readonly-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-host-ssh-direct-neon-tls-channel-binding-proof-20260818-77": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "production-readonly-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-live-evidence-discrepancy-adjudication-20260818-73": {
+      "difficulty": "critical",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "live-readonly-adjudication",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "platform-secure-edge-and-hosting-baseline-preparation-20260818-74": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-platform",
+      "task_class": "production-readonly-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-boto-1-43-72-canonical-smoke-revalidation-20260818-131": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-quote-auto-generator",
+      "task_class": "canonical-ci-revalidation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-boto-1-43-72-exact-h-publication-and-hosted-finality-g3-20260818-128": {
+      "difficulty": "medium",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-quote-auto-generator",
+      "task_class": "dependency-maintenance",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-boto-1-43-72-final-exact-head-g4-20260818-129": {
+      "difficulty": "medium",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-quote-auto-generator",
+      "task_class": "exact-head-gate4-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-dashboard-duplicate-interruption-causal-handshake-g3-20260818-133": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "sqag",
+      "task_class": "test-remediation",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-dashboard-duplicate-smoke-readiness-repair-g3-20260818-132": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "sqag",
+      "task_class": "production-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-duplicate-handshake-expected-head-merge-canonical-verification-20260818-137": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "sqag",
+      "task_class": "expected-head-merge-canonical-verification",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-duplicate-handshake-final-exact-head-g4-20260818-136": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "sqag",
+      "task_class": "final-exact-head-g4",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-duplicate-handshake-fresh-worktree-source-state-differential-g3-20260818-135": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "swooshz-quote-auto-generator",
+      "task_class": "test-stability-repair",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "sqag-duplicate-handshake-local-baseline-differential-publication-g3-20260818-134": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "sqag",
+      "task_class": "production-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "xt-wordpress-current-head-auth-safety-g4-20260818-07": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "xt-wordpress-migration",
+      "task_class": "security-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "xt-wordpress-live-application-password-auth-check-20260818-08": {
+      "difficulty": "medium",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "xt-wordpress-migration",
+      "task_class": "production-readonly-authentication-diagnostic",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
+    },
+    "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03": {
+      "difficulty": "high",
+      "evaluation_protocol": "gated_v1",
+      "operation_gate_type": "unknown",
+      "source_revision": "private_revision_verified",
+      "subject_alias": "wordpress-migration-a",
+      "task_class": "security-review",
+      "task_stage": "unknown",
+      "tool_environment_class": "unknown"
     }
   },
   "comparison_contract": {
@@ -670,7 +1070,7 @@
       "evaluation_protocol"
     ]
   },
-  "generated_at": "2026-08-14T09:08:00+08:00",
+  "generated_at": "2026-08-18T20:49:00+08:00",
   "material_limitations": [
     "Official comparison uses recorded gated_v1 evidence only.",
     "Queued evidence is reported separately and cannot affect official eligibility, independent-subject thresholds, scores, or winner selection.",
@@ -679,21 +1079,19 @@
     "Unknown exact-cohort dimensions are explicit and excluded from exact matching."
   ],
   "model_statistics": {
-    "GPT-5.6 Luna": {
-      "available_count": 6,
+    "Claude Opus 5": {
+      "available_count": 4,
       "cited_queued_run_ids": [],
       "cited_recorded_run_ids": [
-        "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
-        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
-        "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
-        "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
-        "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
-        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+        "2026-08-18-xb-127-post-repo-ci-main-rebaseline-g3-058",
+        "2026-08-18-xb-energygrid-live-gate1-host-provisioning-python314-054",
+        "AC2-G4-001",
+        "REPO-CI-G4-001"
       ],
       "controller_intervention": {
-        "observed_count": 6,
-        "rate": 1.0,
-        "required_count": 6
+        "observed_count": 4,
+        "rate": 0.0,
+        "required_count": 0
       },
       "exact_cohort_eligible_recorded_count": 0,
       "exact_cohort_unknown_dimensions": [
@@ -701,12 +1099,12 @@
         "task_stage",
         "tool_environment_class"
       ],
-      "exact_cohort_unknown_recorded_count": 6,
+      "exact_cohort_unknown_recorded_count": 4,
       "exact_matched_cohort_count": 0,
       "first_pass_acceptance": {
-        "accepted_count": 0,
-        "observed_count": 6,
-        "rate": 0.0
+        "accepted_count": 4,
+        "observed_count": 4,
+        "rate": 1.0
       },
       "independent_subject_count": 3,
       "like_for_like_score_5": null,
@@ -715,26 +1113,153 @@
         "Multiple recorded runs share a correlated subject chain.",
         "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
       ],
-      "overall_average_score_5": 4.82,
+      "overall_average_score_5": 4.99,
       "queued_count": 0,
       "raw_comparable_run_count": 0,
-      "recorded_count": 6,
+      "recorded_count": 4,
       "recurring_defect_patterns": [],
       "score_evidence": {
         "efficiency": {
-          "count": 6,
-          "maximum": 4.7,
-          "mean": 4.45,
+          "count": 4,
+          "maximum": 5.0,
+          "mean": 4.97,
+          "minimum": 4.9
+        },
+        "evidence_quality": {
+          "count": 4,
+          "maximum": 5.0,
+          "mean": 4.97,
+          "minimum": 4.9
+        },
+        "safety_and_scope_control": {
+          "count": 4,
+          "maximum": 5.0,
+          "mean": 5.0,
+          "minimum": 5.0
+        }
+      },
+      "similar_matched_cohort_count": 0,
+      "undersampling": {
+        "additional_independent_observations_required": 0,
+        "missing_cross_model_matched_cohort": true,
+        "missing_difficulties": [
+          "critical",
+          "medium"
+        ],
+        "missing_independent_subject_count": 0,
+        "missing_task_classes": [
+          "canonical-ci-revalidation",
+          "dependency-maintenance",
+          "exact-head-gate4-review",
+          "expected-head-merge-canonical-verification",
+          "final-exact-head-g4",
+          "fresh-exact-head-runtime-contract-review",
+          "live-dns-edge-closure",
+          "live-hosting-baseline-preparation",
+          "live-processor-transaction",
+          "live-readonly-adjudication",
+          "production-diagnostic",
+          "production-readonly-authentication-diagnostic",
+          "production-readonly-diagnostic",
+          "receipt-contract-repair",
+          "receipt-contract-review",
+          "runtime-contract-uplift",
+          "security-control-plane-amendment",
+          "security-control-plane-independent-review",
+          "security-remediation",
+          "security-review",
+          "test-remediation",
+          "test-stability-repair"
+        ],
+        "under_sampled": true
+      },
+      "verdict_distribution": {
+        "pass": 4
+      }
+    },
+    "GPT-5.6 Luna": {
+      "available_count": 33,
+      "cited_queued_run_ids": [],
+      "cited_recorded_run_ids": [
+        "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
+        "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
+        "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
+        "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-receipt-parity-finality-g3-155",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-processor-native-source-availability-retry-g3-157",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-source-stability-retry-g3-156",
+        "2026-08-18-ledger-pr190-receipt-stage-integrity-localisation-diagnostic-160",
+        "2026-08-18-ledger-receipt-recordproof-current-model-parity-g3-153",
+        "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130",
+        "2026-08-18-toolkit-346-a1-soir-r1-record-admission-tactic-replacement-g3-138",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051",
+        "platform-direct-neon-linux-tls-channel-binding-proof-20260818-75",
+        "platform-existing-coolify-hosting-baseline-preparation-20260818-79",
+        "platform-existing-dns-edge-oidc-closure-20260818-80",
+        "platform-host-network-direct-neon-tls-channel-binding-proof-20260818-76",
+        "platform-host-ssh-composite-strict-tls-session-proof-20260818-78",
+        "platform-host-ssh-direct-neon-tls-channel-binding-proof-20260818-77",
+        "platform-live-evidence-discrepancy-adjudication-20260818-73",
+        "platform-secure-edge-and-hosting-baseline-preparation-20260818-74",
+        "sqag-boto-1-43-72-canonical-smoke-revalidation-20260818-131",
+        "sqag-boto-1-43-72-exact-h-publication-and-hosted-finality-g3-20260818-128",
+        "sqag-dashboard-duplicate-interruption-causal-handshake-g3-20260818-133",
+        "sqag-dashboard-duplicate-smoke-readiness-repair-g3-20260818-132",
+        "sqag-duplicate-handshake-expected-head-merge-canonical-verification-20260818-137",
+        "sqag-duplicate-handshake-fresh-worktree-source-state-differential-g3-20260818-135",
+        "sqag-duplicate-handshake-local-baseline-differential-publication-g3-20260818-134",
+        "xt-wordpress-live-application-password-auth-check-20260818-08"
+      ],
+      "controller_intervention": {
+        "observed_count": 33,
+        "rate": 0.7576,
+        "required_count": 25
+      },
+      "exact_cohort_eligible_recorded_count": 0,
+      "exact_cohort_unknown_dimensions": [
+        "operation_gate_type",
+        "task_stage",
+        "tool_environment_class"
+      ],
+      "exact_cohort_unknown_recorded_count": 33,
+      "exact_matched_cohort_count": 0,
+      "first_pass_acceptance": {
+        "accepted_count": 17,
+        "observed_count": 33,
+        "rate": 0.5152
+      },
+      "independent_subject_count": 20,
+      "like_for_like_score_5": null,
+      "material_limitations": [
+        "No exact cross-model subject cohort is available.",
+        "Multiple recorded runs share a correlated subject chain.",
+        "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
+      ],
+      "overall_average_score_5": 4.96,
+      "queued_count": 0,
+      "raw_comparable_run_count": 0,
+      "recorded_count": 33,
+      "recurring_defect_patterns": [],
+      "score_evidence": {
+        "efficiency": {
+          "count": 33,
+          "maximum": 5.0,
+          "mean": 4.86,
           "minimum": 4.0
         },
         "evidence_quality": {
-          "count": 6,
+          "count": 33,
           "maximum": 5.0,
-          "mean": 4.52,
+          "mean": 4.91,
           "minimum": 3.5
         },
         "safety_and_scope_control": {
-          "count": 6,
+          "count": 33,
           "maximum": 5.0,
           "mean": 5.0,
           "minimum": 5.0
@@ -747,25 +1272,44 @@
         "missing_difficulties": [],
         "missing_independent_subject_count": 0,
         "missing_task_classes": [
+          "exact-head-gate-4-review",
+          "exact-head-gate4-review",
+          "final-exact-head-g4",
+          "fresh-exact-head-runtime-contract-review",
+          "live-host-provisioning",
+          "receipt-contract-review",
+          "repository-rebaseline-revalidation",
+          "security-control-plane-independent-review",
           "security-review"
         ],
         "under_sampled": true
       },
       "verdict_distribution": {
         "accepted": 1,
-        "hold": 5
+        "amend": 5,
+        "hold": 10,
+        "pass": 17
       }
     },
     "GPT-5.6 Sol": {
-      "available_count": 1,
+      "available_count": 10,
       "cited_queued_run_ids": [],
       "cited_recorded_run_ids": [
-        "2026-08-07-ledger-post-run076-exact-head-g4-078"
+        "2026-08-07-ledger-post-run076-exact-head-g4-078",
+        "2026-08-18-ledger-receipt-recordproof-current-model-parity-final-exact-head-g4-154",
+        "2026-08-18-toolkit-346-a1-soir-r1-fresh-main-final-exact-head-g4-134",
+        "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131",
+        "2026-08-18-toolkit-346-a1-soir-r1-run135-final-exact-head-g4-136",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053",
+        "sqag-boto-1-43-72-final-exact-head-g4-20260818-129",
+        "sqag-duplicate-handshake-final-exact-head-g4-20260818-136",
+        "xt-wordpress-current-head-auth-safety-g4-20260818-07",
+        "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03"
       ],
       "controller_intervention": {
-        "observed_count": 1,
-        "rate": 0.0,
-        "required_count": 0
+        "observed_count": 10,
+        "rate": 0.3,
+        "required_count": 3
       },
       "exact_cohort_eligible_recorded_count": 0,
       "exact_cohort_unknown_dimensions": [
@@ -773,40 +1317,40 @@
         "task_stage",
         "tool_environment_class"
       ],
-      "exact_cohort_unknown_recorded_count": 1,
+      "exact_cohort_unknown_recorded_count": 10,
       "exact_matched_cohort_count": 0,
       "first_pass_acceptance": {
-        "accepted_count": 1,
-        "observed_count": 1,
-        "rate": 1.0
+        "accepted_count": 7,
+        "observed_count": 10,
+        "rate": 0.7
       },
-      "independent_subject_count": 1,
+      "independent_subject_count": 9,
       "like_for_like_score_5": null,
       "material_limitations": [
-        "Independent subject coverage is below the published minimum.",
         "No exact cross-model subject cohort is available.",
+        "Multiple recorded runs share a correlated subject chain.",
         "Recorded runs with unknown exact-cohort dimensions are excluded from exact matching."
       ],
-      "overall_average_score_5": 4.85,
+      "overall_average_score_5": 4.99,
       "queued_count": 0,
       "raw_comparable_run_count": 0,
-      "recorded_count": 1,
+      "recorded_count": 10,
       "recurring_defect_patterns": [],
       "score_evidence": {
         "efficiency": {
-          "count": 1,
-          "maximum": 3.5,
-          "mean": 3.5,
+          "count": 10,
+          "maximum": 5.0,
+          "mean": 4.85,
           "minimum": 3.5
         },
         "evidence_quality": {
-          "count": 1,
+          "count": 10,
           "maximum": 5.0,
           "mean": 5.0,
           "minimum": 5.0
         },
         "safety_and_scope_control": {
-          "count": 1,
+          "count": 10,
           "maximum": 5.0,
           "mean": 5.0,
           "minimum": 5.0
@@ -814,23 +1358,42 @@
       },
       "similar_matched_cohort_count": 0,
       "undersampling": {
-        "additional_independent_observations_required": 2,
+        "additional_independent_observations_required": 0,
         "missing_cross_model_matched_cohort": true,
         "missing_difficulties": [],
-        "missing_independent_subject_count": 2,
+        "missing_independent_subject_count": 0,
         "missing_task_classes": [
-          "security-remediation"
+          "canonical-ci-revalidation",
+          "dependency-maintenance",
+          "expected-head-merge-canonical-verification",
+          "live-dns-edge-closure",
+          "live-host-provisioning",
+          "live-hosting-baseline-preparation",
+          "live-processor-transaction",
+          "live-readonly-adjudication",
+          "production-diagnostic",
+          "production-readonly-authentication-diagnostic",
+          "production-readonly-diagnostic",
+          "receipt-contract-repair",
+          "repository-rebaseline-revalidation",
+          "runtime-contract-uplift",
+          "security-control-plane-amendment",
+          "security-remediation",
+          "test-remediation",
+          "test-stability-repair"
         ],
         "under_sampled": true
       },
       "verdict_distribution": {
-        "accepted": 1
+        "accepted": 3,
+        "amend": 3,
+        "pass": 4
       }
     }
   },
   "populations": {
     "available": {
-      "count": 7,
+      "count": 47,
       "run_ids": [
         "2026-08-07-ledger-post-run076-exact-head-g4-078",
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
@@ -838,7 +1401,47 @@
         "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
         "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
         "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
-        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-receipt-parity-finality-g3-155",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-processor-native-source-availability-retry-g3-157",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-source-stability-retry-g3-156",
+        "2026-08-18-ledger-pr190-receipt-stage-integrity-localisation-diagnostic-160",
+        "2026-08-18-ledger-receipt-recordproof-current-model-parity-final-exact-head-g4-154",
+        "2026-08-18-ledger-receipt-recordproof-current-model-parity-g3-153",
+        "2026-08-18-toolkit-346-a1-soir-r1-fresh-main-final-exact-head-g4-134",
+        "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130",
+        "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131",
+        "2026-08-18-toolkit-346-a1-soir-r1-record-admission-tactic-replacement-g3-138",
+        "2026-08-18-toolkit-346-a1-soir-r1-run135-final-exact-head-g4-136",
+        "2026-08-18-xb-127-post-repo-ci-main-rebaseline-g3-058",
+        "2026-08-18-xb-energygrid-live-gate1-host-provisioning-python314-054",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051",
+        "AC2-G4-001",
+        "REPO-CI-G4-001",
+        "platform-direct-neon-linux-tls-channel-binding-proof-20260818-75",
+        "platform-existing-coolify-hosting-baseline-preparation-20260818-79",
+        "platform-existing-dns-edge-oidc-closure-20260818-80",
+        "platform-host-network-direct-neon-tls-channel-binding-proof-20260818-76",
+        "platform-host-ssh-composite-strict-tls-session-proof-20260818-78",
+        "platform-host-ssh-direct-neon-tls-channel-binding-proof-20260818-77",
+        "platform-live-evidence-discrepancy-adjudication-20260818-73",
+        "platform-secure-edge-and-hosting-baseline-preparation-20260818-74",
+        "sqag-boto-1-43-72-canonical-smoke-revalidation-20260818-131",
+        "sqag-boto-1-43-72-exact-h-publication-and-hosted-finality-g3-20260818-128",
+        "sqag-boto-1-43-72-final-exact-head-g4-20260818-129",
+        "sqag-dashboard-duplicate-interruption-causal-handshake-g3-20260818-133",
+        "sqag-dashboard-duplicate-smoke-readiness-repair-g3-20260818-132",
+        "sqag-duplicate-handshake-expected-head-merge-canonical-verification-20260818-137",
+        "sqag-duplicate-handshake-final-exact-head-g4-20260818-136",
+        "sqag-duplicate-handshake-fresh-worktree-source-state-differential-g3-20260818-135",
+        "sqag-duplicate-handshake-local-baseline-differential-publication-g3-20260818-134",
+        "xt-wordpress-current-head-auth-safety-g4-20260818-07",
+        "xt-wordpress-live-application-password-auth-check-20260818-08",
+        "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03"
       ]
     },
     "queued": {
@@ -846,7 +1449,7 @@
       "run_ids": []
     },
     "recorded": {
-      "count": 7,
+      "count": 47,
       "run_ids": [
         "2026-08-07-ledger-post-run076-exact-head-g4-078",
         "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
@@ -854,7 +1457,47 @@
         "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
         "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
         "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
-        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106"
+        "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-candidate-scope-corrected-g3-151",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-receipt-parity-finality-g3-155",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-repair-replacement-g3-149",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-post-zero-eligible-bootstrap-g3-150",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-processor-native-source-availability-retry-g3-157",
+        "2026-08-18-ledger-first-controlled-live-processor-batch-source-stability-retry-g3-156",
+        "2026-08-18-ledger-pr190-receipt-stage-integrity-localisation-diagnostic-160",
+        "2026-08-18-ledger-receipt-recordproof-current-model-parity-final-exact-head-g4-154",
+        "2026-08-18-ledger-receipt-recordproof-current-model-parity-g3-153",
+        "2026-08-18-toolkit-346-a1-soir-r1-fresh-main-final-exact-head-g4-134",
+        "2026-08-18-toolkit-346-a1-soir-r1-g4-closure-g3-130",
+        "2026-08-18-toolkit-346-a1-soir-r1-post-closure-final-exact-head-g4-131",
+        "2026-08-18-toolkit-346-a1-soir-r1-record-admission-tactic-replacement-g3-138",
+        "2026-08-18-toolkit-346-a1-soir-r1-run135-final-exact-head-g4-136",
+        "2026-08-18-xb-127-post-repo-ci-main-rebaseline-g3-058",
+        "2026-08-18-xb-energygrid-live-gate1-host-provisioning-python314-054",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-final-exact-head-g4-053",
+        "2026-08-18-xb-energygrid-python314-runtime-uplift-g3-051",
+        "AC2-G4-001",
+        "REPO-CI-G4-001",
+        "platform-direct-neon-linux-tls-channel-binding-proof-20260818-75",
+        "platform-existing-coolify-hosting-baseline-preparation-20260818-79",
+        "platform-existing-dns-edge-oidc-closure-20260818-80",
+        "platform-host-network-direct-neon-tls-channel-binding-proof-20260818-76",
+        "platform-host-ssh-composite-strict-tls-session-proof-20260818-78",
+        "platform-host-ssh-direct-neon-tls-channel-binding-proof-20260818-77",
+        "platform-live-evidence-discrepancy-adjudication-20260818-73",
+        "platform-secure-edge-and-hosting-baseline-preparation-20260818-74",
+        "sqag-boto-1-43-72-canonical-smoke-revalidation-20260818-131",
+        "sqag-boto-1-43-72-exact-h-publication-and-hosted-finality-g3-20260818-128",
+        "sqag-boto-1-43-72-final-exact-head-g4-20260818-129",
+        "sqag-dashboard-duplicate-interruption-causal-handshake-g3-20260818-133",
+        "sqag-dashboard-duplicate-smoke-readiness-repair-g3-20260818-132",
+        "sqag-duplicate-handshake-expected-head-merge-canonical-verification-20260818-137",
+        "sqag-duplicate-handshake-final-exact-head-g4-20260818-136",
+        "sqag-duplicate-handshake-fresh-worktree-source-state-differential-g3-20260818-135",
+        "sqag-duplicate-handshake-local-baseline-differential-publication-g3-20260818-134",
+        "xt-wordpress-current-head-auth-safety-g4-20260818-07",
+        "xt-wordpress-live-application-password-auth-check-20260818-08",
+        "xt-wordpress-proxy-ignore-final-exact-head-g4-20260818-03"
       ]
     }
   },

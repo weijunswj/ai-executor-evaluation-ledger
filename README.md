@@ -8,12 +8,13 @@ Used in conjunction with [LLM WEB CUSTOM INSTRUCTIONS SET](https://github.com/we
 <!-- GENERATED:README-SCORES:START -->
 ## AI Model Recommendations & Operational Guidance
 
-**Recorded comparable evidence:** 7 runs | **Queued comparable evidence:** 0 runs | **Available comparable evidence:** 7 runs
+**Recorded comparable evidence:** 47 runs | **Queued comparable evidence:** 0 runs | **Available comparable evidence:** 47 runs
 
 ### Tested Model Summary & Like-for-Like Analysis
 
-- **GPT-5.6 Luna**: 6 recorded, 0 queued, 3 independent subject(s), 0 exact matched cohort(s); 6 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
-- **GPT-5.6 Sol**: 1 recorded, 0 queued, 1 independent subject(s), 0 exact matched cohort(s); 1 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **Claude Opus 5**: 4 recorded, 0 queued, 3 independent subject(s), 0 exact matched cohort(s); 4 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **GPT-5.6 Luna**: 33 recorded, 0 queued, 20 independent subject(s), 0 exact matched cohort(s); 33 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
+- **GPT-5.6 Sol**: 10 recorded, 0 queued, 9 independent subject(s), 0 exact matched cohort(s); 10 recorded run(s) excluded for unknown exact dimensions; like-for-like score: **not available**.
 
 > [!NOTE]
 > No strongest model is declared unless exact matched coverage and task mix meet the published threshold. Status: `insufficient_comparable_evidence`. Queued evidence is provisional and excluded from official score comparison.
@@ -24,8 +25,9 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 
 | Model | Formal runs | Average /5 | First-pass acceptance | Safe final state verified | Evidence level |
 |---|---:|---:|---:|---:|---:|
-| GPT-5.6 Sol | 1 | 4.85 | 100% | 1/1 applicable | Anecdotal |
-| GPT-5.6 Luna | 6 | 4.82 | 0% | 6/6 applicable | Moderate |
+| Claude Opus 5 | 4 | 4.99 | 100% | 4/4 applicable | Provisional across mixed tasks |
+| GPT-5.6 Sol | 10 | 4.99 | 70% | 10/10 applicable | Moderate |
+| GPT-5.6 Luna | 33 | 4.96 | 52% | 33/33 applicable | Useful operating baseline |
 
 ## Task-class scorecard
 
@@ -33,6 +35,9 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 |---|---|---|---:|---:|---:|---|
 | Claude Opus 5 | Architecture Proposal | High | 1 | 4.35 | 100% | Anecdotal |
 | Claude Opus 5 | Complex Repository Change | High | 5 | 3.66 | 0% | Provisional |
+| Claude Opus 5 | Exact Head Gate 4 Review | High | 2 | 5.00 | 100% | Anecdotal |
+| Claude Opus 5 | Live Host Provisioning | High | 1 | 4.95 | 100% | Anecdotal |
+| Claude Opus 5 | Repository Rebaseline Revalidation | High | 1 | 5.00 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Architecture Proposal | High | 1 | 4.14 | 100% | Anecdotal |
 | DeepSeek V4 Pro | Complex Repository Change | High | 1 | 2.75 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Hosted Product Uat | High | 1 | 3.50 | 0% | Anecdotal |
@@ -44,13 +49,35 @@ This is the primary at-a-glance tracker. Aggregate scores use the complete appen
 | DeepSeek V4 Pro | Security Architecture Audit | High | 1 | 4.01 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Remediation | High | 2 | 3.92 | 0% | Anecdotal |
 | DeepSeek V4 Pro | Security Review | High | 2 | 3.49 | 0% | Anecdotal |
-| GPT-5.6 Luna | Security Remediation | Critical | 6 | 4.82 | 0% | Moderate |
+| GPT-5.6 Luna | Canonical Ci Revalidation | High | 1 | 4.98 | 0% | Anecdotal |
+| GPT-5.6 Luna | Dependency Maintenance | Medium | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Expected Head Merge Canonical Verification | High | 1 | 5.00 | 0% | Anecdotal |
+| GPT-5.6 Luna | Live Dns Edge Closure | High | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Live Hosting Baseline Preparation | High | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Live Processor Transaction | Critical | 6 | 4.96 | 0% | Moderate |
+| GPT-5.6 Luna | Live Readonly Adjudication | Critical | 2 | 4.98 | 100% | Anecdotal |
+| GPT-5.6 Luna | Production Diagnostic | High | 2 | 5.00 | 50% | Anecdotal |
+| GPT-5.6 Luna | Production Readonly Authentication Diagnostic | Medium | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Production Readonly Diagnostic | High | 5 | 5.00 | 100% | Provisional |
+| GPT-5.6 Luna | Receipt Contract Repair | High | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Runtime Contract Uplift | Medium | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Security Control Plane Amendment | High | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Luna | Security Remediation | Critical | 7 | 4.84 | 14% | Moderate |
+| GPT-5.6 Luna | Test Remediation | High | 1 | 5.00 | 0% | Anecdotal |
+| GPT-5.6 Luna | Test Stability Repair | High | 1 | 5.00 | 100% | Anecdotal |
 | GPT-5.6 Sol | Complex Repository Change | High | 2 | 4.44 | 50% | Anecdotal |
+| GPT-5.6 Sol | Exact Head Gate 4 Review | Critical | 2 | 5.00 | 0% | Anecdotal |
+| GPT-5.6 Sol | Exact Head Gate4 Review | Medium | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Sol | Final Exact Head G4 | High | 1 | 5.00 | 100% | Anecdotal |
+| GPT-5.6 Sol | Fresh Exact Head Runtime Contract Review | High | 1 | 5.00 | 100% | Anecdotal |
 | GPT-5.6 Sol | Hosted Product Uat | Medium | 1 | 4.20 | 0% | Anecdotal |
+| GPT-5.6 Sol | Receipt Contract Review | High | 1 | 5.00 | 100% | Anecdotal |
 | GPT-5.6 Sol | Research | High | 6 | 4.29 | 17% | Moderate |
 | GPT-5.6 Sol | Security Audit | High | 1 | 4.74 | 100% | Anecdotal |
+| GPT-5.6 Sol | Security Control Plane Independent Review | High | 1 | 5.00 | 0% | Anecdotal |
 | GPT-5.6 Sol | Security Remediation | High | 2 | 3.80 | 0% | Anecdotal |
 | GPT-5.6 Sol | Security Review | Critical | 1 | 4.85 | 100% | Anecdotal |
+| GPT-5.6 Sol | Security Review | High | 2 | 5.00 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Architecture Proposal | High | 1 | 4.53 | 100% | Anecdotal |
 | MiMo 2.5 Pro | Complex Repository Change | High | 2 | 3.38 | 0% | Anecdotal |
 | MiMo 2.5 Pro | Complex Repository Change | Medium | 1 | 3.26 | 0% | Anecdotal |
