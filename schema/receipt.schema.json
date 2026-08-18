@@ -558,6 +558,16 @@
             {
               "properties": {
                 "model": {
+                  "const": "GPT-5.6 Luna"
+                },
+                "provider": {
+                  "const": "OpenAI"
+                }
+              }
+            },
+            {
+              "properties": {
+                "model": {
                   "const": "Qwen3.7 Plus"
                 },
                 "provider": {
@@ -595,6 +605,7 @@
             "Claude Opus 5",
             "DeepSeek V4 Pro",
             "GPT-5.6 Sol",
+            "GPT-5.6 Luna",
             "Qwen3.7 Plus",
             "Gemini 3.1 Pro",
             "MiniMax M3"

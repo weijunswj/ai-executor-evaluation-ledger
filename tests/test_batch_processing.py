@@ -11,6 +11,8 @@ from unittest import mock
 
 from scripts.processor.batch_processor import (
     ProcessBatchConfig,
+    RECEIPT_SCHEMA,
+    RECEIPT_VALIDATOR,
     _git_tree_bindings,
     _validate_json_lines,
     candidate_commit_authority_message,
@@ -19,6 +21,8 @@ from scripts.processor.batch_processor import (
     process_batch,
 )
 from scripts.processor.common import (
+    AUTHORIZED_PAIRS,
+    HISTORICAL_AUTHORIZED_PAIRS,
     ProcessorError,
     canonical_json_line_bytes,
     git_tree_file_bindings,
@@ -155,9 +159,17 @@ class TestBatchProcessing(unittest.TestCase):
     def queue(self, comments):
         return lambda _root: copy.deepcopy(comments)
 
+    def comments_for_model(self, model, run_id):
+        comments = self.comments()
+        payload = self.valid_payload(run_id)
+        payload["canonical_base_model"] = model
+        comments[0]["body"] = "<!-- ledger-intake:v2 -->\n" + json.dumps(payload)
+        return comments
+
     def fetcher(self, comments):
         by_id = {item["id"]: item for item in comments}
         return lambda comment_id, _root: copy.deepcopy(by_id[comment_id])
+
     def commit_candidate_files(
         self,
         candidate_files,
@@ -692,6 +704,84 @@ class TestBatchProcessing(unittest.TestCase):
         self.assertNotIn(receipt_path, result["candidate_files"])
         self.assertFalse(result["receipt_sealed"])
         self.assertIsNone(result["receipt_sha256"])
+
+    def test_receipt_current_record_proof_pairs_match_current_authority(self):
+        record_proof_schema = RECEIPT_SCHEMA["$defs"]["recordProof"]
+        receipt_pairs = frozenset(
+            (
+                pair["properties"]["provider"]["const"],
+                pair["properties"]["model"]["const"],
+            )
+            for pair in record_proof_schema["allOf"][0]["oneOf"]
+        )
+        self.assertEqual(receipt_pairs, AUTHORIZED_PAIRS)
+        receipt_models = set(record_proof_schema["properties"]["model"]["enum"])
+        self.assertTrue(
+            {model for _provider, model in AUTHORIZED_PAIRS} <= receipt_models
+        )
+        self.assertNotIn(("OpenAI", "GPT-5.6 Luna"), HISTORICAL_AUTHORIZED_PAIRS)
+
+    def test_luna_record_proof_is_accepted_and_cross_pair_is_rejected(self):
+        record_proof_validator = RECEIPT_VALIDATOR.evolve(
+            schema=RECEIPT_SCHEMA["$defs"]["recordProof"]
+        )
+        luna_proof = {
+            "provider": "OpenAI",
+            "model": "GPT-5.6 Luna",
+            "outcome": "accepted",
+            "weighted_score_5": 4.6,
+        }
+        self.assertEqual(list(record_proof_validator.iter_errors(luna_proof)), [])
+
+        cross_pair = dict(luna_proof, provider="DeepSeek")
+        self.assertTrue(list(record_proof_validator.iter_errors(cross_pair)))
+
+    def test_processor_generated_luna_and_sol_receipts_retain_exact_record_proofs(self):
+        for model in ("GPT-5.6 Luna", "GPT-5.6 Sol"):
+            with self.subTest(model=model):
+                suffix = model.rsplit(" ", 1)[-1].lower()
+                run_id = f"run-batch-{suffix}-a153"
+                config = self.config(
+                    f"batch-receipt-{suffix}-a153",
+                    source_comment_watermark=9002,
+                )
+                comments = self.comments_for_model(model, run_id)
+                candidate_files, dry_evidence = build_batch_candidate(
+                    config,
+                    comments=comments,
+                    queue_fetcher=self.queue(comments),
+                    comment_fetcher=self.fetcher(comments),
+                )
+                candidate_sha = self.commit_candidate_files(
+                    candidate_files,
+                    config=config,
+                    queue_snapshot_sha256=dry_evidence["snapshot_hash"],
+                )
+                sealed = process_batch(
+                    ProcessBatchConfig(
+                        **{
+                            **config.__dict__,
+                            "candidate_content_commit_sha": candidate_sha,
+                        }
+                    ),
+                    comments=comments,
+                    queue_fetcher=self.queue(comments),
+                    comment_fetcher=self.fetcher(comments),
+                )
+                receipt_path = (
+                    f"ledger/receipts/batches/{config.batch_id}.json"
+                )
+                receipt = json.loads(
+                    sealed["candidate_files"][receipt_path].decode("utf-8")
+                )
+                proof = receipt["accepted_record_proofs"][run_id]
+                self.assertEqual(sealed["status"], "DRY_RUN_VALIDATED")
+                self.assertTrue(sealed["receipt_sealed"])
+                self.assertEqual(proof["provider"], "OpenAI")
+                self.assertEqual(proof["model"], model)
+                self.assertEqual(proof["outcome"], "accepted")
+                self.assertEqual(proof["weighted_score_5"], 4.6)
+
 
     def test_receipt_sealing_rejects_uncommitted_candidate_bytes(self):
         config = ProcessBatchConfig(
