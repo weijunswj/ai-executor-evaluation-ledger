@@ -231,6 +231,28 @@ class ProductionChainFixture(unittest.TestCase):
             check=False,
         )
 
+    def prepare_current_candidate(
+        self,
+        root: Path,
+        candidate: bytes,
+        *,
+        regenerate: bool,
+    ) -> None:
+        """Seed one coherent current candidate before its production checks."""
+
+        (root / "evaluations.jsonl").write_bytes(candidate)
+        shutil.copy2(
+            ROOT / "ledger" / "dispositions.jsonl",
+            root / "ledger" / "dispositions.jsonl",
+        )
+        if not regenerate:
+            result = self.run_command(root, "scripts/rebuild_views.py")
+            self.assertEqual(
+                result.returncode,
+                0,
+                msg=result.stderr.decode("utf-8", errors="replace"),
+            )
+
     def production_chain(
         self,
         root: Path,
@@ -275,7 +297,11 @@ class ProductionChainFixture(unittest.TestCase):
                 capture_output=True,
                 text=True,
             ).stdout.strip()
-            (root / "evaluations.jsonl").write_bytes(candidate)
+            self.prepare_current_candidate(
+                root,
+                candidate,
+                regenerate=regenerate,
+            )
             results = self.production_chain(root, base_sha, regenerate=regenerate)
             self.assertTrue(results)
             self.assertTrue(
@@ -299,6 +325,11 @@ class ProductionChainFixture(unittest.TestCase):
                 capture_output=True,
                 text=True,
             ).stdout.strip()
+            self.prepare_current_candidate(
+                root,
+                self.canonical,
+                regenerate=regenerate,
+            )
             mutate(root)
             results = self.production_chain(root, base_sha, regenerate=regenerate)
             self.assertTrue(any(result.returncode != 0 for result in results))
