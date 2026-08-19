@@ -188,6 +188,33 @@ def _validate_pr_frozen_historical_identity(
     ):
         raise ReceiptValidationError("receipt_canonical_base_bytes_mismatch")
 
+def _classify_pr_historical_frozen_receipt(
+    root: Path,
+    *,
+    receipt: Mapping[str, Any],
+    receipt_path: str,
+    authority_sha: str,
+    changed_receipt_path: Optional[str],
+    canonical_base_sha: Optional[str],
+    effective_mode: str,
+) -> bool:
+    """Prove the one PR-mode historical-frozen compatibility class."""
+
+    if (
+        effective_mode != "pr"
+        or receipt.get("batch_id") != FROZEN_BATCH_ID
+        or receipt_path == changed_receipt_path
+        or canonical_base_sha is None
+    ):
+        return False
+    _validate_pr_frozen_historical_identity(
+        root,
+        canonical_base_sha=canonical_base_sha,
+        authority_sha=authority_sha,
+        receipt_path=receipt_path,
+    )
+    return True
+
 def _validate_candidate_manifest(
     root: Path,
     *,
@@ -467,12 +494,6 @@ def validate_all_tracked_batch_receipts(
         if mode == "canonical-main" and receipt.get("batch_mode") == "incremental":
             _resolve_incremental_canonical_authority(root, receipt)
         batch_ids.add(batch_id)
-        if mode == "pr":
-            validate_batch_receipt_object(
-                root,
-                receipt,
-                authority_sha=authority_sha,
-            )
         parsed[path] = receipt
 
     changed_path: Optional[str] = None
@@ -510,6 +531,7 @@ def validate_all_tracked_batch_receipts(
         if parsed[changed_path]["candidate_content_commit_sha"] != parent_sha:
             raise ReceiptValidationError("receipt_candidate_parent_mismatch")
     seals: dict[str, str] = {}
+    historical_frozen_missing_candidate_paths: set[str] = set()
     for path, receipt in parsed.items():
         seal_sha = _terminal_seal_commit(
             root,
@@ -521,8 +543,37 @@ def validate_all_tracked_batch_receipts(
             root,
             receipt.get("candidate_content_commit_sha"),
         )
-        if mode == "pr" and candidate_sha is None:
-            raise ReceiptValidationError("receipt_candidate_commit_invalid")
+        frozen_historical_receipt = False
+        if mode == "canonical-main" and seal_sha != authority_sha:
+            frozen_historical_receipt = receipt["batch_id"] == FROZEN_BATCH_ID
+        elif mode == "pr":
+            frozen_historical_receipt = _classify_pr_historical_frozen_receipt(
+                root,
+                receipt=receipt,
+                receipt_path=path,
+                authority_sha=authority_sha,
+                changed_receipt_path=changed_path,
+                canonical_base_sha=canonical_base,
+                effective_mode=mode,
+            )
+        if candidate_sha is None:
+            if mode == "pr" and not frozen_historical_receipt:
+                raise ReceiptValidationError("receipt_candidate_commit_invalid")
+            if mode == "pr" and frozen_historical_receipt:
+                _validate_candidate_manifest(
+                    root,
+                    receipt=receipt,
+                    receipt_path=path,
+                    candidate_sha=None,
+                    required=True,
+                )
+                historical_frozen_missing_candidate_paths.add(path)
+        elif mode == "pr":
+            validate_batch_receipt_object(
+                root,
+                receipt,
+                authority_sha=authority_sha,
+            )
         if mode == "canonical-main" and receipt.get("source_replay") == {
             "adapter": "github-intake-v1"
         }:
@@ -545,22 +596,6 @@ def validate_all_tracked_batch_receipts(
             )
         if mode == "canonical-main":
             _validate_content_at_commit(root, seal_sha, receipt)
-        frozen_historical_receipt = False
-        if receipt["batch_id"] == FROZEN_BATCH_ID:
-            if mode == "canonical-main" and seal_sha != authority_sha:
-                frozen_historical_receipt = True
-            elif (
-                mode == "pr"
-                and path != changed_path
-                and canonical_base is not None
-            ):
-                _validate_pr_frozen_historical_identity(
-                    root,
-                    canonical_base_sha=canonical_base,
-                    authority_sha=authority_sha,
-                    receipt_path=path,
-                )
-                frozen_historical_receipt = True
         terminal_mode = mode
         if (
             mode == "pr"
@@ -610,6 +645,9 @@ def validate_all_tracked_batch_receipts(
         "receipt_seals": seals,
         "final_parent_sha": parent_sha,
         "changed_receipt_path": changed_path,
+        "historical_frozen_missing_candidate_paths": tuple(
+            sorted(historical_frozen_missing_candidate_paths)
+        ),
     }
 
 def _terminal_seal_commit(
@@ -918,6 +956,10 @@ def validate_source_replay(
         canonical_base_sha=canonical_base_sha,
     )
     authority_sha = structural["authority_sha"]
+    effective_mode = structural["mode"]
+    historical_frozen_missing_candidate_paths = frozenset(
+        structural["historical_frozen_missing_candidate_paths"]
+    )
     schema = _load_schema(root)
     replayed_outcomes = 0
     replayed_admissions = 0
@@ -932,7 +974,11 @@ def validate_source_replay(
             root,
             receipt.get("candidate_content_commit_sha"),
         )
-        if mode == "pr" and candidate_sha is None:
+        if (
+            effective_mode == "pr"
+            and candidate_sha is None
+            and receipt_path not in historical_frozen_missing_candidate_paths
+        ):
             raise ReceiptValidationError("receipt_candidate_commit_invalid")
         seal_sha = structural["receipt_seals"][receipt_path]
         if receipt["batch_id"] == FROZEN_BATCH_ID:

@@ -36,6 +36,7 @@ from scripts.validate_receipts import (
     _parse_batch,
     validate_all_tracked_batch_receipts,
     validate_batch_receipt_object,
+    validate_source_replay,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1635,6 +1636,148 @@ class TestA13ReceiptConvergence(unittest.TestCase):
             "root": root,
         }
 
+    def _build_pr_historical_missing_candidate_topology(
+        self,
+        root,
+        *,
+        historical_batch_id=FROZEN_BATCH_ID,
+        byte_mismatch=False,
+    ):
+        fixture = TestReceiptValidation()
+        receipt, content_sha, _final_sha = fixture.fixture(root)
+        candidate_tree = self._git_output(
+            root,
+            "rev-parse",
+            f"{content_sha}^{{tree}}",
+        )
+        unreachable_candidate_sha = self._git_output(
+            root,
+            "commit-tree",
+            candidate_tree,
+            "-m",
+            "unreachable historical candidate",
+        )
+        subprocess.run(
+            ["git", "checkout", "-q", content_sha],
+            cwd=root,
+            check=True,
+        )
+
+        if historical_batch_id == FROZEN_BATCH_ID:
+            historical_path = FROZEN_RECEIPT_PATH
+        else:
+            historical_path = (
+                "ledger/receipts/batches/"
+                f"{historical_batch_id}.json"
+            )
+        historical = copy.deepcopy(receipt)
+        historical["batch_id"] = historical_batch_id
+        if historical_batch_id == FROZEN_BATCH_ID:
+            historical.pop("source_replay", None)
+        historical["candidate_content_commit_sha"] = unreachable_candidate_sha
+        historical["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            unreachable_candidate_sha,
+            excluded_paths=(historical_path,),
+        )
+        historical["candidate_content_manifest_sha256"] = (
+            git_tree_manifest_sha256(historical["candidate_content_manifest"])
+        )
+        canonical_base_sha = self._commit_json(
+            root,
+            historical_path,
+            historical,
+            "canonical-base historical receipt",
+        )
+        authority_parent = canonical_base_sha
+        if byte_mismatch:
+            mutated = copy.deepcopy(historical)
+            mutated["controller_run_id"] = "controller-mutated-historical-byte"
+            authority_parent = self._commit_json(
+                root,
+                historical_path,
+                mutated,
+                "mutated historical receipt",
+            )
+
+        subprocess.run(
+            ["git", "checkout", "-q", authority_parent],
+            cwd=root,
+            check=True,
+        )
+        (root / "a2-current-marker.txt").write_text(
+            "current candidate\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "add", "a2-current-marker.txt"],
+            cwd=root,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-qm", "current candidate"],
+            cwd=root,
+            check=True,
+        )
+        candidate_sha = self._git_sha(root)
+
+        current = copy.deepcopy(receipt)
+        current["batch_id"] = "batch-a13-current"
+        current["batch_mode"] = "incremental"
+        current["base_sha"] = canonical_base_sha
+        current["canonical_main_sha"] = canonical_base_sha
+        current["candidate_content_commit_sha"] = candidate_sha
+        current["candidate_content_manifest"] = git_tree_file_bindings(
+            root,
+            candidate_sha,
+            excluded_paths=(self.current_receipt_path,),
+        )
+        current["candidate_content_manifest_sha256"] = (
+            git_tree_manifest_sha256(current["candidate_content_manifest"])
+        )
+        current["canonical_hashes"] = {
+            name: sha256_bytes(
+                receipt_validator.git_object_bytes(root, candidate_sha, relative)
+            )
+            for name, relative in CANONICAL_PATHS.items()
+        }
+        authority_sha = self._commit_json(
+            root,
+            self.current_receipt_path,
+            current,
+            "current receipt-only seal",
+        )
+        subprocess.run(
+            ["git", "reflog", "expire", "--expire=now", "--all"],
+            cwd=root,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "gc", "--prune=now", "--quiet"],
+            cwd=root,
+            check=True,
+        )
+        unresolved = subprocess.run(
+            [
+                "git",
+                "cat-file",
+                "-e",
+                f"{unreachable_candidate_sha}^{{commit}}",
+            ],
+            cwd=root,
+            check=False,
+        )
+        self.assertNotEqual(unresolved.returncode, 0)
+        return {
+            "root": root,
+            "historical_path": historical_path,
+            "historical": historical,
+            "historical_candidate_sha": unreachable_candidate_sha,
+            "canonical_base_sha": canonical_base_sha,
+            "candidate_sha": candidate_sha,
+            "current": current,
+            "authority_sha": authority_sha,
+        }
     def _build_pr_canonical_base_byte_mismatch_topology(self, root):
         fixture = TestReceiptValidation()
         receipt, content_sha, _final_sha = fixture.fixture(root)
@@ -1823,6 +1966,263 @@ class TestA13ReceiptConvergence(unittest.TestCase):
             "receipt_path": FROZEN_RECEIPT_PATH,
         }
 
+    def _frozen_replay_stub(self, topology, candidate_files):
+        receipt = topology["historical"]
+        return SimpleNamespace(
+            candidate_files=candidate_files,
+            terminal_outcomes=receipt["terminal_outcomes"],
+            admitted_run_ids=tuple(receipt["admitted_run_ids"]),
+            accepted_record_proofs=receipt["accepted_record_proofs"],
+            canonical_record_hashes=receipt["canonical_record_hashes"],
+            comment_bindings=tuple(receipt["comment_bindings"]),
+            source_comment_ids=tuple(receipt["source_comment_ids"]),
+            source_body_sha256=receipt["source_body_sha256"],
+            source_snapshot_sha256=receipt["queue_snapshot_sha256"],
+            later_comment_count=0,
+        )
+
+    def test_pr_historical_frozen_missing_candidate_passes_structural_and_source_replay(
+        self,
+    ):
+        with tempfile.TemporaryDirectory(prefix="a2-pr-frozen-missing-pass-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_missing_candidate_topology(root)
+            structural = validate_all_tracked_batch_receipts(
+                root,
+                authority_sha=topology["authority_sha"],
+                mode="pr",
+                canonical_base_sha=topology["canonical_base_sha"],
+            )
+            self.assertEqual(
+                structural["historical_frozen_missing_candidate_paths"],
+                (topology["historical_path"],),
+            )
+            seal_sha = topology["canonical_base_sha"]
+            candidate_files = {
+                relative_path: receipt_validator.git_object_bytes(
+                    root,
+                    seal_sha,
+                    relative_path,
+                )
+                for relative_path in (
+                    "evaluations.jsonl",
+                    "ledger/dispositions.jsonl",
+                )
+            }
+            replay = self._frozen_replay_stub(topology, candidate_files)
+            with mock.patch.object(
+                receipt_validator,
+                "refetch_frozen_source",
+                return_value={"comments": []},
+            ), mock.patch.object(
+                receipt_validator,
+                "replay_frozen_from_receipt",
+                return_value=replay,
+            ), mock.patch.object(
+                receipt_validator,
+                "_validate_frozen_source_replay",
+                wraps=receipt_validator._validate_frozen_source_replay,
+            ) as frozen_validator, mock.patch.object(
+                receipt_validator,
+                "_validate_github_intake_source_replay",
+                return_value={
+                    "outcomes": 0,
+                    "admissions": 0,
+                    "later_comments": 0,
+                },
+            ):
+                result = validate_source_replay(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
+            self.assertEqual(result["replayed_outcome_count"], 1)
+            self.assertEqual(result["replayed_admission_count"], 1)
+            self.assertEqual(
+                frozen_validator.call_args.kwargs["candidate_sha"],
+                None,
+            )
+
+    def test_pr_historical_frozen_missing_candidate_without_base_fails(self):
+        with tempfile.TemporaryDirectory(prefix="a2-pr-frozen-missing-no-base-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_missing_candidate_topology(root)
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_candidate_commit_invalid$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=None,
+                )
+
+    def test_pr_historical_frozen_missing_candidate_byte_mismatch_fails(self):
+        with tempfile.TemporaryDirectory(prefix="a2-pr-frozen-missing-mismatch-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_missing_candidate_topology(
+                root,
+                byte_mismatch=True,
+            )
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_canonical_base_bytes_mismatch$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
+
+    def test_pr_current_changed_frozen_missing_candidate_fails_strict(self):
+        with tempfile.TemporaryDirectory(prefix="a2-pr-current-frozen-missing-") as raw:
+            root = Path(raw)
+            topology = self._build_frozen_only_pr_topology(root)
+            subprocess.run(
+                ["git", "checkout", "-q", topology["content_sha"]],
+                cwd=root,
+                check=True,
+            )
+            bad = json.loads(
+                subprocess.run(
+                    [
+                        "git",
+                        "show",
+                        f'{topology["authority_sha"]}:{FROZEN_RECEIPT_PATH}',
+                    ],
+                    cwd=root,
+                    capture_output=True,
+                    check=True,
+                ).stdout
+            )
+            bad["candidate_content_commit_sha"] = "a" * 40
+            bad["candidate_content_manifest"] = git_tree_file_bindings(
+                root,
+                topology["content_sha"],
+                excluded_paths=(FROZEN_RECEIPT_PATH,),
+            )
+            bad["candidate_content_manifest_sha256"] = (
+                git_tree_manifest_sha256(bad["candidate_content_manifest"])
+            )
+            authority_sha = self._commit_json(
+                root,
+                FROZEN_RECEIPT_PATH,
+                bad,
+                "current frozen receipt with absent candidate",
+            )
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_candidate_parent_mismatch$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=authority_sha,
+                    mode="pr",
+                    canonical_base_sha=topology["content_sha"],
+                )
+
+    def test_pr_current_changed_ordinary_missing_candidate_fails_strict(self):
+        with tempfile.TemporaryDirectory(prefix="a2-pr-current-ordinary-missing-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_missing_candidate_topology(root)
+            subprocess.run(
+                ["git", "checkout", "-q", topology["candidate_sha"]],
+                cwd=root,
+                check=True,
+            )
+            bad = copy.deepcopy(topology["current"])
+            bad["candidate_content_commit_sha"] = "a" * 40
+            authority_sha = self._commit_json(
+                root,
+                self.current_receipt_path,
+                bad,
+                "current ordinary receipt with absent candidate",
+            )
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_candidate_parent_mismatch$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=authority_sha,
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
+
+    def test_pr_historical_non_frozen_missing_candidate_fails_strict(self):
+        with tempfile.TemporaryDirectory(prefix="a2-pr-non-frozen-missing-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_missing_candidate_topology(
+                root,
+                historical_batch_id="batch-a13-historical",
+            )
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_candidate_commit_invalid$",
+            ):
+                validate_all_tracked_batch_receipts(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=topology["canonical_base_sha"],
+                )
+
+    def test_source_replay_cannot_bypass_structural_topology_failure(self):
+        with tempfile.TemporaryDirectory(prefix="a2-source-topology-failure-") as raw:
+            root = Path(raw)
+            topology = self._build_frozen_only_pr_topology(
+                root,
+                wrong_parent=True,
+            )
+            with self.assertRaisesRegex(
+                ReceiptValidationError,
+                "^receipt_candidate_parent_mismatch$",
+            ):
+                validate_source_replay(
+                    root,
+                    authority_sha=topology["authority_sha"],
+                    mode="pr",
+                    canonical_base_sha=None,
+                )
+
+    def test_historical_frozen_source_replay_disagreement_fails_closed(self):
+        with tempfile.TemporaryDirectory(prefix="a2-source-replay-mismatch-") as raw:
+            root = Path(raw)
+            topology = self._build_pr_historical_missing_candidate_topology(root)
+            replay = self._frozen_replay_stub(
+                topology,
+                {"evaluations.jsonl": b"source-replay-disagreement\n"},
+            )
+            with mock.patch.object(
+                receipt_validator,
+                "refetch_frozen_source",
+                return_value={"comments": []},
+            ), mock.patch.object(
+                receipt_validator,
+                "replay_frozen_from_receipt",
+                return_value=replay,
+            ), mock.patch.object(
+                receipt_validator,
+                "_validate_github_intake_source_replay",
+                return_value={
+                    "outcomes": 0,
+                    "admissions": 0,
+                    "later_comments": 0,
+                },
+            ):
+                with self.assertRaisesRegex(
+                    ReceiptValidationError,
+                    "^receipt_terminal_content_mismatch$",
+                ):
+                    validate_source_replay(
+                        root,
+                        authority_sha=topology["authority_sha"],
+                        mode="pr",
+                        canonical_base_sha=topology["canonical_base_sha"],
+                    )
     def test_current_frozen_receipt_uses_strict_canonical_base(self):
         with tempfile.TemporaryDirectory(prefix="a13-current-frozen-") as raw:
             root = Path(raw)

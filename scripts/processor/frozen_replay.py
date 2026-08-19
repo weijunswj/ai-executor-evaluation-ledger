@@ -601,6 +601,7 @@ def replay_frozen_batch(
         repository_root,
         final_evaluations,
         base_raw=canonical_source_base_bytes,
+        dispositions_raw=final_dispositions,
     )
     for name, manifest in manifests.items():
         candidate_files[MIGRATION_CANDIDATE_PATHS[name]] = (
