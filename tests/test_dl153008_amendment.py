@@ -325,6 +325,11 @@ class ProductionChainFixture(unittest.TestCase):
                 capture_output=True,
                 text=True,
             ).stdout.strip()
+            self.prepare_current_candidate(
+                root,
+                self.canonical,
+                regenerate=regenerate,
+            )
             mutate(root)
             results = self.production_chain(root, base_sha, regenerate=regenerate)
             self.assertTrue(any(result.returncode != 0 for result in results))
