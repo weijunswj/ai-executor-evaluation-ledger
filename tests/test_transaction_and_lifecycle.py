@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from collections.abc import Mapping
 from pathlib import Path
 from unittest import mock
 
@@ -345,11 +346,39 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                 authority_reader=self.authority_reader,
             )
             self.assertEqual(receipt["cleanup_status"], "verified")
-            serialized_receipt = json.dumps(receipt, sort_keys=True)
-            self.assertNotIn("fixture-author", serialized_receipt)
-            self.assertNotIn("7001", serialized_receipt)
-            self.assertNotIn("author_id", serialized_receipt)
-            self.assertNotIn("author_association", serialized_receipt)
+
+            def assert_no_raw_identity(value):
+                if isinstance(value, Mapping):
+                    for key, nested in value.items():
+                        self.assertNotIn(key, {"author_id", "author_association"})
+                        assert_no_raw_identity(nested)
+                elif isinstance(value, (list, tuple)):
+                    for nested in value:
+                        assert_no_raw_identity(nested)
+                elif isinstance(value, str):
+                    self.assertNotIn(value, {"fixture-author", "7001"})
+                elif type(value) is int:
+                    self.assertNotEqual(value, 7001)
+
+            collision_sha = "a" * 17 + "7001" + "b" * 19
+            self.assertEqual(len(collision_sha), 40)
+            self.assertNotEqual(collision_sha, "7001")
+            assert_no_raw_identity({"nested": [{"canonical_sha": collision_sha}]})
+            assert_no_raw_identity(receipt)
+
+            negative_controls = {
+                "raw_login": {"nested": [{"value": "fixture-author"}]},
+                "raw_numeric_id": {"nested": [7001]},
+                "raw_string_id": {"nested": ({"value": "7001"},)},
+                "author_id_key": {"nested": [{"author_id": "redacted"}]},
+                "author_association_key": {
+                    "nested": [{"details": {"author_association": "redacted"}}]
+                },
+            }
+            for label, value in negative_controls.items():
+                with self.subTest(label=label):
+                    with self.assertRaises(AssertionError):
+                        assert_no_raw_identity(value)
             calls = []
 
             def publisher(body):
