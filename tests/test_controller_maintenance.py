@@ -399,10 +399,33 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             git(root, "add", ".")
             git(root, "commit", "-qm", "four-file evaluation")
             head_sha = git(root, "rev-parse", "HEAD")
-            self.assertEqual(
-                "\n".join(sorted(paths)),
-                git(root, "diff", "--name-only", base_sha, head_sha),
+            actual_paths = git(root, "diff", "--name-only", base_sha, head_sha).splitlines()
+            self.assertTrue(all(actual_paths))
+            self.assertEqual(len(actual_paths), len(set(actual_paths)))
+            self.assertEqual(set(paths), set(actual_paths))
+            order_file = root / "diff-order.txt"
+            order_file.write_bytes(
+                b"scorecard.md\n"
+                b"README.md\n"
+                b"evaluations.jsonl\n"
+                b"analysis/model-recommendation.json\n"
             )
+            git(root, "config", "diff.orderFile", str(order_file))
+            hostile_paths = git(
+                root, "diff", "--name-only", base_sha, head_sha
+            ).splitlines()
+            self.assertEqual(
+                [
+                    "scorecard.md",
+                    "README.md",
+                    "evaluations.jsonl",
+                    "analysis/model-recommendation.json",
+                ],
+                hostile_paths,
+            )
+            self.assertTrue(all(hostile_paths))
+            self.assertEqual(len(hostile_paths), len(set(hostile_paths)))
+            self.assertEqual(set(paths), set(hostile_paths))
 
             for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
                 workflow = (ROOT / relative).read_text(encoding="utf-8")
@@ -419,6 +442,50 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                         '--authority-sha "$HEAD_SHA" --validation-level source-replay)',
                         self._receipt_route_block(workflow),
                     )
+
+    def test_supported_four_file_missing_path_fails_closed(self):
+        paths = (
+            "evaluations.jsonl",
+            "README.md",
+            "scorecard.md",
+        )
+        with tempfile.TemporaryDirectory(prefix="ledger-four-file-missing-main-push-") as temp_raw:
+            root = Path(temp_raw)
+            init_fixture_repo(root)
+            for path in paths:
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"before\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            base_sha = git(root, "rev-parse", "HEAD")
+            for path in paths:
+                (root / path).write_bytes(b"after\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "four-file evaluation missing one output")
+            head_sha = git(root, "rev-parse", "HEAD")
+            actual_paths = git(
+                root, "diff", "--name-only", base_sha, head_sha
+            ).splitlines()
+            self.assertNotEqual(
+                set(actual_paths),
+                {
+                    "evaluations.jsonl",
+                    "README.md",
+                    "scorecard.md",
+                    "analysis/model-recommendation.json",
+                },
+            )
+            for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
+                workflow = (ROOT / relative).read_text(encoding="utf-8")
+                with self.subTest(workflow=relative):
+                    result = self._run_push_route(workflow, root, base_sha, head_sha)
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn(
+                        "Canonical receipt-bound data changed without a receipt.",
+                        result.stderr,
+                    )
+                    self.assertNotIn("route_completed", result.stdout)
 
     def test_supported_four_file_plus_unrelated_file_fails_closed(self):
         paths = (
