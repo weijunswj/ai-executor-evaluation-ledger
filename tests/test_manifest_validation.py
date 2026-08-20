@@ -193,27 +193,29 @@ class TestClosedManifestValidation(unittest.TestCase):
                 self.assert_correction_mutation_rejected(mutate)
 
     def test_string_score_drift_fails_closed(self):
-        path = ROOT / "evaluations.jsonl"
-        original = path.read_bytes()
+        historical_raw = _locked_historical_final_raw(ROOT)
         rows = [
             json.loads(line)
-            for line in original.decode("utf-8").splitlines()
+            for line in historical_raw.decode("utf-8").splitlines()
             if line.strip()
         ]
         for row in rows:
             row["weighted_score_5"] = str(row["weighted_score_5"])
             row["weighted_score_10"] = str(row["weighted_score_10"])
-        try:
-            path.write_bytes(
-                b"".join(
-                    (json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
-                    for row in rows
+        corrupted = b"".join(
+            (
+                json.dumps(
+                    row,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    allow_nan=False,
                 )
-            )
-            with self.assertRaises(ManifestValidationError):
-                validate_correction_records(ROOT)
-        finally:
-            path.write_bytes(original)
+                + "\n"
+            ).encode("utf-8")
+            for row in rows
+        )
+        with self.assertRaises(ManifestValidationError):
+            validate_correction_records(ROOT, final_raw=corrupted)
 
     def test_withdrawal_and_replacement_membership_fail_closed(self):
         def corrupt_withdrawal(records):
