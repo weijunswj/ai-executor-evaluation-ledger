@@ -275,6 +275,21 @@ jobs:
               printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
               exit 1
             fi
+            validation_workspace=$(mktemp -d)
+            validation_root="$validation_workspace/repository"
+            validation_source=$(git rev-parse --show-toplevel)
+            cleanup_canonical_base_workspace() {
+              rm -rf -- "$validation_workspace" >/dev/null 2>&1 || true
+            }
+            trap cleanup_canonical_base_workspace EXIT
+            if ! git clone --no-local --no-hardlinks --no-checkout "$validation_source" "$validation_root" >/dev/null 2>&1; then
+              printf '%s\n' 'Canonical base receipt validation workspace unavailable.' >&2
+              exit 1
+            fi
+            if ! git -C "$validation_root" checkout --detach "$BASE_SHA" >/dev/null 2>&1; then
+              printf '%s\n' 'Canonical base receipt validation workspace unavailable.' >&2
+              exit 1
+            fi
             if [[ "$TERMINAL_RECEIPT_SHA" == "$BASE_SHA" ]]; then
             if ! base_parent_line=$(git rev-list --parents -n 1 "$BASE_SHA"); then
               printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
@@ -302,11 +317,17 @@ jobs:
               printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
               exit 1
             fi
-            args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$BASE_SHA" --canonical-base-sha "$BASE_PARENT_SHA" --validation-level source-replay)
-            "${args[@]}"
-            else
-              args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$BASE_SHA" --validation-level source-replay)
+            (
+              cd "$validation_root"
+              args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$BASE_SHA" --canonical-base-sha "$BASE_PARENT_SHA" --validation-level source-replay)
               "${args[@]}"
+            )
+            else
+              (
+                cd "$validation_root"
+                args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$BASE_SHA" --validation-level source-replay)
+                "${args[@]}"
+              )
             fi
           else
             args=(python scripts/validate_receipts.py --mode pr --authority-sha "$HEAD_SHA" --canonical-base-sha "$BASE_SHA" --validation-level source-replay)

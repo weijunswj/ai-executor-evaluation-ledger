@@ -304,8 +304,15 @@
     "cleanup": {
       "additionalProperties": false,
       "properties": {
+        "admitted_record_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
         "batch_id": {
           "$ref": "#/$defs/identifier"
+        },
+        "batch_receipt_blob_sha": {
+          "$ref": "#/$defs/gitSha"
         },
         "batch_receipt_bytes_sha256": {
           "$ref": "#/$defs/sha256"
@@ -339,18 +346,6 @@
         "canonical_merge_sha": {
           "$ref": "#/$defs/gitSha"
         },
-        "canonical_record_hashes": {
-          "$ref": "#/$defs/recordHashMap"
-        },
-        "canonical_record_proofs": {
-          "additionalProperties": false,
-          "patternProperties": {
-            "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$": {
-              "$ref": "#/$defs/recordProof"
-            }
-          },
-          "type": "object"
-        },
         "cleanup_status": {
           "enum": [
             "verified",
@@ -381,6 +376,9 @@
           ],
           "type": "string"
         },
+        "queue_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "receipt_issue_number": {
           "const": 143,
           "type": "integer"
@@ -398,28 +396,13 @@
           ],
           "type": "string"
         },
-        "retained_comment_ids": {
-          "items": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "type": "array",
-          "uniqueItems": true
-        },
         "schema_version": {
           "const": 2,
           "type": "integer"
         },
-        "source_body_sha256": {
-          "$ref": "#/$defs/commentHashMap"
-        },
-        "source_comment_ids": {
-          "items": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "type": "array",
-          "uniqueItems": true
+        "source_comment_count": {
+          "minimum": 0,
+          "type": "integer"
         },
         "source_issue_number": {
           "const": 142,
@@ -441,19 +424,18 @@
         "source_issue_number",
         "receipt_issue_number",
         "canonical_hashes",
-        "canonical_record_hashes",
-        "source_comment_ids",
-        "source_body_sha256",
-        "retained_comment_ids",
         "source_retention_verified",
-        "canonical_record_proofs",
         "recorded_receipt_status",
         "branch_cleanup_eligible",
         "branch_cleanup_reason",
         "publication_status",
         "platform_limitation_code",
         "batch_receipt_sha256",
-        "batch_receipt_bytes_sha256"
+        "batch_receipt_bytes_sha256",
+        "batch_receipt_blob_sha",
+        "queue_snapshot_sha256",
+        "source_comment_count",
+        "admitted_record_count"
       ],
       "type": "object"
     },

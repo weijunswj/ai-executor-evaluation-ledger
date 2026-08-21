@@ -701,7 +701,21 @@ class TestA8ReceiptCommentEvidenceBoundary(unittest.TestCase):
             "pr_number": config.pr_number,
             "source_issue_number": config.source_issue_number,
             "receipt_issue_number": config.receipt_issue_number,
+            "canonical_hashes": {
+                key: "a" * 64 for key in cleanup_workflow.CANONICAL_PATHS
+            },
             "source_retention_verified": True,
+            "recorded_receipt_status": "absent",
+            "branch_cleanup_eligible": True,
+            "branch_cleanup_reason": "eligible",
+            "publication_status": "published",
+            "platform_limitation_code": "none",
+            "batch_receipt_sha256": "b" * 64,
+            "batch_receipt_bytes_sha256": "c" * 64,
+            "batch_receipt_blob_sha": "d" * 40,
+            "queue_snapshot_sha256": "e" * 64,
+            "source_comment_count": 0,
+            "admitted_record_count": 0,
         }
 
     def matching_comment(self, comment_id: int = 81) -> dict:
@@ -712,10 +726,17 @@ class TestA8ReceiptCommentEvidenceBoundary(unittest.TestCase):
         }
 
     def status(self, comments: list[dict]) -> str:
-        with mock.patch.object(
-            cleanup_workflow,
-            "_parse_recorded_receipt_body",
-            return_value=self.matching_value(),
+        with (
+            mock.patch.object(
+                cleanup_workflow,
+                "_parse_recorded_receipt_body",
+                return_value=self.matching_value(),
+            ),
+            mock.patch.object(
+                cleanup_workflow,
+                "_receipt_matches_authority",
+                return_value=True,
+            ),
         ):
             return cleanup_workflow._recorded_receipt_status(
                 self.config("absent"), comments
@@ -755,7 +776,16 @@ class TestA8ReceiptCommentEvidenceBoundary(unittest.TestCase):
                 "_load_batch",
                 return_value=(batch, b"{}", "2" * 64),
             ),
-            mock.patch.object(cleanup_workflow, "validate_batch_receipt_object"),
+            mock.patch.object(
+                cleanup_workflow,
+                "validate_all_tracked_batch_receipts",
+                return_value={
+                    "authority_sha": config.canonical_main_sha,
+                    "receipt_paths": [
+                        f"ledger/receipts/batches/{config.batch_id}.json"
+                    ],
+                },
+            ),
             mock.patch.object(cleanup_workflow, "_verify_raw_head_receipt_seal"),
             mock.patch.object(cleanup_workflow, "_git_object_bytes", return_value=b""),
             mock.patch.object(

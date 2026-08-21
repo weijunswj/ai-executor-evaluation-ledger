@@ -327,13 +327,43 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 self.assertIn(terminal_parent_route, block)
                 historical_terminal_route = (
                     'else\n'
-                    '              args=(python scripts/validate_receipts.py --mode canonical-main '
+                    '              (\n'
+                    '                cd "$validation_root"\n'
+                    '                args=(python scripts/validate_receipts.py --mode canonical-main '
                     '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
-                    '              "${args[@]}"\n'
+                    '                "${args[@]}"\n'
+                    '              )\n'
                     '            fi'
                 )
                 self.assertIn(historical_terminal_route, block)
                 self.assertIn(canonical_base_route, block)
+                self.assertIn(
+                    'validation_workspace=$(mktemp -d)\n'
+                    '            validation_root="$validation_workspace/repository"\n'
+                    '            validation_source=$(git rev-parse --show-toplevel)\n'
+                    '            cleanup_canonical_base_workspace() {\n'
+                    '              rm -rf -- "$validation_workspace" >/dev/null 2>&1 || true\n'
+                    '            }\n'
+                    '            trap cleanup_canonical_base_workspace EXIT\n'
+                    '            if ! git clone --no-local --no-hardlinks --no-checkout "$validation_source" "$validation_root" >/dev/null 2>&1; then\n'
+                    '              printf \'%s\\n\' \'Canonical base receipt validation workspace unavailable.\' >&2\n'
+                    '              exit 1\n'
+                    '            fi\n'
+                    '            if ! git -C "$validation_root" checkout --detach "$BASE_SHA" >/dev/null 2>&1; then\n'
+                    '              printf \'%s\\n\' \'Canonical base receipt validation workspace unavailable.\' >&2\n'
+                    '              exit 1\n'
+                    '            fi\n',
+                    block,
+                )
+                self.assertEqual(2, block.count('cd "$validation_root"'))
+                self.assertIn(
+                    '            (\n'
+                    '              cd "$validation_root"\n'
+                    f'              {canonical_base_route}\n'
+                    '              "${args[@]}"\n'
+                    '            )',
+                    block,
+                )
                 self.assertIn(strict_pr_route, block)
                 self.assertLess(block.index(canonical_base_route), block.index(strict_pr_route))
                 self.assertIn("fetch-depth: 0", workflow)
@@ -1772,9 +1802,12 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             block = self._receipt_route_block(workflow)
             historical_route = (
                 'else\n'
-                '              args=(python scripts/validate_receipts.py --mode canonical-main '
+                '              (\n'
+                '                cd "$validation_root"\n'
+                '                args=(python scripts/validate_receipts.py --mode canonical-main '
                 '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
-                '              "${args[@]}"\n'
+                '                "${args[@]}"\n'
+                '              )\n'
                 '            fi'
             )
             with self.subTest(workflow=relative):

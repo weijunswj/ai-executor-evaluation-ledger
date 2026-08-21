@@ -11,9 +11,16 @@ from unittest import mock
 
 from scripts.processor.cleanup_workflow import (
     CleanupConfig,
+    CANONICAL_PATHS,
     RECEIPT_ISSUE_ENDPOINT,
+    RECEIPT_VALIDATOR,
+    RECORDED_COMMENT_MAX_CHARS,
+    RECORDED_MARKER,
+    _parse_recorded_receipt_body,
     _readback_live_authority,
+    _receipt_matches_authority,
     prepare_cleanup_receipt,
+    _recorded_receipt_status,
     publish_cleanup_receipt,
     run_cleanup,
     _retained_comment_evidence,
@@ -21,10 +28,16 @@ from scripts.processor.cleanup_workflow import (
 from scripts.processor.common import (
     ProcessorError,
     canonical_json_bytes,
+    git_tree_file_bindings,
+    git_tree_manifest_sha256,
     canonical_json_line_bytes,
     safe_author_hash,
     safe_comment_body_hash,
     sha256_bytes,
+)
+from scripts.validate_receipts import (
+    ReceiptValidationError,
+    validate_batch_receipt_object,
 )
 from scripts.processor.transaction import (
     RepositoryPathGuard,
@@ -163,10 +176,11 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "README.md",
             "scorecard.md",
             "analysis/model-recommendation.json",
+            "schema/receipt.schema.json",
         ):
             target = root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((ROOT / relative).read_bytes().replace(b"\r\n", b"\n"))
+            target.write_bytes((ROOT / relative).read_bytes().replace(b"\n", b"\n"))
         body = "retained source fixture"
         login = "".join(("fixture", "-author"))
         numeric_user_id = 7001
@@ -207,16 +221,21 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             text=True,
             check=True,
         ).stdout.strip()
+        candidate_manifest = git_tree_file_bindings(root, content_sha)
+        candidate_manifest_sha = git_tree_manifest_sha256(candidate_manifest)
         batch = {
             "schema_version": 2,
             "receipt_type": "batch",
             "batch_id": batch_id,
             "batch_mode": "initial",
             "controller_run_id": "controller-cleanup-a005",
-            "base_sha": "a" * 40,
-            "canonical_main_sha": "a" * 40,
+            "source_replay": {"adapter": "github-intake-v1"},
+            "base_sha": content_sha,
+            "canonical_main_sha": content_sha,
             "candidate_content_commit_sha": content_sha,
             "pr_number": 151,
+            "candidate_content_manifest": candidate_manifest,
+            "candidate_content_manifest_sha256": candidate_manifest_sha,
             "source_issue_number": 142,
             "receipt_issue_number": 143,
             "source_comment_watermark": 1,
@@ -256,7 +275,9 @@ class TestTransactionAndLifecycle(unittest.TestCase):
         }
         receipt_path = root / "ledger" / "receipts" / "batches" / f"{batch_id}.json"
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
-        receipt_path.write_text(json.dumps(batch, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        receipt_path.write_bytes(
+            (json.dumps(batch, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        )
         subprocess.run(["git", "add", str(receipt_path)], cwd=root, check=True)
         subprocess.run(["git", "commit", "-qm", "receipt"], cwd=root, check=True)
         return body, batch
@@ -298,6 +319,359 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "canonical_main_sha": config.canonical_main_sha,
             "recorded_receipt_status": config.recorded_receipt_status,
         }
+
+    def test_cleanup_preparation_uses_manifest_backed_authority_in_real_clone(self):
+        batch_id = "batch-run190-fresh-clone-fixture"
+        receipt_relative = f"ledger/receipts/batches/{batch_id}.json"
+        with tempfile.TemporaryDirectory(prefix="ledger-cleanup-fresh-clone-") as raw:
+            workspace = Path(raw)
+            source = workspace / "source"
+            canonical = workspace / "canonical"
+            negative = workspace / "negative"
+            source.mkdir()
+            canonical_files = {
+                "evaluations.jsonl": b"",
+                "ledger/dispositions.jsonl": b"[]\n",
+                "README.md": b"run190 fixture\n",
+                "scorecard.md": b"run190 fixture\n",
+                "analysis/model-recommendation.json": b"{}\n",
+            }
+            for relative, content in canonical_files.items():
+                target = source / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(content)
+            schema_path = source / "schema" / "receipt.schema.json"
+            schema_path.parent.mkdir(parents=True, exist_ok=True)
+            schema_path.write_bytes(
+                (ROOT / "schema" / "receipt.schema.json")
+                .read_bytes()
+                .replace(b"\n", b"\n")
+            )
+
+            subprocess.run(["git", "init", "-q"], cwd=source, check=True)
+            subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=source, check=True)
+            subprocess.run(["git", "branch", "-M", "main"], cwd=source, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "fixture" + "@" + "example.invalid"],
+                cwd=source,
+                check=True,
+            )
+            subprocess.run(["git", "config", "user.name", "fixture"], cwd=source, check=True)
+            subprocess.run(["git", "add", "."], cwd=source, check=True)
+            subprocess.run(["git", "commit", "-qm", "base"], cwd=source, check=True)
+            base_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=source,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            subprocess.run(["git", "branch", "candidate"], cwd=source, check=True)
+            subprocess.run(["git", "checkout", "-q", "candidate"], cwd=source, check=True)
+            subprocess.run(
+                ["git", "commit", "--allow-empty", "-qm", "historical candidate"],
+                cwd=source,
+                check=True,
+            )
+            candidate_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=source,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            subprocess.run(["git", "checkout", "-q", "main"], cwd=source, check=True)
+
+            body = "fresh-clone source fixture"
+            created_at = "2026-08-21T00:00:00Z"
+            digest = safe_comment_body_hash(body)
+            queue_snapshot = sha256_bytes(
+                canonical_json_bytes(
+                    [
+                        {
+                            "id": 1,
+                            "author_id": 7001,
+                            "author_sha256": safe_author_hash("fixture-author"),
+                            "author_association": "OWNER",
+                            "created_at": created_at,
+                            "updated_at": created_at,
+                            "body_sha256": digest,
+                        }
+                    ]
+                )
+            )
+            canonical_hashes = {
+                name: sha256_bytes((source / relative).read_bytes())
+                for name, relative in CANONICAL_PATHS.items()
+            }
+            candidate_manifest = git_tree_file_bindings(source, candidate_sha)
+            candidate_manifest_sha = git_tree_manifest_sha256(candidate_manifest)
+            batch = {
+                "schema_version": 2,
+                "receipt_type": "batch",
+                "batch_id": batch_id,
+                "batch_mode": "initial",
+                "controller_run_id": "controller-run190-fresh-clone-fixture",
+                "base_sha": base_sha,
+                "canonical_main_sha": base_sha,
+                "candidate_content_commit_sha": candidate_sha,
+                "candidate_content_manifest": candidate_manifest,
+                "candidate_content_manifest_sha256": candidate_manifest_sha,
+                "source_replay": {"adapter": "github-intake-v1"},
+                "pr_number": 207,
+                "source_issue_number": 142,
+                "receipt_issue_number": 143,
+                "source_comment_watermark": 1,
+                "full_queue_count": 1,
+                "latest_observed_comment_id": 1,
+                "latest_observed_update_time": created_at,
+                "queue_snapshot_sha256": queue_snapshot,
+                "source_comment_ids": [1],
+                "source_body_sha256": {"1": digest},
+                "selected_comment_ids": [1],
+                "selected_comment_count": 1,
+                "terminal_outcome_count": 1,
+                "terminal_outcomes": {
+                    "1": {
+                        "outcome_code": "no_marker",
+                        "evaluation_run_id": None,
+                        "canonical_record_sha256": None,
+                        "cleanup_eligible": False,
+                    }
+                },
+                "admitted_run_ids": [],
+                "accepted_record_proofs": {},
+                "canonical_record_hashes": {},
+                "canonical_hashes": canonical_hashes,
+                "comment_bindings": [
+                    {
+                        "comment_id": 1,
+                        "created_at": created_at,
+                        "updated_at": created_at,
+                        "body_sha256": digest,
+                        "outcome_code": "no_marker",
+                        "evaluation_run_id": None,
+                        "canonical_record_sha256": None,
+                        "cleanup_eligible": False,
+                    }
+                ],
+            }
+            receipt_path = source / receipt_relative
+            receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            receipt_path.write_bytes(
+                (json.dumps(batch, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+            )
+            subprocess.run(["git", "add", receipt_relative], cwd=source, check=True)
+            subprocess.run(["git", "commit", "-qm", "canonical receipt"], cwd=source, check=True)
+            canonical_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=source,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            subprocess.run(["git", "branch", "historical-seal"], cwd=source, check=True)
+            subprocess.run(["git", "checkout", "-q", "historical-seal"], cwd=source, check=True)
+            subprocess.run(
+                ["git", "commit", "--allow-empty", "-qm", "historical seal"],
+                cwd=source,
+                check=True,
+            )
+            historical_seal_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=source,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            subprocess.run(["git", "checkout", "-q", "main"], cwd=source, check=True)
+
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "cat-file", "-e", f"{candidate_sha}^{{commit}}"],
+                    cwd=source,
+                    check=False,
+                ).returncode,
+                0,
+            )
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "cat-file", "-e", f"{historical_seal_sha}^{{commit}}"],
+                    cwd=source,
+                    check=False,
+                ).returncode,
+                0,
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    "--no-local",
+                    "--no-hardlinks",
+                    "--branch",
+                    "main",
+                    "--single-branch",
+                    "--no-tags",
+                    "--no-checkout",
+                    str(source),
+                    str(canonical),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=canonical, check=True)
+            subprocess.run(
+                ["git", "checkout", "--detach", canonical_sha],
+                cwd=canonical,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(
+                subprocess.run(
+                    ["git", "cat-file", "-e", f"{candidate_sha}^{{commit}}"],
+                    cwd=canonical,
+                    check=False,
+                ).returncode,
+                0,
+            )
+            self.assertNotEqual(
+                subprocess.run(
+                    ["git", "cat-file", "-e", f"{historical_seal_sha}^{{commit}}"],
+                    cwd=canonical,
+                    check=False,
+                ).returncode,
+                0,
+            )
+
+            receipt_bytes = (canonical / receipt_relative).read_bytes()
+            canonical_batch = json.loads(receipt_bytes.decode("utf-8"))
+            with self.assertRaises(ReceiptValidationError):
+                validate_batch_receipt_object(
+                    canonical,
+                    canonical_batch,
+                    authority_sha=canonical_sha,
+                )
+
+            def config_for(root, main_sha, expected_head_sha):
+                return CleanupConfig(
+                    batch_id=batch_id,
+                    canonical_merge_sha=main_sha,
+                    canonical_main_sha=main_sha,
+                    expected_head_sha=expected_head_sha,
+                    pr_number=207,
+                    source_issue_number=142,
+                    receipt_issue_number=143,
+                    activation_mode="dry-run",
+                    operator_intent="unreviewed",
+                    pr_state="closed",
+                    merge_state="merged",
+                    checks_state="passed",
+                    review_state="clear",
+                    recorded_receipt_status="absent",
+                    repository_root=root,
+                )
+
+            def authority_for(config, current_batch, current_bytes):
+                return {
+                    "pr_state": config.pr_state,
+                    "merge_state": config.merge_state,
+                    "checks_state": config.checks_state,
+                    "review_state": config.review_state,
+                    "canonical_merge_sha": config.canonical_merge_sha,
+                    "expected_head_sha": config.expected_head_sha,
+                    "canonical_main_sha": config.canonical_main_sha,
+                    "recorded_receipt_status": config.recorded_receipt_status,
+                    "raw_head_parent_shas": [
+                        current_batch["candidate_content_commit_sha"]
+                    ],
+                    "raw_head_changed_paths": [receipt_relative],
+                    "raw_head_receipt_sha256": sha256_bytes(current_bytes),
+                }
+
+            def fetcher(comment_id, _root):
+                return {
+                    "id": comment_id,
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
+                    "body": body,
+                    "created_at": created_at,
+                    "updated_at": created_at,
+                }
+
+            config = config_for(canonical, canonical_sha, historical_seal_sha)
+            receipt = prepare_cleanup_receipt(
+                config,
+                fetcher=fetcher,
+                authority_reader=lambda current: authority_for(
+                    current,
+                    canonical_batch,
+                    receipt_bytes,
+                ),
+            )
+            self.assertEqual(receipt["cleanup_status"], "verified")
+            self.assertEqual(receipt["branch_cleanup_reason"], "receipt_unverified")
+
+            subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    "--no-local",
+                    "--no-hardlinks",
+                    "--branch",
+                    "main",
+                    "--single-branch",
+                    "--no-tags",
+                    str(source),
+                    str(negative),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=negative, check=True)
+            subprocess.run(["git", "checkout", "--force", "main"], cwd=negative, check=True)
+            negative_receipt_path = negative / receipt_relative
+            negative_batch = json.loads(negative_receipt_path.read_text(encoding="utf-8"))
+            negative_batch["candidate_content_manifest"].pop()
+            negative_receipt_path.write_bytes(
+                (
+                    json.dumps(
+                        negative_batch,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        indent=2,
+                    )
+                    + "\n"
+                ).encode("utf-8")
+            )
+            subprocess.run(["git", "config", "user.email", "fixture" + "@" + "example.invalid"], cwd=negative, check=True)
+            subprocess.run(["git", "config", "user.name", "fixture"], cwd=negative, check=True)
+            subprocess.run(["git", "add", receipt_relative], cwd=negative, check=True)
+            subprocess.run(["git", "commit", "-qm", "invalid manifest"], cwd=negative, check=True)
+            negative_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=negative,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            negative_bytes = negative_receipt_path.read_bytes()
+            negative_config = config_for(negative, negative_sha, historical_seal_sha)
+            with self.assertRaises(ProcessorError) as raised:
+                prepare_cleanup_receipt(
+                    negative_config,
+                    fetcher=fetcher,
+                    authority_reader=lambda current: authority_for(
+                        current,
+                        negative_batch,
+                        negative_bytes,
+                    ),
+                )
+            self.assertEqual(raised.exception.code, "processor_cleanup_batch_unavailable")
 
     def test_cleanup_verifies_retention_and_stays_pending_without_receipt_proof(self):
         with tempfile.TemporaryDirectory(prefix="ledger-cleanup-test-") as raw:
@@ -409,6 +783,235 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                     activation_mode="dry-run",
                     operator_intent="unreviewed",
                 )
+
+    def test_compact_cleanup_receipt_binds_immutable_batch_and_rejects_duplicates(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-cleanup-compact-contract-") as raw:
+            root = Path(raw)
+            body, batch = self.fixture_cleanup_tree(
+                root,
+                batch_id="batch-cleanup-compact-contract-a005",
+            )
+            fetched_ids = []
+
+            def fetcher(comment_id, _root):
+                fetched_ids.append(comment_id)
+                return {
+                    "id": comment_id,
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
+                    "body": body,
+                    "created_at": "2026-07-29T10:00:00Z",
+                    "updated_at": "2026-07-29T10:00:00Z",
+                }
+
+            config = self.cleanup_config(
+                root,
+                "batch-cleanup-compact-contract-a005",
+                receipt_status="absent",
+            )
+            receipt = prepare_cleanup_receipt(
+                config,
+                fetcher=fetcher,
+                authority_reader=self.authority_reader,
+            )
+            receipt_path = root / "ledger/receipts/batches/batch-cleanup-compact-contract-a005.json"
+            receipt_bytes = receipt_path.read_bytes()
+            blob_sha = subprocess.run(
+                ["git", "rev-parse", f"HEAD:{receipt_path.relative_to(root).as_posix()}"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            self.assertEqual(fetched_ids, batch["source_comment_ids"])
+            self.assertTrue(RECEIPT_VALIDATOR.is_valid(receipt))
+            self.assertEqual(receipt["batch_receipt_blob_sha"], blob_sha)
+            self.assertEqual(receipt["batch_receipt_sha256"], sha256_bytes(receipt_bytes))
+            self.assertEqual(receipt["batch_receipt_bytes_sha256"], sha256_bytes(receipt_bytes))
+            self.assertEqual(receipt["queue_snapshot_sha256"], batch["queue_snapshot_sha256"])
+            self.assertEqual(receipt["source_comment_count"], len(batch["source_comment_ids"]))
+            self.assertEqual(receipt["admitted_record_count"], len(batch["admitted_run_ids"]))
+            removed_fields = (
+                "canonical_record_hashes",
+                "canonical_record_proofs",
+                "source_comment_ids",
+                "source_body_sha256",
+                "retained_comment_ids",
+            )
+            for field in removed_fields:
+                with self.subTest(removed_field=field):
+                    self.assertNotIn(field, receipt)
+                    if field == "canonical_record_proofs":
+                        self.assertIn("accepted_record_proofs", batch)
+                    elif field == "retained_comment_ids":
+                        self.assertNotIn(field, batch)
+                    else:
+                        self.assertIn(field, batch)
+                    self.assertTrue(RECEIPT_VALIDATOR.is_valid(batch))
+                    invalid = copy.deepcopy(receipt)
+                    invalid[field] = {} if field.endswith("hashes") or field.endswith("proofs") else []
+                    self.assertFalse(RECEIPT_VALIDATOR.is_valid(invalid))
+                    invalid_body = RECORDED_MARKER + "\n" + canonical_json_bytes(invalid).decode("utf-8")
+                    with self.assertRaises(ProcessorError) as raised:
+                        _parse_recorded_receipt_body(invalid_body)
+                    self.assertEqual(raised.exception.code, "processor_cleanup_receipt_invalid")
+
+            tampered_bindings = {
+                "canonical_main_sha": "0" * 40,
+                "batch_receipt_blob_sha": "0" * 40,
+                "batch_receipt_sha256": "0" * 64,
+                "batch_receipt_bytes_sha256": "0" * 64,
+                "queue_snapshot_sha256": "0" * 64,
+                "source_comment_count": receipt["source_comment_count"] + 1,
+                "admitted_record_count": receipt["admitted_record_count"] + 1,
+            }
+            for field, value in tampered_bindings.items():
+                with self.subTest(tampered_binding=field):
+                    tampered = copy.deepcopy(receipt)
+                    tampered[field] = value
+                    self.assertFalse(_receipt_matches_authority(tampered, config))
+
+            self.assertTrue(_receipt_matches_authority(receipt, config))
+            for field in sorted(receipt["canonical_hashes"]):
+                with self.subTest(canonical_hash=field):
+                    tampered = copy.deepcopy(receipt)
+                    replacement = "0" * 64
+                    if replacement == tampered["canonical_hashes"][field]:
+                        replacement = "1" * 64
+                    tampered["canonical_hashes"][field] = replacement
+                    self.assertFalse(_receipt_matches_authority(tampered, config))
+
+            snapshot_mutations = {
+                "recorded_receipt_status": "present_matching",
+                "branch_cleanup_eligible": True,
+                "branch_cleanup_reason": "eligible",
+                "publication_status": "published",
+                "platform_limitation_code": "none",
+            }
+            for field, replacement in snapshot_mutations.items():
+                with self.subTest(snapshot_field=field):
+                    tampered = copy.deepcopy(receipt)
+                    tampered[field] = replacement
+                    self.assertFalse(_receipt_matches_authority(tampered, config))
+
+            def recorded_comment(value, comment_id):
+                return {
+                    "id": comment_id,
+                    "issue_url": RECEIPT_ISSUE_ENDPOINT,
+                    "body": RECORDED_MARKER
+                    + "\n"
+                    + canonical_json_bytes(value).decode("utf-8"),
+                }
+
+            self.assertEqual(_recorded_receipt_status(config, []), "absent")
+            exact_comment = recorded_comment(receipt, 991)
+            self.assertEqual(
+                _recorded_receipt_status(config, [exact_comment]),
+                "present_matching",
+            )
+            self.assertEqual(
+                _recorded_receipt_status(
+                    config,
+                    [exact_comment, recorded_comment(receipt, 992)],
+                ),
+                "conflicting",
+            )
+            forged = copy.deepcopy(receipt)
+            forged["canonical_hashes"]["evaluations_jsonl"] = "f" * 64
+            forged_comment = recorded_comment(forged, 993)
+            self.assertEqual(
+                _recorded_receipt_status(config, [forged_comment]),
+                "conflicting",
+            )
+
+    def test_compact_publication_size_gate_roundtrips_and_fails_before_publisher(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-cleanup-compact-publication-") as raw:
+            root = Path(raw)
+            body, _ = self.fixture_cleanup_tree(
+                root,
+                batch_id="batch-cleanup-compact-publication-a005",
+            )
+
+            def fetcher(comment_id, _root):
+                return {
+                    "id": comment_id,
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
+                    "body": body,
+                    "created_at": "2026-07-29T10:00:00Z",
+                    "updated_at": "2026-07-29T10:00:00Z",
+                }
+
+            receipt = prepare_cleanup_receipt(
+                self.cleanup_config(
+                    root,
+                    "batch-cleanup-compact-publication-a005",
+                    receipt_status="absent",
+                ),
+                fetcher=fetcher,
+                authority_reader=self.authority_reader,
+            )
+            scaled = copy.deepcopy(receipt)
+            scaled["source_comment_count"] = 806
+            scaled["admitted_record_count"] = 120
+            intended_bytes = (
+                RECORDED_MARKER.encode("utf-8")
+                + b"\n"
+                + canonical_json_bytes(scaled)
+            )
+            intended_body = intended_bytes.decode("utf-8")
+            self.assertTrue(intended_bytes.startswith(RECORDED_MARKER.encode("utf-8")))
+            self.assertEqual(_parse_recorded_receipt_body(intended_body), scaled)
+            self.assertLess(len(intended_body), RECORDED_COMMENT_MAX_CHARS)
+            self.assertLess(len(intended_bytes), RECORDED_COMMENT_MAX_CHARS)
+
+            calls = []
+
+            def publisher(value):
+                calls.append(value)
+                return 991
+
+            def readback(locator):
+                return {
+                    "id": locator,
+                    "body": calls[0],
+                    "issue_url": RECEIPT_ISSUE_ENDPOINT,
+                }
+
+            published = publish_cleanup_receipt(
+                scaled,
+                activation_mode="reviewed-live",
+                operator_intent="reviewed",
+                publisher=publisher,
+                readback=readback,
+                comments_reader=lambda: [readback(991)],
+                authority_verifier=lambda value: value == scaled,
+            )
+            self.assertEqual(published["status"], "published")
+            self.assertEqual(calls, [intended_body])
+
+            oversized_cases = {
+                "characters": "a" * (RECORDED_COMMENT_MAX_CHARS + 100),
+                "utf8_bytes": "é" * 40000,
+            }
+            for label, oversized_batch_id in oversized_cases.items():
+                with self.subTest(oversized=label):
+                    oversized = copy.deepcopy(scaled)
+                    oversized["batch_id"] = oversized_batch_id
+                    before_calls = len(calls)
+                    with self.assertRaises(ProcessorError) as raised:
+                        publish_cleanup_receipt(
+                            oversized,
+                            activation_mode="reviewed-live",
+                            operator_intent="reviewed",
+                            publisher=publisher,
+                        )
+                    self.assertEqual(
+                        raised.exception.code,
+                        "processor_cleanup_receipt_too_large",
+                    )
+                    self.assertEqual(len(calls), before_calls)
 
     def test_cleanup_reads_immutable_objects_when_worktree_is_hostile(self):
         with tempfile.TemporaryDirectory(prefix="ledger-cleanup-object-test-") as raw:
