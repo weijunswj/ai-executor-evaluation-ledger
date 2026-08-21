@@ -327,13 +327,34 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 self.assertIn(terminal_parent_route, block)
                 historical_terminal_route = (
                     'else\n'
-                    '              args=(python scripts/validate_receipts.py --mode canonical-main '
+                    '              (\n'
+                    '                cd "$validation_worktree"\n'
+                    '                args=(python scripts/validate_receipts.py --mode canonical-main '
                     '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
-                    '              "${args[@]}"\n'
+                    '                "${args[@]}"\n'
+                    '              )\n'
                     '            fi'
                 )
                 self.assertIn(historical_terminal_route, block)
                 self.assertIn(canonical_base_route, block)
+                self.assertIn(
+                    'validation_worktree=$(mktemp -d)\n'
+                    '            cleanup_canonical_base_worktree() {\n'
+                    '              git worktree remove --force "$validation_worktree" >/dev/null 2>&1 || true\n'
+                    '            }\n'
+                    '            trap cleanup_canonical_base_worktree EXIT\n'
+                    '            if ! git worktree add --detach "$validation_worktree" "$BASE_SHA" >/dev/null; then\n',
+                    block,
+                )
+                self.assertEqual(2, block.count('cd "$validation_worktree"'))
+                self.assertIn(
+                    '            (\n'
+                    '              cd "$validation_worktree"\n'
+                    f'              {canonical_base_route}\n'
+                    '              "${args[@]}"\n'
+                    '            )',
+                    block,
+                )
                 self.assertIn(strict_pr_route, block)
                 self.assertLess(block.index(canonical_base_route), block.index(strict_pr_route))
                 self.assertIn("fetch-depth: 0", workflow)
@@ -1772,9 +1793,12 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             block = self._receipt_route_block(workflow)
             historical_route = (
                 'else\n'
-                '              args=(python scripts/validate_receipts.py --mode canonical-main '
+                '              (\n'
+                '                cd "$validation_worktree"\n'
+                '                args=(python scripts/validate_receipts.py --mode canonical-main '
                 '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
-                '              "${args[@]}"\n'
+                '                "${args[@]}"\n'
+                '              )\n'
                 '            fi'
             )
             with self.subTest(workflow=relative):
