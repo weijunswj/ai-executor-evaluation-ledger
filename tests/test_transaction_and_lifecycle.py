@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from unittest import mock
 
+from scripts.processor import cleanup_workflow
 from scripts.processor.cleanup_workflow import (
     CleanupConfig,
     CANONICAL_PATHS,
@@ -18,6 +19,7 @@ from scripts.processor.cleanup_workflow import (
     RECORDED_MARKER,
     _parse_recorded_receipt_body,
     _readback_live_authority,
+    _is_commit_ancestor,
     _receipt_matches_authority,
     prepare_cleanup_receipt,
     _recorded_receipt_status,
@@ -319,6 +321,373 @@ class TestTransactionAndLifecycle(unittest.TestCase):
             "canonical_main_sha": config.canonical_main_sha,
             "recorded_receipt_status": config.recorded_receipt_status,
         }
+
+    def commit_fixture_file(
+        self,
+        root: Path,
+        relative: str,
+        content: bytes,
+        message: str,
+    ) -> str:
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+        subprocess.run(["git", "add", "--", relative], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", message], cwd=root, check=True)
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+    def checkout_fixture_commit(self, root: Path, commit_sha: str) -> None:
+        subprocess.run(
+            ["git", "checkout", "--detach", commit_sha],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+    def ancestry_topology(self, root: Path, batch_id: str) -> dict[str, str]:
+        self.fixture_cleanup_tree(root, batch_id=batch_id)
+        base_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        merge_sha = self.commit_fixture_file(
+            root,
+            "transaction-authority.txt",
+            b"accepted transaction\n",
+            "transaction merge",
+        )
+        one_generation_sha = self.commit_fixture_file(
+            root,
+            "repair-authority.txt",
+            b"one generation\n",
+            "code-only repair",
+        )
+        multi_generation_sha = self.commit_fixture_file(
+            root,
+            "second-repair-authority.txt",
+            b"multi generation\n",
+            "second code-only repair",
+        )
+        self.checkout_fixture_commit(root, base_sha)
+        sibling_sha = self.commit_fixture_file(
+            root,
+            "sibling-authority.txt",
+            b"sibling main\n",
+            "sibling main",
+        )
+        return {
+            "batch_id": batch_id,
+            "base": base_sha,
+            "merge": merge_sha,
+            "one": one_generation_sha,
+            "multi": multi_generation_sha,
+            "sibling": sibling_sha,
+        }
+
+    def topology_config(
+        self,
+        root: Path,
+        topology: dict[str, str],
+        merge_sha: str,
+        main_sha: str,
+        *,
+        recorded_receipt_status: str = "absent",
+    ) -> CleanupConfig:
+        return CleanupConfig(
+            batch_id=topology["batch_id"],
+            canonical_merge_sha=merge_sha,
+            canonical_main_sha=main_sha,
+            expected_head_sha=topology["base"],
+            pr_number=205,
+            source_issue_number=142,
+            receipt_issue_number=143,
+            activation_mode="dry-run",
+            operator_intent="unreviewed",
+            pr_state="closed",
+            merge_state="merged",
+            checks_state="passed",
+            review_state="clear",
+            recorded_receipt_status=recorded_receipt_status,
+            repository_root=root,
+        )
+
+    def prepare_topology(self, config: CleanupConfig) -> dict:
+        with (
+            mock.patch.object(cleanup_workflow, "_verify_raw_head_receipt_seal"),
+            mock.patch.object(
+                cleanup_workflow,
+                "_retained_comment_evidence",
+                return_value=([], True),
+            ),
+        ):
+            return prepare_cleanup_receipt(
+                config,
+                authority_reader=self.authority_reader,
+            )
+
+    def test_commit_ancestry_matrix_uses_real_git_and_fails_closed(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-ancestry-matrix-") as raw:
+            root = Path(raw)
+            topology = self.ancestry_topology(
+                root,
+                "batch-ancestry-matrix-a5",
+            )
+            self.assertTrue(
+                _is_commit_ancestor(root, topology["merge"], topology["merge"])
+            )
+            self.assertTrue(
+                _is_commit_ancestor(root, topology["merge"], topology["one"])
+            )
+            self.assertTrue(
+                _is_commit_ancestor(root, topology["merge"], topology["multi"])
+            )
+            self.assertFalse(
+                _is_commit_ancestor(root, topology["merge"], topology["sibling"])
+            )
+            self.assertFalse(
+                _is_commit_ancestor(root, topology["sibling"], topology["merge"])
+            )
+            self.assertFalse(
+                _is_commit_ancestor(root, topology["multi"], topology["base"])
+            )
+            self.assertFalse(
+                _is_commit_ancestor(root, "0" * 40, topology["multi"])
+            )
+
+            with mock.patch(
+                "scripts.processor.cleanup_workflow.subprocess.run",
+                side_effect=OSError("git unavailable"),
+            ):
+                self.assertFalse(
+                    _is_commit_ancestor(root, topology["merge"], topology["one"])
+                )
+            with mock.patch(
+                "scripts.processor.cleanup_workflow.subprocess.run",
+                return_value=subprocess.CompletedProcess(["git"], 2),
+            ):
+                self.assertFalse(
+                    _is_commit_ancestor(root, topology["merge"], topology["one"])
+                )
+
+    def test_postmerge_ancestry_finality_matrix_preserves_data_and_receipt_authority(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-ancestry-finality-") as raw:
+            root = Path(raw)
+            topology = self.ancestry_topology(
+                root,
+                "batch-ancestry-finality-a5",
+            )
+
+            def prepare_for(merge_sha: str, main_sha: str):
+                self.checkout_fixture_commit(root, main_sha)
+                config = self.topology_config(root, topology, merge_sha, main_sha)
+                return config, self.prepare_topology(config)
+
+            equal_config, equal_receipt = prepare_for(
+                topology["merge"],
+                topology["merge"],
+            )
+            self.assertEqual(equal_receipt["cleanup_status"], "verified")
+            self.assertTrue(_receipt_matches_authority(equal_receipt, equal_config))
+
+            descendant_config, descendant_receipt = prepare_for(
+                topology["merge"],
+                topology["one"],
+            )
+            self.assertEqual(descendant_receipt["cleanup_status"], "verified")
+            self.assertEqual(
+                descendant_receipt["canonical_merge_sha"],
+                topology["merge"],
+            )
+            self.assertEqual(
+                descendant_receipt["canonical_main_sha"],
+                topology["one"],
+            )
+            self.assertTrue(
+                _receipt_matches_authority(descendant_receipt, descendant_config)
+            )
+            recorded_comment = {
+                "id": 991,
+                "issue_url": RECEIPT_ISSUE_ENDPOINT,
+                "body": (
+                    RECORDED_MARKER
+                    + "\n"
+                    + canonical_json_bytes(descendant_receipt).decode("utf-8")
+                ),
+            }
+            self.assertEqual(
+                _recorded_receipt_status(descendant_config, [recorded_comment]),
+                "present_matching",
+            )
+
+            multi_config, multi_receipt = prepare_for(
+                topology["merge"],
+                topology["multi"],
+            )
+            self.assertEqual(multi_receipt["cleanup_status"], "verified")
+            self.assertTrue(_receipt_matches_authority(multi_receipt, multi_config))
+
+            sibling_config, sibling_receipt = prepare_for(
+                topology["merge"],
+                topology["sibling"],
+            )
+            self.assertEqual(sibling_receipt["cleanup_status"], "blocked")
+            self.assertEqual(
+                sibling_receipt["branch_cleanup_reason"],
+                "canonical_unverified",
+            )
+            self.assertFalse(
+                _receipt_matches_authority(sibling_receipt, sibling_config)
+            )
+
+            reverse_config, reverse_receipt = prepare_for(
+                topology["multi"],
+                topology["base"],
+            )
+            self.assertEqual(reverse_receipt["cleanup_status"], "blocked")
+            self.assertEqual(
+                reverse_receipt["branch_cleanup_reason"],
+                "canonical_unverified",
+            )
+            missing_config, missing_receipt = prepare_for(
+                "0" * 40,
+                topology["multi"],
+            )
+            self.assertEqual(missing_receipt["cleanup_status"], "blocked")
+            self.assertEqual(
+                missing_receipt["branch_cleanup_reason"],
+                "canonical_unverified",
+            )
+
+            self.checkout_fixture_commit(root, topology["merge"])
+            changed_data_sha = self.commit_fixture_file(
+                root,
+                "README.md",
+                (root / "README.md").read_bytes() + b"post-merge generated change\n",
+                "invalid canonical generated data",
+            )
+            self.assertTrue(
+                _is_commit_ancestor(root, topology["merge"], changed_data_sha)
+            )
+            changed_config, changed_receipt = prepare_for(
+                topology["merge"],
+                changed_data_sha,
+            )
+            self.assertEqual(changed_receipt["cleanup_status"], "blocked")
+            self.assertEqual(
+                changed_receipt["branch_cleanup_reason"],
+                "canonical_unverified",
+            )
+
+            self.checkout_fixture_commit(root, topology["merge"])
+            invalid_batch_sha = self.commit_fixture_file(
+                root,
+                f"ledger/receipts/batches/{topology['batch_id']}.json",
+                b"not a batch receipt\n",
+                "invalid batch receipt",
+            )
+            invalid_config = self.topology_config(
+                root,
+                topology,
+                topology["merge"],
+                invalid_batch_sha,
+            )
+            with self.assertRaises(ProcessorError) as raised:
+                self.prepare_topology(invalid_config)
+            self.assertEqual(
+                raised.exception.code,
+                "processor_cleanup_batch_unavailable",
+            )
+
+            forged_config = self.topology_config(
+                root,
+                topology,
+                topology["sibling"],
+                topology["one"],
+            )
+            forged_receipt = copy.deepcopy(descendant_receipt)
+            forged_receipt["canonical_merge_sha"] = topology["sibling"]
+            self.assertFalse(
+                _receipt_matches_authority(forged_receipt, forged_config)
+            )
+
+            def live_authority(main_sha: str, merge_sha: str):
+                config = self.topology_config(root, topology, merge_sha, main_sha)
+                pr = {
+                    "state": "closed",
+                    "merged_at": "2026-08-21T00:00:00Z",
+                    "merge_commit_sha": merge_sha,
+                    "head": {"sha": topology["base"]},
+                }
+                main = {"object": {"sha": main_sha}}
+                raw_commit = {
+                    "parents": [{"sha": topology["base"]}],
+                    "files": [],
+                }
+                raw_receipt = {
+                    "type": "file",
+                    "encoding": "base64",
+                    "content": "e30=",
+                }
+                with (
+                    mock.patch.object(
+                        cleanup_workflow,
+                        "_gh_get_json",
+                        side_effect=[
+                            pr,
+                            main,
+                            raw_commit,
+                            raw_receipt,
+                            {"workflow_runs": []},
+                        ],
+                    ),
+                    mock.patch.object(
+                        cleanup_workflow,
+                        "_gh_get_paginated",
+                        side_effect=[[], []],
+                    ),
+                    mock.patch.object(
+                        cleanup_workflow,
+                        "_gh_get_threads",
+                        return_value=[],
+                    ),
+                ):
+                    return _readback_live_authority(config)
+
+            for main_sha in (
+                topology["merge"],
+                topology["one"],
+                topology["multi"],
+            ):
+                with self.subTest(main_sha=main_sha):
+                    authority = live_authority(main_sha, topology["merge"])
+                    self.assertEqual(authority["merge_state"], "merged")
+                    self.assertEqual(
+                        authority["canonical_merge_sha"],
+                        topology["merge"],
+                    )
+                    self.assertEqual(authority["canonical_main_sha"], main_sha)
+            self.assertEqual(
+                live_authority(topology["sibling"], topology["merge"])["merge_state"],
+                "unmerged",
+            )
+            self.assertEqual(
+                live_authority(topology["base"], topology["multi"])["merge_state"],
+                "unmerged",
+            )
+            self.assertEqual(
+                live_authority(topology["multi"], "0" * 40)["merge_state"],
+                "unmerged",
+            )
 
     def test_cleanup_preparation_uses_manifest_backed_authority_in_real_clone(self):
         batch_id = "batch-run190-fresh-clone-fixture"
