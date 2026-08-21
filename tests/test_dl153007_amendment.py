@@ -776,7 +776,16 @@ class TestA8ReceiptCommentEvidenceBoundary(unittest.TestCase):
                 "_load_batch",
                 return_value=(batch, b"{}", "2" * 64),
             ),
-            mock.patch.object(cleanup_workflow, "validate_batch_receipt_object"),
+            mock.patch.object(
+                cleanup_workflow,
+                "validate_all_tracked_batch_receipts",
+                return_value={
+                    "authority_sha": config.canonical_main_sha,
+                    "receipt_paths": [
+                        f"ledger/receipts/batches/{config.batch_id}.json"
+                    ],
+                },
+            ),
             mock.patch.object(cleanup_workflow, "_verify_raw_head_receipt_seal"),
             mock.patch.object(cleanup_workflow, "_git_object_bytes", return_value=b""),
             mock.patch.object(

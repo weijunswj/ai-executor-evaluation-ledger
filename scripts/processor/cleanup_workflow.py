@@ -33,7 +33,7 @@ from scripts.processor.common import (
 from scripts.processor.github_cli import gh_json
 from scripts.validate_receipts import (
     ReceiptValidationError,
-    validate_batch_receipt_object,
+    validate_all_tracked_batch_receipts,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -485,7 +485,7 @@ def _required_check_attempts(
 def _parse_recorded_receipt_body(body: Any) -> Optional[dict[str, Any]]:
     if not isinstance(body, str) or not body.startswith(RECORDED_MARKER):
         return None
-    raw = body[len(RECORDED_MARKER):].lstrip(" \t\r\n")
+    raw = body[len(RECORDED_MARKER):].lstrip(" \t\n")
     try:
         value, end = json.JSONDecoder(parse_constant=_reject_nonfinite_constant).raw_decode(raw)
     except (TypeError, ValueError):
@@ -525,10 +525,38 @@ def _batch_receipt_blob_sha(
     return blob_sha
 
 
+def _validate_canonical_batch(
+    root: Path,
+    canonical_main_sha: str,
+    batch_id: str,
+) -> tuple[Dict[str, Any], bytes, str]:
+    """Validate one canonical batch through the manifest-capable authority path."""
+
+    expected_path = f"ledger/receipts/batches/{batch_id}.json"
+    try:
+        validation = validate_all_tracked_batch_receipts(
+            root,
+            authority_sha=canonical_main_sha,
+            mode="canonical-main",
+        )
+        validated_paths = validation.get("receipt_paths") if isinstance(validation, dict) else None
+        if (
+            not isinstance(validation, dict)
+            or validation.get("authority_sha") != canonical_main_sha
+            or not isinstance(validated_paths, list)
+            or expected_path not in validated_paths
+        ):
+            raise ReceiptValidationError("receipt_expected_batch_not_validated")
+        return _load_batch(root, canonical_main_sha, batch_id)
+    except (OSError, ProcessorError, ReceiptValidationError, TypeError, ValueError):
+        raise _safe_failure("processor_cleanup_batch_unavailable")
+
+
 def _receipt_matches_authority(value: Mapping[str, Any], config: CleanupConfig) -> bool:
     expected = {
         "receipt_type": "cleanup",
         "cleanup_status": "verified",
+        "schema_version": 2,
         "batch_id": config.batch_id,
         "canonical_merge_sha": config.canonical_merge_sha,
         "canonical_main_sha": config.canonical_main_sha,
@@ -537,20 +565,29 @@ def _receipt_matches_authority(value: Mapping[str, Any], config: CleanupConfig) 
         "source_issue_number": config.source_issue_number,
         "receipt_issue_number": config.receipt_issue_number,
         "source_retention_verified": True,
+        "recorded_receipt_status": "absent",
+        "branch_cleanup_eligible": False,
+        "branch_cleanup_reason": "receipt_unverified",
+        "publication_status": "pending_operator_publication",
+        "platform_limitation_code": "web_orchestrator_publication_required",
     }
     if not all(value.get(field) == wanted for field, wanted in expected.items()):
         return False
     try:
-        batch, batch_bytes, batch_hash = _load_batch(
+        batch, batch_bytes, batch_hash = _validate_canonical_batch(
             config.repository_root,
             config.canonical_main_sha,
             config.batch_id,
         )
-        validate_batch_receipt_object(
+        current_hashes = _current_hashes(
             config.repository_root,
-            batch,
-            authority_sha=config.canonical_main_sha,
+            config.canonical_main_sha,
         )
+        if (
+            value.get("canonical_hashes") != batch.get("canonical_hashes")
+            or value.get("canonical_hashes") != current_hashes
+        ):
+            return False
         expected_bindings = {
             "batch_receipt_blob_sha": _batch_receipt_blob_sha(
                 config.repository_root,
@@ -1015,19 +1052,11 @@ def prepare_cleanup_receipt(
     _verify_local_canonical_checkout(config.repository_root, config.canonical_main_sha)
     authority = authority_reader(config) if authority_reader is not None else _readback_live_authority(config)
     _assert_live_authority(config, authority)
-    batch, batch_bytes, batch_hash = _load_batch(
+    batch, batch_bytes, batch_hash = _validate_canonical_batch(
         config.repository_root,
         config.canonical_main_sha,
         config.batch_id,
     )
-    try:
-        validate_batch_receipt_object(
-            config.repository_root,
-            batch,
-            authority_sha=config.canonical_main_sha,
-        )
-    except ReceiptValidationError:
-        raise _safe_failure("processor_cleanup_batch_unavailable")
     batch_receipt_blob_sha = _batch_receipt_blob_sha(
         config.repository_root,
         config.canonical_main_sha,
