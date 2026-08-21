@@ -12,7 +12,12 @@ from unittest import mock
 from scripts.processor.cleanup_workflow import (
     CleanupConfig,
     RECEIPT_ISSUE_ENDPOINT,
+    RECEIPT_VALIDATOR,
+    RECORDED_COMMENT_MAX_CHARS,
+    RECORDED_MARKER,
+    _parse_recorded_receipt_body,
     _readback_live_authority,
+    _receipt_matches_authority,
     prepare_cleanup_receipt,
     publish_cleanup_receipt,
     run_cleanup,
@@ -409,6 +414,182 @@ class TestTransactionAndLifecycle(unittest.TestCase):
                     activation_mode="dry-run",
                     operator_intent="unreviewed",
                 )
+
+    def test_compact_cleanup_receipt_binds_immutable_batch_and_rejects_duplicates(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-cleanup-compact-contract-") as raw:
+            root = Path(raw)
+            body, batch = self.fixture_cleanup_tree(
+                root,
+                batch_id="batch-cleanup-compact-contract-a005",
+            )
+            fetched_ids = []
+
+            def fetcher(comment_id, _root):
+                fetched_ids.append(comment_id)
+                return {
+                    "id": comment_id,
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
+                    "body": body,
+                    "created_at": "2026-07-29T10:00:00Z",
+                    "updated_at": "2026-07-29T10:00:00Z",
+                }
+
+            config = self.cleanup_config(
+                root,
+                "batch-cleanup-compact-contract-a005",
+                receipt_status="absent",
+            )
+            receipt = prepare_cleanup_receipt(
+                config,
+                fetcher=fetcher,
+                authority_reader=self.authority_reader,
+            )
+            receipt_path = root / "ledger/receipts/batches/batch-cleanup-compact-contract-a005.json"
+            receipt_bytes = receipt_path.read_bytes()
+            blob_sha = subprocess.run(
+                ["git", "rev-parse", f"HEAD:{receipt_path.relative_to(root).as_posix()}"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            self.assertEqual(fetched_ids, batch["source_comment_ids"])
+            self.assertTrue(RECEIPT_VALIDATOR.is_valid(receipt))
+            self.assertEqual(receipt["batch_receipt_blob_sha"], blob_sha)
+            self.assertEqual(receipt["batch_receipt_sha256"], sha256_bytes(receipt_bytes))
+            self.assertEqual(receipt["batch_receipt_bytes_sha256"], sha256_bytes(receipt_bytes))
+            self.assertEqual(receipt["queue_snapshot_sha256"], batch["queue_snapshot_sha256"])
+            self.assertEqual(receipt["source_comment_count"], len(batch["source_comment_ids"]))
+            self.assertEqual(receipt["admitted_record_count"], len(batch["admitted_run_ids"]))
+            removed_fields = (
+                "canonical_record_hashes",
+                "canonical_record_proofs",
+                "source_comment_ids",
+                "source_body_sha256",
+                "retained_comment_ids",
+            )
+            for field in removed_fields:
+                with self.subTest(removed_field=field):
+                    self.assertNotIn(field, receipt)
+                    if field == "canonical_record_proofs":
+                        self.assertIn("accepted_record_proofs", batch)
+                    elif field == "retained_comment_ids":
+                        self.assertNotIn(field, batch)
+                    else:
+                        self.assertIn(field, batch)
+                    self.assertTrue(RECEIPT_VALIDATOR.is_valid(batch))
+                    invalid = copy.deepcopy(receipt)
+                    invalid[field] = {} if field.endswith("hashes") or field.endswith("proofs") else []
+                    self.assertFalse(RECEIPT_VALIDATOR.is_valid(invalid))
+                    invalid_body = RECORDED_MARKER + "\n" + canonical_json_bytes(invalid).decode("utf-8")
+                    with self.assertRaises(ProcessorError) as raised:
+                        _parse_recorded_receipt_body(invalid_body)
+                    self.assertEqual(raised.exception.code, "processor_cleanup_receipt_invalid")
+
+            tampered_bindings = {
+                "canonical_main_sha": "0" * 40,
+                "batch_receipt_blob_sha": "0" * 40,
+                "batch_receipt_sha256": "0" * 64,
+                "batch_receipt_bytes_sha256": "0" * 64,
+                "queue_snapshot_sha256": "0" * 64,
+                "source_comment_count": receipt["source_comment_count"] + 1,
+                "admitted_record_count": receipt["admitted_record_count"] + 1,
+            }
+            for field, value in tampered_bindings.items():
+                with self.subTest(tampered_binding=field):
+                    tampered = copy.deepcopy(receipt)
+                    tampered[field] = value
+                    self.assertFalse(_receipt_matches_authority(tampered, config))
+
+    def test_compact_publication_size_gate_roundtrips_and_fails_before_publisher(self):
+        with tempfile.TemporaryDirectory(prefix="ledger-cleanup-compact-publication-") as raw:
+            root = Path(raw)
+            body, _ = self.fixture_cleanup_tree(
+                root,
+                batch_id="batch-cleanup-compact-publication-a005",
+            )
+
+            def fetcher(comment_id, _root):
+                return {
+                    "id": comment_id,
+                    "user": {"id": 7001, "l" + "ogin": "fixture-author"},
+                    "author_association": "OWNER",
+                    "body": body,
+                    "created_at": "2026-07-29T10:00:00Z",
+                    "updated_at": "2026-07-29T10:00:00Z",
+                }
+
+            receipt = prepare_cleanup_receipt(
+                self.cleanup_config(
+                    root,
+                    "batch-cleanup-compact-publication-a005",
+                    receipt_status="absent",
+                ),
+                fetcher=fetcher,
+                authority_reader=self.authority_reader,
+            )
+            scaled = copy.deepcopy(receipt)
+            scaled["source_comment_count"] = 806
+            scaled["admitted_record_count"] = 120
+            intended_bytes = (
+                RECORDED_MARKER.encode("utf-8")
+                + b"\n"
+                + canonical_json_bytes(scaled)
+            )
+            intended_body = intended_bytes.decode("utf-8")
+            self.assertTrue(intended_bytes.startswith(RECORDED_MARKER.encode("utf-8")))
+            self.assertEqual(_parse_recorded_receipt_body(intended_body), scaled)
+            self.assertLess(len(intended_body), RECORDED_COMMENT_MAX_CHARS)
+            self.assertLess(len(intended_bytes), RECORDED_COMMENT_MAX_CHARS)
+
+            calls = []
+
+            def publisher(value):
+                calls.append(value)
+                return 991
+
+            def readback(locator):
+                return {
+                    "id": locator,
+                    "body": calls[0],
+                    "issue_url": RECEIPT_ISSUE_ENDPOINT,
+                }
+
+            published = publish_cleanup_receipt(
+                scaled,
+                activation_mode="reviewed-live",
+                operator_intent="reviewed",
+                publisher=publisher,
+                readback=readback,
+                comments_reader=lambda: [readback(991)],
+                authority_verifier=lambda value: value == scaled,
+            )
+            self.assertEqual(published["status"], "published")
+            self.assertEqual(calls, [intended_body])
+
+            oversized_cases = {
+                "characters": "a" * (RECORDED_COMMENT_MAX_CHARS + 100),
+                "utf8_bytes": "é" * 40000,
+            }
+            for label, oversized_batch_id in oversized_cases.items():
+                with self.subTest(oversized=label):
+                    oversized = copy.deepcopy(scaled)
+                    oversized["batch_id"] = oversized_batch_id
+                    before_calls = len(calls)
+                    with self.assertRaises(ProcessorError) as raised:
+                        publish_cleanup_receipt(
+                            oversized,
+                            activation_mode="reviewed-live",
+                            operator_intent="reviewed",
+                            publisher=publisher,
+                        )
+                    self.assertEqual(
+                        raised.exception.code,
+                        "processor_cleanup_receipt_too_large",
+                    )
+                    self.assertEqual(len(calls), before_calls)
 
     def test_cleanup_reads_immutable_objects_when_worktree_is_hostile(self):
         with tempfile.TemporaryDirectory(prefix="ledger-cleanup-object-test-") as raw:

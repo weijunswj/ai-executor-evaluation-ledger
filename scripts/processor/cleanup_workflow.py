@@ -50,6 +50,7 @@ RECEIPT_VALIDATOR = jsonschema.Draft202012Validator(
     format_checker=jsonschema.FormatChecker(),
 )
 RECORDED_MARKER = "<!-- ledger-recorded:v1 -->"
+RECORDED_COMMENT_MAX_CHARS = 65536
 RECEIPT_ISSUE_ENDPOINT = "".join(
     (
         "https://api.",
@@ -499,6 +500,31 @@ def _parse_recorded_receipt_body(body: Any) -> Optional[dict[str, Any]]:
     return value
 
 
+def _batch_receipt_blob_sha(
+    root: Path,
+    canonical_main_sha: str,
+    batch_id: str,
+) -> str:
+    receipt_path = f"ledger/receipts/batches/{batch_id}.json"
+    blob_sha = _git_output(
+        root,
+        "rev-parse",
+        "--verify",
+        f"{canonical_main_sha}:{receipt_path}",
+    ).decode("ascii").strip()
+    if not valid_git_sha(blob_sha):
+        raise _safe_failure("processor_cleanup_batch_unavailable")
+    object_type = _git_output(
+        root,
+        "cat-file",
+        "-t",
+        blob_sha,
+    ).decode("ascii").strip()
+    if object_type != "blob":
+        raise _safe_failure("processor_cleanup_batch_unavailable")
+    return blob_sha
+
+
 def _receipt_matches_authority(value: Mapping[str, Any], config: CleanupConfig) -> bool:
     expected = {
         "receipt_type": "cleanup",
@@ -512,7 +538,37 @@ def _receipt_matches_authority(value: Mapping[str, Any], config: CleanupConfig) 
         "receipt_issue_number": config.receipt_issue_number,
         "source_retention_verified": True,
     }
-    return all(value.get(field) == wanted for field, wanted in expected.items())
+    if not all(value.get(field) == wanted for field, wanted in expected.items()):
+        return False
+    try:
+        batch, batch_bytes, batch_hash = _load_batch(
+            config.repository_root,
+            config.canonical_main_sha,
+            config.batch_id,
+        )
+        validate_batch_receipt_object(
+            config.repository_root,
+            batch,
+            authority_sha=config.canonical_main_sha,
+        )
+        expected_bindings = {
+            "batch_receipt_blob_sha": _batch_receipt_blob_sha(
+                config.repository_root,
+                config.canonical_main_sha,
+                config.batch_id,
+            ),
+            "batch_receipt_sha256": batch_hash,
+            "batch_receipt_bytes_sha256": sha256_bytes(batch_bytes),
+            "queue_snapshot_sha256": batch["queue_snapshot_sha256"],
+            "source_comment_count": len(batch["source_comment_ids"]),
+            "admitted_record_count": len(batch["admitted_run_ids"]),
+        }
+    except (OSError, ProcessorError, ReceiptValidationError, TypeError, ValueError):
+        return False
+    return all(
+        value.get(field) == wanted
+        for field, wanted in expected_bindings.items()
+    )
 
 
 def _validate_receipt_comment_evidence(
@@ -730,7 +786,11 @@ def _load_batch(root: Path, commit_sha: str, batch_id: str) -> tuple[Dict[str, A
         batch = json.loads(raw.decode("utf-8"), parse_constant=_reject_nonfinite_constant)
     except (UnicodeDecodeError, ValueError):
         raise _safe_failure("processor_cleanup_batch_unavailable")
-    if not isinstance(batch, dict) or batch.get("receipt_type") != "batch":
+    if (
+        not isinstance(batch, dict)
+        or batch.get("receipt_type") != "batch"
+        or batch.get("batch_id") != batch_id
+    ):
         raise _safe_failure("processor_cleanup_batch_unavailable")
     if any(RECEIPT_VALIDATOR.iter_errors(batch)):
         raise _safe_failure("processor_cleanup_batch_unavailable")
@@ -968,6 +1028,11 @@ def prepare_cleanup_receipt(
         )
     except ReceiptValidationError:
         raise _safe_failure("processor_cleanup_batch_unavailable")
+    batch_receipt_blob_sha = _batch_receipt_blob_sha(
+        config.repository_root,
+        config.canonical_main_sha,
+        config.batch_id,
+    )
     _verify_raw_head_receipt_seal(
         config.repository_root,
         config.expected_head_sha,
@@ -1028,11 +1093,10 @@ def prepare_cleanup_receipt(
         "source_issue_number": config.source_issue_number,
         "receipt_issue_number": config.receipt_issue_number,
         "canonical_hashes": current_hashes,
-        "canonical_record_hashes": record_hashes,
-        "canonical_record_proofs": record_proofs,
-        "source_comment_ids": list(batch.get("source_comment_ids", [])),
-        "source_body_sha256": dict(batch.get("source_body_sha256", {})),
-        "retained_comment_ids": retained_ids,
+        "batch_receipt_blob_sha": batch_receipt_blob_sha,
+        "queue_snapshot_sha256": batch["queue_snapshot_sha256"],
+        "source_comment_count": len(batch["source_comment_ids"]),
+        "admitted_record_count": len(batch["admitted_run_ids"]),
         "source_retention_verified": retention_verified,
         "recorded_receipt_status": config.recorded_receipt_status,
         "branch_cleanup_eligible": branch_eligible,
@@ -1065,12 +1129,24 @@ def publish_cleanup_receipt(
         raise _safe_failure("processor_activation_denied")
     if receipt.get("recorded_receipt_status") != "absent":
         raise _safe_failure("processor_activation_denied")
+    intended_body_bytes = (
+        RECORDED_MARKER.encode("utf-8")
+        + b"\n"
+        + canonical_json_bytes(dict(receipt))
+    )
+    intended_body = intended_body_bytes.decode("utf-8")
+    intended_body_chars = len(intended_body)
+    intended_body_utf8_bytes = len(intended_body_bytes)
+    if (
+        intended_body_chars > RECORDED_COMMENT_MAX_CHARS
+        or intended_body_utf8_bytes > RECORDED_COMMENT_MAX_CHARS
+    ):
+        raise _safe_failure("processor_cleanup_receipt_too_large")
     if publisher is None:
         return {"status": "PENDING_OPERATOR_PUBLICATION", "platform_limitation_code": "web_orchestrator_publication_required"}
     if readback is None or comments_reader is None or authority_verifier is None:
         return {"status": "PENDING_OPERATOR_PUBLICATION", "platform_limitation_code": "publication_readback_required"}
 
-    intended_body = RECORDED_MARKER + "\n" + canonical_json_bytes(dict(receipt)).decode("utf-8")
     try:
         locator = publisher(intended_body)
         if not isinstance(locator, int) or isinstance(locator, bool) or locator <= 0:

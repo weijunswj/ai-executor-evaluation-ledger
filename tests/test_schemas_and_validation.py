@@ -117,18 +117,6 @@ class TestSchemasAndValidation(unittest.TestCase):
                 "scorecard_md": digest,
                 "model_recommendation_json": digest,
             },
-            "canonical_record_hashes": {"run-schema-a005": digest},
-            "canonical_record_proofs": {
-                "run-schema-a005": {
-                    "provider": "OpenAI",
-                    "model": "GPT-5.6 Sol",
-                    "outcome": "accepted",
-                    "weighted_score_5": 4.6,
-                }
-            },
-            "source_comment_ids": [1],
-            "source_body_sha256": {"1": digest},
-            "retained_comment_ids": [1],
             "source_retention_verified": False,
             "recorded_receipt_status": "unverified",
             "branch_cleanup_eligible": False,
@@ -137,6 +125,10 @@ class TestSchemasAndValidation(unittest.TestCase):
             "platform_limitation_code": "web_orchestrator_publication_required",
             "batch_receipt_sha256": digest,
             "batch_receipt_bytes_sha256": digest,
+            "batch_receipt_blob_sha": "b" * 40,
+            "queue_snapshot_sha256": digest,
+            "source_comment_count": 1,
+            "admitted_record_count": 1,
         }
 
     def test_all_schema_documents_are_valid_draft_2020_12(self):
@@ -167,6 +159,26 @@ class TestSchemasAndValidation(unittest.TestCase):
         variant_leak["terminal_outcomes"] = {}
         with self.assertRaises(jsonschema.ValidationError):
             self.validate("receipt.schema.json", variant_leak)
+        removed_cleanup_fields = {
+            "canonical_record_hashes": {"run-schema-a005": "a" * 64},
+            "canonical_record_proofs": {
+                "run-schema-a005": {
+                    "provider": "OpenAI",
+                    "model": "GPT-5.6 Sol",
+                    "outcome": "accepted",
+                    "weighted_score_5": 4.6,
+                }
+            },
+            "source_comment_ids": [1],
+            "source_body_sha256": {"1": "a" * 64},
+            "retained_comment_ids": [1],
+        }
+        for field, value in removed_cleanup_fields.items():
+            with self.subTest(removed_cleanup_field=field):
+                invalid_cleanup = copy.deepcopy(cleanup)
+                invalid_cleanup[field] = value
+                with self.assertRaises(jsonschema.ValidationError):
+                    self.validate("receipt.schema.json", invalid_cleanup)
 
     def test_invalid_hash_sha_timestamp_and_nested_field_fail_closed(self):
         batch = self.valid_batch()
