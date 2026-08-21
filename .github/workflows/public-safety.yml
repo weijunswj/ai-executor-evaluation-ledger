@@ -275,12 +275,18 @@ jobs:
               printf '%s\n' 'Canonical base receipt topology is invalid.' >&2
               exit 1
             fi
-            validation_worktree=$(mktemp -d)
-            cleanup_canonical_base_worktree() {
-              git worktree remove --force "$validation_worktree" >/dev/null 2>&1 || true
+            validation_workspace=$(mktemp -d)
+            validation_root="$validation_workspace/repository"
+            validation_source=$(git rev-parse --show-toplevel)
+            cleanup_canonical_base_workspace() {
+              rm -rf -- "$validation_workspace" >/dev/null 2>&1 || true
             }
-            trap cleanup_canonical_base_worktree EXIT
-            if ! git worktree add --detach "$validation_worktree" "$BASE_SHA" >/dev/null; then
+            trap cleanup_canonical_base_workspace EXIT
+            if ! git clone --no-local --no-hardlinks --no-checkout "$validation_source" "$validation_root" >/dev/null 2>&1; then
+              printf '%s\n' 'Canonical base receipt validation workspace unavailable.' >&2
+              exit 1
+            fi
+            if ! git -C "$validation_root" checkout --detach "$BASE_SHA" >/dev/null 2>&1; then
               printf '%s\n' 'Canonical base receipt validation workspace unavailable.' >&2
               exit 1
             fi
@@ -312,13 +318,13 @@ jobs:
               exit 1
             fi
             (
-              cd "$validation_worktree"
+              cd "$validation_root"
               args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$BASE_SHA" --canonical-base-sha "$BASE_PARENT_SHA" --validation-level source-replay)
               "${args[@]}"
             )
             else
               (
-                cd "$validation_worktree"
+                cd "$validation_root"
                 args=(python scripts/validate_receipts.py --mode canonical-main --authority-sha "$BASE_SHA" --validation-level source-replay)
                 "${args[@]}"
               )

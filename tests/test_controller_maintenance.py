@@ -328,7 +328,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 historical_terminal_route = (
                     'else\n'
                     '              (\n'
-                    '                cd "$validation_worktree"\n'
+                    '                cd "$validation_root"\n'
                     '                args=(python scripts/validate_receipts.py --mode canonical-main '
                     '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
                     '                "${args[@]}"\n'
@@ -338,18 +338,27 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 self.assertIn(historical_terminal_route, block)
                 self.assertIn(canonical_base_route, block)
                 self.assertIn(
-                    'validation_worktree=$(mktemp -d)\n'
-                    '            cleanup_canonical_base_worktree() {\n'
-                    '              git worktree remove --force "$validation_worktree" >/dev/null 2>&1 || true\n'
+                    'validation_workspace=$(mktemp -d)\n'
+                    '            validation_root="$validation_workspace/repository"\n'
+                    '            validation_source=$(git rev-parse --show-toplevel)\n'
+                    '            cleanup_canonical_base_workspace() {\n'
+                    '              rm -rf -- "$validation_workspace" >/dev/null 2>&1 || true\n'
                     '            }\n'
-                    '            trap cleanup_canonical_base_worktree EXIT\n'
-                    '            if ! git worktree add --detach "$validation_worktree" "$BASE_SHA" >/dev/null; then\n',
+                    '            trap cleanup_canonical_base_workspace EXIT\n'
+                    '            if ! git clone --no-local --no-hardlinks --no-checkout "$validation_source" "$validation_root" >/dev/null 2>&1; then\n'
+                    '              printf \'%s\\n\' \'Canonical base receipt validation workspace unavailable.\' >&2\n'
+                    '              exit 1\n'
+                    '            fi\n'
+                    '            if ! git -C "$validation_root" checkout --detach "$BASE_SHA" >/dev/null 2>&1; then\n'
+                    '              printf \'%s\\n\' \'Canonical base receipt validation workspace unavailable.\' >&2\n'
+                    '              exit 1\n'
+                    '            fi\n',
                     block,
                 )
-                self.assertEqual(2, block.count('cd "$validation_worktree"'))
+                self.assertEqual(2, block.count('cd "$validation_root"'))
                 self.assertIn(
                     '            (\n'
-                    '              cd "$validation_worktree"\n'
+                    '              cd "$validation_root"\n'
                     f'              {canonical_base_route}\n'
                     '              "${args[@]}"\n'
                     '            )',
@@ -1794,7 +1803,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
             historical_route = (
                 'else\n'
                 '              (\n'
-                '                cd "$validation_worktree"\n'
+                '                cd "$validation_root"\n'
                 '                args=(python scripts/validate_receipts.py --mode canonical-main '
                 '--authority-sha "$BASE_SHA" --validation-level source-replay)\n'
                 '                "${args[@]}"\n'
