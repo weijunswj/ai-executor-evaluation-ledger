@@ -165,6 +165,25 @@ def _git_output(repository_root: Path, *args: str) -> bytes:
     return result.stdout
 
 
+def _is_commit_ancestor(
+    repository_root: Path,
+    ancestor_sha: str,
+    descendant_sha: str,
+) -> bool:
+    """Return whether Git proves the first commit is an ancestor of the second."""
+
+    try:
+        result = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", ancestor_sha, descendant_sha],
+            cwd=repository_root,
+            capture_output=True,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0
+
+
 def _verify_local_canonical_checkout(repository_root: Path, canonical_main_sha: str) -> None:
     _git_output(repository_root, "cat-file", "-e", f"{canonical_main_sha}^{{commit}}")
     head = _git_output(repository_root, "rev-parse", "--verify", "HEAD").decode("ascii").strip()
@@ -573,6 +592,12 @@ def _receipt_matches_authority(value: Mapping[str, Any], config: CleanupConfig) 
     }
     if not all(value.get(field) == wanted for field, wanted in expected.items()):
         return False
+    if not _is_commit_ancestor(
+        config.repository_root,
+        config.canonical_merge_sha,
+        config.canonical_main_sha,
+    ):
+        return False
     try:
         batch, batch_bytes, batch_hash = _validate_canonical_batch(
             config.repository_root,
@@ -766,7 +791,16 @@ def _readback_live_authority(config: CleanupConfig) -> Dict[str, Any]:
         raise _safe_failure("processor_cleanup_authority_unverified")
     return {
         "pr_state": state,
-        "merge_state": "merged" if merged and merge_sha == main_sha else "unmerged",
+        "merge_state": (
+            "merged"
+            if (
+                state == "closed"
+                and merged
+                and valid_git_sha(merge_sha)
+                and _is_commit_ancestor(config.repository_root, merge_sha, main_sha)
+            )
+            else "unmerged"
+        ),
         "checks_state": check_state,
         "review_state": review_state,
         "expected_head_sha": head_sha,
@@ -1087,7 +1121,11 @@ def prepare_cleanup_receipt(
     canonical_verified = (
         config.pr_state == "closed"
         and config.merge_state == "merged"
-        and config.canonical_merge_sha == config.canonical_main_sha
+        and _is_commit_ancestor(
+            config.repository_root,
+            config.canonical_merge_sha,
+            config.canonical_main_sha,
+        )
         and current_hashes == batch.get("canonical_hashes")
         and record_hashes == batch_record_hashes
         and record_proofs == batch.get("accepted_record_proofs", {})
