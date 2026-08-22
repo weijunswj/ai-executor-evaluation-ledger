@@ -4,7 +4,7 @@ import json
 import unittest
 
 from scripts.processor import router
-from scripts.processor.source_watch import stale_route_report, validate_metadata
+from scripts.processor.source_watch import SourceWatchPlanner, stale_route_report, validate_metadata
 
 
 def _legacy_router() -> dict:
@@ -164,6 +164,8 @@ class RouterCutoverTests(unittest.TestCase):
             after_router=before,
             target_generation=0,
             target_issue_number=142,
+            posted_body="payload",
+            readback={"issue_number": 142, "id": 873, "body": "payload"},
         )
         self.assertEqual(same["status"], "queued")
         committed = _committed_router()
@@ -175,6 +177,9 @@ class RouterCutoverTests(unittest.TestCase):
             after_router=committed,
             target_generation=0,
             target_issue_number=142,
+            posted_body="payload",
+            readback={"issue_number": 142, "id": 875, "body": "payload"},
+            cutover_anchor=_anchor(),
         )
         self.assertEqual(stale["status"], "stale_route")
         self.assertTrue(stale["retry_allowed"])
@@ -187,12 +192,14 @@ class RouterCutoverTests(unittest.TestCase):
             after_router=_successor_router(),
             target_generation=0,
             target_issue_number=142,
+            posted_body="payload",
+            readback={"issue_number": 142, "id": 875, "body": "payload"},
+            cutover_anchor=_anchor(),
         )
         self.assertEqual(successor_stale["status"], "stale_route")
         for kwargs, expected in (
             ({"posted": False, "readback_verified": False, "router_reread_available": True}, "post_failed"),
             ({"posted": True, "readback_verified": False, "router_reread_available": True}, "readback_unverified"),
-            ({"posted": True, "readback_verified": True, "router_reread_available": False}, "router_reread_unavailable"),
         ):
             with self.subTest(expected=expected):
                 result = router.post_protocol_decision(
@@ -204,7 +211,65 @@ class RouterCutoverTests(unittest.TestCase):
                 )
                 self.assertEqual(result["status"], expected)
                 self.assertFalse(result["canonical"])
+        result = router.post_protocol_decision(
+            posted=True,
+            readback_verified=True,
+            router_reread_available=False,
+            before_router=before,
+            after_router=None,
+            target_generation=0,
+            target_issue_number=142,
+            posted_body="payload",
+            readback={"issue_number": 142, "id": 875, "body": "payload"},
+        )
+        self.assertEqual(result["status"], "router_reread_unavailable")
 
+    def test_stale_retry_requires_readback_identity_and_exact_boundary(self):
+        before = _legacy_router()
+        after = _committed_router()
+
+        def decide(comment_id, *, readback="__default__", anchor=_anchor(), body="payload", after_router=after, reread=True):
+            return router.post_protocol_decision(
+                posted=True,
+                readback_verified=True,
+                router_reread_available=reread,
+                before_router=before,
+                after_router=after_router if reread else None,
+                target_generation=0,
+                target_issue_number=142,
+                posted_body=body,
+                readback=None if readback == "__missing__" else (readback if readback != "__default__" else {"issue_number": 142, "id": comment_id, "body": body}),
+                cutover_anchor=anchor,
+            )
+
+        for comment_id in (873, 874):
+            with self.subTest(comment_id=comment_id):
+                result = decide(comment_id)
+                self.assertFalse(result["retry_allowed"])
+                self.assertEqual(result["status"], "legacy_authority_input")
+        result = decide(875)
+        self.assertEqual(result["status"], "stale_route")
+        self.assertTrue(result["retry_allowed"])
+        wrong_anchor = _anchor()
+        wrong_anchor["final_watermark"] += 1
+        self.assertFalse(decide(875, anchor=wrong_anchor)["retry_allowed"])
+        self.assertFalse(decide(875, anchor=None)["retry_allowed"])
+        self.assertFalse(decide(875, readback="__missing__")["retry_allowed"])
+        self.assertFalse(decide(875, reread=False)["retry_allowed"])
+        bad_after = _successor_router()
+        bad_after["router_revision"] = 1
+        self.assertFalse(decide(875, after_router=bad_after)["retry_allowed"])
+        self.assertFalse(
+            decide(875, readback={"issue_number": 142, "id": 875, "body": "different"})["retry_allowed"]
+        )
+        self.assertFalse(
+            decide(875, readback={"issue_number": 1780, "id": 875, "body": "payload"})["retry_allowed"]
+        )
+
+    def test_router_marker_rejects_schema_valid_cutover_anchor(self):
+        body = router.MARKER + "\n" + json.dumps(_anchor(), sort_keys=True, separators=(",", ":")) + "\n"
+        with self.assertRaises(router.RouterValidationError):
+            router.parse_router_body(body)
     def test_stale_route_is_terminal_auditable_input_not_pending(self):
         classification = router.classify_legacy_comment(
             issue_number=142,
@@ -243,11 +308,9 @@ class RouterCutoverTests(unittest.TestCase):
             "stale_route",
         )
         report = stale_route_report(
-            router_revision=3,
-            source_generation=0,
-            source_issue_number=142,
-            source_watermark=874,
-            comment_id=875,
+            router_authority=_committed_router(),
+            cutover_anchor=_anchor(),
+            comment={"issue_number": 142, "id": 875},
         )
         self.assertEqual(report["classification"], "stale_route")
         self.assertFalse(report["queued"])
@@ -315,6 +378,9 @@ class RouterCutoverTests(unittest.TestCase):
                     after_router=after,
                     target_generation=0,
                     target_issue_number=142,
+                    posted_body="payload",
+                    readback={"issue_number": 142, "id": 875, "body": "payload"},
+                    cutover_anchor=_anchor() if after is not prepared else None,
                 )
                 self.assertEqual(result["status"], expected)
                 self.assertEqual(result["retry_allowed"], retry)
@@ -328,6 +394,46 @@ class RouterCutoverTests(unittest.TestCase):
             "stale_route",
         )
 
+    def test_source_watch_production_surfaces_terminal_stale_route(self):
+        body = router.MARKER + "\n" + json.dumps(_successor_router(), sort_keys=True, separators=(",", ":")) + "\n"
+        result = SourceWatchPlanner().plan_source_watch(
+            router_body=body,
+            source_comments=[{"issue_number": 142, "id": 875}],
+            router_revision=4,
+            source_generation=1,
+            source_issue_number=1780,
+            source_watermark=100,
+            source_snapshot_sha256="c" * 64,
+            cutover_anchor=_anchor(),
+        )
+        self.assertEqual(result["status"], "STALE_ROUTE_TERMINAL")
+        self.assertFalse(result["queued"])
+        self.assertFalse(result["pending"])
+        self.assertFalse(result["recorded"])
+        self.assertTrue(result["auditable"])
+        eligible = SourceWatchPlanner().plan_source_watch(
+            router_body=body,
+            source_comments=[{"issue_number": 142, "id": 874}],
+            router_revision=4,
+            source_generation=1,
+            source_issue_number=1780,
+            source_watermark=100,
+            source_snapshot_sha256="c" * 64,
+            cutover_anchor=_anchor(),
+        )
+        self.assertEqual(eligible["status"], "SOURCE_WATCH_VALIDATED")
+        self.assertEqual(eligible["legacy_authority_inputs"], [874])
+        with self.assertRaises(ValueError):
+            SourceWatchPlanner().plan_source_watch(
+                router_body=body,
+                source_comments=[{"issue_number": 999, "id": 875}],
+                router_revision=4,
+                source_generation=1,
+                source_issue_number=1780,
+                source_watermark=100,
+                source_snapshot_sha256="c" * 64,
+                cutover_anchor=_anchor(),
+            )
     def test_source_watch_router_metadata_binds_generation_and_target(self):
         metadata = {
             "schema_version": 1,

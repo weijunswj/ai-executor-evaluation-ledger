@@ -42,6 +42,11 @@ MANIFEST_PATHS = {
     "reasoning-scrub-receipt.json": "reasoning_scrub_receipt",
     "unicode-identity-history-activation.json": "unicode_identity_history_activation",
 }
+HISTORICAL_MANIFEST_PATHS = {
+    name: manifest_type
+    for name, manifest_type in MANIFEST_PATHS.items()
+    if name != "historical-direct-controller-bypass-reconciliation.json"
+}
 G3_MANIFESTS = {
     "base-model-v2.json",
     "correction-migration-manifest.json",
@@ -690,6 +695,7 @@ def expected_manifests_for_bytes(
     *,
     base_raw: Optional[bytes] = None,
     dispositions_raw: Optional[bytes] = None,
+    manifest_names: Optional[set[str]] = None,
 ) -> dict[str, dict[str, Any]]:
     if base_raw is None:
         base_raw = _git_object(root, SOURCE_BASE_SHA, "evaluations.jsonl")
@@ -803,8 +809,12 @@ def expected_manifests_for_bytes(
         "removed_correction_ids": [removed_subject],
         "candidate_record_count": len(final_rows),
     }
-    return {"base-model-v2.json": base_manifest, "correction-migration-manifest.json": correction_manifest, "historical-direct-controller-bypass-reconciliation.json": _historical_bypass_manifest(), "reasoning-scrub-receipt.json": reasoning_manifest, **_legacy_manifests(root)}
-
+    manifests = {"base-model-v2.json": base_manifest, "correction-migration-manifest.json": correction_manifest, "historical-direct-controller-bypass-reconciliation.json": _historical_bypass_manifest(), "reasoning-scrub-receipt.json": reasoning_manifest, **_legacy_manifests(root)}
+    if manifest_names is None:
+        return manifests
+    if not set(manifest_names).issubset(manifests):
+        raise ManifestValidationError("manifest_universe_invalid")
+    return {name: manifests[name] for name in sorted(manifest_names)}
 
 WITHDRAWN_IDS, REDACTION_IDS, SCORE_VALUES, REPLACEMENTS, REASONING_ONLY_REMOVED = _public_bindings(ROOT)
 

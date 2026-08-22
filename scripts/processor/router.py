@@ -92,17 +92,20 @@ def _load_schema() -> dict[str, Any]:
         raise RouterValidationError("routing_schema_unavailable") from error
 
 
-def _schema_validate(value: Mapping[str, Any]) -> None:
+def _schema_validate(value: Mapping[str, Any], *, definition: str) -> None:
     schema = _load_schema()
+    typed_schema = dict(schema)
+    typed_schema.pop("oneOf", None)
+    typed_schema["$ref"] = f"#/$defs/{definition}"
     try:
-        jsonschema.Draft202012Validator.check_schema(schema)
-        jsonschema.Draft202012Validator(schema).validate(dict(value))
+        jsonschema.Draft202012Validator.check_schema(typed_schema)
+        jsonschema.Draft202012Validator(typed_schema).validate(dict(value))
     except (jsonschema.SchemaError, jsonschema.ValidationError) as error:
         raise RouterValidationError("router_schema_invalid") from error
 
 
 def _validate_router_semantics(router: Mapping[str, Any]) -> dict[str, Any]:
-    _schema_validate(router)
+    _schema_validate(router, definition="router")
     value = dict(router)
     state = value["cutover_state"]
     legacy_generation = value["legacy_generation"]
@@ -181,6 +184,7 @@ def validate_router(router: Mapping[str, Any]) -> dict[str, Any]:
     """Validate the closed schema plus cross-field authority invariants."""
 
     _require(isinstance(router, Mapping), "router_not_object")
+    _require(router.get("record_type") == "ledger_router", "router_record_type_invalid")
     return _validate_router_semantics(router)
 
 
@@ -264,7 +268,6 @@ def validate_source_segment_binding(
     _require(router_revision == value["router_revision"], "router_revision_binding_mismatch")
     _require(source_generation == value["active_generation"], "source_generation_binding_mismatch")
     _require(source_issue_number == value["active_issue_number"], "source_issue_binding_mismatch")
-    _require(source_issue_number == value["active_issue_number"], "source_issue_binding_mismatch")
     _require(_is_int(source_watermark), "source_watermark_invalid")
     _require(_is_sha256(source_snapshot_sha256), "source_snapshot_binding_invalid")
 
@@ -274,7 +277,7 @@ def validate_cutover_anchor(anchor: Mapping[str, Any]) -> dict[str, Any]:
 
     _require(isinstance(anchor, Mapping), "cutover_anchor_not_object")
     _require(anchor.get("manifest_type") == "ledger_router_cutover_anchor", "cutover_anchor_type_invalid")
-    _schema_validate(anchor)
+    _schema_validate(anchor, definition="cutoverAnchor")
     _require(anchor["successor_generation"] == anchor["legacy_generation"] + 1, "cutover_anchor_generation_invalid")
     _require(anchor["successor_issue_number"] != anchor["legacy_issue_number"], "cutover_anchor_issue_reused")
     _require(anchor["router_revision"] > 0, "cutover_anchor_revision_invalid")
@@ -288,7 +291,10 @@ def validate_cutover_anchor_binding(router: Mapping[str, Any], anchor: Mapping[s
     value = validate_router(router)
     bound = validate_cutover_anchor(anchor)
     _require(value["cutover_state"] in COMMITTED_STATES, "router_not_committed")
-    _require(bound["router_revision"] == value["router_revision"], "anchor_revision_mismatch")
+    if value["cutover_state"] == "CUTOVER_COMMITTED":
+        _require(bound["router_revision"] == value["router_revision"], "anchor_revision_mismatch")
+    else:
+        _require(bound["router_revision"] < value["router_revision"], "anchor_revision_mismatch")
     _require(bound["legacy_generation"] == value["legacy_generation"], "anchor_legacy_generation_mismatch")
     _require(bound["legacy_issue_number"] == value["legacy_issue_number"], "anchor_legacy_issue_mismatch")
     _require(bound["final_watermark"] == value["final_watermark"], "anchor_watermark_mismatch")
@@ -296,6 +302,97 @@ def validate_cutover_anchor_binding(router: Mapping[str, Any], anchor: Mapping[s
     _require(bound["successor_issue_number"] == value["successor_issue_number"], "anchor_successor_issue_mismatch")
     _require(value["cutover_anchor_sha256"] == cutover_anchor_sha256(bound), "anchor_hash_binding_mismatch")
 
+def validate_legacy_drain_binding(
+    router: Mapping[str, Any],
+    anchor: Mapping[str, Any],
+    *,
+    router_revision: int,
+    source_generation: int,
+    source_issue_number: int,
+    source_watermark: int,
+    source_snapshot_sha256: str,
+) -> None:
+    """Bind a retired generation-0 drain to the committed immutable boundary."""
+
+    value = validate_router(router)
+    _require(value["cutover_state"] in COMMITTED_STATES, "router_not_committed")
+    validate_cutover_anchor_binding(value, anchor)
+    _require(router_revision == value["router_revision"], "router_revision_binding_mismatch")
+    _require(source_generation == value["legacy_generation"] == 0, "legacy_generation_binding_mismatch")
+    _require(source_issue_number == value["legacy_issue_number"], "legacy_issue_binding_mismatch")
+    _require(source_watermark == value["final_watermark"], "legacy_watermark_binding_mismatch")
+    _require(
+        source_snapshot_sha256 == anchor["frozen_legacy_source_snapshot_sha256"],
+        "legacy_snapshot_binding_mismatch",
+    )
+
+
+SEALED_SOURCE_AUTHORITY_KEYS = frozenset(
+    {
+        "authority_mode",
+        "router_issue_number",
+        "router_revision",
+        "router_body_sha256",
+        "cutover_state",
+        "cutover_anchor_sha256",
+        "router_record",
+        "cutover_anchor",
+        "source_generation",
+        "source_issue_number",
+        "source_comment_watermark",
+        "source_snapshot_sha256",
+    }
+)
+
+
+def validate_sealed_source_authority(authority: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate the exact observed authority sealed into a v3 receipt."""
+
+    _require(isinstance(authority, Mapping), "sealed_authority_not_object")
+    _require(set(authority) == set(SEALED_SOURCE_AUTHORITY_KEYS), "sealed_authority_keys_invalid")
+    _require(authority.get("authority_mode") == "router_v1", "sealed_authority_mode_invalid")
+    _require(authority.get("router_issue_number") == 142, "sealed_router_issue_invalid")
+    record = authority.get("router_record")
+    _require(isinstance(record, Mapping), "sealed_router_record_invalid")
+    router_value = validate_router(record)
+    _require(authority["router_revision"] == router_value["router_revision"], "sealed_revision_mismatch")
+    _require(authority["router_body_sha256"] == router_body_sha256(router_value), "sealed_router_hash_mismatch")
+    _require(authority["cutover_state"] == router_value["cutover_state"], "sealed_state_mismatch")
+    _require(authority["cutover_anchor_sha256"] == router_value["cutover_anchor_sha256"], "sealed_anchor_hash_mismatch")
+    _require(_is_sha256(authority["router_body_sha256"]), "sealed_router_hash_invalid")
+    if authority["cutover_anchor_sha256"] is not None:
+        _require(_is_sha256(authority["cutover_anchor_sha256"]), "sealed_anchor_hash_invalid")
+    generation = authority.get("source_generation")
+    source_issue = authority.get("source_issue_number")
+    watermark = authority.get("source_comment_watermark")
+    snapshot = authority.get("source_snapshot_sha256")
+    _require(_is_int(generation), "sealed_generation_invalid")
+    _require(_is_int(source_issue, positive=True), "sealed_source_issue_invalid")
+    _require(_is_int(watermark), "sealed_watermark_invalid")
+    _require(_is_sha256(snapshot), "sealed_snapshot_invalid")
+    anchor = authority.get("cutover_anchor")
+    if generation == 0:
+        _require(isinstance(anchor, Mapping), "sealed_anchor_missing")
+        validate_legacy_drain_binding(
+            router_value,
+            anchor,
+            router_revision=authority["router_revision"],
+            source_generation=generation,
+            source_issue_number=source_issue,
+            source_watermark=watermark,
+            source_snapshot_sha256=snapshot,
+        )
+    else:
+        _require(anchor is None, "sealed_successor_anchor_unexpected")
+        validate_source_segment_binding(
+            router_value,
+            router_revision=authority["router_revision"],
+            source_generation=generation,
+            source_issue_number=source_issue,
+            source_watermark=watermark,
+            source_snapshot_sha256=snapshot,
+        )
+    return dict(authority)
 
 def classify_legacy_comment(
     *,
@@ -358,19 +455,43 @@ def post_protocol_decision(
     after_router: Optional[Mapping[str, Any]],
     target_generation: int,
     target_issue_number: int,
+    posted_body: Optional[str] = None,
+    created_comment: Optional[Mapping[str, Any]] = None,
+    readback: Optional[Mapping[str, Any]] = None,
+    cutover_anchor: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
-    """Classify a controller post without optimistic retry semantics."""
+    """Classify a controller post with mechanically proven retry eligibility."""
 
-    before = validate_router(before_router)
+    try:
+        before = validate_router(before_router)
+    except RouterValidationError:
+        return {"status": "router_invalid", "retry_allowed": False, "canonical": False}
     if not posted:
         return {"status": "post_failed", "retry_allowed": False, "canonical": False}
     if not readback_verified:
         return {"status": "readback_unverified", "retry_allowed": False, "canonical": False}
+    actual_readback = created_comment if created_comment is not None else readback
+    if not _valid_post_readback(posted_body, actual_readback):
+        return {"status": "readback_identity_unavailable", "retry_allowed": False, "canonical": False}
     if not router_reread_available or after_router is None:
         return {"status": "router_reread_unavailable", "retry_allowed": False, "canonical": False}
-    after = validate_router(after_router)
+    try:
+        after = validate_router(after_router)
+        _validate_post_router_transition(before, after)
+    except RouterValidationError:
+        return {"status": "invalid_router_transition", "retry_allowed": False, "canonical": False}
+    issue_number, comment_id = _post_readback_identity(actual_readback)
+    target_matches_before = (
+        before["cutover_state"] == "LEGACY_ACTIVE"
+        and target_generation == before["legacy_generation"]
+        and target_issue_number == before["legacy_issue_number"]
+        and target_generation == before["active_generation"]
+        and target_issue_number == before["active_issue_number"]
+        and issue_number == target_issue_number
+    )
     same_authority = (
-        before["router_revision"] == after["router_revision"]
+        target_matches_before
+        and before["router_revision"] == after["router_revision"]
         and before["active_generation"] == after["active_generation"]
         and before["active_issue_number"] == after["active_issue_number"]
         and target_generation == after["active_generation"]
@@ -378,17 +499,67 @@ def post_protocol_decision(
     )
     if same_authority:
         return {"status": "queued", "retry_allowed": False, "canonical": False}
-    stale = (
-        target_generation == before["active_generation"]
-        and target_issue_number == before["active_issue_number"]
-        and after["final_watermark"] is not None
-    )
+    if not target_matches_before:
+        return {"status": "ambiguous_authority", "retry_allowed": False, "canonical": False}
+    if after["final_watermark"] is None or after["cutover_state"] not in COMMITTED_STATES:
+        return {"status": "authority_changed", "retry_allowed": False, "canonical": False}
+    if comment_id <= after["final_watermark"]:
+        return {"status": "legacy_authority_input", "retry_allowed": False, "canonical": False}
+    if cutover_anchor is None:
+        return {"status": "stale_route_unproven", "retry_allowed": False, "canonical": False}
+    try:
+        validate_cutover_anchor_binding(after, cutover_anchor)
+    except RouterValidationError:
+        return {"status": "stale_route_unproven", "retry_allowed": False, "canonical": False}
     return {
-        "status": "stale_route" if stale else "authority_changed",
-        "retry_allowed": bool(stale),
+        "status": "stale_route",
+        "retry_allowed": True,
         "canonical": False,
-        "first_post_permanently_ineligible": bool(stale),
+        "first_post_permanently_ineligible": True,
     }
+
+
+def _post_readback_identity(readback: Mapping[str, Any]) -> tuple[int, int]:
+    issue_number = readback.get("issue_number", readback.get("issue"))
+    comment_id = readback.get("id", readback.get("comment_id"))
+    _require(_is_int(issue_number, positive=True), "readback_issue_invalid")
+    _require(_is_int(comment_id, positive=True), "readback_comment_id_invalid")
+    return issue_number, comment_id
+
+
+def _valid_post_readback(posted_body: Optional[str], readback: Optional[Mapping[str, Any]]) -> bool:
+    if not isinstance(posted_body, str) or not isinstance(readback, Mapping):
+        return False
+    try:
+        _post_readback_identity(readback)
+    except RouterValidationError:
+        return False
+    expected_hash = hashlib.sha256(posted_body.encode("utf-8")).hexdigest()
+    body = readback.get("body")
+    body_hash = readback.get("body_sha256")
+    if body is not None and (not isinstance(body, str) or body != posted_body):
+        return False
+    if body_hash is not None and (not _is_sha256(body_hash) or body_hash != expected_hash):
+        return False
+    return body == posted_body or body_hash == expected_hash
+
+
+def _validate_post_router_transition(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+    if before == after:
+        return
+    try:
+        validate_router_transition(before, after)
+        return
+    except RouterValidationError:
+        pass
+    # A controller can observe the legacy state before the lock/prepared write
+    # and the committed state after it. Allow only that bounded forward race.
+    _require(before["cutover_state"] == "LEGACY_ACTIVE", "router_state_transition_invalid")
+    _require(after["cutover_state"] in COMMITTED_STATES, "router_state_transition_invalid")
+    _require(after["router_revision"] > before["router_revision"], "router_revision_not_monotonic")
+    _require(after["legacy_generation"] == before["legacy_generation"], "legacy_generation_changed")
+    _require(after["legacy_issue_number"] == before["legacy_issue_number"], "legacy_issue_changed")
+    _require(after["rotation_threshold"] == before["rotation_threshold"], "rotation_threshold_changed")
 
 
 def cross_generation_identity_outcome(*, same_identity: bool, same_content: bool) -> str:

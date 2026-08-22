@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 import jsonschema
+from scripts.processor import router
 
 from scripts.check_public_safety import audit_tree
 from scripts.processor.common import (
@@ -103,6 +104,9 @@ class ProcessBatchConfig:
     router_revision: Optional[int] = None
     source_generation: Optional[int] = None
     source_snapshot_sha256: Optional[str] = None
+    router_body_sha256: Optional[str] = None
+    cutover_state: Optional[str] = None
+    cutover_anchor_sha256: Optional[str] = None
 
 
 CANDIDATE_COMMIT_AUTHORITY_MARKER = "ledger-batch-candidate:v1"
@@ -116,6 +120,9 @@ CANDIDATE_COMMIT_AUTHORITY_KEYS = (
 ROUTER_CANDIDATE_COMMIT_AUTHORITY_KEYS = (
     "router_issue_number",
     "router_revision",
+    "router_body_sha256",
+    "cutover_state",
+    "cutover_anchor_sha256",
     "source_generation",
     "source_issue_number",
     "source_snapshot_sha256",
@@ -166,6 +173,7 @@ def _source_comment_watermark(config: ProcessBatchConfig) -> Optional[int]:
 def candidate_commit_authority_message(
     config: ProcessBatchConfig,
     queue_snapshot_sha256: str,
+    observed_router_authority: Optional[Mapping[str, Any]] = None,
 ) -> str:
     """Return the closed, public-safe commit metadata contract for a candidate."""
 
@@ -183,11 +191,21 @@ def candidate_commit_authority_message(
     }
     authority_keys = CANDIDATE_COMMIT_AUTHORITY_KEYS
     if config.source_authority_mode == "router_v1":
-        values["router_issue_number"] = str(config.router_issue_number)
-        values["router_revision"] = str(config.router_revision)
-        values["source_generation"] = str(config.source_generation)
-        values["source_issue_number"] = str(config.source_issue_number)
-        values["source_snapshot_sha256"] = config.source_snapshot_sha256
+        observed = observed_router_authority or {
+            "router_issue_number": config.router_issue_number,
+            "router_revision": config.router_revision,
+            "router_body_sha256": config.router_body_sha256,
+            "cutover_state": config.cutover_state,
+            "cutover_anchor_sha256": config.cutover_anchor_sha256,
+            "source_generation": config.source_generation,
+            "source_issue_number": config.source_issue_number,
+            "source_snapshot_sha256": config.source_snapshot_sha256,
+        }
+        for key in ROUTER_CANDIDATE_COMMIT_AUTHORITY_KEYS:
+            value = observed.get(key)
+            if value is None:
+                raise ProcessorError("processor_invalid_contract")
+            values[key] = str(value)
         authority_keys = CANDIDATE_COMMIT_AUTHORITY_KEYS + ROUTER_CANDIDATE_COMMIT_AUTHORITY_KEYS
     return "\n".join(
         [CANDIDATE_COMMIT_AUTHORITY_MARKER]
@@ -200,6 +218,7 @@ def _validate_candidate_commit_authority(
     config: ProcessBatchConfig,
     candidate_content_commit_sha: str,
     queue_snapshot_sha256: str,
+    observed_router_authority: Optional[Mapping[str, Any]] = None,
 ) -> None:
     try:
         message = _run_git(
@@ -216,7 +235,7 @@ def _validate_candidate_commit_authority(
         raise ProcessorError("processor_integrity_failure")
     if message.endswith("\n\n"):
         message = message[:-1]
-    if message != candidate_commit_authority_message(config, queue_snapshot_sha256):
+    if message != candidate_commit_authority_message(config, queue_snapshot_sha256, observed_router_authority):
         raise ProcessorError("processor_integrity_failure")
     if (
         len(topology) != 2
@@ -637,6 +656,134 @@ def fetch_issue_metadata(repository_root: Path = ROOT, issue_number: int = 142) 
     return value
 
 
+def _resolve_router_authority(
+    config: ProcessBatchConfig,
+    *,
+    router_authority_fetcher: Optional[Callable[[Path], Mapping[str, Any]]] = None,
+    cutover_anchor_fetcher: Optional[Callable[[Path], Mapping[str, Any]]] = None,
+    sealed_router_authority: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Read one observed router object or validate one sealed immutable authority."""
+
+    if sealed_router_authority is not None:
+        try:
+            authority = router.validate_sealed_source_authority(sealed_router_authority)
+        except router.RouterValidationError as error:
+            raise ProcessorError("processor_authority_mismatch") from error
+        declared = {
+            "router_issue_number": config.router_issue_number,
+            "router_revision": config.router_revision,
+            "source_generation": config.source_generation,
+            "source_issue_number": config.source_issue_number,
+            "source_comment_watermark": config.source_comment_watermark,
+            "source_snapshot_sha256": config.source_snapshot_sha256,
+        }
+        for key, value in declared.items():
+            if value != authority.get(key):
+                raise ProcessorError("processor_authority_mismatch")
+        return dict(authority)
+
+    fetcher = router_authority_fetcher or (lambda root: fetch_issue_metadata(root, 142))
+    try:
+        observed_issue = fetcher(config.repository_root)
+    except ProcessorError:
+        raise
+    except (OSError, TypeError, ValueError) as error:
+        raise ProcessorError("processor_source_unavailable") from error
+    if (
+        not isinstance(observed_issue, Mapping)
+        or observed_issue.get("number") != 142
+        or not isinstance(observed_issue.get("body"), str)
+    ):
+        raise ProcessorError("processor_authority_mismatch")
+    try:
+        observed_router = router.parse_router_body(observed_issue["body"])
+    except router.RouterValidationError as error:
+        raise ProcessorError("processor_authority_mismatch") from error
+    body_hash = router.router_body_sha256(observed_router)
+    if config.router_issue_number != 142 or config.router_revision != observed_router["router_revision"]:
+        raise ProcessorError("processor_authority_mismatch")
+    if config.router_body_sha256 is not None and config.router_body_sha256 != body_hash:
+        raise ProcessorError("processor_authority_mismatch")
+    if config.cutover_state is not None and config.cutover_state != observed_router["cutover_state"]:
+        raise ProcessorError("processor_authority_mismatch")
+    if config.cutover_anchor_sha256 is not None and config.cutover_anchor_sha256 != observed_router["cutover_anchor_sha256"]:
+        raise ProcessorError("processor_authority_mismatch")
+    anchor = observed_issue.get("cutover_anchor")
+    if anchor is None and cutover_anchor_fetcher is not None:
+        try:
+            anchor = cutover_anchor_fetcher(config.repository_root)
+        except (OSError, TypeError, ValueError) as error:
+            raise ProcessorError("processor_source_unavailable") from error
+    return {
+        "authority_mode": "router_v1",
+        "router_issue_number": 142,
+        "router_revision": observed_router["router_revision"],
+        "router_body_sha256": body_hash,
+        "cutover_state": observed_router["cutover_state"],
+        "cutover_anchor_sha256": observed_router["cutover_anchor_sha256"],
+        "router_record": observed_router,
+        "cutover_anchor": anchor if config.source_generation == 0 else None,
+    }
+
+
+def _bind_router_source_authority(
+    config: ProcessBatchConfig,
+    observed: Mapping[str, Any],
+    *,
+    source_comment_watermark: int,
+    source_snapshot_sha256: str,
+) -> Dict[str, Any]:
+    authority = dict(observed)
+    authority.update(
+        {
+            "source_generation": config.source_generation,
+            "source_issue_number": config.source_issue_number,
+            "source_comment_watermark": source_comment_watermark,
+            "source_snapshot_sha256": source_snapshot_sha256,
+        }
+    )
+    try:
+        if config.source_generation == 0:
+            router.validate_legacy_drain_binding(
+                authority["router_record"],
+                authority.get("cutover_anchor"),
+                router_revision=authority["router_revision"],
+                source_generation=authority["source_generation"],
+                source_issue_number=authority["source_issue_number"],
+                source_watermark=authority["source_comment_watermark"],
+                source_snapshot_sha256=authority["source_snapshot_sha256"],
+            )
+        else:
+            router.validate_source_segment_binding(
+                authority["router_record"],
+                router_revision=authority["router_revision"],
+                source_generation=authority["source_generation"],
+                source_issue_number=authority["source_issue_number"],
+                source_watermark=authority["source_comment_watermark"],
+                source_snapshot_sha256=authority["source_snapshot_sha256"],
+            )
+        router.validate_sealed_source_authority(authority)
+    except (KeyError, TypeError, ValueError, router.RouterValidationError) as error:
+        raise ProcessorError("processor_authority_mismatch") from error
+    return authority
+
+
+def _validate_router_comment_bindings(
+    comments: Iterable[Mapping[str, Any]],
+    source_issue_number: int,
+) -> None:
+    expected_url = issue_api_url(source_issue_number)
+    for comment in comments:
+        if not isinstance(comment, Mapping):
+            raise ProcessorError("processor_source_unavailable")
+        declared_issue = comment.get("issue_number", comment.get("issue"))
+        if declared_issue is not None and declared_issue != source_issue_number:
+            raise ProcessorError("processor_authority_mismatch")
+        issue_url = comment.get("issue_url")
+        if issue_url is not None and issue_url != expected_url:
+            raise ProcessorError("processor_authority_mismatch")
+
 def fetch_live_canonical_main_sha(repository_root: Path = ROOT) -> str:
     value = _safe_gh_json(
         repository_root,
@@ -793,6 +940,9 @@ def _validate_config(config: ProcessBatchConfig) -> None:
                 config.router_revision,
                 config.source_generation,
                 config.source_snapshot_sha256,
+                config.router_body_sha256,
+                config.cutover_state,
+                config.cutover_anchor_sha256,
             )
         ):
             raise ProcessorError("processor_invalid_contract")
@@ -806,6 +956,9 @@ def _validate_config(config: ProcessBatchConfig) -> None:
         or config.router_revision <= 0
         or not _valid_source_comment_watermark(config.source_generation)
         or not valid_sha256(config.source_snapshot_sha256)
+        or (config.router_body_sha256 is not None and not valid_sha256(config.router_body_sha256))
+        or (config.cutover_state is not None and config.cutover_state not in router.ROUTER_STATES)
+        or (config.cutover_anchor_sha256 is not None and not valid_sha256(config.cutover_anchor_sha256))
         or (config.source_generation == 0 and config.source_issue_number != 142)
         or (config.source_generation > 0 and config.source_issue_number == 142)
     ):
@@ -1021,13 +1174,31 @@ def build_batch_candidate(
     comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
     canonical_main_fetcher: Optional[Callable[[Path], str]] = None,
     owner_fetcher: Optional[Callable[[Path], Dict[str, Any]]] = None,
+    router_authority_fetcher: Optional[Callable[[Path], Mapping[str, Any]]] = None,
+    cutover_anchor_fetcher: Optional[Callable[[Path], Mapping[str, Any]]] = None,
+    sealed_router_authority: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[Dict[str, bytes], Dict[str, Any]]:
     _validate_config(config)
     canonical_main_fetcher = canonical_main_fetcher or fetch_live_canonical_main_sha
     if canonical_main_fetcher(config.repository_root) != config.canonical_main_sha:
         raise ProcessorError("processor_authority_mismatch")
     recover_incomplete_transaction(config.repository_root, failure_hook=failure_hook)
-    queue_fetcher = queue_fetcher or _default_queue_fetcher(config)
+    observed_router_authority: Optional[Dict[str, Any]] = None
+    if config.source_authority_mode == "router_v1":
+        observed_router_authority = _resolve_router_authority(
+            config,
+            router_authority_fetcher=router_authority_fetcher,
+            cutover_anchor_fetcher=cutover_anchor_fetcher,
+            sealed_router_authority=sealed_router_authority,
+        )
+        if queue_fetcher is None and sealed_router_authority is not None:
+            queue_fetcher = lambda root: fetch_live_issue_comments(
+                observed_router_authority["source_issue_number"], root
+            )
+        if queue_fetcher is None:
+            queue_fetcher = lambda root: fetch_live_issue_comments(config.source_issue_number, root)
+    else:
+        queue_fetcher = queue_fetcher or _default_queue_fetcher(config)
     if config.batch_id == FROZEN_BATCH_ID:
         return _build_frozen_candidate(
             config,
@@ -1051,14 +1222,25 @@ def build_batch_candidate(
         comments,
         source_comment_watermark,
     )
-    if config.source_authority_mode == "router_v1" and first_queue_hash != config.source_snapshot_sha256:
-        raise ProcessorError("source_changed")
+    if config.source_authority_mode == "router_v1":
+        _validate_router_comment_bindings(comments, config.source_issue_number)
+        if first_queue_hash != config.source_snapshot_sha256:
+            raise ProcessorError("source_changed")
+        if observed_router_authority is None:
+            raise ProcessorError("processor_authority_mismatch")
+        observed_router_authority = _bind_router_source_authority(
+            config,
+            observed_router_authority,
+            source_comment_watermark=source_comment_watermark,
+            source_snapshot_sha256=first_queue_hash,
+        )
 
     if config.candidate_content_commit_sha is not None:
         _validate_candidate_commit_authority(
             config,
             config.candidate_content_commit_sha,
             first_queue_hash,
+            observed_router_authority,
         )
     selected_comments = [
         comment for comment in comments
@@ -1195,9 +1377,34 @@ def build_batch_candidate(
         _verify_selected_comment(initial, final)
     if first_queue_hash != final_queue_hash or first_fingerprints != final_fingerprints:
         raise ProcessorError("source_changed")
-    if config.source_authority_mode == "router_v1" and final_queue_hash != config.source_snapshot_sha256:
-        raise ProcessorError("source_changed")
-
+    if config.source_authority_mode == "router_v1":
+        _validate_router_comment_bindings(final_comments, config.source_issue_number)
+        if final_queue_hash != config.source_snapshot_sha256:
+            raise ProcessorError("source_changed")
+        if observed_router_authority is None:
+            raise ProcessorError("processor_authority_mismatch")
+        if sealed_router_authority is None:
+            final_observed = _resolve_router_authority(
+                config,
+                router_authority_fetcher=router_authority_fetcher,
+                cutover_anchor_fetcher=cutover_anchor_fetcher,
+            )
+            final_authority = _bind_router_source_authority(
+                config,
+                final_observed,
+                source_comment_watermark=source_comment_watermark,
+                source_snapshot_sha256=final_queue_hash,
+            )
+            for key in (
+                "router_revision",
+                "router_body_sha256",
+                "cutover_state",
+                "cutover_anchor_sha256",
+                "router_record",
+                "cutover_anchor",
+            ):
+                if final_authority.get(key) != observed_router_authority.get(key):
+                    raise ProcessorError("source_changed")
 
     final_records = preserved_records + admitted_records
     final_evaluations = _append_jsonl(authority_files["evaluations.jsonl"], new_record_lines)
@@ -1268,6 +1475,8 @@ def build_batch_candidate(
         ):
             raise ProcessorError("processor_integrity_failure")
         candidate_manifest = list(candidate_bindings)
+        if config.source_authority_mode == "router_v1" and observed_router_authority is None:
+            raise ProcessorError("processor_authority_mismatch")
         batch_receipt = {
             "schema_version": 3 if config.source_authority_mode == "router_v1" else 2,
             "receipt_type": "batch",
@@ -1288,15 +1497,7 @@ def build_batch_candidate(
             "source_comment_watermark": source_comment_watermark,
             **(
                 {
-                    "source_authority": {
-                        "authority_mode": "router_v1",
-                        "router_issue_number": config.router_issue_number,
-                        "router_revision": config.router_revision,
-                        "source_generation": config.source_generation,
-                        "source_issue_number": config.source_issue_number,
-                        "source_comment_watermark": source_comment_watermark,
-                        "source_snapshot_sha256": config.source_snapshot_sha256,
-                    }
+                    "source_authority": dict(observed_router_authority or {})
                 }
                 if config.source_authority_mode == "router_v1"
                 else {}
@@ -1395,6 +1596,9 @@ def process_batch(
     comment_fetcher: Optional[Callable[[int, Path], Dict[str, Any]]] = None,
     canonical_main_fetcher: Optional[Callable[[Path], str]] = None,
     owner_fetcher: Optional[Callable[[Path], Dict[str, Any]]] = None,
+    router_authority_fetcher: Optional[Callable[[Path], Mapping[str, Any]]] = None,
+    cutover_anchor_fetcher: Optional[Callable[[Path], Mapping[str, Any]]] = None,
+    sealed_router_authority: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     candidate_files, evidence = build_batch_candidate(
         config,
@@ -1404,6 +1608,9 @@ def process_batch(
         comment_fetcher=comment_fetcher,
         canonical_main_fetcher=canonical_main_fetcher,
         owner_fetcher=owner_fetcher,
+        router_authority_fetcher=router_authority_fetcher,
+        cutover_anchor_fetcher=cutover_anchor_fetcher,
+        sealed_router_authority=sealed_router_authority,
     )
     queue_fetcher = queue_fetcher or _default_queue_fetcher(config)
     final_queue = queue_fetcher(config.repository_root)

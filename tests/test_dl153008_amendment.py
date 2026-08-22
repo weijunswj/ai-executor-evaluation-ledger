@@ -219,7 +219,6 @@ class ProductionChainFixture(unittest.TestCase):
                 "scripts/rebuild_views.py",
                 "scripts/validate_manifests.py",
                 "schema/manifest.schema.json",
-                "migrations/historical-direct-controller-bypass-reconciliation.json",
             ):
                 shutil.copy2(ROOT / relative, root / relative)
             yield root
@@ -246,6 +245,10 @@ class ProductionChainFixture(unittest.TestCase):
         shutil.copy2(
             ROOT / "ledger" / "dispositions.jsonl",
             root / "ledger" / "dispositions.jsonl",
+        )
+        shutil.copy2(
+            ROOT / "migrations" / "historical-direct-controller-bypass-reconciliation.json",
+            root / "migrations" / "historical-direct-controller-bypass-reconciliation.json",
         )
         if not regenerate:
             result = self.run_command(root, "scripts/rebuild_views.py")

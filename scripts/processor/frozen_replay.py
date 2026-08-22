@@ -41,7 +41,7 @@ from scripts.rebuild_views import (
 from scripts.scrub_identity_variants import _scrub_value, legacy_identity_renames
 from scripts.validate_manifests import (
     TARGET_EVALUATIONS_SHA,
-    MANIFEST_PATHS,
+    HISTORICAL_MANIFEST_PATHS,
     expected_manifests_for_bytes,
     source_bound_public_bindings,
 )
@@ -70,8 +70,9 @@ CANONICAL_CANDIDATE_PATHS = {
     "scorecard_md": "scorecard.md",
     "model_recommendation_json": "analysis/model-recommendation.json",
 }
+HISTORICAL_MIGRATION_MANIFEST_PATHS = frozenset(HISTORICAL_MANIFEST_PATHS)
 MIGRATION_CANDIDATE_PATHS = {
-    name: f"migrations/{name}" for name in MANIFEST_PATHS
+    name: f"migrations/{name}" for name in HISTORICAL_MIGRATION_MANIFEST_PATHS
 }
 
 
@@ -602,6 +603,7 @@ def replay_frozen_batch(
         final_evaluations,
         base_raw=canonical_source_base_bytes,
         dispositions_raw=final_dispositions,
+        manifest_names=set(HISTORICAL_MIGRATION_MANIFEST_PATHS),
     )
     for name, manifest in manifests.items():
         candidate_files[MIGRATION_CANDIDATE_PATHS[name]] = (

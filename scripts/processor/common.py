@@ -367,31 +367,17 @@ def validate_batch_receipt_closure(value: Any) -> bool:
             return False
     else:
         authority = value.get("source_authority")
-        required_authority = {
-            "authority_mode",
-            "router_issue_number",
-            "router_revision",
-            "source_generation",
-            "source_issue_number",
-            "source_comment_watermark",
-            "source_snapshot_sha256",
-        }
+        try:
+            from scripts.processor import router
+        except ImportError:
+            return False
+        try:
+            router.validate_sealed_source_authority(authority)
+        except (TypeError, ValueError, router.RouterValidationError):
+            return False
         if (
-            not isinstance(authority, dict)
-            or set(authority) != required_authority
-            or authority.get("authority_mode") != "router_v1"
-            or authority.get("router_issue_number") != 142
-            or not isinstance(authority.get("router_revision"), int)
-            or isinstance(authority.get("router_revision"), bool)
-            or authority.get("router_revision") <= 0
-            or not isinstance(authority.get("source_generation"), int)
-            or isinstance(authority.get("source_generation"), bool)
-            or authority.get("source_generation") < 0
-            or authority.get("source_issue_number") != value.get("source_issue_number")
-            or not isinstance(authority.get("source_comment_watermark"), int)
-            or isinstance(authority.get("source_comment_watermark"), bool)
+            authority.get("source_issue_number") != value.get("source_issue_number")
             or authority.get("source_comment_watermark") != value.get("source_comment_watermark")
-            or not valid_sha256(authority.get("source_snapshot_sha256"))
             or authority.get("source_snapshot_sha256") != value.get("queue_snapshot_sha256")
         ):
             return False
