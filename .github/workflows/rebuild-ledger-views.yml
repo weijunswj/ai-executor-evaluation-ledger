@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   rebuild:
-    if: github.actor != 'github-actions[bot]'
+    if: startsWith(github.ref_name, 'controller/ledger-maintenance-') && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

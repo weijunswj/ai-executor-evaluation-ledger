@@ -360,8 +360,27 @@ def safe_author_hash(login: Any) -> str:
 def validate_batch_receipt_closure(value: Any) -> bool:
     """Check the count, map, binding and terminal-outcome relationships in a v2 batch."""
 
-    if not isinstance(value, dict) or value.get("schema_version") != 2 or value.get("receipt_type") != "batch":
+    if not isinstance(value, dict) or value.get("schema_version") not in {2, 3} or value.get("receipt_type") != "batch":
         return False
+    if value["schema_version"] == 2:
+        if value.get("source_issue_number") != 142 or value.get("source_authority") is not None:
+            return False
+    else:
+        authority = value.get("source_authority")
+        try:
+            from scripts.processor import router
+        except ImportError:
+            return False
+        try:
+            router.validate_sealed_source_authority(authority)
+        except (TypeError, ValueError, router.RouterValidationError):
+            return False
+        if (
+            authority.get("source_issue_number") != value.get("source_issue_number")
+            or authority.get("source_comment_watermark") != value.get("source_comment_watermark")
+            or authority.get("source_snapshot_sha256") != value.get("queue_snapshot_sha256")
+        ):
+            return False
     source_ids = value.get("source_comment_ids")
     source_hashes = value.get("source_body_sha256")
     selected_ids = value.get("selected_comment_ids")

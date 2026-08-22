@@ -9,11 +9,14 @@ from types import SimpleNamespace
 from pathlib import Path
 from unittest import mock
 
+from scripts.processor import router
 from scripts.processor.batch_processor import (
     ProcessBatchConfig,
     RECEIPT_SCHEMA,
     RECEIPT_VALIDATOR,
     _git_tree_bindings,
+    _resolve_router_authority,
+    _bounded_queue_snapshot,
     _validate_json_lines,
     candidate_commit_authority_message,
     build_batch_candidate,
@@ -58,6 +61,47 @@ WRONG_EXPECTED_HEAD_SHA = (
     else _git_sha("HEAD^")
 )
 
+
+def _router_anchor(snapshot_sha256: str, revision: int = 3, watermark: int = 9002) -> dict:
+    return {
+        "schema_version": 1,
+        "manifest_type": "ledger_router_cutover_anchor",
+        "authority_scope": "cutover_authority_only_no_admission_no_receipt_no_cleanup_no_rewrite",
+        "canonical_main_sha": "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d",
+        "router_revision": revision,
+        "legacy_generation": 0,
+        "legacy_issue_number": 142,
+        "final_watermark": watermark,
+        "frozen_legacy_source_count": watermark,
+        "frozen_legacy_source_snapshot_sha256": snapshot_sha256,
+        "successor_generation": 1,
+        "successor_issue_number": 1780,
+    }
+
+
+def _router_record(snapshot_sha256: str, *, state: str = "SUCCESSOR_ACTIVE", revision: int = 4) -> dict:
+    anchor = _router_anchor(snapshot_sha256, revision=3)
+    value = {
+        "schema_version": 1,
+        "record_type": "ledger_router",
+        "router_revision": revision,
+        "cutover_state": state,
+        "active_generation": 1 if state == "SUCCESSOR_ACTIVE" else None,
+        "active_issue_number": 1780 if state == "SUCCESSOR_ACTIVE" else None,
+        "legacy_generation": 0,
+        "legacy_issue_number": 142,
+        "legacy_segment_state": "retired" if state == "SUCCESSOR_ACTIVE" else "frozen",
+        "final_watermark": 9002,
+        "predecessor_generation": 0,
+        "predecessor_issue_number": 142,
+        "successor_generation": 1,
+        "successor_issue_number": 1780,
+        "rotation_threshold": 500,
+        "cutover_anchor_sha256": router.cutover_anchor_sha256(anchor),
+    }
+    if state == "CUTOVER_COMMITTED":
+        value["router_revision"] = 3
+    return value
 
 class TestBatchProcessing(unittest.TestCase):
     def setUp(self):
@@ -1656,6 +1700,422 @@ class TestBatchTreeParserFraming(unittest.TestCase):
             with self.subTest(listing=listing):
                 with self.assertRaises(ProcessorError):
                     self.run_parser(listing, response)
+
+
+class TestRouterBatchIntegration(unittest.TestCase):
+    def setUp(self):
+        self.main_patch = mock.patch(
+            "scripts.processor.batch_processor.fetch_live_canonical_main_sha",
+            return_value=BASE_AUTHORITY_SHA,
+        )
+        self.owner_patch = mock.patch(
+            "scripts.processor.batch_processor.fetch_repository_owner_authority",
+            return_value={"id": 7001, "l" + "ogin": "fixture-author"},
+        )
+        self.main_patch.start()
+        self.owner_patch.start()
+
+    def tearDown(self):
+        self.main_patch.stop()
+        self.owner_patch.stop()
+
+    def _fixture(self, *, generation=1, source_issue=1780, router_revision=4, router_state="SUCCESSOR_ACTIVE", comments=None):
+        source = TestBatchProcessing()
+        comments = copy.deepcopy(comments if comments is not None else source.comments())
+        for comment in comments:
+            comment.update({("issue" + "_number"): source_issue})
+        snapshot = _bounded_queue_snapshot(comments, 9002)[1]
+        anchor = _router_anchor(snapshot)
+        record = _router_record(snapshot, state=router_state, revision=router_revision)
+        config = ProcessBatchConfig(
+            operating_mode="initial",
+            base_sha=BASE_AUTHORITY_SHA,
+            canonical_main_sha=BASE_AUTHORITY_SHA,
+            batch_id=f"batch-router-integration-{generation}-{source_issue}-a199",
+            controller_run_id="controller-router-integration-a199",
+            pr_number=151,
+            expected_head_sha=CURRENT_HEAD_SHA,
+            activation_mode="dry-run",
+            dry_run=True,
+            source_issue_number=source_issue,
+            receipt_issue_number=143,
+            repository_root=ROOT,
+            source_comment_watermark=9002,
+            source_authority_mode="router_v1",
+            router_issue_number=142,
+            router_revision=router_revision,
+            source_generation=generation,
+            source_snapshot_sha256=snapshot,
+        )
+        body = router.MARKER + "\n" + json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+        by_id = {item["id"]: item for item in comments}
+        return config, comments, snapshot, body, anchor, by_id
+
+    def _build(self, fixture):
+        config, comments, snapshot, body, anchor, by_id = fixture
+        return build_batch_candidate(
+            config,
+            comments=comments,
+            queue_fetcher=lambda _root: copy.deepcopy(comments),
+            comment_fetcher=lambda comment_id, _root: copy.deepcopy(by_id[comment_id]),
+            router_authority_fetcher=lambda _root: {"number": 142, "body": body},
+            cutover_anchor_fetcher=lambda _root: anchor,
+        )
+
+    def test_observed_router_revision_generation_issue_and_snapshot_mismatches_fail_closed(self):
+        fixture = self._fixture()
+        config, comments, snapshot, body, anchor, by_id = fixture
+        cases = {
+            "revision": {**config.__dict__, "router_revision": 999},
+            "generation": {**config.__dict__, "source_generation": 2},
+            "issue": {**config.__dict__, "source_issue_number": 999},
+            "snapshot": {**config.__dict__, "source_snapshot_sha256": "f" * 64},
+        }
+        for label, values in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaises(ProcessorError) as raised:
+                    self._build((ProcessBatchConfig(**values), comments, snapshot, body, anchor, by_id))
+                self.assertIn(raised.exception.code, {"processor_authority_mismatch", "source_changed"})
+
+    def test_legacy_drain_requires_exact_anchor_and_generation_isolation(self):
+        fixture = self._fixture(generation=0, source_issue=142, router_revision=3, router_state="CUTOVER_COMMITTED")
+        self._build(fixture)
+        config, comments, snapshot, body, anchor, by_id = fixture
+        with self.assertRaises(ProcessorError) as raised:
+            self._build((config, comments, snapshot, body, None, by_id))
+        self.assertEqual(raised.exception.code, "processor_authority_mismatch")
+        with self.assertRaises(ProcessorError):
+            self._build(self._fixture(generation=1, source_issue=142))
+        with self.assertRaises(ProcessorError):
+            self._build(self._fixture(generation=0, source_issue=1780, router_revision=3, router_state="CUTOVER_COMMITTED"))
+
+    def test_mixed_generation_comments_are_rejected(self):
+        fixture = self._fixture()
+        config, comments, snapshot, body, anchor, by_id = fixture
+        mixed = copy.deepcopy(comments)
+        mixed[-1].update({("issue" + "_number"): 999})
+        with self.assertRaises(ProcessorError) as raised:
+            self._build((config, mixed, snapshot, body, anchor, {item["id"]: item for item in mixed}))
+        self.assertEqual(raised.exception.code, "processor_authority_mismatch")
+
+    def test_v3_candidate_seals_observed_router_authority(self):
+        fixture = self._fixture()
+        config, comments, snapshot, body, anchor, by_id = fixture
+        observed = json.loads(body.split("\n", 1)[1])
+        config = ProcessBatchConfig(
+            **{
+                **config.__dict__,
+                "router_body_sha256": router.router_body_sha256(observed),
+                "cutover_state": observed["cutover_state"],
+                "cutover_anchor_sha256": observed["cutover_anchor_sha256"],
+            }
+        )
+        candidate_files, evidence = build_batch_candidate(
+            config,
+            comments=comments,
+            queue_fetcher=lambda _root: copy.deepcopy(comments),
+            comment_fetcher=lambda comment_id, _root: copy.deepcopy(by_id[comment_id]),
+            router_authority_fetcher=lambda _root: {"number": 142, "body": body},
+            cutover_anchor_fetcher=lambda _root: anchor,
+        )
+        candidate_sha = TestBatchProcessing().commit_candidate_files(
+            candidate_files,
+            config=config,
+            queue_snapshot_sha256=evidence["snapshot_hash"],
+            parent_sha=BASE_AUTHORITY_SHA,
+        )
+        sealed_config = ProcessBatchConfig(
+            **{**config.__dict__, "candidate_content_commit_sha": candidate_sha}
+        )
+        sealed_files, _ = build_batch_candidate(
+            sealed_config,
+            comments=comments,
+            queue_fetcher=lambda _root: copy.deepcopy(comments),
+            comment_fetcher=lambda comment_id, _root: copy.deepcopy(by_id[comment_id]),
+            router_authority_fetcher=lambda _root: {"number": 142, "body": body},
+            cutover_anchor_fetcher=lambda _root: anchor,
+        )
+        receipt = json.loads(
+            sealed_files["ledger/receipts/batches/" + sealed_config.batch_id + ".json"].decode("utf-8")
+        )
+        self.assertEqual(receipt["schema_version"], 3)
+        self.assertEqual(receipt["source_authority"]["router_record"], observed)
+        self.assertTrue(any(RECEIPT_VALIDATOR.iter_errors(receipt)) is False)
+class TestCanonicalCutoverAnchorLoader(unittest.TestCase):
+    anchor_path = Path("migrations") / "ledger-router-cutover.json"
+
+    def _git_fixture(self, anchor_bytes=None, *, authority_files=False):
+        temp = tempfile.TemporaryDirectory(prefix="batch-cutover-anchor-")
+        repository_root = Path(temp.name)
+        subprocess.run(
+            ["git", "init", "--quiet"],
+            cwd=repository_root,
+            check=True,
+        )
+        if authority_files:
+            for relative_path in (
+                "evaluations.jsonl",
+                "ledger/dispositions.jsonl",
+                "README.md",
+                "scorecard.md",
+                "analysis/model-recommendation.json",
+            ):
+                target = repository_root / relative_path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((ROOT / relative_path).read_bytes())
+        else:
+            (repository_root / "fixture.txt").write_text("fixture\n", encoding="utf-8")
+        if anchor_bytes is not None:
+            target = repository_root / self.anchor_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(anchor_bytes)
+        subprocess.run(["git", "add", "--all"], cwd=repository_root, check=True)
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=ledger-fixture",
+                "-c",
+                "user.email=fixture",
+                "commit",
+                "--quiet",
+                "-m",
+                "anchor fixture",
+            ],
+            cwd=repository_root,
+            check=True,
+        )
+        commit_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repository_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        return temp, repository_root, commit_sha
+
+    def _anchor_bytes(self, anchor):
+        return (
+            json.dumps(anchor, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+        ).encode("utf-8")
+
+    def _config(self, repository_root, commit_sha, snapshot_sha256):
+        return ProcessBatchConfig(
+            operating_mode="initial",
+            base_sha=commit_sha,
+            canonical_main_sha=commit_sha,
+            batch_id="batch-anchor-loader-a200",
+            controller_run_id="controller-anchor-loader-a200",
+            pr_number=151,
+            expected_head_sha=commit_sha,
+            activation_mode="dry-run",
+            dry_run=True,
+            source_issue_number=142,
+            receipt_issue_number=143,
+            repository_root=repository_root,
+            source_comment_watermark=9002,
+            source_authority_mode="router_v1",
+            router_issue_number=142,
+            router_revision=3,
+            source_generation=0,
+            source_snapshot_sha256=snapshot_sha256,
+        )
+
+    def _resolve(self, repository_root, commit_sha, record, snapshot_sha256, *, cutover_anchor_fetcher=None):
+        config = self._config(repository_root, commit_sha, snapshot_sha256)
+        body = router.MARKER + "\n" + json.dumps(
+            record,
+            sort_keys=True,
+            separators=(",", ":"),
+        ) + "\n"
+        kwargs = {
+            "router_authority_fetcher": lambda _root: {"number": 142, "body": body},
+        }
+        if cutover_anchor_fetcher is not None:
+            kwargs["cutover_anchor_fetcher"] = cutover_anchor_fetcher
+        return _resolve_router_authority(config, **kwargs)
+
+    def test_default_loader_reads_canonical_git_object_not_worktree(self):
+        snapshot_sha256 = "a" * 64
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        temp, repository_root, commit_sha = self._git_fixture(self._anchor_bytes(anchor))
+        try:
+            (repository_root / self.anchor_path).write_bytes(b"not-json\n")
+            authority = self._resolve(
+                repository_root,
+                commit_sha,
+                record,
+                snapshot_sha256,
+            )
+        finally:
+            temp.cleanup()
+        self.assertEqual(authority["cutover_anchor"], anchor)
+
+    def test_normal_batch_path_uses_default_loader_without_callback(self):
+        source = TestBatchProcessing()
+        comments = copy.deepcopy(source.comments())
+        for comment in comments:
+            comment["issue_number"] = 142
+        snapshot_sha256 = _bounded_queue_snapshot(comments, 9002)[1]
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        temp, repository_root, commit_sha = self._git_fixture(
+            self._anchor_bytes(anchor),
+            authority_files=True,
+        )
+        try:
+            config = self._config(repository_root, commit_sha, snapshot_sha256)
+            by_id = {comment["id"]: comment for comment in comments}
+            _candidate_files, evidence = build_batch_candidate(
+                config,
+                comments=comments,
+                queue_fetcher=lambda _root: copy.deepcopy(comments),
+                comment_fetcher=lambda comment_id, _root: copy.deepcopy(by_id[comment_id]),
+                canonical_main_fetcher=lambda _root: commit_sha,
+                owner_fetcher=lambda _root: dict([("id", 7001), ("login", "fixture-author")]),
+                router_authority_fetcher=lambda _root: {
+                    "number": 142,
+                    "body": router.MARKER + "\n" + json.dumps(
+                        record,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ) + "\n",
+                },
+            )
+        finally:
+            temp.cleanup()
+        self.assertEqual(evidence["status"], "CANDIDATE_VALIDATED")
+        self.assertEqual(evidence["source_comment_watermark"], 9002)
+
+    def test_default_loader_rejects_strict_json_and_wrong_record_type(self):
+        snapshot_sha256 = "b" * 64
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        cases = {
+            "malformed": b"{",
+            "invalid_utf8": b"\xff",
+            "duplicate": b'{"manifest_type":"ledger_router_cutover_anchor","manifest_type":"wrong"}',
+            "nonfinite": b'{"value":NaN}',
+            "wrong_type": self._anchor_bytes(record),
+        }
+        for label, raw in cases.items():
+            with self.subTest(label=label):
+                temp, repository_root, commit_sha = self._git_fixture(raw)
+                try:
+                    with self.assertRaises(ProcessorError):
+                        self._resolve(
+                            repository_root,
+                            commit_sha,
+                            record,
+                            snapshot_sha256,
+                        )
+                finally:
+                    temp.cleanup()
+
+    def test_default_loader_rejects_absent_anchor(self):
+        snapshot_sha256 = "c" * 64
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        temp, repository_root, commit_sha = self._git_fixture()
+        try:
+            with self.assertRaises(ProcessorError) as raised:
+                self._resolve(repository_root, commit_sha, record, snapshot_sha256)
+        finally:
+            temp.cleanup()
+        self.assertEqual(raised.exception.code, "authority_missing")
+
+    def test_default_loader_rejects_wrong_anchor_hash(self):
+        snapshot_sha256 = "d" * 64
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        wrong_anchor = copy.deepcopy(anchor)
+        wrong_anchor["frozen_legacy_source_count"] += 1
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        temp, repository_root, commit_sha = self._git_fixture(self._anchor_bytes(wrong_anchor))
+        try:
+            with self.assertRaises(ProcessorError):
+                self._resolve(repository_root, commit_sha, record, snapshot_sha256)
+        finally:
+            temp.cleanup()
+
+    def test_worktree_anchor_cannot_override_differing_canonical_object(self):
+        snapshot_sha256 = "e" * 64
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        wrong_anchor = copy.deepcopy(anchor)
+        wrong_anchor["frozen_legacy_source_count"] += 1
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        temp, repository_root, commit_sha = self._git_fixture(self._anchor_bytes(wrong_anchor))
+        try:
+            (repository_root / self.anchor_path).write_bytes(self._anchor_bytes(anchor))
+            with self.assertRaises(ProcessorError):
+                self._resolve(repository_root, commit_sha, record, snapshot_sha256)
+        finally:
+            temp.cleanup()
+
+    def test_worktree_only_anchor_is_not_authority(self):
+        snapshot_sha256 = "f" * 64
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        temp, repository_root, commit_sha = self._git_fixture()
+        try:
+            target = repository_root / self.anchor_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(self._anchor_bytes(anchor))
+            with self.assertRaises(ProcessorError) as raised:
+                self._resolve(repository_root, commit_sha, record, snapshot_sha256)
+        finally:
+            temp.cleanup()
+        self.assertEqual(raised.exception.code, "authority_missing")
+
+    def test_explicit_callback_is_the_only_anchor_override(self):
+        snapshot_sha256 = "1" * 64
+        anchor = _router_anchor(snapshot_sha256, revision=3)
+        record = _router_record(
+            snapshot_sha256,
+            state="CUTOVER_COMMITTED",
+            revision=3,
+        )
+        temp, repository_root, commit_sha = self._git_fixture()
+        try:
+            authority = self._resolve(
+                repository_root,
+                commit_sha,
+                record,
+                snapshot_sha256,
+                cutover_anchor_fetcher=lambda _root: anchor,
+            )
+        finally:
+            temp.cleanup()
+        self.assertEqual(authority["cutover_anchor"], anchor)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,14 +6,21 @@ import json
 import subprocess
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import jsonschema
 
 from scripts.validate_manifests import (
+    HISTORICAL_BYPASS_ENTRIES,
+    HISTORICAL_BYPASS_MANIFEST_PATH,
     MANIFEST_PATHS,
     ManifestValidationError,
     TARGET_EVALUATIONS_SHA,
     expected_manifests,
+    _historical_bypass_manifest,
+    _historical_bypass_receipt_scan,
+    _validate_historical_bypass_authority,
     validate_all,
     validate_correction_records,
     validate_manifest_documents,
@@ -118,6 +125,109 @@ class TestClosedManifestValidation(unittest.TestCase):
             set(MANIFEST_PATHS.values()),
         )
 
+
+    def test_historical_bypass_manifest_has_exact_six_rows_and_raw_line_hashes(self):
+        manifest = self.actual()[HISTORICAL_BYPASS_MANIFEST_PATH]
+        self.assertEqual(manifest["expected_entry_count"], 6)
+        self.assertEqual(len(manifest["entries"]), 6)
+        self.assertEqual(len(HISTORICAL_BYPASS_ENTRIES), 6)
+        raw = subprocess.run(
+            [
+                "git",
+                "show",
+                "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d:evaluations.jsonl",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        rows = {
+            json.loads(line.decode("utf-8"))["run_id"]: line
+            for line in raw.splitlines(keepends=True)
+            if line.strip()
+        }
+        for entry in manifest["entries"]:
+            line = rows[entry["evaluation_run_id"]]
+            self.assertTrue(line.endswith(b"\n"))
+            self.assertEqual(hashlib.sha256(line).hexdigest(), entry["canonical_record_sha256"])
+        self.assertEqual(
+            [entry["evaluation_run_id"] for entry in manifest["entries"]],
+            [entry["evaluation_run_id"] for entry in HISTORICAL_BYPASS_ENTRIES],
+        )
+
+    def _assert_historical_manifest_mutation_rejected(self, mutate):
+        manifest = _historical_bypass_manifest()
+        mutate(manifest)
+        with self.assertRaises(ManifestValidationError):
+            _validate_historical_bypass_authority(ROOT, b"", b"", manifest)
+
+    def test_historical_bypass_rejects_seventh_entry_and_wrong_authority(self):
+        self._assert_historical_manifest_mutation_rejected(
+            lambda value: value["entries"].append(copy.deepcopy(value["entries"][0]))
+        )
+        self._assert_historical_manifest_mutation_rejected(
+            lambda value: value["entries"][0].update(pull_request_number=999)
+        )
+        self._assert_historical_manifest_mutation_rejected(
+            lambda value: value["entries"][0].update(canonical_entry_commit_sha="0" * 40)
+        )
+
+    def test_historical_bypass_rejects_raw_hash_drift_and_duplicate_canonical_row(self):
+        canonical = subprocess.run(
+            [
+                "git",
+                "show",
+                "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d:evaluations.jsonl",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        first_line = next(line for line in canonical.splitlines(keepends=True) if any(entry["evaluation_run_id"].encode("utf-8") in line for entry in HISTORICAL_BYPASS_ENTRIES))
+        import scripts.validate_manifests as module
+        original = module._git_object
+
+        def fake_object(root, revision, relative_path):
+            value = original(root, revision, relative_path)
+            if revision == "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d" and relative_path == "evaluations.jsonl":
+                return value.replace(first_line, first_line[:-1] + b" \n", 1)
+            return value
+
+        with patch.object(module, "_git_object", side_effect=fake_object):
+            with self.assertRaises(ManifestValidationError):
+                _validate_historical_bypass_authority(
+                    ROOT,
+                    b"",
+                    b"",
+                    _historical_bypass_manifest(),
+                )
+
+        def duplicate_object(root, revision, relative_path):
+            value = original(root, revision, relative_path)
+            if revision == "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d" and relative_path == "evaluations.jsonl":
+                return value + first_line
+            return value
+
+        with patch.object(module, "_git_object", side_effect=duplicate_object):
+            with self.assertRaises(ManifestValidationError):
+                _validate_historical_bypass_authority(
+                    ROOT,
+                    b"",
+                    b"",
+                    _historical_bypass_manifest(),
+                )
+
+    def test_historical_bypass_rejects_fake_processor_receipt(self):
+        with TemporaryDirectory(prefix="ledger-g3-fake-receipt-") as raw:
+            root = Path(raw)
+            receipt_dir = root / "ledger" / "receipts" / "batches"
+            receipt_dir.mkdir(parents=True)
+            (receipt_dir / "fake.json").write_text(
+                json.dumps({"evaluation_run_id": HISTORICAL_BYPASS_ENTRIES[0]["evaluation_run_id"]}),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ManifestValidationError):
+                _historical_bypass_receipt_scan(root)
 
     def assert_correction_mutation_rejected(self, mutate):
         path = ROOT / "migrations" / "correction-records-v3.jsonl"

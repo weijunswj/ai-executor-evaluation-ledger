@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+from scripts.processor import router
 
 from scripts.processor.common import (
     reject_duplicate_json_keys,
+    valid_sha256,
     valid_git_sha,
     valid_identifier,
 )
@@ -95,7 +97,15 @@ def validate_metadata(metadata: Dict[str, Any]) -> None:
         "receipt_issue_number",
         "dry_run",
     }
-    allowed = required | {"review_freeze_state"}
+    allowed = required | {
+        "review_freeze_state",
+        "source_authority_mode",
+        "router_issue_number",
+        "router_revision",
+        "source_generation",
+        "source_watermark",
+        "source_snapshot_sha256",
+    }
     if set(metadata) - allowed or not required.issubset(metadata):
         raise ValueError("invalid_source_watch_metadata")
     if metadata["schema_version"] != 1 or metadata["record_type"] != METADATA_RECORD_TYPE:
@@ -126,6 +136,91 @@ def validate_metadata(metadata: Dict[str, Any]) -> None:
     ):
         raise ValueError("invalid_source_watch_metadata")
 
+
+    router_fields = {
+        "source_authority_mode",
+        "router_issue_number",
+        "router_revision",
+        "source_generation",
+        "source_watermark",
+        "source_snapshot_sha256",
+    }
+    if router_fields & set(metadata):
+        if (
+            metadata.get("source_authority_mode") != "router_v1"
+            or router_fields - set(metadata)
+            or metadata.get("router_issue_number") != 142
+            or not isinstance(metadata.get("router_revision"), int)
+            or isinstance(metadata.get("router_revision"), bool)
+            or metadata.get("router_revision") <= 0
+            or not isinstance(metadata.get("source_generation"), int)
+            or isinstance(metadata.get("source_generation"), bool)
+            or metadata.get("source_generation") < 0
+            or not isinstance(metadata.get("source_watermark"), int)
+            or isinstance(metadata.get("source_watermark"), bool)
+            or metadata.get("source_watermark") < 0
+            or not valid_sha256(metadata.get("source_snapshot_sha256"))
+            or (metadata.get("source_generation") == 0 and metadata.get("source_issue_number") != 142)
+            or (metadata.get("source_generation") > 0 and metadata.get("source_issue_number") == 142)
+        ):
+            raise ValueError("invalid_source_watch_metadata")
+def stale_route_report(
+    *,
+    router_authority: Mapping[str, Any],
+    cutover_anchor: Mapping[str, Any],
+    comment: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Return a terminal stale report from validated router/anchor authority."""
+
+    try:
+        router_value = router.validate_router(router_authority)
+        issue_number = comment.get("issue_number", comment.get("issue"))
+        comment_id = comment.get("id", comment.get("comment_id"))
+        if (
+            not isinstance(issue_number, int)
+            or isinstance(issue_number, bool)
+            or issue_number <= 0
+            or not isinstance(comment_id, int)
+            or isinstance(comment_id, bool)
+            or comment_id <= 0
+        ):
+            raise ValueError("invalid_stale_route_report")
+        router.validate_legacy_drain_binding(
+            router_value,
+            cutover_anchor,
+            router_revision=router_value["router_revision"],
+            source_generation=0,
+            source_issue_number=router_value["legacy_issue_number"],
+            source_watermark=router_value["final_watermark"],
+            source_snapshot_sha256=cutover_anchor["frozen_legacy_source_snapshot_sha256"],
+        )
+        classification = router.classify_legacy_comment(
+            issue_number=issue_number,
+            comment_id=comment_id,
+            legacy_issue_number=router_value["legacy_issue_number"],
+            final_watermark=router_value["final_watermark"],
+        )
+        if classification != "stale_route":
+            raise ValueError("not_stale_route")
+        report = router.stale_route_status(
+            classification=classification,
+            comment_id=comment_id,
+            final_watermark=router_value["final_watermark"],
+        )
+    except (KeyError, TypeError, ValueError, router.RouterValidationError) as error:
+        if isinstance(error, ValueError) and str(error) in {"not_stale_route", "invalid_stale_route_report"}:
+            raise
+        raise ValueError("invalid_stale_route_report") from error
+    report.update(
+        {
+            "comment_id": comment_id,
+            "router_revision": router_value["router_revision"],
+            "source_generation": 0,
+            "source_issue_number": router_value["legacy_issue_number"],
+            "source_watermark": router_value["final_watermark"],
+        }
+    )
+    return report
 
 def _complete_connection_nodes(value: Any) -> Optional[list[Any]]:
     """Validate one fully aggregated native GraphQL connection."""
@@ -207,11 +302,109 @@ class SourceWatchPlanner:
 
     OWNERSHIP_MARKER = OWNERSHIP_MARKER
 
+    def plan_source_watch(
+        self,
+        *,
+        router_body: str,
+        source_comments: Sequence[Mapping[str, Any]],
+        router_revision: int,
+        source_generation: int,
+        source_issue_number: int,
+        source_watermark: int,
+        source_snapshot_sha256: str,
+        cutover_anchor: Optional[Mapping[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Plan watch output from one observed router body and its immutable boundary."""
+
+        try:
+            observed = router.parse_router_body(router_body)
+            if source_generation == 0:
+                if not isinstance(cutover_anchor, Mapping):
+                    raise ValueError("legacy_drain_anchor_missing")
+                router.validate_legacy_drain_binding(
+                    observed,
+                    cutover_anchor,
+                    router_revision=router_revision,
+                    source_generation=source_generation,
+                    source_issue_number=source_issue_number,
+                    source_watermark=source_watermark,
+                    source_snapshot_sha256=source_snapshot_sha256,
+                )
+            else:
+                router.validate_source_segment_binding(
+                    observed,
+                    router_revision=router_revision,
+                    source_generation=source_generation,
+                    source_issue_number=source_issue_number,
+                    source_watermark=source_watermark,
+                    source_snapshot_sha256=source_snapshot_sha256,
+                )
+            stale_reports: list[Dict[str, Any]] = []
+            legacy_inputs: list[int] = []
+            for comment in source_comments:
+                if not isinstance(comment, Mapping):
+                    raise ValueError("source_comment_invalid")
+                issue_number = comment.get("issue_number", comment.get("issue"))
+                comment_id = comment.get("id", comment.get("comment_id"))
+                if (
+                    not isinstance(issue_number, int)
+                    or isinstance(issue_number, bool)
+                    or issue_number <= 0
+                    or not isinstance(comment_id, int)
+                    or isinstance(comment_id, bool)
+                    or comment_id <= 0
+                ):
+                    raise ValueError("source_comment_invalid")
+                if issue_number == observed["legacy_issue_number"]:
+                    if comment_id > observed["final_watermark"]:
+                        stale_reports.append(
+                            stale_route_report(
+                                router_authority=observed,
+                                cutover_anchor=cutover_anchor,
+                                comment=comment,
+                            )
+                        )
+                    else:
+                        legacy_inputs.append(comment_id)
+                elif issue_number == source_issue_number:
+                    continue
+                else:
+                    raise ValueError("mixed_source_generation")
+        except (KeyError, TypeError, ValueError, router.RouterValidationError) as error:
+            raise ValueError("source_watch_router_authority_invalid") from error
+
+        result: Dict[str, Any] = {
+            "status": "SOURCE_WATCH_VALIDATED",
+            "router_revision": observed["router_revision"],
+            "source_generation": source_generation,
+            "source_issue_number": source_issue_number,
+            "source_watermark": source_watermark,
+            "source_snapshot_sha256": source_snapshot_sha256,
+            "stale_route_reports": stale_reports,
+            "legacy_authority_inputs": legacy_inputs,
+        }
+        if stale_reports:
+            result.update(
+                {
+                    "status": "STALE_ROUTE_TERMINAL",
+                    "classification": "stale_route",
+                    "queued": False,
+                    "pending": False,
+                    "recorded": False,
+                    "auditable": True,
+                    "stale_routes": stale_reports,
+                }
+            )
+        return result
     def plan_pr_action(
         self,
         pr_meta: Optional[Dict[str, Any]],
         has_pending_work: bool,
         current_head_sha: str,
+        *,
+        router_body: Optional[str] = None,
+        cutover_anchor: Optional[Mapping[str, Any]] = None,
+        source_comments: Optional[Sequence[Mapping[str, Any]]] = None,
     ) -> Dict[str, Any]:
         if not has_pending_work:
             return {"action": "NO_WORK", "reason": "no_work"}
@@ -244,6 +437,28 @@ class SourceWatchPlanner:
             return {"action": "REFUSE_FROZEN", "reason": "review_freeze_conflict"}
         if native_review_activity:
             return {"action": "REFUSE_FROZEN", "reason": "review_freeze"}
+        if parsed_meta.get("source_authority_mode") == "router_v1":
+            if router_body is None or source_comments is None:
+                return {"action": "REFUSE_AMBIGUOUS_OWNERSHIP", "reason": "router_authority_unavailable"}
+            try:
+                watch_result = self.plan_source_watch(
+                    router_body=router_body,
+                    source_comments=source_comments,
+                    router_revision=parsed_meta["router_revision"],
+                    source_generation=parsed_meta["source_generation"],
+                    source_issue_number=parsed_meta["source_issue_number"],
+                    source_watermark=parsed_meta["source_watermark"],
+                    source_snapshot_sha256=parsed_meta["source_snapshot_sha256"],
+                    cutover_anchor=cutover_anchor,
+                )
+            except ValueError:
+                return {"action": "REFUSE_AMBIGUOUS_OWNERSHIP", "reason": "invalid_router_authority"}
+            if watch_result["status"] == "STALE_ROUTE_TERMINAL":
+                return {
+                    "action": "REPORT_STALE_ROUTE",
+                    "reason": "stale_route",
+                    "status": watch_result,
+                }
         return {
             "action": "UPDATE_EXISTING_PR",
             "pr_number": pr_meta.get("number"),

@@ -367,10 +367,7 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 self.assertIn(strict_pr_route, block)
                 self.assertLess(block.index(canonical_base_route), block.index(strict_pr_route))
                 self.assertIn("fetch-depth: 0", workflow)
-                self.assertIn(
-                    'expected=$(printf \'%s\\n\' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)',
-                    block,
-                )
+                self.assertIn("Direct controller evaluation append route is retired", block)
                 self.assertIn(
                     'expected=$(printf \'%s\\n\' .github/workflows/ci.yml .github/workflows/public-safety.yml tests/test_controller_maintenance.py | sort)',
                     block,
@@ -684,21 +681,13 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 self.assertNotIn("--canonical-base-sha", historical_route)
                 self.assertIn(current_route, block)
 
-    def test_controller_evaluation_scope_is_exact_four_files(self):
-        required = {
-            "README.md",
-            "analysis/model-recommendation.json",
-            "evaluations.jsonl",
-            "scorecard.md",
-        }
+    def test_controller_evaluation_route_is_fail_closed(self):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             with self.subTest(workflow=relative):
                 workflow = (ROOT / relative).read_text(encoding="utf-8")
                 self.assertIn('"$HEAD_REF" == controller/evaluation-*', workflow)
-                self.assertIn('git diff --name-only "$BASE_SHA" "$HEAD_SHA"', workflow)
-                self.assertIn("legacy_context=true", workflow)
-                for path in required:
-                    self.assertIn(path, workflow)
+                self.assertIn("Direct controller evaluation append route is retired", workflow)
+                self.assertNotIn(".controller-evaluation-intake.json", workflow)
 
     def test_controller_maintenance_scope_is_exact_three_files(self):
         required = {
@@ -718,57 +707,31 @@ class TestControllerLedgerMaintenance(unittest.TestCase):
                 for path in forbidden:
                     self.assertNotIn(f"{path} | sort)", workflow)
 
-    def test_ci_contains_durable_controller_evaluation_transport(self):
+    def test_ci_does_not_contain_direct_controller_transport(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        self.assertIn("append-controller-evaluation:", workflow)
-        self.assertIn("startsWith(github.ref_name, 'controller/evaluation-')", workflow)
-        self.assertIn("startsWith(github.head_ref, 'controller/evaluation-')", workflow)
-        self.assertIn("github.event.action == 'opened'", workflow)
-        self.assertIn("github.actor != 'github-actions[bot]'", workflow)
-        self.assertIn("github.event.pull_request.head.sha || github.sha", workflow)
-        self.assertIn("github.head_ref || github.ref_name", workflow)
-        self.assertIn(".controller-evaluation-intake.json", workflow)
-        self.assertIn("controller intake weighted score mismatch", workflow)
-        self.assertIn("controller evaluation already recorded", workflow)
-        self.assertIn("python scripts/rebuild_views.py --check --base-ref", workflow)
-        self.assertIn("python scripts/validate_manifests.py --base-ref", workflow)
-        self.assertIn("python scripts/check_public_safety.py", workflow)
-        self.assertIn("git push origin HEAD:${TARGET_BRANCH}", workflow)
+        self.assertNotIn("append-controller-evaluation:", workflow)
+        self.assertNotIn(".controller-evaluation-intake.json", workflow)
+        self.assertNotIn("git push origin HEAD:${TARGET_BRANCH}", workflow)
+        self.assertIn("Direct controller evaluation append route is retired", workflow)
 
-    def test_transport_requires_exact_one_file_intake_and_exact_four_file_result(self):
+    def test_retired_transport_has_no_intake_contract(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        self.assertIn('git rev-list --count "$base"..HEAD', workflow)
-        self.assertIn('git diff --name-only "$base" HEAD', workflow)
-        self.assertIn('= ".controller-evaluation-intake.json"', workflow)
-        for path in (
-            "README.md",
-            "analysis/model-recommendation.json",
-            "evaluations.jsonl",
-            "scorecard.md",
-        ):
-            self.assertIn(path, workflow)
-        self.assertIn("intake_path.unlink()", workflow)
+        self.assertNotIn('= ".controller-evaluation-intake.json"', workflow)
+        self.assertNotIn("intake_path.unlink()", workflow)
 
-    def test_data_only_evaluation_delta_has_context_specific_test_gate(self):
+    def test_direct_evaluation_delta_is_rejected_before_suite_selection(self):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):
             with self.subTest(workflow=relative):
                 workflow = (ROOT / relative).read_text(encoding="utf-8")
-                self.assertIn("data_only_evaluation=false", workflow)
                 self.assertIn('"$HEAD_REF" == controller/evaluation-*', workflow)
-                self.assertIn('"$EVENT_NAME" == "push" && "$REF_NAME" == "main"', workflow)
-                self.assertIn("python -m unittest tests.test_controller_maintenance", workflow)
-                expected = "printf '%s\\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort"
-                self.assertIn(expected, workflow)
+                self.assertIn("Direct controller evaluation append route is retired", workflow)
+                self.assertNotIn("data_only_evaluation", workflow)
 
-    def test_transport_commits_before_final_receipt_validation_and_push(self):
+    def test_retired_transport_has_no_commit_or_push_side_effect(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        commit_index = workflow.index("git commit -m 'Append controller evaluation'")
-        receipt_index = workflow.rindex("python scripts/validate_receipts.py --mode pr --authority-sha HEAD")
-        clean_index = workflow.index('test -z "$(git status --porcelain)"')
-        push_index = workflow.index("git push origin HEAD:${TARGET_BRANCH}")
-        self.assertLess(commit_index, receipt_index)
-        self.assertLess(receipt_index, clean_index)
-        self.assertLess(clean_index, push_index)
+        self.assertNotIn("git commit -m 'Append controller evaluation'", workflow)
+        self.assertNotIn("git push origin HEAD:${TARGET_BRANCH}", workflow)
+        self.assertNotIn("Validate and append public-safe evaluation", workflow)
 
     def test_main_push_requires_frozen_receipt_bytes_unchanged(self):
         for relative in (".github/workflows/ci.yml", ".github/workflows/public-safety.yml"):

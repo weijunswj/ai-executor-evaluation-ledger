@@ -1,6 +1,6 @@
 name: Public safety
 
-# Controller evaluation intake is transformed only by the CI transport on its initial same-repository PR opening; this workflow validates the resulting canonical four-file head.
+# Direct controller evaluation append is retired; this workflow validates router/intake/processor outputs and canonical history.
 
 on:
   pull_request:
@@ -80,21 +80,9 @@ jobs:
           HEAD_SHA: ${{ steps.authority.outputs.head_sha }}
           BASE_SHA: ${{ steps.authority.outputs.base_sha }}
         run: |
-          data_only_evaluation=false
-          expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
           if [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
-            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
-            if [[ "$actual" == "$expected" ]]; then
-              data_only_evaluation=true
-            fi
-          elif [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]; then
-            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
-            if [[ "$actual" == "$expected" ]]; then
-              data_only_evaluation=true
-            fi
-          fi
-          if [[ "$data_only_evaluation" == true ]]; then
-            python -m unittest tests.test_controller_maintenance
+            printf '%s\n' 'Direct controller evaluation append route is retired; use router/intake/processor.' >&2
+            exit 1
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]] || [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" && "$BASE_SHA" == "da55c6ce1e3426b9b5eadfcb29fe41d8ce71e898" ]]; then
             schema_expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
             schema_actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
@@ -217,10 +205,8 @@ jobs:
             fi
             canonical_main_context=true
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == controller/evaluation-* ]]; then
-            expected=$(printf '%s\n' README.md analysis/model-recommendation.json evaluations.jsonl scorecard.md | sort)
-            actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)
-            test "$actual" = "$expected"
-            legacy_context=true
+            printf '%s\n' 'Direct controller evaluation append route is retired; use router/intake/processor.' >&2
+            exit 1
           elif [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" == "controller/ledger-maintenance-086-luna-evaluation-schema" ]]; then
             expected=$(printf '%s\n' .github/workflows/ci.yml .github/workflows/public-safety.yml migrations/luna-execution-setting-history-activation.json schema/evaluation.schema.json scripts/check_public_safety.py scripts/rebuild_views.py tests/test_controller_maintenance.py tests/test_migration.py | sort)
             actual=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort)

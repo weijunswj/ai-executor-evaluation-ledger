@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from pathlib import Path
 from unittest import mock
 
+from scripts.processor import router
 from scripts.processor.batch_processor import (
     ProcessBatchConfig,
     build_batch_candidate,
@@ -24,6 +25,7 @@ from scripts.processor.common import (
     git_tree_file_bindings,
     git_tree_manifest_sha256,
     sha256_bytes,
+    validate_batch_receipt_closure,
 )
 from scripts.processor.frozen_replay import FrozenReplayResult
 from scripts import seal_batch_receipt
@@ -48,6 +50,100 @@ FROZEN_RECEIPT_PATH = (
 FROZEN_EVALUATION_COUNT = 59
 FROZEN_EVALUATIONS_SHA256 = "387dfc1347189555ef91eabf767e62738f777b2e80b79f5378e95170df40cb64"
 
+
+def _v3_authority_fixture() -> dict:
+    anchor = {
+        "schema_version": 1,
+        "manifest_type": "ledger_router_cutover_anchor",
+        "authority_scope": "cutover_authority_only_no_admission_no_receipt_no_cleanup_no_rewrite",
+        "canonical_main_sha": "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d",
+        "router_revision": 3,
+        "legacy_generation": 0,
+        "legacy_issue_number": 142,
+        "final_watermark": 1,
+        "frozen_legacy_source_count": 1,
+        "frozen_legacy_source_snapshot_sha256": "a" * 64,
+        "successor_generation": 1,
+        "successor_issue_number": 1780,
+    }
+    record = {
+        "schema_version": 1,
+        "record_type": "ledger_router",
+        "router_revision": 4,
+        "cutover_state": "SUCCESSOR_ACTIVE",
+        "active_generation": 1,
+        "active_issue_number": 1780,
+        "legacy_generation": 0,
+        "legacy_issue_number": 142,
+        "legacy_segment_state": "retired",
+        "final_watermark": 1,
+        "predecessor_generation": 0,
+        "predecessor_issue_number": 142,
+        "successor_generation": 1,
+        "successor_issue_number": 1780,
+        "rotation_threshold": 500,
+        "cutover_anchor_sha256": router.cutover_anchor_sha256(anchor),
+    }
+    snapshot = "b" * 64
+    return {
+        "authority_mode": "router_v1",
+        "router_issue_number": 142,
+        "router_revision": 4,
+        "router_body_sha256": router.router_body_sha256(record),
+        "cutover_state": "SUCCESSOR_ACTIVE",
+        "cutover_anchor_sha256": record["cutover_anchor_sha256"],
+        "router_record": record,
+        "cutover_anchor": None,
+        "source_generation": 1,
+        "source_issue_number": 1780,
+        "source_comment_watermark": 1,
+        "source_snapshot_sha256": snapshot,
+    }
+
+
+def _v3_receipt_fixture() -> dict:
+    authority = _v3_authority_fixture()
+    body_hash = "c" * 64
+    timestamp = "2026-08-22T00:00:00Z"
+    binding = {
+        "comment_id": 1,
+        "body_sha256": body_hash,
+        "created_at": timestamp,
+        "updated_at": timestamp,
+        "outcome_code": "no_marker",
+        "evaluation_run_id": None,
+        "canonical_record_sha256": None,
+        "cleanup_eligible": False,
+    }
+    return {
+        "schema_version": 3,
+        "receipt_type": "batch",
+        "batch_id": "batch-v3-authority-a199",
+        "batch_mode": "initial",
+        "controller_run_id": "controller-v3-authority-a199",
+        "base_sha": "d" * 40,
+        "canonical_main_sha": "d" * 40,
+        "candidate_content_commit_sha": "e" * 40,
+        "pr_number": 151,
+        "source_issue_number": authority["source_issue_number"],
+        "receipt_issue_number": 143,
+        "source_authority": authority,
+        "source_comment_watermark": 1,
+        "full_queue_count": 1,
+        "latest_observed_comment_id": 1,
+        "latest_observed_update_time": timestamp,
+        "queue_snapshot_sha256": authority["source_snapshot_sha256"],
+        "source_comment_ids": [1],
+        "source_body_sha256": {"1": body_hash},
+        "selected_comment_ids": [1],
+        "selected_comment_count": 1,
+        "terminal_outcome_count": 1,
+        "terminal_outcomes": {"1": dict(binding)},
+        "admitted_run_ids": [],
+        "accepted_record_proofs": {},
+        "canonical_record_hashes": {},
+        "comment_bindings": [binding],
+    }
 
 class TestReceiptValidation(unittest.TestCase):
     def _current_and_terminal_shas(self):
@@ -141,6 +237,24 @@ class TestReceiptValidation(unittest.TestCase):
                 check=True,
             ).stdout.strip()
 
+    def test_v3_receipt_is_bound_to_sealed_router_authority(self):
+        receipt = _v3_receipt_fixture()
+        self.assertTrue(validate_batch_receipt_closure(receipt))
+        mutations = {
+            "router_revision": lambda value: value["source_authority"].update({"router_revision": 999}),
+            "source_issue": lambda value: value["source_authority"].update({"source_issue_number": 999}),
+            "generation": lambda value: value["source_authority"].update({"source_generation": 0}),
+            "snapshot": lambda value: value["source_authority"].update({"source_snapshot_sha256": "f" * 64}),
+            "anchor": lambda value: value["source_authority"].update({"cutover_anchor_sha256": "f" * 64}),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                changed = copy.deepcopy(receipt)
+                mutate(changed)
+                self.assertFalse(validate_batch_receipt_closure(changed))
+        arbitrary_issue = copy.deepcopy(receipt)
+        arbitrary_issue["source_issue_number"] = 999
+        self.assertFalse(validate_batch_receipt_closure(arbitrary_issue))
     def test_frozen_draft_migrates_without_identity_or_rejection_prose(self):
         tracked = json.loads(
             (
