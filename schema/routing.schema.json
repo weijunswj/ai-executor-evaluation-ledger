@@ -1,0 +1,203 @@
+{
+  "$defs": {
+    "gitSha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "nonNegativeInteger": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "positiveInteger": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "nullableNonNegativeInteger": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "nullablePositiveInteger": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "router": {
+      "additionalProperties": false,
+      "properties": {
+        "active_generation": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "active_issue_number": {
+          "$ref": "#/$defs/nullablePositiveInteger"
+        },
+        "cutover_anchor_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cutover_state": {
+          "enum": [
+            "LEGACY_ACTIVE",
+            "PREPARED",
+            "CUTOVER_COMMITTED",
+            "SUCCESSOR_ACTIVE",
+            "MIGRATION_VERIFIED"
+          ],
+          "type": "string"
+        },
+        "final_watermark": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "legacy_generation": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "legacy_issue_number": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "legacy_segment_state": {
+          "enum": [
+            "active",
+            "paused",
+            "frozen",
+            "retired"
+          ],
+          "type": "string"
+        },
+        "predecessor_generation": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "predecessor_issue_number": {
+          "$ref": "#/$defs/nullablePositiveInteger"
+        },
+        "record_type": {
+          "const": "ledger_router",
+          "type": "string"
+        },
+        "router_revision": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "rotation_threshold": {
+          "const": 500,
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "successor_generation": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "successor_issue_number": {
+          "$ref": "#/$defs/nullablePositiveInteger"
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "router_revision",
+        "cutover_state",
+        "active_generation",
+        "active_issue_number",
+        "legacy_generation",
+        "legacy_issue_number",
+        "legacy_segment_state",
+        "final_watermark",
+        "predecessor_generation",
+        "predecessor_issue_number",
+        "successor_generation",
+        "successor_issue_number",
+        "rotation_threshold",
+        "cutover_anchor_sha256"
+      ],
+      "type": "object"
+    },
+    "cutoverAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_scope": {
+          "const": "cutover_authority_only_no_admission_no_receipt_no_cleanup_no_rewrite",
+          "type": "string"
+        },
+        "canonical_main_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "final_watermark": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "frozen_legacy_source_count": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "frozen_legacy_source_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "legacy_generation": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "legacy_issue_number": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "manifest_type": {
+          "const": "ledger_router_cutover_anchor",
+          "type": "string"
+        },
+        "router_revision": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "successor_generation": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "successor_issue_number": {
+          "$ref": "#/$defs/positiveInteger"
+        }
+      },
+      "required": [
+        "schema_version",
+        "manifest_type",
+        "authority_scope",
+        "canonical_main_sha",
+        "router_revision",
+        "legacy_generation",
+        "legacy_issue_number",
+        "final_watermark",
+        "frozen_legacy_source_count",
+        "frozen_legacy_source_snapshot_sha256",
+        "successor_generation",
+        "successor_issue_number"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-executor-evaluation-ledger:routing:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/router"
+    },
+    {
+      "$ref": "#/$defs/cutoverAnchor"
+    }
+  ],
+  "title": "AI Executor Evaluation Ledger Router and Cutover Anchor Schema"
+}

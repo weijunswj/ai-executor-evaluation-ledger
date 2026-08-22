@@ -21,6 +21,48 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 3
+              }
+            },
+            "required": [
+              "schema_version"
+            ]
+          },
+          "then": {
+            "required": [
+              "source_authority"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 2
+              }
+            },
+            "required": [
+              "schema_version"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "source_authority"
+              ]
+            },
+            "properties": {
+              "source_issue_number": {
+                "const": 142,
+                "type": "integer"
+              }
+            }
+          }
         }
       ],
       "properties": {
@@ -113,7 +155,10 @@
           "type": "string"
         },
         "schema_version": {
-          "const": 2,
+          "enum": [
+            2,
+            3
+          ],
           "type": "integer"
         },
         "selected_comment_count": {
@@ -127,6 +172,48 @@
           },
           "type": "array",
           "uniqueItems": true
+        },
+        "source_authority": {
+          "additionalProperties": false,
+          "properties": {
+            "authority_mode": {
+              "const": "router_v1",
+              "type": "string"
+            },
+            "router_issue_number": {
+              "const": 142,
+              "type": "integer"
+            },
+            "router_revision": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "source_comment_watermark": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "source_generation": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "source_issue_number": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "source_snapshot_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "authority_mode",
+            "router_issue_number",
+            "router_revision",
+            "source_generation",
+            "source_issue_number",
+            "source_comment_watermark",
+            "source_snapshot_sha256"
+          ],
+          "type": "object"
         },
         "source_body_sha256": {
           "$ref": "#/$defs/commentHashMap"
@@ -144,7 +231,7 @@
           "type": "integer"
         },
         "source_issue_number": {
-          "const": 142,
+          "minimum": 1,
           "type": "integer"
         },
         "source_replay": {

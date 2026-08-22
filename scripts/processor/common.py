@@ -360,8 +360,41 @@ def safe_author_hash(login: Any) -> str:
 def validate_batch_receipt_closure(value: Any) -> bool:
     """Check the count, map, binding and terminal-outcome relationships in a v2 batch."""
 
-    if not isinstance(value, dict) or value.get("schema_version") != 2 or value.get("receipt_type") != "batch":
+    if not isinstance(value, dict) or value.get("schema_version") not in {2, 3} or value.get("receipt_type") != "batch":
         return False
+    if value["schema_version"] == 2:
+        if value.get("source_issue_number") != 142 or value.get("source_authority") is not None:
+            return False
+    else:
+        authority = value.get("source_authority")
+        required_authority = {
+            "authority_mode",
+            "router_issue_number",
+            "router_revision",
+            "source_generation",
+            "source_issue_number",
+            "source_comment_watermark",
+            "source_snapshot_sha256",
+        }
+        if (
+            not isinstance(authority, dict)
+            or set(authority) != required_authority
+            or authority.get("authority_mode") != "router_v1"
+            or authority.get("router_issue_number") != 142
+            or not isinstance(authority.get("router_revision"), int)
+            or isinstance(authority.get("router_revision"), bool)
+            or authority.get("router_revision") <= 0
+            or not isinstance(authority.get("source_generation"), int)
+            or isinstance(authority.get("source_generation"), bool)
+            or authority.get("source_generation") < 0
+            or authority.get("source_issue_number") != value.get("source_issue_number")
+            or not isinstance(authority.get("source_comment_watermark"), int)
+            or isinstance(authority.get("source_comment_watermark"), bool)
+            or authority.get("source_comment_watermark") != value.get("source_comment_watermark")
+            or not valid_sha256(authority.get("source_snapshot_sha256"))
+            or authority.get("source_snapshot_sha256") != value.get("queue_snapshot_sha256")
+        ):
+            return False
     source_ids = value.get("source_comment_ids")
     source_hashes = value.get("source_body_sha256")
     selected_ids = value.get("selected_comment_ids")

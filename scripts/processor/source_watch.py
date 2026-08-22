@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from scripts.processor.common import (
     reject_duplicate_json_keys,
+    valid_sha256,
     valid_git_sha,
     valid_identifier,
 )
@@ -95,7 +96,15 @@ def validate_metadata(metadata: Dict[str, Any]) -> None:
         "receipt_issue_number",
         "dry_run",
     }
-    allowed = required | {"review_freeze_state"}
+    allowed = required | {
+        "review_freeze_state",
+        "source_authority_mode",
+        "router_issue_number",
+        "router_revision",
+        "source_generation",
+        "source_watermark",
+        "source_snapshot_sha256",
+    }
     if set(metadata) - allowed or not required.issubset(metadata):
         raise ValueError("invalid_source_watch_metadata")
     if metadata["schema_version"] != 1 or metadata["record_type"] != METADATA_RECORD_TYPE:
@@ -127,6 +136,78 @@ def validate_metadata(metadata: Dict[str, Any]) -> None:
         raise ValueError("invalid_source_watch_metadata")
 
 
+    router_fields = {
+        "source_authority_mode",
+        "router_issue_number",
+        "router_revision",
+        "source_generation",
+        "source_watermark",
+        "source_snapshot_sha256",
+    }
+    if router_fields & set(metadata):
+        if (
+            metadata.get("source_authority_mode") != "router_v1"
+            or router_fields - set(metadata)
+            or metadata.get("router_issue_number") != 142
+            or not isinstance(metadata.get("router_revision"), int)
+            or isinstance(metadata.get("router_revision"), bool)
+            or metadata.get("router_revision") <= 0
+            or not isinstance(metadata.get("source_generation"), int)
+            or isinstance(metadata.get("source_generation"), bool)
+            or metadata.get("source_generation") < 0
+            or not isinstance(metadata.get("source_watermark"), int)
+            or isinstance(metadata.get("source_watermark"), bool)
+            or metadata.get("source_watermark") < 0
+            or not valid_sha256(metadata.get("source_snapshot_sha256"))
+            or (metadata.get("source_generation") == 0 and metadata.get("source_issue_number") != 142)
+            or (metadata.get("source_generation") > 0 and metadata.get("source_issue_number") == 142)
+        ):
+            raise ValueError("invalid_source_watch_metadata")
+def stale_route_report(
+    *,
+    router_revision: int,
+    source_generation: int,
+    source_issue_number: int,
+    source_watermark: int,
+    comment_id: int,
+    ) -> Dict[str, Any]:
+    if (
+        not isinstance(router_revision, int)
+        or isinstance(router_revision, bool)
+        or router_revision <= 0
+        or not isinstance(source_generation, int)
+        or isinstance(source_generation, bool)
+        or source_generation < 0
+        or not isinstance(source_issue_number, int)
+        or isinstance(source_issue_number, bool)
+        or source_issue_number <= 0
+        or not isinstance(source_watermark, int)
+        or isinstance(source_watermark, bool)
+        or source_watermark < 0
+        or not isinstance(comment_id, int)
+        or isinstance(comment_id, bool)
+        or comment_id <= 0
+    ):
+        raise ValueError("invalid_stale_route_report")
+    if comment_id <= source_watermark:
+        raise ValueError("not_stale_route")
+    return {
+        "classification": "stale_route",
+        "router_revision": router_revision,
+        "source_generation": source_generation,
+        "source_issue_number": source_issue_number,
+        "source_watermark": source_watermark,
+        "queued": False,
+        "pending": False,
+        "recorded": False,
+        "processor_receipt": False,
+        "canonical": False,
+        "source_excluded": True,
+        "retained": True,
+        "auditable": True,
+        "disposition_required": False,
+        "authority": "router_revision_plus_retired_segment_boundary",
+    }
 def _complete_connection_nodes(value: Any) -> Optional[list[Any]]:
     """Validate one fully aggregated native GraphQL connection."""
 

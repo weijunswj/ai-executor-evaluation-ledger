@@ -861,6 +861,172 @@
       ],
       "type": "object"
     },
+    "historicalDirectBypassReconciliation": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_scope": {
+          "const": "historical_reconciliation_only_no_admission_no_receipt_no_cleanup_no_rewrite",
+          "type": "string"
+        },
+        "canonical_base_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "entries": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "canonical_entry_commit_sha": {
+                "$ref": "#/$defs/gitSha"
+              },
+              "canonical_record_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "evaluation_run_id": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$",
+                "type": "string"
+              },
+              "processor_receipt_status": {
+                "const": "absent_not_applicable",
+                "type": "string"
+              },
+              "pull_request_number": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "reconciliation_status": {
+                "const": "canonical_existing_legacy_direct_route",
+                "type": "string"
+              },
+              "route": {
+                "const": "legacy_direct_controller_evaluation",
+                "type": "string"
+              },
+              "source_comment_status": {
+                "const": "absent_at_reconciliation_snapshot",
+                "type": "string"
+              }
+            },
+            "required": [
+              "evaluation_run_id",
+              "canonical_record_sha256",
+              "canonical_entry_commit_sha",
+              "pull_request_number",
+              "route",
+              "source_comment_status",
+              "processor_receipt_status",
+              "reconciliation_status"
+            ],
+            "type": "object"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        },
+        "expected_entry_count": {
+          "const": 6,
+          "type": "integer"
+        },
+        "manifest_type": {
+          "const": "historical_direct_controller_bypass_reconciliation",
+          "type": "string"
+        },
+        "reconciled_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "record_hash_spec": {
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {
+              "const": "SHA-256",
+              "type": "string"
+            },
+            "byte_representation": {
+              "const": "exact_stored_UTF-8_evaluations.jsonl_line_including_terminal_LF",
+              "type": "string"
+            },
+            "json_reserialization": {
+              "const": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "algorithm",
+            "byte_representation",
+            "json_reserialization"
+          ],
+          "type": "object"
+        },
+        "receipt_snapshot": {
+          "$ref": "#/$defs/reconciliationSnapshot"
+        },
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "source_snapshot": {
+          "$ref": "#/$defs/reconciliationSnapshot"
+        }
+      },
+      "required": [
+        "schema_version",
+        "manifest_type",
+        "authority_scope",
+        "reconciled_at",
+        "canonical_base_sha",
+        "expected_entry_count",
+        "record_hash_spec",
+        "source_snapshot",
+        "receipt_snapshot",
+        "entries"
+      ],
+      "type": "object"
+    },
+    "reconciliationSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "comment_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "issue_number": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "matching_expected_run_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "max_comment_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_comment_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "watermark": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "issue_number",
+        "comment_count",
+        "min_comment_id",
+        "max_comment_id",
+        "watermark",
+        "snapshot_sha256",
+        "matching_expected_run_ids"
+      ],
+      "type": "object"
+    },
     "opaqueSubject": {
       "pattern": "^subject-[0-9a-f]{64}$",
       "type": "string"
@@ -1084,6 +1250,9 @@
     },
     {
       "$ref": "#/$defs/historicalAdapter"
+    },
+    {
+      "$ref": "#/$defs/historicalDirectBypassReconciliation"
     },
     {
       "$ref": "#/$defs/preservation"

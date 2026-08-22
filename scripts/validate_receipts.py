@@ -32,6 +32,7 @@ from scripts.processor.batch_processor import (
     ISSUE_142_API_URL,
     ProcessBatchConfig,
     build_batch_candidate,
+    fetch_live_issue_comments,
     fetch_live_142_comments,
 )
 from scripts.processor.frozen_replay import replay_frozen_from_receipt
@@ -363,7 +364,7 @@ def _parse_batch(raw: bytes, schema: Mapping[str, Any]) -> dict[str, Any]:
         )
     except (UnicodeDecodeError, ValueError, ReceiptValidationError):
         raise ReceiptValidationError("receipt_invalid_json")
-    if not isinstance(value, dict) or value.get("schema_version") != 2 or _canonical_document_bytes(value) != raw:
+    if not isinstance(value, dict) or value.get("schema_version") not in {2, 3} or _canonical_document_bytes(value) != raw:
         raise ReceiptValidationError("receipt_legacy_or_invalid")
     try:
         jsonschema.Draft202012Validator(
@@ -821,7 +822,12 @@ def _validate_github_intake_source_replay(
     seal_sha: str,
 ) -> dict[str, int]:
     try:
-        complete_comments = fetch_live_142_comments(root)
+        source_fetcher = fetch_live_142_comments
+        if receipt.get("schema_version") == 3:
+            source_fetcher = lambda repository_root: fetch_live_issue_comments(
+                receipt["source_issue_number"], repository_root
+            )
+        complete_comments = source_fetcher(root)
         complete_ids = [int(item["id"]) for item in complete_comments]
         watermark = receipt["source_comment_watermark"]
         if (
@@ -904,6 +910,11 @@ def _validate_github_intake_source_replay(
             repository_root=root,
             candidate_content_commit_sha=candidate_sha,
             source_comment_watermark=receipt["source_comment_watermark"],
+            source_authority_mode="router_v1" if receipt.get("schema_version") == 3 else "legacy_v2",
+            router_issue_number=receipt.get("source_authority", {}).get("router_issue_number"),
+            router_revision=receipt.get("source_authority", {}).get("router_revision"),
+            source_generation=receipt.get("source_authority", {}).get("source_generation"),
+            source_snapshot_sha256=receipt.get("source_authority", {}).get("source_snapshot_sha256"),
         )
         candidate_files, evidence = build_batch_candidate(
             config,

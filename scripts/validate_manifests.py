@@ -37,6 +37,7 @@ MANIFEST_PATHS = {
     "correction-migration-manifest.json": "correction_migration_manifest",
     "evaluation-protocol-v1.json": "evaluation_protocol_v1",
     "historical-intake-adapter-manifest.json": "historical_intake_adapter_manifest",
+    "historical-direct-controller-bypass-reconciliation.json": "historical_direct_controller_bypass_reconciliation",
     "preservation-manifest.json": "canonical_base_preservation_manifest",
     "reasoning-scrub-receipt.json": "reasoning_scrub_receipt",
     "unicode-identity-history-activation.json": "unicode_identity_history_activation",
@@ -44,6 +45,7 @@ MANIFEST_PATHS = {
 G3_MANIFESTS = {
     "base-model-v2.json",
     "correction-migration-manifest.json",
+    "historical-direct-controller-bypass-reconciliation.json",
     "reasoning-scrub-receipt.json",
 }
 LEGACY_MANIFESTS = set(MANIFEST_PATHS) - G3_MANIFESTS
@@ -73,6 +75,108 @@ CANDIDATE_ALLOWED_FILES = [
     "tests/test_migration.py",
     "tests/test_receipt_validation.py",
 ]
+HISTORICAL_BYPASS_ENTRIES = (
+    {
+        "evaluation_run_id": "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
+        "canonical_record_sha256": "a0bdf428c012bae1d7db1803050413e3c8b24b44759bd5d5b49945150a263a2f",
+        "canonical_entry_commit_sha": "58fdb089df2e85f9d3358d7ed68bd4e963e29ebc",
+        "pull_request_number": 168,
+        "route": "legacy_direct_controller_evaluation",
+        "source_comment_status": "absent_at_reconciliation_snapshot",
+        "processor_receipt_status": "absent_not_applicable",
+        "reconciliation_status": "canonical_existing_legacy_direct_route",
+    },
+    {
+        "evaluation_run_id": "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+        "canonical_record_sha256": "cd67b187a8b879a4059e951cf30c0ed7253ff5fc02cb13fca9cf02dc2cec1178",
+        "canonical_entry_commit_sha": "e088fb2ff1bc71be328b0d23c3e2564a4cbaa29e",
+        "pull_request_number": 169,
+        "route": "legacy_direct_controller_evaluation",
+        "source_comment_status": "absent_at_reconciliation_snapshot",
+        "processor_receipt_status": "absent_not_applicable",
+        "reconciliation_status": "canonical_existing_legacy_direct_route",
+    },
+    {
+        "evaluation_run_id": "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+        "canonical_record_sha256": "58c73454fae177cf685e2fcb0965102ede0282e53340f5f2765c36da7ddf55d5",
+        "canonical_entry_commit_sha": "d49c9029e3bc68365ce7fc2ead17faae5c094ab3",
+        "pull_request_number": 172,
+        "route": "legacy_direct_controller_evaluation",
+        "source_comment_status": "absent_at_reconciliation_snapshot",
+        "processor_receipt_status": "absent_not_applicable",
+        "reconciliation_status": "canonical_existing_legacy_direct_route",
+    },
+    {
+        "evaluation_run_id": "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
+        "canonical_record_sha256": "a7762721a45ae65fbf800f31d94ab1b42758dda5ab2bf44b615a39d5df40b07f",
+        "canonical_entry_commit_sha": "464e98dfb08e729c15662834d91d4f1e0e43e2ad",
+        "pull_request_number": 173,
+        "route": "legacy_direct_controller_evaluation",
+        "source_comment_status": "absent_at_reconciliation_snapshot",
+        "processor_receipt_status": "absent_not_applicable",
+        "reconciliation_status": "canonical_existing_legacy_direct_route",
+    },
+    {
+        "evaluation_run_id": "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
+        "canonical_record_sha256": "5a320e42016677bcd4183e492b9e47611a3288c52ce3f4c6e6a88f86d9a78837",
+        "canonical_entry_commit_sha": "f01bab84d08ac3cfc6d138a96a2dcaebd6109ccb",
+        "pull_request_number": 175,
+        "route": "legacy_direct_controller_evaluation",
+        "source_comment_status": "absent_at_reconciliation_snapshot",
+        "processor_receipt_status": "absent_not_applicable",
+        "reconciliation_status": "canonical_existing_legacy_direct_route",
+    },
+    {
+        "evaluation_run_id": "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
+        "canonical_record_sha256": "44ee850bd79d4301ade550a4ebdd307cd4371f9fc67332fc87263357e56886c8",
+        "canonical_entry_commit_sha": "38891edbfc7bce7bcade8cbd1f399af17da218a1",
+        "pull_request_number": 176,
+        "route": "legacy_direct_controller_evaluation",
+        "source_comment_status": "absent_at_reconciliation_snapshot",
+        "processor_receipt_status": "absent_not_applicable",
+        "reconciliation_status": "canonical_existing_legacy_direct_route",
+    },
+)
+HISTORICAL_BYPASS_RUN_IDS = frozenset(entry["evaluation_run_id"] for entry in HISTORICAL_BYPASS_ENTRIES)
+HISTORICAL_BYPASS_MANIFEST_PATH = "historical-direct-controller-bypass-reconciliation.json"
+HISTORICAL_BYPASS_RECONCILED_AT = "2026-08-22T06:52:02Z"
+HISTORICAL_BYPASS_SOURCE_SNAPSHOT = {
+    "issue_number": 142,
+    "comment_count": 874,
+    "min_comment_id": 5084152024,
+    "max_comment_id": 5374312204,
+    "watermark": 5374312204,
+    "snapshot_sha256": "b9252b5f38ad527410943bb35bb6d5baecb961af2e14f0f8e174eb0c6f011478",
+    "matching_expected_run_ids": [],
+}
+HISTORICAL_BYPASS_RECEIPT_SNAPSHOT = {
+    "issue_number": 143,
+    "comment_count": 1,
+    "min_comment_id": 5372948110,
+    "max_comment_id": 5372948110,
+    "watermark": 5372948110,
+    "snapshot_sha256": "f761cea53baf10b95f20cb68293975a945163a0409939d681e09f0c9881afd99",
+    "matching_expected_run_ids": [],
+}
+
+
+def _historical_bypass_manifest() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "manifest_type": "historical_direct_controller_bypass_reconciliation",
+        "authority_scope": "historical_reconciliation_only_no_admission_no_receipt_no_cleanup_no_rewrite",
+        "reconciled_at": HISTORICAL_BYPASS_RECONCILED_AT,
+        "canonical_base_sha": "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d",
+        "expected_entry_count": 6,
+        "record_hash_spec": {
+            "algorithm": "SHA-256",
+            "byte_representation": "exact_stored_UTF-8_evaluations.jsonl_line_including_terminal_LF",
+            "json_reserialization": False,
+        },
+        "source_snapshot": dict(HISTORICAL_BYPASS_SOURCE_SNAPSHOT),
+        "receipt_snapshot": dict(HISTORICAL_BYPASS_RECEIPT_SNAPSHOT),
+        "entries": [dict(entry) for entry in HISTORICAL_BYPASS_ENTRIES],
+    }
 
 
 
@@ -699,7 +803,7 @@ def expected_manifests_for_bytes(
         "removed_correction_ids": [removed_subject],
         "candidate_record_count": len(final_rows),
     }
-    return {"base-model-v2.json": base_manifest, "correction-migration-manifest.json": correction_manifest, "reasoning-scrub-receipt.json": reasoning_manifest, **_legacy_manifests(root)}
+    return {"base-model-v2.json": base_manifest, "correction-migration-manifest.json": correction_manifest, "historical-direct-controller-bypass-reconciliation.json": _historical_bypass_manifest(), "reasoning-scrub-receipt.json": reasoning_manifest, **_legacy_manifests(root)}
 
 
 WITHDRAWN_IDS, REDACTION_IDS, SCORE_VALUES, REPLACEMENTS, REASONING_ONLY_REMOVED = _public_bindings(ROOT)
@@ -915,6 +1019,105 @@ def _validate_future_candidate(
         - len(base_disposition_records),
     }
 
+def _contains_historical_run_id(value: Any, run_ids: frozenset[str]) -> bool:
+    if isinstance(value, str):
+        return value in run_ids
+    if isinstance(value, dict):
+        return any(_contains_historical_run_id(child, run_ids) for child in value.values())
+    if isinstance(value, list):
+        return any(_contains_historical_run_id(child, run_ids) for child in value)
+    return False
+
+
+def _historical_bypass_jsonl_values(raw: bytes) -> list[Any]:
+    values: list[Any] = []
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        try:
+            values.append(
+                json.loads(
+                    line.decode("utf-8", errors="strict"),
+                    object_pairs_hook=_duplicate_rejecting_pairs,
+                    parse_constant=_reject_constant,
+                )
+            )
+        except (UnicodeDecodeError, ValueError):
+            raise ManifestValidationError("historical_bypass_evidence_invalid")
+    return values
+
+
+def _historical_bypass_receipt_scan(root: Path) -> None:
+    receipts_root = root / "ledger" / "receipts"
+    if not receipts_root.exists():
+        raise ManifestValidationError("historical_bypass_receipts_unavailable")
+    for path in receipts_root.rglob("*.json"):
+        try:
+            value = _parse_json(path.read_bytes())
+        except (OSError, ManifestValidationError):
+            raise ManifestValidationError("historical_bypass_receipt_invalid")
+        if _contains_historical_run_id(value, HISTORICAL_BYPASS_RUN_IDS):
+            raise ManifestValidationError("historical_bypass_receipt_present")
+
+
+def _historical_bypass_first_commit_check(root: Path, entry: Mapping[str, Any], line: bytes) -> None:
+    commit = entry["canonical_entry_commit_sha"]
+    committed_raw = _git_object(root, commit, "evaluations.jsonl")
+    committed_lines = [candidate for candidate in committed_raw.splitlines(keepends=True) if candidate.strip()]
+    if sum(candidate == line for candidate in committed_lines) != 1:
+        raise ManifestValidationError("historical_bypass_commit_record_mismatch")
+    result = subprocess.run(
+        ["git", "rev-list", "--parents", "-n", "1", commit],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    parents = result.stdout.strip().split()
+    if result.returncode != 0 or len(parents) != 2 or parents[0] != commit:
+        raise ManifestValidationError("historical_bypass_commit_topology_invalid")
+    parent_raw = _git_object(root, parents[1], "evaluations.jsonl")
+    if any(candidate == line for candidate in parent_raw.splitlines(keepends=True)):
+        raise ManifestValidationError("historical_bypass_not_first_commit")
+
+
+def _validate_historical_bypass_authority(
+    root: Path,
+    final_raw: bytes,
+    dispositions_raw: bytes,
+    actual_manifest: Mapping[str, Any],
+) -> None:
+    expected = _historical_bypass_manifest()
+    if dict(actual_manifest) != expected:
+        raise ManifestValidationError("historical_bypass_manifest_mismatch")
+    if expected["canonical_base_sha"] != "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d":
+        raise ManifestValidationError("historical_bypass_base_mismatch")
+    canonical_raw = _git_object(root, expected["canonical_base_sha"], "evaluations.jsonl")
+    canonical_dispositions = _git_object(root, expected["canonical_base_sha"], "ledger/dispositions.jsonl")
+    records = _records(canonical_raw)
+    lines = [line for line in canonical_raw.splitlines(keepends=True) if line.strip()]
+    if len(records) != len(lines):
+        raise ManifestValidationError("historical_bypass_line_binding_invalid")
+    for entry in HISTORICAL_BYPASS_ENTRIES:
+        matching = [
+            (record, line)
+            for record, line in zip(records, lines)
+            if record.get("run_id") == entry["evaluation_run_id"]
+        ]
+        if len(matching) != 1:
+            raise ManifestValidationError("historical_bypass_duplicate_or_missing_row")
+        record, line = matching[0]
+        if _sha256(line) != entry["canonical_record_sha256"] or not line.endswith(b"\n"):
+            raise ManifestValidationError("historical_bypass_raw_line_hash_mismatch")
+        if not isinstance(record, dict) or record.get("run_id") != entry["evaluation_run_id"]:
+            raise ManifestValidationError("historical_bypass_identity_mismatch")
+        _historical_bypass_first_commit_check(root, entry, line)
+    if len({entry["evaluation_run_id"] for entry in HISTORICAL_BYPASS_ENTRIES}) != 6:
+        raise ManifestValidationError("historical_bypass_entry_count_invalid")
+    if _contains_historical_run_id(_historical_bypass_jsonl_values(canonical_dispositions), HISTORICAL_BYPASS_RUN_IDS):
+        raise ManifestValidationError("historical_bypass_disposition_present")
+    _historical_bypass_receipt_scan(root)
+
 
 def validate_all(
     root: Path = ROOT,
@@ -935,6 +1138,12 @@ def validate_all(
     except (OSError, ManifestValidationError):
         raise ManifestValidationError("manifest_unavailable")
     validate_manifest_documents(actual, expected, _schema(root))
+    _validate_historical_bypass_authority(
+        root,
+        locked_evaluations,
+        locked_dispositions,
+        actual[HISTORICAL_BYPASS_MANIFEST_PATH],
+    )
     correction_evidence = validate_correction_records(
         root,
         final_raw=locked_evaluations,

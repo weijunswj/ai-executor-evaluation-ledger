@@ -218,6 +218,8 @@ class ProductionChainFixture(unittest.TestCase):
             for relative in (
                 "scripts/rebuild_views.py",
                 "scripts/validate_manifests.py",
+                "schema/manifest.schema.json",
+                "migrations/historical-direct-controller-bypass-reconciliation.json",
             ):
                 shutil.copy2(ROOT / relative, root / relative)
             yield root

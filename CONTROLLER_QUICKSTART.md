@@ -4,14 +4,18 @@ Use this sequence for every executor result.
 
 ## One source of truth
 
-Append exactly one new JSON object as one new final line in `evaluations.jsonl`.
+The permanent router/index is GitHub issue #142 plus its legacy segment-0. Successor intake segments are bounded operational issues, not lifecycle children.
 
-Do not:
+For every future evaluation:
 
-- rewrite or delete an existing evaluation line;
-- replace the whole JSONL file with a partial copy;
-- edit the generated score tables or detailed-run sections by hand;
-- instruct the evaluated executor to touch this repository.
+- read and parse the byte-zero `<!-- ledger-routing:v1 -->` object;
+- record `router_revision`, `active_generation`, `active_issue_number`, source watermark and source snapshot;
+- post exactly one intake to the declared active target;
+- read the created comment back, reread #142, and compare revision/generation/target.
+
+A successful GitHub write is not queued or canonical by itself. A stale-generation comment is `stale_route`, retained and auditable, excluded from source, and never silently pending. Do not fall back to #142 after cutover. Retry only after the stale first comment is deterministically ineligible; an exact processor receipt, not comment status, proves recording.
+
+The direct `.controller-evaluation-intake.json` and `controller/evaluation-*` append route is retired and fail closed. Maintenance-controller branches remain available for unrelated maintenance.
 
 ## Required fields
 
@@ -54,14 +58,16 @@ Never count ledger-pending or in-flight work as a formal run. If several reports
 
 ## Web-controller workflow
 
-1. Create a branch named `controller/ledger-<short-purpose>` from current `main`.
-2. Append the new JSONL line only, or append every reviewed ledger-pending line when reconciling a backlog.
-3. The `Rebuild ledger views` workflow regenerates `README.md` and `scorecard.md` on the controller branch.
-4. Update `model-policy.md` only when the evidence changes the safe task boundary.
-5. Open a pull request.
-6. Merge only after `Public safety` passes. It verifies disclosure safety, append-only JSONL and generated-view consistency.
-7. Fetch `main` after merge and verify that the expected run IDs appear and the formal-run count increased by the number of appended evaluation records.
-8. After merge, tell the user:
+1. Create or use a controller maintenance branch from current `main`; evaluation append branches are retired.
+2. Immediately read #142 and resolve one exact router revision, generation and active issue.
+3. Bind the intake and source snapshot to that authority; never silently hardcode #142 after cutover.
+4. Post exactly one intake to the declared active target, then read back the exact comment.
+5. Reread #142. If revision, generation or target changed, classify the first success as stale/authority-changed, never queued; do not optimistically retry.
+6. A retry is permitted only after the stale first comment is deterministically ineligible for canonical admission and duplicate identity handling is fail closed.
+7. The `Rebuild ledger views` workflow regenerates `README.md` and `scorecard.md` on the maintenance branch; open a pull request for the router/intake/processor path.
+8. Merge only after `Public safety` and receipt/replay validation pass.
+9. Fetch `main` after merge and verify exact run IDs, router generation and processor receipt authority.
+10. After merge, tell the user:
 
 ```text
 Ledger appended: <provider> | <canonical-base-model> | <run-id> | <verdict> | <score>/5

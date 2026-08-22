@@ -1,0 +1,93 @@
+{
+  "authority_scope": "historical_reconciliation_only_no_admission_no_receipt_no_cleanup_no_rewrite",
+  "canonical_base_sha": "d38852a98b630bf1bd39ce62bf8e5d1e2921f39d",
+  "entries": [
+    {
+      "canonical_entry_commit_sha": "58fdb089df2e85f9d3358d7ed68bd4e963e29ebc",
+      "canonical_record_sha256": "a0bdf428c012bae1d7db1803050413e3c8b24b44759bd5d5b49945150a263a2f",
+      "evaluation_run_id": "2026-08-11-ledger-pr156-already-recorded-binding-amendment-082",
+      "processor_receipt_status": "absent_not_applicable",
+      "pull_request_number": 168,
+      "reconciliation_status": "canonical_existing_legacy_direct_route",
+      "route": "legacy_direct_controller_evaluation",
+      "source_comment_status": "absent_at_reconciliation_snapshot"
+    },
+    {
+      "canonical_entry_commit_sha": "e088fb2ff1bc71be328b0d23c3e2564a4cbaa29e",
+      "canonical_record_sha256": "cd67b187a8b879a4059e951cf30c0ed7253ff5fc02cb13fca9cf02dc2cec1178",
+      "evaluation_run_id": "2026-08-12-ledger-pr156-f1-prefix-final-g3-105",
+      "processor_receipt_status": "absent_not_applicable",
+      "pull_request_number": 169,
+      "reconciliation_status": "canonical_existing_legacy_direct_route",
+      "route": "legacy_direct_controller_evaluation",
+      "source_comment_status": "absent_at_reconciliation_snapshot"
+    },
+    {
+      "canonical_entry_commit_sha": "d49c9029e3bc68365ce7fc2ead17faae5c094ab3",
+      "canonical_record_sha256": "58c73454fae177cf685e2fcb0965102ede0282e53340f5f2765c36da7ddf55d5",
+      "evaluation_run_id": "2026-08-13-ledger-pr156-f1-two-test-debt-final-g3-106",
+      "processor_receipt_status": "absent_not_applicable",
+      "pull_request_number": 172,
+      "reconciliation_status": "canonical_existing_legacy_direct_route",
+      "route": "legacy_direct_controller_evaluation",
+      "source_comment_status": "absent_at_reconciliation_snapshot"
+    },
+    {
+      "canonical_entry_commit_sha": "464e98dfb08e729c15662834d91d4f1e0e43e2ad",
+      "canonical_record_sha256": "a7762721a45ae65fbf800f31d94ab1b42758dda5ab2bf44b615a39d5df40b07f",
+      "evaluation_run_id": "2026-08-13-ledger-pr156-f1-expanded-test-debt-final-g3-107",
+      "processor_receipt_status": "absent_not_applicable",
+      "pull_request_number": 173,
+      "reconciliation_status": "canonical_existing_legacy_direct_route",
+      "route": "legacy_direct_controller_evaluation",
+      "source_comment_status": "absent_at_reconciliation_snapshot"
+    },
+    {
+      "canonical_entry_commit_sha": "f01bab84d08ac3cfc6d138a96a2dcaebd6109ccb",
+      "canonical_record_sha256": "5a320e42016677bcd4183e492b9e47611a3288c52ce3f4c6e6a88f86d9a78837",
+      "evaluation_run_id": "2026-08-13-ledger-pr156-f1-receipt-contract-final-g3-108",
+      "processor_receipt_status": "absent_not_applicable",
+      "pull_request_number": 175,
+      "reconciliation_status": "canonical_existing_legacy_direct_route",
+      "route": "legacy_direct_controller_evaluation",
+      "source_comment_status": "absent_at_reconciliation_snapshot"
+    },
+    {
+      "canonical_entry_commit_sha": "38891edbfc7bce7bcade8cbd1f399af17da218a1",
+      "canonical_record_sha256": "44ee850bd79d4301ade550a4ebdd307cd4371f9fc67332fc87263357e56886c8",
+      "evaluation_run_id": "2026-08-13-ledger-pr156-f1-receipt-contract-public-safety-final-g3-109",
+      "processor_receipt_status": "absent_not_applicable",
+      "pull_request_number": 176,
+      "reconciliation_status": "canonical_existing_legacy_direct_route",
+      "route": "legacy_direct_controller_evaluation",
+      "source_comment_status": "absent_at_reconciliation_snapshot"
+    }
+  ],
+  "expected_entry_count": 6,
+  "manifest_type": "historical_direct_controller_bypass_reconciliation",
+  "receipt_snapshot": {
+    "comment_count": 1,
+    "issue_number": 143,
+    "matching_expected_run_ids": [],
+    "max_comment_id": 5372948110,
+    "min_comment_id": 5372948110,
+    "snapshot_sha256": "f761cea53baf10b95f20cb68293975a945163a0409939d681e09f0c9881afd99",
+    "watermark": 5372948110
+  },
+  "reconciled_at": "2026-08-22T06:52:02Z",
+  "record_hash_spec": {
+    "algorithm": "SHA-256",
+    "byte_representation": "exact_stored_UTF-8_evaluations.jsonl_line_including_terminal_LF",
+    "json_reserialization": false
+  },
+  "schema_version": 1,
+  "source_snapshot": {
+    "comment_count": 874,
+    "issue_number": 142,
+    "matching_expected_run_ids": [],
+    "max_comment_id": 5374312204,
+    "min_comment_id": 5084152024,
+    "snapshot_sha256": "b9252b5f38ad527410943bb35bb6d5baecb961af2e14f0f8e174eb0c6f011478",
+    "watermark": 5374312204
+  }
+}

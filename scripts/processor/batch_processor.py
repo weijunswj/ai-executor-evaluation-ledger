@@ -98,6 +98,11 @@ class ProcessBatchConfig:
     review_state: Optional[str] = None
     candidate_content_commit_sha: Optional[str] = None
     source_comment_watermark: Optional[int] = None
+    source_authority_mode: str = "legacy_v2"
+    router_issue_number: Optional[int] = None
+    router_revision: Optional[int] = None
+    source_generation: Optional[int] = None
+    source_snapshot_sha256: Optional[str] = None
 
 
 CANDIDATE_COMMIT_AUTHORITY_MARKER = "ledger-batch-candidate:v1"
@@ -107,6 +112,13 @@ CANDIDATE_COMMIT_AUTHORITY_KEYS = (
     "base_sha",
     "source_comment_watermark",
     "queue_snapshot_sha256",
+)
+ROUTER_CANDIDATE_COMMIT_AUTHORITY_KEYS = (
+    "router_issue_number",
+    "router_revision",
+    "source_generation",
+    "source_issue_number",
+    "source_snapshot_sha256",
 )
 
 
@@ -169,9 +181,17 @@ def candidate_commit_authority_message(
         "source_comment_watermark": str(watermark),
         "queue_snapshot_sha256": queue_snapshot_sha256,
     }
+    authority_keys = CANDIDATE_COMMIT_AUTHORITY_KEYS
+    if config.source_authority_mode == "router_v1":
+        values["router_issue_number"] = str(config.router_issue_number)
+        values["router_revision"] = str(config.router_revision)
+        values["source_generation"] = str(config.source_generation)
+        values["source_issue_number"] = str(config.source_issue_number)
+        values["source_snapshot_sha256"] = config.source_snapshot_sha256
+        authority_keys = CANDIDATE_COMMIT_AUTHORITY_KEYS + ROUTER_CANDIDATE_COMMIT_AUTHORITY_KEYS
     return "\n".join(
         [CANDIDATE_COMMIT_AUTHORITY_MARKER]
-        + [f"{key}={values[key]}" for key in CANDIDATE_COMMIT_AUTHORITY_KEYS]
+        + [f"{key}={values[key]}" for key in authority_keys]
     ) + "\n"
 
 
@@ -501,7 +521,15 @@ def _safe_gh_json(repository_root: Path, args: List[str], *, paginate: bool = Fa
     )
 
 
-def _validate_live_142_comment(value: Any) -> Dict[str, Any]:
+def issue_api_url(issue_number: int) -> str:
+    if (
+        not isinstance(issue_number, int)
+        or isinstance(issue_number, bool)
+        or issue_number <= 0
+    ):
+        raise ProcessorError("processor_invalid_contract")
+    return ISSUE_142_API_URL[:-3] + str(issue_number)
+def _validate_live_comment(value: Any, issue_number: int) -> Dict[str, Any]:
     user = value.get("user") if isinstance(value, dict) else None
     entry_key = value.get("id") if isinstance(value, dict) else None
     numeric_id = user.get("id") if isinstance(user, dict) else None
@@ -519,12 +547,15 @@ def _validate_live_142_comment(value: Any) -> Dict[str, Any]:
         or not isinstance(association, str)
         or not association
         or not isinstance(value.get("body"), str)
-        or value.get("issue_url") != ISSUE_142_API_URL
+        or value.get("issue_url") != issue_api_url(issue_number)
         or not valid_timestamp(value.get("created_at"))
         or not valid_timestamp(value.get("updated_at"))
     ):
         raise ProcessorError("processor_source_unavailable")
     return value
+def _validate_live_142_comment(value: Any) -> Dict[str, Any]:
+    return _validate_live_comment(value, 142)
+
 
 
 def fetch_live_142_comments(repository_root: Path = ROOT) -> List[Dict[str, Any]]:
@@ -547,6 +578,29 @@ def fetch_live_142_comments(repository_root: Path = ROOT) -> List[Dict[str, Any]
     return comments
 
 
+def fetch_live_issue_comments(issue_number: int, repository_root: Path = ROOT) -> List[Dict[str, Any]]:
+    issue_api_url(issue_number)
+    pages = _safe_gh_json(
+        repository_root,
+        [f"repos/weijunswj/ai-executor-evaluation-ledger/issues/{issue_number}/comments"],
+        paginate=True,
+    )
+    if not isinstance(pages, list):
+        raise ProcessorError("processor_source_unavailable")
+    comments: List[Dict[str, Any]] = []
+    for page in pages:
+        if not isinstance(page, list):
+            raise ProcessorError("processor_source_unavailable")
+        for item in page:
+            comments.append(_validate_live_comment(item, issue_number))
+    comment_ids = [item["id"] for item in comments]
+    if comment_ids != sorted(comment_ids) or len(comment_ids) != len(set(comment_ids)):
+        raise ProcessorError("processor_source_unavailable")
+    return comments
+def _default_queue_fetcher(config: ProcessBatchConfig) -> Callable[[Path], List[Dict[str, Any]]]:
+    if config.source_authority_mode == "router_v1":
+        return lambda root: fetch_live_issue_comments(config.source_issue_number, root)
+    return fetch_live_142_comments
 def fetch_single_comment(comment_id: int, repository_root: Path = ROOT) -> Dict[str, Any]:
     value = _safe_gh_json(
         repository_root,
@@ -572,10 +626,11 @@ def fetch_repository_owner_authority(repository_root: Path = ROOT) -> Dict[str, 
     return {"id": owner_id, "login": owner_login}
 
 
-def fetch_issue_metadata(repository_root: Path = ROOT) -> Dict[str, Any]:
+def fetch_issue_metadata(repository_root: Path = ROOT, issue_number: int = 142) -> Dict[str, Any]:
+    issue_api_url(issue_number)
     value = _safe_gh_json(
         repository_root,
-        ["repos/weijunswj/ai-executor-evaluation-ledger/issues/142"],
+        [f"repos/weijunswj/ai-executor-evaluation-ledger/issues/{issue_number}"],
     )
     if not isinstance(value, dict):
         raise ProcessorError("processor_source_unavailable")
@@ -728,7 +783,34 @@ def _validate_config(config: ProcessBatchConfig) -> None:
         _source_comment_watermark(config)
     if not isinstance(config.pr_number, int) or config.pr_number <= 0:
         raise ProcessorError("processor_invalid_contract")
-    if config.source_issue_number != 142 or config.receipt_issue_number != 143:
+    if config.source_authority_mode not in {"legacy_v2", "router_v1"}:
+        raise ProcessorError("processor_invalid_contract")
+    if config.source_authority_mode == "legacy_v2":
+        if config.source_issue_number != 142 or any(
+            value is not None
+            for value in (
+                config.router_issue_number,
+                config.router_revision,
+                config.source_generation,
+                config.source_snapshot_sha256,
+            )
+        ):
+            raise ProcessorError("processor_invalid_contract")
+    elif (
+        not isinstance(config.source_issue_number, int)
+        or isinstance(config.source_issue_number, bool)
+        or config.source_issue_number <= 0
+        or config.router_issue_number != 142
+        or not isinstance(config.router_revision, int)
+        or isinstance(config.router_revision, bool)
+        or config.router_revision <= 0
+        or not _valid_source_comment_watermark(config.source_generation)
+        or not valid_sha256(config.source_snapshot_sha256)
+        or (config.source_generation == 0 and config.source_issue_number != 142)
+        or (config.source_generation > 0 and config.source_issue_number == 142)
+    ):
+        raise ProcessorError("processor_invalid_contract")
+    if config.receipt_issue_number != 143:
         raise ProcessorError("processor_invalid_contract")
     if config.activation_mode not in {"dry-run", "reviewed-live"}:
         raise ProcessorError("processor_invalid_contract")
@@ -945,7 +1027,7 @@ def build_batch_candidate(
     if canonical_main_fetcher(config.repository_root) != config.canonical_main_sha:
         raise ProcessorError("processor_authority_mismatch")
     recover_incomplete_transaction(config.repository_root, failure_hook=failure_hook)
-    queue_fetcher = queue_fetcher or fetch_live_142_comments
+    queue_fetcher = queue_fetcher or _default_queue_fetcher(config)
     if config.batch_id == FROZEN_BATCH_ID:
         return _build_frozen_candidate(
             config,
@@ -969,6 +1051,9 @@ def build_batch_candidate(
         comments,
         source_comment_watermark,
     )
+    if config.source_authority_mode == "router_v1" and first_queue_hash != config.source_snapshot_sha256:
+        raise ProcessorError("source_changed")
+
     if config.candidate_content_commit_sha is not None:
         _validate_candidate_commit_authority(
             config,
@@ -1110,6 +1195,9 @@ def build_batch_candidate(
         _verify_selected_comment(initial, final)
     if first_queue_hash != final_queue_hash or first_fingerprints != final_fingerprints:
         raise ProcessorError("source_changed")
+    if config.source_authority_mode == "router_v1" and final_queue_hash != config.source_snapshot_sha256:
+        raise ProcessorError("source_changed")
+
 
     final_records = preserved_records + admitted_records
     final_evaluations = _append_jsonl(authority_files["evaluations.jsonl"], new_record_lines)
@@ -1181,7 +1269,7 @@ def build_batch_candidate(
             raise ProcessorError("processor_integrity_failure")
         candidate_manifest = list(candidate_bindings)
         batch_receipt = {
-            "schema_version": 2,
+            "schema_version": 3 if config.source_authority_mode == "router_v1" else 2,
             "receipt_type": "batch",
             "batch_id": config.batch_id,
             "batch_mode": config.operating_mode,
@@ -1198,6 +1286,21 @@ def build_batch_candidate(
             "receipt_issue_number": config.receipt_issue_number,
             "source_replay": {"adapter": "github-intake-v1"},
             "source_comment_watermark": source_comment_watermark,
+            **(
+                {
+                    "source_authority": {
+                        "authority_mode": "router_v1",
+                        "router_issue_number": config.router_issue_number,
+                        "router_revision": config.router_revision,
+                        "source_generation": config.source_generation,
+                        "source_issue_number": config.source_issue_number,
+                        "source_comment_watermark": source_comment_watermark,
+                        "source_snapshot_sha256": config.source_snapshot_sha256,
+                    }
+                }
+                if config.source_authority_mode == "router_v1"
+                else {}
+            ),
             "full_queue_count": len(first_fingerprints),
             "latest_observed_comment_id": latest_id,
             "latest_observed_update_time": latest_update,
@@ -1302,7 +1405,7 @@ def process_batch(
         canonical_main_fetcher=canonical_main_fetcher,
         owner_fetcher=owner_fetcher,
     )
-    queue_fetcher = queue_fetcher or fetch_live_142_comments
+    queue_fetcher = queue_fetcher or _default_queue_fetcher(config)
     final_queue = queue_fetcher(config.repository_root)
     if config.batch_id == FROZEN_BATCH_ID:
         receipt = _frozen_policy_receipt(config)
@@ -1349,6 +1452,11 @@ def parse_cli(argv: Optional[List[str]] = None) -> ProcessBatchConfig:
     parser.add_argument("--receipt-issue-number", type=int, required=True)
     parser.add_argument("--repository-root", type=Path, required=True)
     parser.add_argument("--source-comment-watermark", type=int)
+    parser.add_argument("--source-authority-mode", choices=["legacy_v2", "router_v1"], default="legacy_v2")
+    parser.add_argument("--router-issue-number", type=int)
+    parser.add_argument("--router-revision", type=int)
+    parser.add_argument("--source-generation", type=int)
+    parser.add_argument("--source-snapshot-sha256")
     parser.add_argument("--operator-intent", choices=["reviewed"])
     parser.add_argument("--reviewed-pr-state", choices=["open", "merged"])
     parser.add_argument("--merge-state", choices=["unmerged", "merged"])
@@ -1375,6 +1483,11 @@ def parse_cli(argv: Optional[List[str]] = None) -> ProcessBatchConfig:
         review_state=args.review_state,
         candidate_content_commit_sha=args.candidate_content_commit_sha,
         source_comment_watermark=args.source_comment_watermark,
+        source_authority_mode=args.source_authority_mode,
+        router_issue_number=args.router_issue_number,
+        router_revision=args.router_revision,
+        source_generation=args.source_generation,
+        source_snapshot_sha256=args.source_snapshot_sha256,
     )
     _validate_config(config)
     return config
