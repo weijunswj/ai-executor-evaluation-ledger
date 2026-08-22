@@ -224,6 +224,95 @@ class RouterCutoverTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "router_reread_unavailable")
 
+    def test_stable_active_authority_queues_for_each_active_state(self):
+        migration_verified = _successor_router()
+        migration_verified["cutover_state"] = "MIGRATION_VERIFIED"
+        cases = (
+            ("LEGACY_ACTIVE", _legacy_router(), 0, 142, 873),
+            ("SUCCESSOR_ACTIVE", _successor_router(), 1, 1780, 1875),
+            ("MIGRATION_VERIFIED", migration_verified, 1, 1780, 1876),
+        )
+        body_hash = hashlib.sha256(b"payload").hexdigest()
+        for state, authority, generation, issue_number, comment_id in cases:
+            with self.subTest(state=state):
+                result = router.post_protocol_decision(
+                    posted=True,
+                    readback_verified=True,
+                    router_reread_available=True,
+                    before_router=authority,
+                    after_router=copy.deepcopy(authority),
+                    target_generation=generation,
+                    target_issue_number=issue_number,
+                    posted_body="payload",
+                    readback={"issue_number": issue_number, "id": comment_id, "body_sha256": body_hash},
+                )
+                self.assertEqual(result["status"], "queued")
+                self.assertFalse(result["retry_allowed"])
+                self.assertFalse(result["canonical"])
+
+    def test_successor_target_mismatch_is_ambiguous_without_retry(self):
+        before = _successor_router()
+        result = router.post_protocol_decision(
+            posted=True,
+            readback_verified=True,
+            router_reread_available=True,
+            before_router=before,
+            after_router=copy.deepcopy(before),
+            target_generation=0,
+            target_issue_number=142,
+            posted_body="payload",
+            readback={"issue_number": 142, "id": 875, "body": "payload"},
+            cutover_anchor=_anchor(),
+        )
+        self.assertEqual(result["status"], "ambiguous_authority")
+        self.assertFalse(result["retry_allowed"])
+        self.assertFalse(result["canonical"])
+
+    def test_successor_revision_movement_cannot_enter_stale_retry(self):
+        before = _successor_router()
+        after = copy.deepcopy(before)
+        after["router_revision"] += 1
+        result = router.post_protocol_decision(
+            posted=True,
+            readback_verified=True,
+            router_reread_available=True,
+            before_router=before,
+            after_router=after,
+            target_generation=1,
+            target_issue_number=1780,
+            posted_body="payload",
+            readback={"issue_number": 1780, "id": 875, "body": "payload"},
+            cutover_anchor=_anchor(),
+        )
+        self.assertEqual(result["status"], "authority_changed")
+        self.assertFalse(result["retry_allowed"])
+        self.assertFalse(result["canonical"])
+
+    def test_successor_active_target_movement_fails_closed(self):
+        before = _successor_router()
+        after = copy.deepcopy(before)
+        after["router_revision"] += 1
+        after["successor_issue_number"] = 1781
+        after["active_issue_number"] = 1781
+        moved_anchor = _anchor()
+        moved_anchor["successor_issue_number"] = 1781
+        after["cutover_anchor_sha256"] = router.cutover_anchor_sha256(moved_anchor)
+        result = router.post_protocol_decision(
+            posted=True,
+            readback_verified=True,
+            router_reread_available=True,
+            before_router=before,
+            after_router=after,
+            target_generation=1,
+            target_issue_number=1780,
+            posted_body="payload",
+            readback={"issue_number": 1780, "id": 875, "body": "payload"},
+            cutover_anchor=moved_anchor,
+        )
+        self.assertEqual(result["status"], "invalid_router_transition")
+        self.assertFalse(result["retry_allowed"])
+        self.assertFalse(result["canonical"])
+
     def test_stale_retry_requires_readback_identity_and_exact_boundary(self):
         before = _legacy_router()
         after = _committed_router()
@@ -246,16 +335,27 @@ class RouterCutoverTests(unittest.TestCase):
             with self.subTest(comment_id=comment_id):
                 result = decide(comment_id)
                 self.assertFalse(result["retry_allowed"])
+                self.assertFalse(result["canonical"])
                 self.assertEqual(result["status"], "legacy_authority_input")
         result = decide(875)
         self.assertEqual(result["status"], "stale_route")
         self.assertTrue(result["retry_allowed"])
+        self.assertFalse(result["canonical"])
         wrong_anchor = _anchor()
         wrong_anchor["final_watermark"] += 1
-        self.assertFalse(decide(875, anchor=wrong_anchor)["retry_allowed"])
-        self.assertFalse(decide(875, anchor=None)["retry_allowed"])
-        self.assertFalse(decide(875, readback="__missing__")["retry_allowed"])
-        self.assertFalse(decide(875, reread=False)["retry_allowed"])
+        wrong_anchor_result = decide(875, anchor=wrong_anchor)
+        self.assertEqual(wrong_anchor_result["status"], "stale_route_unproven")
+        self.assertFalse(wrong_anchor_result["retry_allowed"])
+        self.assertFalse(wrong_anchor_result["canonical"])
+        missing_anchor_result = decide(875, anchor=None)
+        self.assertEqual(missing_anchor_result["status"], "stale_route_unproven")
+        self.assertFalse(missing_anchor_result["retry_allowed"])
+        missing_readback_result = decide(875, readback="__missing__")
+        self.assertEqual(missing_readback_result["status"], "readback_identity_unavailable")
+        self.assertFalse(missing_readback_result["retry_allowed"])
+        no_reread_result = decide(875, reread=False)
+        self.assertEqual(no_reread_result["status"], "router_reread_unavailable")
+        self.assertFalse(no_reread_result["retry_allowed"])
         bad_after = _successor_router()
         bad_after["router_revision"] = 1
         self.assertFalse(decide(875, after_router=bad_after)["retry_allowed"])

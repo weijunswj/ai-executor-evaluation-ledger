@@ -527,6 +527,33 @@ def load_canonical_main_records(repository_root: Path, canonical_main_sha: str) 
     return _validate_json_lines(read_git_object(repository_root, canonical_main_sha, "evaluations.jsonl"))
 
 
+def load_canonical_cutover_anchor(
+    repository_root: Path,
+    canonical_main_sha: str,
+) -> Dict[str, Any]:
+    """Load the immutable cutover anchor from the bound canonical commit."""
+
+    content = read_git_object(
+        repository_root,
+        canonical_main_sha,
+        "migrations/ledger-router-cutover.json",
+    )
+    try:
+        value = json.loads(
+            content.decode("utf-8"),
+            object_pairs_hook=reject_duplicate_json_keys,
+            parse_constant=_reject_nonfinite_constant,
+        )
+    except (UnicodeDecodeError, TypeError, ValueError) as error:
+        raise ProcessorError("processor_authority_mismatch") from error
+    if not isinstance(value, Mapping):
+        raise ProcessorError("processor_authority_mismatch")
+    try:
+        return router.validate_cutover_anchor(value)
+    except (KeyError, TypeError, ValueError, router.RouterValidationError) as error:
+        raise ProcessorError("processor_authority_mismatch") from error
+
+
 def _ensure_newline(content: bytes) -> bytes:
     return content if not content or content.endswith(b"\n") else content + b"\n"
 
@@ -709,12 +736,27 @@ def _resolve_router_authority(
         raise ProcessorError("processor_authority_mismatch")
     if config.cutover_anchor_sha256 is not None and config.cutover_anchor_sha256 != observed_router["cutover_anchor_sha256"]:
         raise ProcessorError("processor_authority_mismatch")
-    anchor = observed_issue.get("cutover_anchor")
-    if anchor is None and cutover_anchor_fetcher is not None:
+    anchor = None
+    anchor_required = (
+        config.source_generation == 0
+        and observed_router["cutover_state"] in router.COMMITTED_STATES
+        and observed_router["cutover_anchor_sha256"] is not None
+    )
+    if anchor_required:
+        if cutover_anchor_fetcher is not None:
+            try:
+                anchor = cutover_anchor_fetcher(config.repository_root)
+            except (OSError, TypeError, ValueError) as error:
+                raise ProcessorError("processor_source_unavailable") from error
+        else:
+            anchor = load_canonical_cutover_anchor(
+                config.repository_root,
+                config.canonical_main_sha,
+            )
         try:
-            anchor = cutover_anchor_fetcher(config.repository_root)
-        except (OSError, TypeError, ValueError) as error:
-            raise ProcessorError("processor_source_unavailable") from error
+            router.validate_cutover_anchor_binding(observed_router, anchor)
+        except (KeyError, TypeError, ValueError, router.RouterValidationError) as error:
+            raise ProcessorError("processor_authority_mismatch") from error
     return {
         "authority_mode": "router_v1",
         "router_issue_number": 142,

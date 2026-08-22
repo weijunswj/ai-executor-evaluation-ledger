@@ -481,16 +481,15 @@ def post_protocol_decision(
     except RouterValidationError:
         return {"status": "invalid_router_transition", "retry_allowed": False, "canonical": False}
     issue_number, comment_id = _post_readback_identity(actual_readback)
-    target_matches_before = (
-        before["cutover_state"] == "LEGACY_ACTIVE"
-        and target_generation == before["legacy_generation"]
-        and target_issue_number == before["legacy_issue_number"]
+    active_target_matches_before = (
+        before["cutover_state"] in ACTIVE_STATES
         and target_generation == before["active_generation"]
         and target_issue_number == before["active_issue_number"]
         and issue_number == target_issue_number
     )
     same_authority = (
-        target_matches_before
+        active_target_matches_before
+        and after["cutover_state"] in ACTIVE_STATES
         and before["router_revision"] == after["router_revision"]
         and before["active_generation"] == after["active_generation"]
         and before["active_issue_number"] == after["active_issue_number"]
@@ -499,8 +498,20 @@ def post_protocol_decision(
     )
     if same_authority:
         return {"status": "queued", "retry_allowed": False, "canonical": False}
-    if not target_matches_before:
+    if not active_target_matches_before:
         return {"status": "ambiguous_authority", "retry_allowed": False, "canonical": False}
+    # Stale retry is a legacy-only race. A successor movement must never
+    # inherit retry eligibility merely because its target was once active.
+    legacy_target_matches_before = (
+        before["cutover_state"] == "LEGACY_ACTIVE"
+        and target_generation == before["legacy_generation"]
+        and target_issue_number == before["legacy_issue_number"]
+        and target_generation == before["active_generation"]
+        and target_issue_number == before["active_issue_number"]
+        and issue_number == target_issue_number
+    )
+    if not legacy_target_matches_before:
+        return {"status": "authority_changed", "retry_allowed": False, "canonical": False}
     if after["final_watermark"] is None or after["cutover_state"] not in COMMITTED_STATES:
         return {"status": "authority_changed", "retry_allowed": False, "canonical": False}
     if comment_id <= after["final_watermark"]:
